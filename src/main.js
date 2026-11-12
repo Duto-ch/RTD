@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, FONT, BALANCE } from './config.js';
+import { UI_FONT } from './ui/theme.js';
 import { skillOptions } from './data/skills.js';
 import { audio } from './systems/audio.js';
 import { HEROES } from './data/heroes.js';
@@ -9,8 +10,13 @@ import { GameScene } from './scenes/GameScene.js';
 
 async function loadFonts() {
   const faces = [
+    // 픽셀 글꼴: 게임 월드(피해 숫자·스킬 이름 등)
     new FontFace(FONT, 'url(assets/fonts/Galmuri11.woff2)'),
-    new FontFace(FONT, 'url(assets/fonts/Galmuri11-Bold.woff2)', { weight: 'bold' })
+    new FontFace(FONT, 'url(assets/fonts/Galmuri11-Bold.woff2)', { weight: 'bold' }),
+    // UI 글꼴: Pretendard (KS X 1001 서브셋)
+    new FontFace(UI_FONT, 'url(assets/fonts/Pretendard-Regular.subset.woff2)', { weight: '400' }),
+    new FontFace(UI_FONT, 'url(assets/fonts/Pretendard-SemiBold.subset.woff2)', { weight: '600' }),
+    new FontFace(UI_FONT, 'url(assets/fonts/Pretendard-Bold.subset.woff2)', { weight: '700' })
   ];
   try {
     for (const f of await Promise.all(faces.map((f) => f.load()))) document.fonts.add(f);
@@ -29,7 +35,7 @@ const game = new Phaser.Game({
   parent: 'game',
   width: GAME_W,
   height: GAME_H,
-  backgroundColor: '#0d0d14',
+  backgroundColor: '#f1edff',
   pixelArt: true,
   roundPixels: true,
   scale: {

@@ -4,6 +4,7 @@ import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
 import { GAME_W, GAME_H, PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID } from '../config.js';
 import { RELICS } from '../data/relics.js';
 import { HEROES } from '../data/heroes.js';
+import { BIOMES } from '../data/biomes.js';
 
 const ATTRS = ['red', 'blue', 'green'];
 
@@ -34,12 +35,15 @@ function rng(seed) {
   };
 }
 
-function paintBackground(scene) {
+/** 지역(biome)별 배경: 땅·길 색과 장식이 다르고 성벽은 공통 */
+function paintBackground(scene, biome) {
   const W = GAME_W / PX;
   const H = GAME_H / PX;
-  const tex = scene.textures.createCanvas('background', W, H);
+  const tex = scene.textures.createCanvas(`bg_${biome.id}`, W, H);
   const ctx = tex.getContext();
-  const rand = rng(1234);
+  const rand = rng(1234 + biome.id.length * 97);
+  const [g0, g1, g2] = biome.ground;
+  const [p0, p1, p2, pEdge] = biome.path;
   const px = (x, y, c) => {
     ctx.fillStyle = c;
     ctx.fillRect(x, y, 1, 1);
@@ -49,16 +53,16 @@ function paintBackground(scene) {
     ctx.fillRect(x, y, w, h);
   };
 
-  // 잔디
-  rect(0, 0, W, H, '#3d7a3a');
+  // 땅
+  rect(0, 0, W, H, g0);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const r = rand();
-      if (r < 0.12) px(x, y, '#356b33');
-      else if (r < 0.2) px(x, y, '#4a8a44');
-      else if (r < 0.205) px(x, y, '#e8d86a');
+      if (r < 0.12) px(x, y, g1);
+      else if (r < 0.2) px(x, y, g2);
     }
   }
+  paintDecorations(px, rect, rand, W, H, biome);
 
   const fx = FIELD_X / PX;
   const fy = FIELD_Y / PX;
@@ -77,11 +81,11 @@ function paintBackground(scene) {
     for (let x = ox; x < ox + os; x++) {
       if (x >= ix && x < ix + is && y >= iy && y < iy + is) continue;
       const r = rand();
-      px(x, y, r < 0.15 ? '#7a5c3c' : r < 0.22 ? '#a3825a' : '#8d6c48');
+      px(x, y, r < 0.15 ? p1 : r < 0.22 ? p2 : p0);
     }
   }
   // 길 가장자리
-  ctx.strokeStyle = '#5e4630';
+  ctx.strokeStyle = pEdge;
   ctx.lineWidth = 1;
   ctx.strokeRect(ox + 0.5, oy + 0.5, os - 1, os - 1);
   ctx.strokeRect(ix - 0.5, iy - 0.5, is + 1, is + 1);
@@ -141,6 +145,89 @@ function paintBackground(scene) {
   tex.refresh();
 }
 
+/** 지역별 땅 장식 (길·성벽은 그 위에 덮어 그린다) */
+function paintDecorations(px, rect, rand, W, H, biome) {
+  const [c1, c2, c3] = biome.decoColors;
+  const spots = (n, fn) => {
+    for (let i = 0; i < n; i++) fn(Math.floor(rand() * W), Math.floor(rand() * H), rand());
+  };
+  switch (biome.deco) {
+    case 'flowers':
+      spots(160, (x, y, r) => px(x, y, r < 0.5 ? c1 : r < 0.8 ? c2 : c3));
+      break;
+    case 'cactus':
+      spots(26, (x, y) => {
+        rect(x, y, 1, 4, c1);
+        px(x - 1, y + 1, c1);
+        px(x + 1, y + 2, c1);
+        px(x, y + 4, c2);
+      });
+      spots(60, (x, y) => px(x, y, c3));
+      break;
+    case 'leaves':
+      spots(260, (x, y, r) => {
+        const c = r < 0.4 ? c1 : r < 0.75 ? c2 : c3;
+        px(x, y, c);
+        if (r < 0.5) px(x + 1, y, c);
+      });
+      break;
+    case 'lava':
+      spots(22, (x, y) => {
+        let cx = x;
+        for (let i = 0; i < 6; i++) {
+          px(cx, y + i, i % 2 ? c1 : c3);
+          cx += Math.floor(rand() * 3) - 1;
+        }
+      });
+      spots(90, (x, y) => px(x, y, c2));
+      break;
+    case 'pines':
+      spots(18, (x, y) => {
+        px(x, y, c1);
+        rect(x - 1, y + 1, 3, 1, c1);
+        rect(x - 2, y + 2, 5, 1, c2);
+        px(x, y + 3, '#6a4a2a');
+        px(x, y, c3);
+      });
+      spots(120, (x, y) => px(x, y, '#d6e2ef'));
+      break;
+    case 'puddles':
+      spots(24, (x, y) => {
+        rect(x, y, 4, 2, c1);
+        px(x + 1, y, c2);
+      });
+      spots(80, (x, y) => px(x, y, c3));
+      break;
+    case 'crystals':
+      spots(30, (x, y, r) => {
+        const c = r < 0.5 ? c1 : c2;
+        rect(x, y, 1, 3, c);
+        px(x + 1, y + 1, c);
+        px(x, y, c3);
+      });
+      break;
+    case 'tombs':
+      spots(16, (x, y) => {
+        rect(x, y, 3, 4, c1);
+        rect(x, y + 3, 3, 1, c2);
+        px(x + 1, y + 1, c2);
+      });
+      spots(50, (x, y) => px(x, y, c3));
+      break;
+    case 'clouds':
+      spots(14, (x, y) => {
+        rect(x, y, 6, 2, c1);
+        rect(x + 1, y - 1, 3, 1, c1);
+        rect(x, y + 2, 6, 1, c2);
+      });
+      spots(30, (x, y) => px(x, y, c3));
+      break;
+    case 'stars':
+      spots(140, (x, y, r) => px(x, y, r < 0.5 ? c1 : r < 0.85 ? c2 : c3));
+      break;
+  }
+}
+
 export function generateTextures(scene) {
   // 용병: 클래스 × 속성
   for (const [cls, rows] of Object.entries(MERC_SPRITES)) {
@@ -192,5 +279,5 @@ export function generateTextures(scene) {
   }
   paintMap(scene, 'arrow_gold', ['y......k.', '.ybbbbbwk', 'y......k.'], BASE_PALETTE);
 
-  paintBackground(scene);
+  for (const b of BIOMES) paintBackground(scene, b);
 }
