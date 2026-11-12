@@ -1,0 +1,83 @@
+import Phaser from 'phaser';
+
+// 직접 그린 이미지·애니메이션으로 코드 그림을 바꾸는 장치
+// public/assets/custom/manifest.json 에 적힌 이미지만 교체하고, 나머지는 코드 그림을 그대로 쓴다.
+// 형식은 docs/CUSTOM_ART.md 참고.
+export const MANIFEST_KEY = 'customManifest';
+export const MANIFEST_URL = 'assets/custom/manifest.json';
+const BASE = 'assets/custom/';
+const TMP = '__custom';
+
+/** BootScene.preload 에서 호출: 매니페스트 읽기 (없어도 게임은 정상 동작) */
+export function preloadManifest(scene) {
+  scene.load.json(MANIFEST_KEY, MANIFEST_URL);
+  scene.load.on('loaderror', (file) => {
+    if (file.key === MANIFEST_KEY) console.info('[custom art] manifest 없음 — 기본 그림 사용');
+    else console.warn(`[custom art] 이미지를 불러오지 못함: ${file.url}`);
+  });
+}
+
+/** 매니페스트에 적힌 이미지를 불러와 같은 키의 코드 그림을 교체하고 애니메이션을 등록한다 */
+export function loadCustomArt(scene, onDone) {
+  const manifest = scene.cache.json.get(MANIFEST_KEY);
+  const sprites = manifest?.sprites || {};
+  const entries = Object.entries(sprites).filter(([key]) => !key.startsWith('_'));
+  if (!entries.length) return onDone();
+
+  for (const [key, def] of entries) {
+    const url = BASE + def.file;
+    if (def.frameWidth && def.frameHeight) {
+      scene.load.spritesheet(key + TMP, url, { frameWidth: def.frameWidth, frameHeight: def.frameHeight });
+    } else {
+      scene.load.image(key + TMP, url);
+    }
+  }
+  scene.load.once('complete', () => {
+    let applied = 0;
+    for (const [key, def] of entries) {
+      const tmp = key + TMP;
+      if (!scene.textures.exists(tmp)) continue;
+      if (scene.textures.exists(key)) scene.textures.remove(key);
+      scene.textures.renameTexture(tmp, key);
+      applied++;
+      for (const [name, a] of Object.entries(def.animations || {})) {
+        const animKey = `${key}:${name}`;
+        if (scene.anims.exists(animKey)) scene.anims.remove(animKey);
+        scene.anims.create({
+          key: animKey,
+          frames: scene.anims.generateFrameNumbers(key, { frames: a.frames }),
+          frameRate: a.fps ?? 8,
+          repeat: a.loop ? -1 : 0
+        });
+      }
+    }
+    console.info(`[custom art] ${applied}/${entries.length}개 이미지 교체`);
+    onDone();
+  });
+  scene.load.start();
+}
+
+/** 애니메이션이 있으면 재생하고 true, 없으면 false (정지 그림 그대로) */
+export function playAnim(sprite, name, ignoreIfPlaying = true) {
+  const key = `${sprite.texture.key}:${name}`;
+  if (!sprite.scene || !sprite.scene.anims.exists(key)) return false;
+  sprite.play({ key }, ignoreIfPlaying);
+  return true;
+}
+
+/** 텍스처가 바뀐 뒤 기본 동작(대기/걷기)으로 맞춘다 */
+export function playBase(sprite, name) {
+  if (!playAnim(sprite, name)) {
+    if (sprite.anims?.isPlaying) sprite.anims.stop();
+    sprite.setFrame(0);
+  }
+}
+
+/** 공격처럼 한 번 재생하고 기본 동작으로 돌아가는 애니메이션 */
+export function playOnce(sprite, name, back) {
+  const key = `${sprite.texture.key}:${name}`;
+  if (!sprite.scene || !sprite.scene.anims.exists(key)) return false;
+  sprite.play(key);
+  sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => playBase(sprite, back));
+  return true;
+}

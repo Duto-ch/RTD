@@ -13,7 +13,8 @@
 - Phaser 3 (`phaser@^3.90`) + Vite 8, JavaScript (ES Modules, top-level await 사용 → build target es2022)
 - 물리 엔진 미사용 (이동·충돌 직접 계산)
 - 해상도 544x960, `pixelArt: true`, `Scale.FIT`
-- **모든 그래픽은 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환). 외부 이미지 없음
+- **그래픽은 기본적으로 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환)
+- **직접 그린 이미지·애니메이션으로 교체 가능**: `public/assets/custom/manifest.json` 에 적힌 PNG(스프라이트 시트)가 같은 키의 코드 그림을 대체 (`src/systems/customArt.js`). 애니메이션 이름: 용병·영웅 `idle`/`attack`, 몬스터 `walk`. 사용법·키 목록은 `docs/CUSTOM_ART.md`
 - 폰트: 픽셀 폰트 Galmuri11 (OFL) — UI·게임 월드 공통. `public/assets/fonts/`
 - **UI 스타일**: 픽셀아트 RPG 풍 — 양피지 창 + 갈색 나무 테두리 + 초록 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 PX배 확대(게임과 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
 
@@ -22,6 +23,7 @@
 - `npm run build` — `dist/` 로 빌드
 - `node tools/balance-sim.cjs ['{"hpGrowth":1.08}']` — 밸런스 봇 시뮬레이션. JSON 인자로 BALANCE.monster 덮어쓰기 실험 (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
 - `node tools/gen-skill-doc.mjs` — 스킬 데이터 변경 후 `docs/SKILLS.md` 재생성
+- `node tools/gen-art-doc.mjs` — 영웅·몬스터·유물·지역을 추가/변경하면 `docs/CUSTOM_ART.md` 의 교체 가능 키 목록 재생성
 - **배포**: `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy.yml`)가 빌드해 GitHub Pages 로 자동 배포 → https://duto-ch.github.io/RTD/
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio
 
@@ -45,6 +47,7 @@
 - 픽셀 격자 유지: 아트 1px = 화면 4px(`PX`). 배치 좌표는 4의 배수로.
 - 밸런스 수치는 코드에 흩지 말고 `config.js`의 BALANCE 또는 `data/` 에 둔다.
 - GameObject 하위 클래스에 `name`, `type`, `state` 같은 Phaser 예약 속성명 getter 금지 (예: 용병 이름은 `heroName`).
+- 유닛·몬스터 그림은 Sprite(애니메이션 가능). 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')` 로 기본 애니메이션을 다시 맞춘다. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영
 - 기능 변경 후: 빌드 → 브라우저(Playwright)로 실제 실행 확인.
 
 ## 확인 필요 (사용자에게 물어볼 것)
@@ -95,3 +98,4 @@
 - 2026-11-12 치비 스타일 시안 폐기 (사용자 결정) — 영웅은 현재 16x16 스프라이트 유지
 - 2026-11-12 상·하단 UI 크기 축소(상단 창 156→120, 유물 줄 44→36, 하단 영역 212→176), 다음 웨이브 바로 시작 버튼(N 키)
 - 2026-11-12 UI 겹침 수정: 상단 타이머 줄을 웨이브 탭 아래로, 정보 창 초상화·버튼을 테두리 안쪽으로, 정보 본문 2줄로 축소(레벨업 비용은 부제로)
+- 2026-11-12 직접 그린 이미지·애니메이션 교체 장치 추가 (manifest.json + 스프라이트 시트, idle/attack/walk). 테스트용 샘플로 교체·재생 확인, 저장소에는 빈 manifest 만 포함

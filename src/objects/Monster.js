@@ -3,10 +3,11 @@ import { PX, DEPTH } from '../config.js';
 import { pathPoint } from '../systems/path.js';
 import { monsterStats, TOTAL_WAVES } from '../data/waves.js';
 import { monsterDesign } from '../data/monsters.js';
+import { playBase } from '../systems/customArt.js';
 import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
-export class Monster extends Phaser.GameObjects.Image {
+export class Monster extends Phaser.GameObjects.Sprite {
   constructor(scene, kind, attr, wave, milestone = false) {
     const design = monsterDesign(kind, wave);
     super(scene, 0, 0, `mon_${design.id}_${attr}`);
@@ -45,6 +46,7 @@ export class Monster extends Phaser.GameObjects.Image {
     this.setScale(kind === 'boss' ? PX + 1 : PX);
     this.setDepth(DEPTH.monster + (kind === 'boss' ? 2 : kind === 'elite' ? 1 : 0));
     scene.add.existing(this);
+    playBase(this, 'walk');
     this.place();
   }
 
@@ -83,7 +85,8 @@ export class Monster extends Phaser.GameObjects.Image {
     const p = pathPoint(this.dist);
     // 2프레임 깡충 애니메이션 (픽셀 격자 유지). 기절 중엔 멈춤
     const stunned = this.scene.gameTime < this.stunUntil;
-    const hop = stunned || Math.floor(this.scene.gameTime * 4 + this.phase) % 2 === 0 ? 0 : -PX;
+    const animated = this.anims.isPlaying;
+    const hop = animated || stunned || Math.floor(this.scene.gameTime * 4 + this.phase) % 2 === 0 ? 0 : -PX;
     this.setPosition(Math.round(p.x), Math.round(p.y) + hop);
     if (p.dir === 'left') this.setFlipX(true);
     else if (p.dir === 'right') this.setFlipX(false);
@@ -109,6 +112,7 @@ export class Monster extends Phaser.GameObjects.Image {
   setAttr(attr) {
     this.attr = attr;
     this.setTexture(`mon_${this.design.id}_${attr}`);
+    playBase(this, 'walk');
   }
 
   tick(dt, now, speedMul) {
