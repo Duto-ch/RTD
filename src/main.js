@@ -1,0 +1,37 @@
+import Phaser from 'phaser';
+import { GAME_W, GAME_H, FONT } from './config.js';
+import { BootScene } from './scenes/BootScene.js';
+import { TitleScene } from './scenes/TitleScene.js';
+import { GameScene } from './scenes/GameScene.js';
+
+async function loadFonts() {
+  const faces = [
+    new FontFace(FONT, 'url(assets/fonts/Galmuri11.woff2)'),
+    new FontFace(FONT, 'url(assets/fonts/Galmuri11-Bold.woff2)', { weight: 'bold' })
+  ];
+  try {
+    for (const f of await Promise.all(faces.map((f) => f.load()))) document.fonts.add(f);
+  } catch (e) {
+    console.warn('폰트 로드 실패, 기본 폰트 사용', e);
+  }
+}
+
+await loadFonts();
+
+const game = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'game',
+  width: GAME_W,
+  height: GAME_H,
+  backgroundColor: '#0d0d14',
+  pixelArt: true,
+  roundPixels: true,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: [BootScene, TitleScene, GameScene]
+});
+
+// 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
+window.game = game;
