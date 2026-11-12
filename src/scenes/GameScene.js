@@ -792,23 +792,23 @@ export class GameScene extends Phaser.Scene {
     const [tabImg, tabText] = titleTab(this, GAME_W / 2, 16, 'WAVE 0 / 100', 220);
     tabImg.setDepth(D);
     this.waveText = tabText.setDepth(D);
-    this.waveTypeText = uiText(this, 32, 42, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.waveTypeText = uiText(this, 32, 56, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
 
     // 타이머 슬롯 + 바로 시작 버튼
-    panel(this, GAME_W - 216, 32, 108, 28, 'soft').setDepth(D);
+    panel(this, GAME_W - 220, 44, 108, 24, 'soft').setDepth(D);
     const clock = this.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', GAME_W - 200, 46, 12, C.ink);
-    this.timerText = uiText(this, GAME_W - 188, 46, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(this, GAME_W - 64, 46, 80, 32, '바로 시작', () => this.callNextWave(), { variant: 'primary', fontSize: 12 });
-    this.bossText = uiText(this, GAME_W - 32, 72, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(clock, 'clock', GAME_W - 204, 56, 12, C.ink);
+    this.timerText = uiText(this, GAME_W - 192, 56, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(this, GAME_W - 68, 56, 84, 28, '바로 시작', () => this.callNextWave(), { variant: 'primary', fontSize: 12 });
+    this.bossText = uiText(this, GAME_W - 32, 78, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
 
     // 골드 / 몬스터 수
     const coin = this.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', 42, 92, 18, 0x6a4a10);
-    this.goldText = uiText(this, 58, 92, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', 42, 94, 18, 0x6a4a10);
+    this.goldText = uiText(this, 58, 94, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = this.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', GAME_W - 152, 92, 18, C.ink);
-    this.countText = uiText(this, GAME_W - 32, 92, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(skull, 'monster', GAME_W - 152, 96, 18, C.ink);
+    this.countText = uiText(this, GAME_W - 32, 96, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
     // 진행 막대
     panel(this, 32, 108, GAME_W - 64, 16, 'soft').setDepth(D);
     this.countBar = this.add.graphics().setDepth(D);
@@ -905,16 +905,16 @@ export class GameScene extends Phaser.Scene {
     const pw = GAME_W - px - 16;
     const ph = 160;
     panel(this, px, py, pw, ph, 'card').setDepth(D - 1);
-    this.infoAvatar = panelImage(this, px + 38, py + 36, 'soft', 48, 48).setDepth(D).setVisible(false);
-    this.infoPortrait = this.add.image(px + 38, py + 36, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
+    this.infoAvatar = panelImage(this, px + 44, py + 42, 'soft', 48, 48).setDepth(D).setVisible(false);
+    this.infoPortrait = this.add.image(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
     this.infoTitle = uiText(this, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
-    this.infoSub = uiText(this, px + 72, py + 38, '', 11, CSS.sub, 'bold').setDepth(D);
+    this.infoSub = uiText(this, px + 78, py + 44, '', 11, CSS.sub, 'bold').setDepth(D);
     this.infoBody = uiText(this, px + 20, py + 44, '', 11, CSS.ink, 'bold', { lineSpacing: 2, wordWrap: { width: pw - 40 } }).setDepth(D);
-    this.skillBtn = new Button(this, px + 76, py + ph - 26, 116, 36, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
+    this.skillBtn = new Button(this, px + 80, py + ph - 34, 112, 32, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
       variant: 'primary',
       fontSize: 12
     });
-    this.sellBtn = new Button(this, px + pw - 76, py + ph - 26, 116, 36, '판매', () => this.selected && this.sell(this.selected), {
+    this.sellBtn = new Button(this, px + pw - 80, py + ph - 34, 112, 32, '판매', () => this.selected && this.sell(this.selected), {
       variant: 'outline',
       fontSize: 12
     });
@@ -932,9 +932,9 @@ export class GameScene extends Phaser.Scene {
       this.sellBtn.setVisible(false);
       this.skillBtn.setVisible(false);
       this.infoSub.setText('');
-      this.infoTitle.setPosition(px + 20, py + 16).setColor(CSS.ink).setText('용병단 지휘');
+      this.infoTitle.setPosition(px + 22, py + 20).setColor(CSS.ink).setText('용병단 지휘');
       this.infoBody
-        .setPosition(px + 20, py + 44)
+        .setPosition(px + 22, py + 48)
         .setColor(CSS.sub)
         .setText(
           [
@@ -951,19 +951,19 @@ export class GameScene extends Phaser.Scene {
     const info = ATTR_INFO[m.attr];
     this.infoAvatar.setTexture(panelKey(this, m.isHero ? 'gold' : 'soft', 48, 48)).setVisible(true);
     this.infoPortrait.setTexture(m.textureKey).setVisible(true);
-    this.infoTitle.setPosition(px + 72, py + 14).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
-    this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName}` : `Lv.${m.level} ${m.roleName} · ${info.name}`);
+    this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
     const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${this.mergeCostFor(m.level)}G` : `승급 ${BALANCE.promoteCost}G`;
+    this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
+    // 본문은 2줄: 능력치 / (디버프 또는 상성·스킬 수)
     const lines = [
-      `강함 ${strong} · 약함 ${weak} · ${next}`,
-      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)}${st.debuff.list.length ? ' (디버프)' : st.buffed ? ' (버프)' : ''}`,
+      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)} · 사거리 ${Math.round(st.range)}${st.buffed && !st.debuff.list.length ? ' (버프)' : ''}`,
       st.debuff.list.length
         ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - this.gameTime)}초`).join(', ')}`
-        : `사거리 ${Math.round(st.range)} · 스킬 ${m.skills.length}개`
+        : `강함 ${strong} · 약함 ${weak} · 스킬 ${m.skills.length}개`
     ];
-    this.infoBody.setPosition(px + 20, py + 60).setColor(CSS.ink).setText(lines.join('\n'));
+    this.infoBody.setPosition(px + 22, py + 72).setColor(CSS.ink).setText(lines.join('\n'));
     this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * BALANCE.sellRefund)}G`);
     this.skillBtn.setVisible(true);
   }
