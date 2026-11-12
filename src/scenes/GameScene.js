@@ -134,6 +134,17 @@ export class GameScene extends Phaser.Scene {
     this.showBanner(`WAVE ${w}`, `${sub} · ${attrNames}`, color);
   }
 
+  /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
+  callNextWave() {
+    if (this.over || this.menu || this.relicChoice || this.wave >= TOTAL_WAVES) return;
+    const now = this.time.now;
+    if (now - (this.lastCall || 0) < 600) return;
+    this.lastCall = now;
+    this.startWave(this.wave + 1);
+    audio.coin();
+    this.refreshHud();
+  }
+
   /** 지역(배경) 전환: 새 배경이 서서히 덮인다 */
   changeBiome(biome) {
     if (biome.id === this.biome.id) return;
@@ -424,8 +435,8 @@ export class GameScene extends Phaser.Scene {
     const icon = this.add.image(x, y, `relic_${relic.id}`).setScale(PX).setDepth(DEPTH.fx);
     this.tweens.add({
       targets: icon,
-      x: 36,
-      y: 196,
+      x: 108,
+      y: 160,
       duration: 700,
       ease: 'Cubic.easeIn',
       onComplete: () => {
@@ -630,6 +641,7 @@ export class GameScene extends Phaser.Scene {
   setupInput() {
     this.input.dragDistanceThreshold = 6;
     this.input.keyboard?.on('keydown-ESC', () => this.toggleMenu());
+    this.input.keyboard?.on('keydown-N', () => this.callNextWave()); // N: 다음 웨이브 바로 시작
     this.input.on('gameobjectdown', (_p, obj) => {
       if (obj instanceof Mercenary) this.select(obj);
     });
@@ -775,41 +787,41 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── UI ─────────────────────────
   createHud() {
     const D = DEPTH.ui;
-    // 양피지 창 + 초록 제목 탭(웨이브)
-    panel(this, 12, 20, GAME_W - 24, 156, 'card').setDepth(D - 1);
-    const [tabImg, tabText] = titleTab(this, GAME_W / 2, 20, 'WAVE 0 / 100', 220);
+    // 상태 창 (높이 120) + 초록 제목 탭(웨이브)
+    panel(this, 12, 16, GAME_W - 24, 120, 'card').setDepth(D - 1);
+    const [tabImg, tabText] = titleTab(this, GAME_W / 2, 16, 'WAVE 0 / 100', 220);
     tabImg.setDepth(D);
     this.waveText = tabText.setDepth(D);
-    this.waveTypeText = uiText(this, 36, 52, '', 13, CSS.sub, 'bold').setDepth(D);
+    this.waveTypeText = uiText(this, 32, 42, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
 
-    // 타이머 슬롯
-    panel(this, GAME_W - 176, 44, 148, 32, 'soft').setDepth(D);
+    // 타이머 슬롯 + 바로 시작 버튼
+    panel(this, GAME_W - 216, 32, 108, 28, 'soft').setDepth(D);
     const clock = this.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', GAME_W - 156, 60, 14, C.ink);
-    this.timerText = uiText(this, GAME_W - 142, 60, '', 14, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.bossText = uiText(this, GAME_W - 36, 88, '', 13, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(clock, 'clock', GAME_W - 200, 46, 12, C.ink);
+    this.timerText = uiText(this, GAME_W - 188, 46, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(this, GAME_W - 64, 46, 80, 32, '바로 시작', () => this.callNextWave(), { variant: 'primary', fontSize: 12 });
+    this.bossText = uiText(this, GAME_W - 32, 72, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
 
     // 골드 / 몬스터 수
-    uiText(this, 36, 80, '골드', 13, CSS.sub, 'bold').setDepth(D);
     const coin = this.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', 48, 116, 21, 0x6a4a10);
-    this.goldText = uiText(this, 66, 116, '', 26, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    uiText(this, GAME_W - 36, 104, '몬스터', 13, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', 42, 92, 18, 0x6a4a10);
+    this.goldText = uiText(this, 58, 92, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = this.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', GAME_W - 172, 126, 21, C.ink);
-    this.countText = uiText(this, GAME_W - 36, 126, '', 26, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
-    // 진행 막대 (오목 슬롯 + 칸 채우기)
-    panel(this, 32, 148, GAME_W - 64, 16, 'soft').setDepth(D);
+    drawIcon(skull, 'monster', GAME_W - 152, 92, 18, C.ink);
+    this.countText = uiText(this, GAME_W - 32, 92, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
+    // 진행 막대
+    panel(this, 32, 108, GAME_W - 64, 16, 'soft').setDepth(D);
     this.countBar = this.add.graphics().setDepth(D);
 
-    // 유물 줄
-    panel(this, 12, 184, GAME_W - 24, 44, 'card').setDepth(D - 1);
-    this.relicLabel = uiText(this, 32, 206, '유물', 14, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    // 유물 줄 (높이 36)
+    panel(this, 12, 144, GAME_W - 24, 36, 'card').setDepth(D - 1);
+    this.relicLabel = uiText(this, 30, 162, '유물', 13, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.relicRow = this.add.container(0, 0).setDepth(D);
-    this.noRelicText = uiText(this, 100, 206, '보스를 처치하면 유물을 얻어요 (최대 4개 활성)', 12, CSS.sub, 'bold')
+    this.noRelicText = uiText(this, 96, 162, '보스를 처치하면 유물을 얻어요 (최대 4개 활성)', 12, CSS.sub, 'bold')
       .setOrigin(0, 0.5)
       .setDepth(D);
   }
+
 
   refreshHud() {
     const nextWave = this.wave + 1;
@@ -847,10 +859,11 @@ export class GameScene extends Phaser.Scene {
     const fill = Math.round((bw * pct) / PX) * PX;
     if (fill > 0) {
       const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
-      g.fillStyle(col, 1).fillRect(bx, 152, fill, 8);
-      g.fillStyle(0xffffff, 0.35).fillRect(bx, 152, fill, 4);
+      g.fillStyle(col, 1).fillRect(bx, 112, fill, 8);
+      g.fillStyle(0xffffff, 0.35).fillRect(bx, 112, fill, 4);
     }
 
+    this.nextWaveBtn?.setEnabled(this.wave < TOTAL_WAVES && !this.over);
     if (this.hireBtn) {
       this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G${this.relics.contract ? ' (-20%)' : ''}`);
       this.hireBtn.setEnabled(this.gold >= this.hireCost);
@@ -863,10 +876,10 @@ export class GameScene extends Phaser.Scene {
     this.noRelicText.setVisible(this.ownedRelics.length === 0);
     this.relicLabel.setText(this.ownedRelics.length ? `유물 ${this.activeRelicCount}/${BALANCE.maxActiveRelics}` : '유물');
     this.ownedRelics.forEach((r, i) => {
-      const x = 116 + i * 40;
-      const y = 206;
-      const slot = panelImage(this, x, y - 2, r.active ? 'gold' : 'soft', 36, 36);
-      const icon = this.add.image(x, y - 2, `relic_${r.id}`).setScale(PX - 1).setInteractive({ useHandCursor: true });
+      const x = 108 + i * 36;
+      const y = 160;
+      const slot = panelImage(this, x, y, r.active ? 'gold' : 'soft', 32, 32);
+      const icon = this.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => this.toggleRelic(i));
       if (!r.active) icon.setAlpha(0.4).setTint(0xb8a07a);
       this.relicRow.add([slot, icon]);
@@ -875,38 +888,39 @@ export class GameScene extends Phaser.Scene {
 
   createBottomPanel() {
     const D = DEPTH.ui;
-    // 하단 나무 받침
-    panel(this, 4, 740, GAME_W - 8, GAME_H - 748, 'dark').setDepth(D - 2);
-    this.hireBtn = new Button(this, 108, 800, 188, 100, '', () => this.hire(), { variant: 'primary', fontSize: 20 });
-    this.speedBtn = new Button(this, 44, 906, 60, 76, 'x1', () => {
+    // 하단 나무 받침 (높이 176)
+    panel(this, 4, 776, GAME_W - 8, 176, 'dark').setDepth(D - 2);
+    this.hireBtn = new Button(this, 100, 824, 168, 80, '', () => this.hire(), { variant: 'primary', fontSize: 18 });
+    this.speedBtn = new Button(this, 40, 906, 52, 64, 'x1', () => {
       this.speed = this.speed >= 3 ? 1 : this.speed + 1;
       this.speedBtn.setLabel(`x${this.speed}`);
       this.tweens.timeScale = this.speed;
-    }, { variant: 'card', icon: 'speed', fontSize: 13 });
-    this.pauseBtn = new Button(this, 108, 906, 60, 76, '정지', () => this.togglePause(), { variant: 'card', icon: 'pause', fontSize: 13 });
-    this.menuBtn = new Button(this, 172, 906, 60, 76, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 13 });
+    }, { variant: 'card', icon: 'speed', fontSize: 12 });
+    this.pauseBtn = new Button(this, 100, 906, 52, 64, '정지', () => this.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
+    this.menuBtn = new Button(this, 160, 906, 52, 64, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
 
     // 정보 창
-    const px = 216;
-    const py = 752;
+    const px = 196;
+    const py = 788;
     const pw = GAME_W - px - 16;
-    const ph = GAME_H - py - 16;
+    const ph = 160;
     panel(this, px, py, pw, ph, 'card').setDepth(D - 1);
-    this.infoAvatar = panelImage(this, px + 44, py + 42, 'soft', 56, 56).setDepth(D).setVisible(false);
-    this.infoPortrait = this.add.image(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
-    this.infoTitle = uiText(this, px + 24, py + 20, '', 18, CSS.ink, 'bold').setDepth(D);
-    this.infoSub = uiText(this, px + 84, py + 46, '', 12, CSS.sub, 'bold').setDepth(D);
-    this.infoBody = uiText(this, px + 24, py + 52, '', 12, CSS.ink, 'bold', { lineSpacing: 6, wordWrap: { width: pw - 44 } }).setDepth(D);
-    this.skillBtn = new Button(this, px + 80, py + ph - 30, 124, 40, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
+    this.infoAvatar = panelImage(this, px + 38, py + 36, 'soft', 48, 48).setDepth(D).setVisible(false);
+    this.infoPortrait = this.add.image(px + 38, py + 36, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
+    this.infoTitle = uiText(this, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
+    this.infoSub = uiText(this, px + 72, py + 38, '', 11, CSS.sub, 'bold').setDepth(D);
+    this.infoBody = uiText(this, px + 20, py + 44, '', 11, CSS.ink, 'bold', { lineSpacing: 2, wordWrap: { width: pw - 40 } }).setDepth(D);
+    this.skillBtn = new Button(this, px + 76, py + ph - 26, 116, 36, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
       variant: 'primary',
-      fontSize: 13
+      fontSize: 12
     });
-    this.sellBtn = new Button(this, px + pw - 80, py + ph - 30, 124, 40, '판매', () => this.selected && this.sell(this.selected), {
+    this.sellBtn = new Button(this, px + pw - 76, py + ph - 26, 116, 36, '판매', () => this.selected && this.sell(this.selected), {
       variant: 'outline',
-      fontSize: 13
+      fontSize: 12
     });
     this.infoBox = { px, py, pw, ph };
   }
+
 
   refreshInfo() {
     const m = this.selected && this.selected.active ? this.selected : null;
@@ -918,9 +932,9 @@ export class GameScene extends Phaser.Scene {
       this.sellBtn.setVisible(false);
       this.skillBtn.setVisible(false);
       this.infoSub.setText('');
-      this.infoTitle.setPosition(px + 24, py + 20).setColor(CSS.ink).setText('용병단 지휘');
+      this.infoTitle.setPosition(px + 20, py + 16).setColor(CSS.ink).setText('용병단 지휘');
       this.infoBody
-        .setPosition(px + 24, py + 52)
+        .setPosition(px + 20, py + 44)
         .setColor(CSS.sub)
         .setText(
           [
@@ -935,9 +949,9 @@ export class GameScene extends Phaser.Scene {
     }
     const st = m.getStats(this.relics, this.gameTime);
     const info = ATTR_INFO[m.attr];
-    this.infoAvatar.setTexture(panelKey(this, m.isHero ? 'gold' : 'soft', 56, 56)).setVisible(true);
+    this.infoAvatar.setTexture(panelKey(this, m.isHero ? 'gold' : 'soft', 48, 48)).setVisible(true);
     this.infoPortrait.setTexture(m.textureKey).setVisible(true);
-    this.infoTitle.setPosition(px + 84, py + 18).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
+    this.infoTitle.setPosition(px + 72, py + 14).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName}` : `Lv.${m.level} ${m.roleName} · ${info.name}`);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
@@ -949,7 +963,7 @@ export class GameScene extends Phaser.Scene {
         ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - this.gameTime)}초`).join(', ')}`
         : `사거리 ${Math.round(st.range)} · 스킬 ${m.skills.length}개`
     ];
-    this.infoBody.setPosition(px + 24, py + 80).setColor(CSS.ink).setText(lines.join('\n'));
+    this.infoBody.setPosition(px + 20, py + 60).setColor(CSS.ink).setText(lines.join('\n'));
     this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * BALANCE.sellRefund)}G`);
     this.skillBtn.setVisible(true);
   }
