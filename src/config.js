@@ -41,7 +41,7 @@ export const BALANCE = {
     hpBase: 44, // 체력 2배 (2026-11-12)
     hpGrowth: 1.08,
     eliteHpMult: 10,
-    bossHpMult: 300,
+    bossHpMult: 120, // 2026-11-12 사용자 결정 (300이면 W10 보스 처치 불가)
     // 이동 속도 1.5배 (2026-11-12)
     normalSpeed: 105,
     eliteSpeed: 82,
