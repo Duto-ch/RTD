@@ -19,7 +19,7 @@ export const ATTR_PALETTES = {
 };
 
 // ── 용병 (16x16) ───────────────────────────────
-export const HERO_SPRITES = {
+export const MERC_SPRITES = {
   archer: [
     '................',
     '......kkkk......',
@@ -108,6 +108,64 @@ export const HERO_SPRITES = {
     '.....kaAAak.....',
     '.....kak.kak....',
     '.....kkk..kk....',
+    '................'
+  ]
+};
+
+// ── 영웅 (16x16) ── 원형 3종, 금색 장식 ─────────
+export const HERO_SPRITES = {
+  warlord: [
+    '................',
+    '.w..kkkk..w.....',
+    '.wkkggggkkw.....',
+    '..kggyyggk....k.',
+    '..kgsssskg...kwk',
+    '..kkskkskk...kwk',
+    '...kssssk....kwk',
+    '.kkAAAAAAkk..kwk',
+    'kaAAAyyAAAak.kwk',
+    'kaAkAAAAkAak.yyy',
+    'kaAskAAkksAk..k.',
+    'kaa.kAAAAk.ak...',
+    'ka..kaaaak..k...',
+    '.k..kak.kak.....',
+    '....kkk.kkk.....',
+    '................'
+  ],
+  archmage: [
+    '......kk........',
+    '.....kAyk.......',
+    '....kAAAAk...L..',
+    '...kAAyAAAk.LyL.',
+    '..kAAAAAAAAk.Lb.',
+    '.kyyyyyyyyyyk.b.',
+    '...kssssssk...b.',
+    '...kskksksk...b.',
+    '...kwwwwwwk...b.',
+    '..kAkwwwwkAk..b.',
+    '.kAAAkwwkAAAkkb.',
+    '.kAAyAAAAyAAk.b.',
+    '.kAAyAAAAyAAk.b.',
+    '.kaAyAAAAyAak.b.',
+    '.kaaaaaaaaaak.b.',
+    '..kkkkkkkkkk....'
+  ],
+  ranger: [
+    '..........w.....',
+    '.....kkkkkwk....',
+    '....kAAAAAAk....',
+    '...kAAAAyyAAk...',
+    '.b..kkssssk.....',
+    'kb..ksksksk.....',
+    'k.b..kssssk.....',
+    'k.bkkaAAAAakk...',
+    'k.bksaAyyAaska..',
+    'k.b.kaAAAAak.aa.',
+    'k.b.kaAAAAak.aa.',
+    'kb..kaayyaak.aa.',
+    '.b...kaaaak..a..',
+    '.....kbk.kbk....',
+    '.....kkk.kkk....',
     '................'
   ]
 };

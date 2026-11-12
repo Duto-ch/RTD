@@ -4,16 +4,18 @@ import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
 import { ATTRS, ATTR_INFO, elementMultiplier, strongAgainst, weakAgainst } from '../data/elements.js';
-import { HERO_CLASS_IDS } from '../data/heroes.js';
-import { SKILLS, SKILL_BY_ID } from '../data/skills.js';
-import { RELICS, RELIC_BY_ID } from '../data/relics.js';
-import { TOTAL_WAVES, waveInfo } from '../data/waves.js';
-import { cellAt } from '../systems/path.js';
+import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
+import { skillOptions, describeSkill, isDamaging, ELEMENT_FLAVOR } from '../data/skills.js';
+import { RELICS } from '../data/relics.js';
+import { TOTAL_WAVES, waveInfo, spawnList } from '../data/waves.js';
+import { cellAt, PATH_LENGTH } from '../systems/path.js';
 
 const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스' };
 
 const text = (scene, x, y, str, size = 22, color = '#ffffff', extra = {}) =>
   scene.add.text(x, y, str, { fontFamily: FONT, fontSize: `${size}px`, color, ...extra }).setDepth(DEPTH.ui);
+
+const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -37,7 +39,8 @@ export class GameScene extends Phaser.Scene {
     this.selected = null;
     this.totalKills = 0;
     this.hudTimer = 0;
-    this.activeNumbers = 0;
+    this.activeTexts = 0;
+    this.tweens.timeScale = 1;
 
     this.add.image(0, 0, 'background').setOrigin(0).setScale(PX).setDepth(DEPTH.bg);
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
@@ -60,8 +63,8 @@ export class GameScene extends Phaser.Scene {
 
     if (dt > 0) {
       this.updateWaves(dt);
-      const speedMul = 1 - 0.1 * (this.relics.frost_crown || 0);
-      for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, Math.max(speedMul, 0.4));
+      const speedMul = Math.max(0.4, 1 - 0.1 * (this.relics.frost_crown || 0));
+      for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, speedMul);
       this.updateMercs(dt);
       this.cleanupMonsters();
     }
@@ -75,7 +78,9 @@ export class GameScene extends Phaser.Scene {
       this.refreshHud();
     }
 
-    if (this.monsters.length >= BALANCE.maxAlive) this.endGame(false);
+    const boss = this.monsters.find((m) => m.isBoss && m.dist >= PATH_LENGTH);
+    if (boss) this.endGame(false, '보스가 성벽을 한 바퀴 돌았습니다');
+    else if (this.monsters.length >= BALANCE.maxAlive) this.endGame(false, `몬스터가 ${BALANCE.maxAlive}기 쌓였습니다`);
     else if (this.wave >= TOTAL_WAVES && this.spawnQueue.length === 0 && this.monsters.length === 0) this.endGame(true);
   }
 
@@ -97,24 +102,24 @@ export class GameScene extends Phaser.Scene {
   startWave(w) {
     this.wave = w;
     const info = waveInfo(w);
-    this.spawnQueue.push(...Array(info.count).fill(info.type));
-    this.spawnInterval = info.count > 1 ? BALANCE.spawnWindow / info.count : 0;
+    const list = spawnList(w);
+    this.spawnQueue.push(...list);
+    this.spawnInterval = BALANCE.spawnWindow / list.length;
     this.spawnTimer = 0;
     this.waveTimer = BALANCE.waveDuration;
-    const sub = info.type === 'boss' ? '보스 등장!' : info.type === 'elite' ? '정예 몬스터 10기 출현!' : `몬스터 ${info.count}기`;
+    const sub =
+      info.type === 'boss' ? `보스 등장! 한 바퀴 돌기 전에 처치하세요` :
+      info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
     this.showBanner(`WAVE ${w}`, sub, info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff');
   }
 
   spawnMonster(kind) {
-    const attr = Phaser.Utils.Array.GetRandom(ATTRS);
-    const m = new Monster(this, kind, attr, this.wave);
+    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(ATTRS), this.wave);
     this.monsters.push(m);
   }
 
   cleanupMonsters() {
-    if (this.monsters.some((m) => !m.alive)) {
-      this.monsters = this.monsters.filter((m) => m.alive);
-    }
+    if (this.monsters.some((m) => !m.alive)) this.monsters = this.monsters.filter((m) => m.alive);
   }
 
   // ───────────────────────── 전투 ─────────────────────────
@@ -122,59 +127,168 @@ export class GameScene extends Phaser.Scene {
     return this.grid.flat().filter(Boolean);
   }
 
+  monstersInRange(x, y, range) {
+    const r2 = range * range;
+    const out = [];
+    for (const m of this.monsters) {
+      if (!m.alive) continue;
+      const dd = (m.x - x) ** 2 + (m.y - y) ** 2;
+      if (dd <= r2) out.push({ m, dd });
+    }
+    return out.sort((a, b) => a.dd - b.dd).map((o) => o.m);
+  }
+
   updateMercs(dt) {
+    const now = this.gameTime;
     for (const merc of this.mercs) {
-      merc.cooldown -= dt;
-      if (merc.dragging || merc.cooldown > 0) continue;
-      const st = merc.getStats(this.relics);
-      const r2 = st.range * st.range;
-      const inRange = [];
-      for (const m of this.monsters) {
-        if (!m.alive) continue;
-        const d2 = (m.x - merc.x) ** 2 + (m.y - merc.y) ** 2;
-        if (d2 <= r2) inRange.push({ m, d2 });
+      if (merc.dragging) continue;
+      const st = merc.getStats(this.relics, now);
+      const inRange = this.monstersInRange(merc.x, merc.y, st.range);
+
+      // 스킬: 쿨타임이 끝나면 자동 시전
+      for (const s of merc.skills) {
+        s.cd -= dt;
+        if (s.cd <= 0 && this.castSkill(merc, s.def, st, inRange)) s.cd = s.def.cd;
       }
-      if (!inRange.length) {
+
+      // 기본 공격
+      merc.cooldown -= dt;
+      if (merc.cooldown > 0) continue;
+      const live = inRange.filter((m) => m.alive);
+      if (!live.length) {
         merc.cooldown = 0;
         continue;
       }
-      inRange.sort((a, b) => a.d2 - b.d2);
       merc.cooldown = 1 / st.rate;
-      for (const { m } of inRange.slice(0, st.targets)) this.attack(merc, st, m);
+      for (const m of live.slice(0, st.targets)) this.basicAttack(merc, st, m);
       this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
     }
   }
 
-  attack(merc, st, target) {
-    this.fireProjectile(merc, target);
-    const elemOpts = { ignoreDisadvantage: st.purity, advantage: st.purity ? 2 : undefined };
-    const crit = Math.random() < st.crit;
-    let dmg = st.damage * elementMultiplier(merc.attr, target.attr, elemOpts) * (crit ? st.critMult : 1);
-
-    if (st.slow) target.applySlow(st.slow, st.slowDur, this.gameTime);
-    if (st.poison) target.applyPoison(st.poison, 3, this.gameTime, merc);
-    if (st.execute && !target.isBoss && (target.hp - dmg) / target.maxHp <= st.execute) {
-      dmg = target.hp;
-      this.floatText(target.x, target.y - 24, '처형!', '#ff5050');
-    }
-    const tx = target.x;
-    const ty = target.y;
+  hit(merc, st, target, mult, crit = false) {
+    const dmg = st.damage * mult * elementMultiplier(merc.attr, target.attr);
     this.damageMonster(target, dmg, { source: merc, crit });
+  }
 
+  basicAttack(merc, st, target) {
+    this.fireProjectile(merc, target);
+    const crit = Math.random() < st.crit;
+    if (st.slow) target.applySlow(st.slow, st.slowDur, this.gameTime);
+    const pos = { x: target.x, y: target.y };
+    this.hit(merc, st, target, crit ? st.critMult : 1, crit);
     if (st.splash) {
-      const r2 = st.splash * st.splash;
       for (const o of this.monsters) {
-        if (!o.alive || o === target) continue;
-        if ((o.x - tx) ** 2 + (o.y - ty) ** 2 > r2) continue;
-        const sd = st.damage * elementMultiplier(merc.attr, o.attr, elemOpts) * st.splashPct;
-        this.damageMonster(o, sd, { source: merc });
+        if (o.alive && o !== target && d2(o, pos) <= st.splash ** 2) this.hit(merc, st, o, 1);
       }
-      this.splashFx(tx, ty, st.splash, ATTR_INFO[merc.attr].color);
+      this.circleFx(pos.x, pos.y, st.splash, ATTR_INFO[merc.attr].color);
     }
+    if (st.chain) {
+      const chain = this.chainFrom(target, st.chain + 1);
+      this.chainFx(chain, ATTR_INFO[merc.attr].color);
+      for (const o of chain.slice(1)) this.hit(merc, st, o, 0.6);
+    }
+  }
+
+  chainFrom(start, n) {
+    const out = [start];
+    let cur = start;
+    while (out.length < n) {
+      let best = null;
+      let bd = 140 * 140;
+      for (const m of this.monsters) {
+        if (!m.alive || out.includes(m)) continue;
+        const dd = d2(m, cur);
+        if (dd < bd) {
+          bd = dd;
+          best = m;
+        }
+      }
+      if (!best) break;
+      out.push(best);
+      cur = best;
+    }
+    return out;
+  }
+
+  /** 스킬 시전. 대상이 없어 시전하지 못하면 false (쿨타임 유지, 다음 프레임 재시도) */
+  castSkill(merc, def, st, inRange) {
+    const now = this.gameTime;
+    const live = inRange.filter((m) => m.alive);
+    const color = ATTR_INFO[merc.attr].color;
+    let targets = [];
+
+    if (def.area) {
+      if (!live.length) return false;
+      const primary = def.pick === 'strongest' ? live.reduce((a, b) => (b.hp > a.hp ? b : a)) : live[0];
+      const a = def.area;
+      if (a.type === 'single') targets = [primary];
+      else if (a.type === 'multi') targets = live.slice(0, a.n);
+      else if (a.type === 'range') {
+        targets = live;
+        this.novaFx(merc.x, merc.y, st.range, color);
+      } else if (a.type === 'circle') {
+        targets = this.monsters.filter((m) => m.alive && d2(m, primary) <= a.r * a.r);
+        this.circleFx(primary.x, primary.y, a.r, color);
+      } else if (a.type === 'chain') {
+        targets = this.chainFrom(primary, a.n);
+        this.chainFx(targets, color);
+      }
+      if (a.type === 'single' || a.type === 'multi') for (const t of targets) this.fireProjectile(merc, t, true);
+    } else if (def.buff && !live.length) {
+      return false;
+    }
+
+    const fx = def.fx || {};
+    const damaging = isDamaging(def);
+    const flavorMul = damaging && merc.attr === 'red' ? 1.25 : 1;
+    for (const t of targets) {
+      if (!t.alive) continue;
+      if (fx.stun) t.applyStun(fx.stun, now);
+      if (fx.slow) t.applySlow(fx.slow[0], fx.slow[1], now);
+      if (fx.vuln) t.applyVuln(fx.vuln[0], fx.vuln[1], now);
+      if (fx.push) t.push(fx.push);
+      const elem = elementMultiplier(merc.attr, t.attr);
+      if (fx.dot) t.applyDot(st.damage * fx.dot[0] * elem * flavorMul, fx.dot[1], now, merc);
+      if (damaging && merc.attr === 'blue') t.applySlow(0.2, 1.2, now);
+      if (damaging && merc.attr === 'green') t.applyDot(st.damage * 0.4 * elem, 2, now, merc);
+
+      let mult = fx.dmg || 0;
+      if (fx.execute) {
+        if (!t.isBoss && t.hp / t.maxHp <= fx.execute[0]) {
+          this.floatText(t.x, t.y - 24, '처형!', '#ff5050');
+          this.killMonster(t, merc);
+          continue;
+        }
+        mult = t.isBoss ? fx.execute[1] : 1;
+      }
+      if (fx.bossMult && t.isBoss) mult *= fx.bossMult;
+      if (mult) this.hit(merc, st, t, mult * flavorMul);
+    }
+
+    if (def.buff) {
+      const b = def.buff;
+      const who =
+        b.scope === 'self' ? [merc] :
+        b.scope === 'all' ? this.mercs :
+        this.mercs.filter((o) => Math.abs(o.col - merc.col) <= 1 && Math.abs(o.row - merc.row) <= 1);
+      for (const o of who) {
+        o.addBuff(b, now);
+        o.sprite.setTint(0xfff2a0);
+        this.time.delayedCall(250, () => o.active && o.sprite.clearTint());
+      }
+    }
+    if (def.gold) {
+      const g = def.gold + Math.floor(this.wave * (def.goldPerWave || 0));
+      this.gold += g;
+      this.floatText(merc.x, merc.y - 40, `+${g}G`, '#f2c14e');
+    }
+    if (def.level >= 4) this.floatText(merc.x, merc.y - 44, def.name, ATTR_INFO[merc.attr].css, def.level > MAX_LEVEL ? 22 : 16);
+    return true;
   }
 
   damageMonster(m, amount, { source, crit = false, silent = false } = {}) {
     if (!m.alive) return;
+    amount *= m.damageTakenMult(this.gameTime);
     m.hp -= amount;
     if (!silent) m.flashUntil = this.gameTime + 0.06;
     if (crit) this.floatText(m.x, m.y - 20, `${Math.round(amount)}!`, '#ffd84a');
@@ -182,10 +296,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   killMonster(m, source) {
+    if (!m.alive) return;
     m.alive = false;
     this.totalKills += 1;
-    let gold = Math.round(m.gold * (1 + 0.25 * (this.relics.golden_grail || 0)));
-    if (source && source.active && source.has('bounty')) gold += 2;
+    const gold = Math.round(m.gold * (1 + 0.25 * (this.relics.golden_grail || 0)));
     if (source && source.active) source.kills += 1;
     this.gold += gold;
     this.deathFx(m);
@@ -218,6 +332,11 @@ export class GameScene extends Phaser.Scene {
     return Math.max(5, Math.round(BALANCE.hireCost * (1 - 0.2 * (this.relics.contract || 0))));
   }
 
+  /** level 의 유닛을 합칠 때 드는 골드 (Lv5 → 영웅 승급) */
+  mergeCostFor(level) {
+    return level >= MAX_LEVEL ? BALANCE.promoteCost : BALANCE.mergeCost[level + 1];
+  }
+
   hire() {
     if (this.over) return;
     const cost = this.hireCost;
@@ -227,14 +346,14 @@ export class GameScene extends Phaser.Scene {
     if (!empty.length) return this.toast('빈 자리가 없습니다');
     const { c, r } = Phaser.Utils.Array.GetRandom(empty);
     const attr = Phaser.Utils.Array.GetRandom(ATTRS);
-    const cls = Phaser.Utils.Array.GetRandom(HERO_CLASS_IDS);
+    const cls = Phaser.Utils.Array.GetRandom(MERC_CLASS_IDS);
     this.gold -= cost;
     const merc = new Mercenary(this, c, r, attr, cls);
     merc.invested = cost;
     this.grid[r][c] = merc;
     merc.sprite.setY(-40).setAlpha(0);
     this.tweens.add({ targets: merc.sprite, y: -PX, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
-    this.toast(`${merc.heroName} 합류!`, ATTR_INFO[attr].css);
+    this.toast(`${merc.roleName} ${merc.heroName} 합류!`, ATTR_INFO[attr].css);
     this.refreshHud();
   }
 
@@ -249,22 +368,30 @@ export class GameScene extends Phaser.Scene {
   }
 
   merge(src, dst) {
-    const nextLevel = dst.level + 1;
-    const cost = BALANCE.mergeCost[nextLevel];
+    const promoting = dst.level >= MAX_LEVEL;
+    const cost = this.mergeCostFor(dst.level);
     if (this.gold < cost) {
-      this.toast(`골드 부족 (레벨 업 ${cost}G 필요)`);
+      this.toast(`골드 부족 (${promoting ? '영웅 승급' : '레벨 업'} ${cost}G 필요)`);
       return false;
     }
     this.gold -= cost;
-    const skill = Phaser.Utils.Array.GetRandom(SKILLS[nextLevel]);
     dst.invested += src.invested + cost;
     dst.kills += src.kills;
-    dst.levelUp(skill.id);
     this.grid[src.row][src.col] = null;
     src.destroy();
 
-    this.levelUpFx(dst);
-    this.toast(`Lv.${dst.level} ${dst.heroName} — 스킬 「${skill.name}」 획득`, '#f2c14e');
+    if (promoting) {
+      const hero = Phaser.Utils.Array.GetRandom(HEROES[dst.attr]);
+      const unique = { ...hero.unique, id: `hero_${hero.id}`, level: MAX_LEVEL + 1, attr: dst.attr };
+      dst.promote(hero, unique);
+      this.levelUpFx(dst, '영웅 승급!');
+      this.showBanner(`영웅 ${hero.name} 탄생!`, `${dst.roleName} · 고유 스킬 「${unique.name}」`, '#f2c14e');
+    } else {
+      const skill = Phaser.Utils.Array.GetRandom(skillOptions(dst.attr, dst.cls, dst.level + 1));
+      dst.levelUp(skill);
+      this.levelUpFx(dst, 'LEVEL UP!');
+      this.toast(`Lv.${dst.level} ${dst.heroName} — 스킬 「${skill.name}」 습득`, '#f2c14e');
+    }
     this.select(dst);
     this.refreshHud();
     return true;
@@ -285,9 +412,6 @@ export class GameScene extends Phaser.Scene {
     if (merc.canMergeWith(other)) {
       if (!this.merge(merc, other)) merc.snapToCell();
       return;
-    }
-    if (other.attr === merc.attr && other.level === merc.level && merc.level >= MAX_LEVEL) {
-      this.toast('이미 최고 레벨입니다');
     }
     // 합칠 수 없으면 자리 교체
     const { col, row } = merc;
@@ -337,9 +461,7 @@ export class GameScene extends Phaser.Scene {
     g.clear();
     for (const o of this.mercs) {
       if (!merc.canMergeWith(o)) continue;
-      const x = FIELD_X + o.col * CELL;
-      const y = FIELD_Y + o.row * CELL;
-      g.lineStyle(4, 0xf2c14e, 1).strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+      g.lineStyle(4, 0xf2c14e, 1).strokeRect(FIELD_X + o.col * CELL + 2, FIELD_Y + o.row * CELL + 2, CELL - 4, CELL - 4);
     }
   }
 
@@ -348,7 +470,7 @@ export class GameScene extends Phaser.Scene {
     g.clear();
     const m = this.selected;
     if (!m || !m.active) return;
-    const st = m.getStats(this.relics);
+    const st = m.getStats(this.relics, this.gameTime);
     const color = ATTR_INFO[m.attr].color;
     g.fillStyle(color, 0.08).fillCircle(m.x, m.y, st.range);
     g.lineStyle(2, color, 0.6).strokeCircle(m.x, m.y, st.range);
@@ -364,21 +486,37 @@ export class GameScene extends Phaser.Scene {
       const h = m.isBoss ? 8 : 4;
       const x = Math.round(m.x - w / 2);
       const y = Math.round(m.y - m.displayHeight / 2 - h - 6);
-      const pct = Math.max(0, m.hp / m.maxHp);
       g.fillStyle(0x1b1b26).fillRect(x - 2, y - 2, w + 4, h + 4);
-      g.fillStyle(m.isBoss ? 0xff4d4d : 0x6fd36a).fillRect(x, y, Math.round(w * pct), h);
+      g.fillStyle(m.isBoss ? 0xff4d4d : 0x6fd36a).fillRect(x, y, Math.round(w * Math.max(0, m.hp / m.maxHp)), h);
     }
   }
 
   // ───────────────────────── 이펙트 ─────────────────────────
-  fireProjectile(merc, target) {
-    const p = this.add.image(merc.x, merc.y - 8, `proj_${merc.attr}`).setScale(PX).setDepth(DEPTH.projectile);
+  fireProjectile(merc, target, big = false) {
+    const p = this.add
+      .image(merc.x, merc.y - 8, `proj_${merc.attr}`)
+      .setScale(big ? PX * 2 : PX)
+      .setDepth(DEPTH.projectile);
     this.tweens.add({ targets: p, x: target.x, y: target.y, duration: 90, onComplete: () => p.destroy() });
   }
 
-  splashFx(x, y, r, color) {
+  circleFx(x, y, r, color) {
     const c = this.add.circle(x, y, r, color, 0.25).setDepth(DEPTH.fx);
-    this.tweens.add({ targets: c, alpha: 0, scale: 1.2, duration: 200, onComplete: () => c.destroy() });
+    this.tweens.add({ targets: c, alpha: 0, scale: 1.2, duration: 220, onComplete: () => c.destroy() });
+  }
+
+  novaFx(x, y, r, color) {
+    const c = this.add.circle(x, y, r).setStrokeStyle(6, color, 0.8).setDepth(DEPTH.fx).setScale(0.2);
+    this.tweens.add({ targets: c, scale: 1, alpha: 0, duration: 350, onComplete: () => c.destroy() });
+  }
+
+  chainFx(list, color) {
+    if (list.length < 2) return;
+    const g = this.add.graphics().setDepth(DEPTH.fx);
+    g.lineStyle(4, color, 1).beginPath().moveTo(list[0].x, list[0].y);
+    for (const m of list.slice(1)) g.lineTo(m.x, m.y);
+    g.strokePath();
+    this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
   }
 
   deathFx(m) {
@@ -399,16 +537,16 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  levelUpFx(merc) {
+  levelUpFx(merc, label) {
     const ring = this.add.circle(merc.x, merc.y, 20).setStrokeStyle(4, 0xf2c14e).setDepth(DEPTH.fx);
     this.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 400, onComplete: () => ring.destroy() });
-    this.floatText(merc.x, merc.y - 30, 'LEVEL UP!', '#f2c14e', 22);
+    this.floatText(merc.x, merc.y - 30, label, '#f2c14e', 22, true);
     this.tweens.add({ targets: merc.sprite, scale: PX * 1.3, duration: 120, yoyo: true });
   }
 
-  floatText(x, y, str, color = '#ffffff', size = 16) {
-    if (this.activeNumbers > 30) return;
-    this.activeNumbers++;
+  floatText(x, y, str, color = '#ffffff', size = 16, force = false) {
+    if (this.activeTexts > 30 && !force) return;
+    this.activeTexts++;
     const t = text(this, x, y, str, size, color, { stroke: '#1b1b26', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(DEPTH.fx + 1);
@@ -416,10 +554,10 @@ export class GameScene extends Phaser.Scene {
       targets: t,
       y: y - 28,
       alpha: 0,
-      duration: 700,
+      duration: 800,
       onComplete: () => {
         t.destroy();
-        this.activeNumbers--;
+        this.activeTexts--;
       }
     });
   }
@@ -433,21 +571,19 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(DEPTH.overlay - 1);
     this.toastObj = t;
-    this.tweens.add({ targets: t, alpha: 0, delay: 1400, duration: 400, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: t, alpha: 0, delay: 1600, duration: 400, onComplete: () => t.destroy() });
   }
 
   showBanner(title, sub, color = '#ffffff') {
     if (this.bannerObj) this.bannerObj.destroy();
-    const cx = GAME_W / 2;
-    const cy = FIELD_Y + FIELD_SIZE / 2;
     const bg = this.add.rectangle(0, 0, GAME_W, 96, 0x0d0d14, 0.75);
     const t1 = text(this, 0, -16, title, 33, color, { stroke: '#1b1b26', strokeThickness: 6 }).setOrigin(0.5);
     const t2 = text(this, 0, 26, sub, 16, '#e0e0e0').setOrigin(0.5);
-    const c = this.add.container(cx, cy, [bg, t1, t2]).setDepth(DEPTH.overlay - 2);
+    const c = this.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE / 2, [bg, t1, t2]).setDepth(DEPTH.overlay - 2);
     this.bannerObj = c;
     c.setScale(1, 0);
     this.tweens.add({ targets: c, scaleY: 1, duration: 160, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: c, alpha: 0, delay: 1800, duration: 400, onComplete: () => c.destroy() });
+    this.tweens.add({ targets: c, alpha: 0, delay: 2000, duration: 400, onComplete: () => c.destroy() });
   }
 
   // ───────────────────────── UI ─────────────────────────
@@ -459,12 +595,12 @@ export class GameScene extends Phaser.Scene {
     this.waveText = text(this, 16, 12, '', 33, '#ffffff', { fontStyle: 'bold' });
     this.timerText = text(this, GAME_W - 16, 18, '', 22, '#cfd8ff').setOrigin(1, 0);
     this.waveTypeText = text(this, 16, 56, '', 16, '#9aa3b8');
+    this.bossText = text(this, GAME_W - 16, 56, '', 16, '#ff6a55').setOrigin(1, 0);
 
     this.add.image(28, 98, 'icon_coin').setScale(PX).setDepth(DEPTH.ui);
     this.goldText = text(this, 52, 86, '', 22, '#f2c14e');
     this.add.image(GAME_W - 28, 98, 'icon_skull').setScale(PX).setDepth(DEPTH.ui);
     this.countText = text(this, GAME_W - 52, 86, '', 22).setOrigin(1, 0);
-
     this.countBar = this.add.graphics().setDepth(DEPTH.ui);
 
     text(this, 16, 148, '유물', 16, '#9aa3b8');
@@ -479,25 +615,25 @@ export class GameScene extends Phaser.Scene {
       const label = this.wave === 0 ? '시작까지' : '다음 웨이브';
       this.timerText.setText(`${label} ${Math.ceil(Math.max(0, this.waveTimer))}초`);
       const ni = waveInfo(nextWave);
-      this.waveTypeText.setText(`다음: ${WAVE_TYPE_NAME[ni.type]} 웨이브 (${ni.type === 'normal' ? `${ni.count}기` : ni.type === 'elite' ? '정예 10기' : '보스'})`);
+      const extra = ni.type === 'elite' ? ' + 정예 10' : ni.type === 'boss' ? ' + 보스' : '';
+      this.waveTypeText.setText(`다음: ${WAVE_TYPE_NAME[ni.type]} 웨이브 (${ni.normal}기${extra})`);
     } else {
       this.timerText.setText('최종 웨이브!');
       this.waveTypeText.setText('남은 몬스터를 모두 처치하세요');
     }
+    const boss = this.monsters.find((m) => m.isBoss && m.alive);
+    this.bossText.setText(boss ? `보스 진행 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}%` : '');
     this.goldText.setText(`${this.gold} G`);
 
     const n = this.monsters.length;
     const max = BALANCE.maxAlive;
     this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? '#ff6a55' : '#ffffff');
     const g = this.countBar;
-    const bx = 16;
-    const by = 122;
     const bw = GAME_W - 32;
     g.clear();
-    g.fillStyle(0x1b1b26).fillRect(bx, by, bw, 16);
+    g.fillStyle(0x1b1b26).fillRect(16, 122, bw, 16);
     const pct = Math.min(1, n / max);
-    const col = pct < 0.5 ? 0x6fd36a : pct < 0.8 ? 0xf2c14e : 0xff4d4d;
-    g.fillStyle(col).fillRect(bx + 4, by + 4, Math.round((bw - 8) * pct), 8);
+    g.fillStyle(pct < 0.5 ? 0x6fd36a : pct < 0.8 ? 0xf2c14e : 0xff4d4d).fillRect(20, 126, Math.round((bw - 8) * pct), 8);
 
     if (this.hireBtn) {
       this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G`);
@@ -548,8 +684,13 @@ export class GameScene extends Phaser.Scene {
     this.infoTitle = text(this, px + 16, py + 12, '', 22);
     this.infoSub = text(this, px + 72, py + 48, '', 16, '#9aa3b8');
     this.infoBody = text(this, px + 16, py + 46, '', 16, '#d6dbea', { lineSpacing: 5, wordWrap: { width: pw - 28 } });
-    this.sellBtn = new Button(this, px + pw - 58, py + 26, 100, 40, '판매', () => this.selected && this.sell(this.selected), {
+    const btnX = px + pw - 58;
+    this.sellBtn = new Button(this, btnX, py + 24, 100, 36, '판매', () => this.selected && this.sell(this.selected), {
       color: 0x8c2b25,
+      fontSize: 16
+    });
+    this.skillBtn = new Button(this, btnX, py + 64, 100, 36, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
+      color: 0x3b4a6b,
       fontSize: 16
     });
     this.infoBox = { px, py, pw, ph };
@@ -562,6 +703,7 @@ export class GameScene extends Phaser.Scene {
       this.selected = null;
       this.infoPortrait.setVisible(false);
       this.sellBtn.setVisible(false);
+      this.skillBtn.setVisible(false);
       this.infoSub.setText('');
       this.infoTitle.setPosition(px + 16, py + 12).setColor('#ffffff').setText('용병단 지휘');
       this.infoBody
@@ -569,29 +711,80 @@ export class GameScene extends Phaser.Scene {
         .setText(
           [
             '· 고용: 빈 칸에 랜덤 용병 배치',
-            '· 같은 속성·같은 레벨 용병을 끌어',
-            '  겹치면 레벨 업 (골드 소모)',
+            '· 같은 속성·레벨 용병을 겹치면',
+            '  레벨 업 (Lv5끼리 = 영웅 승급)',
             '· 상성: 블루>레드>그린>블루',
-            `· 몬스터 ${BALANCE.maxAlive}기가 쌓이면 패배`
+            '· 패배: 몬스터 100기, 보스 1바퀴'
           ].join('\n')
         );
       return;
     }
-    const st = m.getStats(this.relics);
+    const st = m.getStats(this.relics, this.gameTime);
     const info = ATTR_INFO[m.attr];
-    this.infoPortrait.setTexture(`hero_${m.cls}_${m.attr}`).setVisible(true);
-    this.infoTitle.setPosition(px + 72, py + 12).setColor(info.css).setText(`${m.heroName}`);
+    this.infoPortrait.setTexture(m.textureKey).setVisible(true);
+    this.infoTitle.setPosition(px + 72, py + 12).setColor(m.isHero ? '#f2c14e' : info.css).setText(m.heroName);
+    this.infoSub.setText(m.isHero ? m.roleName : `Lv.${m.level} ${m.roleName} · ${info.name}`);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
-    const next = m.level < MAX_LEVEL ? `레벨 업 ${BALANCE.mergeCost[m.level + 1]}G` : '최고 레벨';
-    this.infoSub.setText(`Lv.${m.level} ${m.classInfo.role} · ${info.name}`);
+    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨 업 ${this.mergeCostFor(m.level)}G` : `영웅 승급 ${BALANCE.promoteCost}G`;
     const lines = [
       `강함 ${strong} · 약함 ${weak} · ${next}`,
-      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)} · 사거리 ${Math.round(st.range)}`,
-      m.skills.length ? `스킬: ${m.skills.map((id) => `★${SKILL_BY_ID[id].name}`).join(' ')}` : '스킬 없음 (레벨 업 시 랜덤 획득)'
+      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)}${st.buffed ? ' (버프 중)' : ''}`,
+      `사거리 ${Math.round(st.range)} · ${m.skills.length ? `스킬 ${m.skills.length}개 보유` : '스킬 없음'}`
     ];
-    this.infoBody.setPosition(px + 16, py + 84).setText(lines.join('\n'));
+    this.infoBody.setPosition(px + 16, py + 90).setText(lines.join('\n'));
     this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * BALANCE.sellRefund)}G`);
+    this.skillBtn.setVisible(true);
+  }
+
+  showSkillPopup(m) {
+    this.popup?.destroy();
+    const c = this.add.container(0, 0).setDepth(DEPTH.overlay - 5);
+    this.popup = c;
+    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.5).setOrigin(0).setInteractive();
+    shade.on('pointerdown', () => {
+      c.destroy();
+      this.popup = null;
+    });
+    const x = 16;
+    const y = 236;
+    const w = GAME_W - 32;
+    const h = 500;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1b1b26).fillRect(x, y, w, h);
+    bg.fillStyle(0x262a3a).fillRect(x + 4, y + 4, w - 8, h - 8);
+    c.add([shade, bg]);
+
+    const info = ATTR_INFO[m.attr];
+    let cy = y + 16;
+    const add = (str, size, color, extra = {}) => {
+      const t = text(this, x + 20, cy, str, size, color, { wordWrap: { width: w - 40 }, lineSpacing: 4, ...extra });
+      c.add(t);
+      cy += t.height + 6;
+      return t;
+    };
+    add(`${m.heroName} · ${m.isHero ? `영웅 ${m.roleName}` : `Lv.${m.level} ${m.roleName}`}`, 22, m.isHero ? '#f2c14e' : info.css);
+    add(`${ELEMENT_FLAVOR[m.attr].desc} (피해를 주는 스킬에 추가 적용)`, 16, '#9aa3b8');
+    cy += 6;
+    if (!m.skills.length) add('아직 스킬이 없습니다.', 16, '#d6dbea');
+    for (const s of m.skills) {
+      const d = s.def;
+      const tag = d.level > MAX_LEVEL ? '[영웅 고유]' : `[Lv${d.level}]`;
+      add(`${tag} ${d.name}  · 쿨타임 ${d.cd}초`, 16, d.level > MAX_LEVEL ? '#f2c14e' : '#ffffff');
+      add(describeSkill(d), 16, '#b9c0d4');
+      cy += 2;
+    }
+    if (!m.isHero && m.level < MAX_LEVEL) {
+      cy += 8;
+      const opts = skillOptions(m.attr, m.cls, m.level + 1);
+      add(`다음 레벨(Lv${m.level + 1}) 후보 — 이 중 1개 랜덤 습득`, 16, '#9aa3b8');
+      for (const o of opts) add(`· ${o.name}: ${describeSkill(o)}`, 16, '#7d859a');
+    } else if (!m.isHero) {
+      cy += 8;
+      add(`영웅 승급 후보: ${HEROES[m.attr].map((h) => h.name).join(' / ')}`, 16, '#9aa3b8');
+    }
+    const close = text(this, x + w - 20, y + h - 16, '화면을 누르면 닫힘', 16, '#5d6577').setOrigin(1, 1);
+    c.add(close);
   }
 
   togglePause() {
@@ -601,33 +794,34 @@ export class GameScene extends Phaser.Scene {
     else this.tweens.resumeAll();
   }
 
-  endGame(victory) {
+  endGame(victory, reason = '') {
     if (this.over) return;
     this.over = true;
     this.tweens.timeScale = 1;
     this.bannerObj?.destroy();
     this.toastObj?.destroy();
+    this.popup?.destroy();
     this.select(null);
-    const o = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.75).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
+    this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.75).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
     const cx = GAME_W / 2;
-    const title = victory ? '승리!' : '게임 오버';
-    text(this, cx, 340, title, 44, victory ? '#f2c14e' : '#ff6a55', { stroke: '#1b1b26', strokeThickness: 8 })
+    text(this, cx, 320, victory ? '승리!' : '게임 오버', 44, victory ? '#f2c14e' : '#ff6a55', { stroke: '#1b1b26', strokeThickness: 8 })
       .setOrigin(0.5)
       .setDepth(DEPTH.overlay + 1);
+    if (reason) text(this, cx, 372, reason, 16, '#ffb4a8').setOrigin(0.5).setDepth(DEPTH.overlay + 1);
     const relicCount = Object.values(this.relics).reduce((a, b) => a + b, 0);
+    const heroes = this.mercs.filter((m) => m.isHero).length;
     text(
       this,
       cx,
-      440,
-      [`도달 웨이브: ${this.wave} / ${TOTAL_WAVES}`, `처치한 몬스터: ${this.totalKills}`, `획득한 유물: ${relicCount}개`].join('\n'),
+      460,
+      [`도달 웨이브: ${this.wave} / ${TOTAL_WAVES}`, `처치한 몬스터: ${this.totalKills}`, `영웅: ${heroes}명 · 유물: ${relicCount}개`].join('\n'),
       22,
       '#ffffff',
       { align: 'center', lineSpacing: 10 }
     )
       .setOrigin(0.5)
       .setDepth(DEPTH.overlay + 1);
-    new Button(this, cx, 580, 240, 72, '다시 하기', () => this.scene.restart(), { color: 0x2f7d4a }).setDepth(DEPTH.overlay + 1);
-    new Button(this, cx, 670, 240, 64, '타이틀로', () => this.scene.start('Title')).setDepth(DEPTH.overlay + 1);
-    void o;
+    new Button(this, cx, 590, 240, 72, '다시 하기', () => this.scene.restart(), { color: 0x2f7d4a }).setDepth(DEPTH.overlay + 1);
+    new Button(this, cx, 680, 240, 64, '타이틀로', () => this.scene.start('Title')).setDepth(DEPTH.overlay + 1);
   }
 }

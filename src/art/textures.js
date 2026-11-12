@@ -1,4 +1,4 @@
-import { BASE_PALETTE, ATTR_PALETTES, HERO_SPRITES, MONSTER_SPRITES, ICON_SPRITES } from './sprites.js';
+import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, MONSTER_SPRITES, ICON_SPRITES } from './sprites.js';
 import { GAME_W, GAME_H, PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID } from '../config.js';
 import { RELICS } from '../data/relics.js';
 
@@ -139,10 +139,12 @@ function paintBackground(scene) {
 }
 
 export function generateTextures(scene) {
-  // 용병: 클래스 × 속성
-  for (const [cls, rows] of Object.entries(HERO_SPRITES)) {
-    for (const attr of ATTRS) {
-      paintMap(scene, `hero_${cls}_${attr}`, rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr] });
+  // 용병: 클래스 × 속성 / 영웅: 원형 × 속성
+  for (const [prefix, set] of [['merc', MERC_SPRITES], ['hero', HERO_SPRITES]]) {
+    for (const [cls, rows] of Object.entries(set)) {
+      for (const attr of ATTRS) {
+        paintMap(scene, `${prefix}_${cls}_${attr}`, rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr] });
+      }
     }
   }
   // 몬스터: 종류 × 속성

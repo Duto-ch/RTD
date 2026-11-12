@@ -13,11 +13,14 @@ export class Monster extends Phaser.GameObjects.Image {
     this.hp = s.hp;
     this.baseSpeed = s.speed;
     this.gold = s.gold;
-    this.dist = 0;
+    this.dist = 0; // 출발점부터 이동한 거리 (보스는 PATH_LENGTH 도달 시 게임 오버)
     this.phase = Math.random() * 2;
     this.slowPct = 0;
     this.slowUntil = 0;
-    this.poisons = [];
+    this.stunUntil = 0;
+    this.vulnPct = 0;
+    this.vulnUntil = 0;
+    this.dots = [];
     this.flashUntil = 0;
     this.alive = true;
 
@@ -36,14 +39,32 @@ export class Monster extends Phaser.GameObjects.Image {
     this.slowUntil = Math.max(this.slowUntil, now + dur);
   }
 
-  applyPoison(dps, dur, now, source) {
-    this.poisons.push({ dps, until: now + dur, source });
+  applyStun(dur, now) {
+    this.stunUntil = Math.max(this.stunUntil, now + (this.isBoss ? dur / 2 : dur));
+  }
+
+  applyVuln(pct, dur, now) {
+    if (pct >= this.vulnPct || now > this.vulnUntil) this.vulnPct = pct;
+    this.vulnUntil = Math.max(this.vulnUntil, now + dur);
+  }
+
+  applyDot(dps, dur, now, source) {
+    this.dots.push({ dps, until: now + dur, source });
+  }
+
+  push(px) {
+    this.dist -= this.isBoss ? px / 3 : px;
+  }
+
+  damageTakenMult(now) {
+    return now < this.vulnUntil ? 1 + this.vulnPct : 1;
   }
 
   place() {
     const p = pathPoint(this.dist);
-    // 2프레임 깡충 애니메이션 (픽셀 격자 유지)
-    const hop = Math.floor(this.scene.gameTime * 4 + this.phase) % 2 === 0 ? 0 : -PX;
+    // 2프레임 깡충 애니메이션 (픽셀 격자 유지). 기절 중엔 멈춤
+    const stunned = this.scene.gameTime < this.stunUntil;
+    const hop = stunned || Math.floor(this.scene.gameTime * 4 + this.phase) % 2 === 0 ? 0 : -PX;
     this.setPosition(Math.round(p.x), Math.round(p.y) + hop);
     if (p.dir === 'left') this.setFlipX(true);
     else if (p.dir === 'right') this.setFlipX(false);
@@ -51,21 +72,23 @@ export class Monster extends Phaser.GameObjects.Image {
 
   tick(dt, now, speedMul) {
     if (now > this.slowUntil) this.slowPct = 0;
-    this.dist += this.baseSpeed * (1 - this.slowPct) * speedMul * dt;
+    if (now >= this.stunUntil) this.dist += this.baseSpeed * (1 - this.slowPct) * speedMul * dt;
     this.place();
 
-    // 독
-    if (this.poisons.length) {
+    // 지속 피해
+    if (this.dots.length) {
+      this.dots = this.dots.filter((d) => d.until > now);
       let total = 0;
-      this.poisons = this.poisons.filter((p) => p.until > now);
-      for (const p of this.poisons) total += p.dps * dt;
-      if (total > 0) this.scene.damageMonster(this, total, { source: this.poisons[0]?.source, silent: true });
+      for (const d of this.dots) total += d.dps * dt;
+      if (total > 0) this.scene.damageMonster(this, total, { source: this.dots[0]?.source, silent: true });
     }
 
     // 상태 표시 틴트
     if (now < this.flashUntil) this.setTintFill(0xffffff);
+    else if (now < this.stunUntil) this.setTint(0xfff27a);
     else if (this.slowPct > 0) this.setTint(0x9fd4ff);
-    else if (this.poisons.length) this.setTint(0xb6ff8a);
+    else if (this.dots.length) this.setTint(0xb6ff8a);
+    else if (now < this.vulnUntil) this.setTint(0xff9cf0);
     else this.clearTint();
   }
 }

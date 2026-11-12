@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, FONT } from './config.js';
+import { GAME_W, GAME_H, FONT, BALANCE } from './config.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { GameScene } from './scenes/GameScene.js';
@@ -35,3 +35,4 @@ const game = new Phaser.Game({
 
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
 window.game = game;
+window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
