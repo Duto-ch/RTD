@@ -54,10 +54,44 @@ const TRACKS = {
       ['D5', 'F5', 'A5'], ['Bb4', 'D5', 'F5'], ['G4', 'Bb4', 'D5'], ['A4', 'C#5', 'E5']
     ],
     drums: 'kkshkksh'
+  },
+  // 최종전 (E 단조, 빠르고 웅장하게)
+  final: {
+    bpm: 168,
+    lead: [
+      ...bar('E5 - G5 - B5 - A5 G5'), ...bar('E5 - G5 - C6 - B5 -'),
+      ...bar('A5 - G5 - F#5 - D5 -'), ...bar('D#5 - F#5 - B5 - A5 F#5'),
+      ...bar('G5 - F#5 E5 - B4 E5 -'), ...bar('G5 - A5 - B5 - C6 -'),
+      ...bar('A5 - B5 - C6 - D6 -'), ...bar('D#6 - - - B5 - F#5 -')
+    ],
+    bass: bassLine(['E', 'C', 'D', 'B', 'E', 'C', 'D', 'B'], ['2', '2', '3', '2', '2', '3', '2', '3']),
+    chords: [
+      ['E4', 'G4', 'B4'], ['C5', 'E5', 'G5'], ['D5', 'F#5', 'A5'], ['B4', 'D#5', 'F#5'],
+      ['E4', 'G4', 'B4'], ['C5', 'E5', 'G5'], ['D5', 'F#5', 'A5'], ['B4', 'D#5', 'F#5']
+    ],
+    drums: 'kkskkksk'
   }
 };
 
 const SHOOT_GAP = 0.045; // 같은 종류 공격음 최소 간격(초)
+const MUSIC_GAIN = 0.28; // 볼륨 100% 일 때 배경음 음량
+const SFX_GAIN = 0.48; // 볼륨 100% 일 때 효과음 음량
+
+// 설정 저장 (저장이 막힌 환경에서도 동작하도록)
+function load(key, fallback) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+function save(key, value) {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    /* 무시 */
+  }
+}
 
 class Chiptune {
   constructor() {
@@ -65,11 +99,25 @@ class Chiptune {
     this.track = null;
     this.wanted = null;
     this.last = {};
-    try {
-      this.muted = localStorage.getItem('rtd-muted') === '1';
-    } catch {
-      this.muted = false;
-    }
+    this.muted = load('rtd-muted', '0') === '1';
+    this.musicVol = Number(load('rtd-music-vol', '0.7')); // 0~1
+    this.sfxVol = Number(load('rtd-sfx-vol', '0.8'));
+  }
+
+  /** 배경음 볼륨 0~1 (저장됨) */
+  setMusicVolume(v) {
+    this.musicVol = Math.max(0, Math.min(1, Math.round(v * 10) / 10));
+    save('rtd-music-vol', this.musicVol);
+    if (this.music) this.music.gain.setTargetAtTime(MUSIC_GAIN * this.musicVol, this.ctx.currentTime, 0.02);
+    return this.musicVol;
+  }
+
+  /** 효과음 볼륨 0~1 (저장됨) */
+  setSfxVolume(v) {
+    this.sfxVol = Math.max(0, Math.min(1, Math.round(v * 10) / 10));
+    save('rtd-sfx-vol', this.sfxVol);
+    if (this.sfx) this.sfx.gain.setTargetAtTime(SFX_GAIN * this.sfxVol, this.ctx.currentTime, 0.02);
+    return this.sfxVol;
   }
 
   /** 사용자 입력 시 호출 — 오디오 컨텍스트 생성/재개 */
@@ -86,10 +134,10 @@ class Chiptune {
     const comp = ctx.createDynamicsCompressor();
     this.master.connect(comp).connect(ctx.destination);
     this.music = ctx.createGain();
-    this.music.gain.value = 0.2;
+    this.music.gain.value = MUSIC_GAIN * this.musicVol;
     this.music.connect(this.master);
     this.sfx = ctx.createGain();
-    this.sfx.gain.value = 0.38;
+    this.sfx.gain.value = SFX_GAIN * this.sfxVol;
     this.sfx.connect(this.master);
     // 리드용 에코 (16비트 콘솔 느낌의 잔향)
     this.echo = ctx.createDelay(1);
@@ -124,11 +172,7 @@ class Chiptune {
 
   toggleMute() {
     this.muted = !this.muted;
-    try {
-      localStorage.setItem('rtd-muted', this.muted ? '1' : '0');
-    } catch {
-      /* 저장 불가 환경 무시 */
-    }
+    save('rtd-muted', this.muted ? '1' : '0');
     if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : 0.9, this.ctx.currentTime, 0.02);
     return this.muted;
   }

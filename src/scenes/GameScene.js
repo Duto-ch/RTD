@@ -12,7 +12,7 @@ import { cellAt, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
 import { audio } from '../systems/audio.js';
 
-const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스', milestone: '강화 보스' };
+const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스', milestone: '강화 보스', final: '최종 보스' };
 
 const text = (scene, x, y, str, size = 22, color = '#ffffff', extra = {}) =>
   scene.add.text(x, y, str, { fontFamily: FONT, fontSize: `${size}px`, color, ...extra }).setDepth(DEPTH.ui);
@@ -41,6 +41,8 @@ export class GameScene extends Phaser.Scene {
     this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
     this.waveAttrs = ATTRS;
     this.relicChoice = null;
+    this.menu = null;
+    this.popup = null;
     this.selected = null;
     this.totalKills = 0;
     this.hudTimer = 0;
@@ -66,7 +68,7 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     if (this.over) return;
-    const dt = this.paused || this.relicChoice ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
+    const dt = this.paused || this.relicChoice || this.menu ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
     this.gameTime += dt;
 
     if (dt > 0) {
@@ -119,11 +121,12 @@ export class GameScene extends Phaser.Scene {
     this.spawnTimer = 0;
     this.waveTimer = BALANCE.waveDuration;
     const sub =
+      info.type === 'final' ? `최종 보스 출현! 쓰러뜨려도 한 번 되살아납니다` :
       info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노·속성 변환 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌기 전에 처치하세요` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
     const attrNames = this.waveAttrs.map((a) => ATTR_INFO[a].name).join('·');
-    const color = info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
+    const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
     this.showBanner(`WAVE ${w}`, `${sub} · ${attrNames}`, color);
   }
 
@@ -132,7 +135,7 @@ export class GameScene extends Phaser.Scene {
     this.monsters.push(m);
     if (m.isBoss) {
       audio.bossAppear();
-      this.showBanner(m.milestone ? '강화 보스 등장!' : '보스 등장!', m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
+      this.showBanner(m.isFinal ? `최종 보스: ${m.design.name}` : `${m.milestone ? '강화 보스' : '보스'}: ${m.design.name}`, m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
     }
   }
 
@@ -192,7 +195,7 @@ export class GameScene extends Phaser.Scene {
     for (const boss of this.monsters) {
       if (!boss.alive || !boss.isBoss) continue;
       const MS = BALANCE.milestone;
-      if (boss.milestone) {
+      if (boss.canEnrage) {
         // 분노: 체력이 enrageAt 이하로 떨어지면 빨라지고 디버프를 더 자주 쓴다
         if (!boss.enraged && boss.hp / boss.maxHp <= MS.enrageAt) {
           boss.enraged = true;
@@ -201,6 +204,8 @@ export class GameScene extends Phaser.Scene {
           this.cameras.main.shake(300, 0.008);
           audio.bossAppear();
         }
+      }
+      if (boss.milestone) {
         // 속성 변환: 주기마다 다른 속성으로
         boss.shiftTimer -= dt;
         if (boss.shiftTimer <= 0) {
@@ -222,7 +227,7 @@ export class GameScene extends Phaser.Scene {
         const targets = Phaser.Utils.Array.Shuffle([...mercs]).slice(0, n);
         for (const t of targets) {
           t.addDebuff(a.def, now);
-          this.floatText(t.x, t.y - 36, a.def.name, '#d6a8ff', 16, true);
+          this.floatText(t.x, t.y - 36, a.def.name, '#d6a8ff', 16);
         }
         this.vfx.curse(boss, targets);
         audio.debuff();
@@ -363,6 +368,7 @@ export class GameScene extends Phaser.Scene {
 
   killMonster(m, source) {
     if (!m.alive) return;
+    if (m.isFinal && !m.revived) return this.reviveFinalBoss(m);
     m.alive = false;
     this.totalKills += 1;
     const gold = Math.round(m.gold * (1 + 0.25 * (this.relics.golden_grail || 0)));
@@ -376,6 +382,18 @@ export class GameScene extends Phaser.Scene {
     } else audio.kill();
     if (m.kind !== 'normal') this.floatText(m.x, m.y - 30, `+${gold}G`, '#f2c14e');
     m.destroy();
+  }
+
+  /** 최종 보스 첫 사망: 50% 체력으로 부활하고 디버프 능력이 하나 늘어난다 */
+  reviveFinalBoss(m) {
+    const added = m.revive();
+    m.dots = [];
+    this.cameras.main.flash(400, 120, 40, 160);
+    this.cameras.main.shake(500, 0.01);
+    this.vfx.burst('curse', m.x, m.y, 40);
+    this.vfx.shockwave(m.x, m.y, 160, 0xb47cff);
+    this.showBanner(`${m.design.name} 부활!`, `체력 ${Math.round(BALANCE.final.reviveHp * 100)}% 회복 · 새 디버프: ${added.map((d) => d.name).join(', ')}`, '#ff4dd2');
+    audio.bossAppear();
   }
 
   dropRelic(x, y) {
@@ -581,6 +599,7 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.input.dragDistanceThreshold = 6;
+    this.input.keyboard?.on('keydown-ESC', () => this.toggleMenu());
     this.input.on('gameobjectdown', (_p, obj) => {
       if (obj instanceof Mercenary) this.select(obj);
     });
@@ -750,17 +769,19 @@ export class GameScene extends Phaser.Scene {
       const label = this.wave === 0 ? '시작까지' : '다음 웨이브';
       this.timerText.setText(`${label} ${Math.ceil(Math.max(0, this.waveTimer))}초`);
       const ni = waveInfo(nextWave);
-      const extra = ni.type === 'elite' ? ' + 정예 10' : ni.type === 'boss' ? ' + 보스' : ni.type === 'milestone' ? ' + 정예 10 + 강화 보스' : '';
+      const extra = { elite: ' + 정예 10', boss: ' + 보스', milestone: ' + 정예 10 + 강화 보스', final: ' + 최종 보스' }[ni.type] || '';
       this.waveTypeText.setText(`다음: ${WAVE_TYPE_NAME[ni.type]} 웨이브 (${ni.normal}기${extra})`);
     } else {
       this.timerText.setText('최종 웨이브!');
       this.waveTypeText.setText('남은 몬스터를 모두 처치하세요');
     }
     const boss = this.monsters.find((m) => m.isBoss && m.alive);
-    if (!this.over) audio.playMusic(boss ? 'boss' : 'battle');
+    if (!this.over) audio.playMusic(boss ? (boss.isFinal ? 'final' : 'boss') : 'battle');
     this.bossText.setText(
       boss
-        ? `${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${boss.abilities.map((a) => a.def.name).join(', ')}`
+        ? `${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${
+            boss.abilities.length > 2 ? `디버프 ${boss.abilities.length}종` : boss.abilities.map((a) => a.def.name).join(', ')
+          }`
         : ''
     );
     this.goldText.setText(`${this.gold} G`);
@@ -815,10 +836,7 @@ export class GameScene extends Phaser.Scene {
       this.tweens.timeScale = this.speed;
     });
     this.pauseBtn = new Button(this, 108, 900, 56, 64, '정지', () => this.togglePause(), { fontSize: 16 });
-    this.soundBtn = new Button(this, 172, 900, 56, 64, audio.muted ? '무음' : '소리', () => {
-      audio.init();
-      this.soundBtn.setLabel(audio.toggleMute() ? '무음' : '소리');
-    }, { fontSize: 16 });
+    this.menuBtn = new Button(this, 172, 900, 56, 64, '메뉴', () => this.toggleMenu(), { fontSize: 16 });
 
     // 정보 패널
     const px = 216;
@@ -937,6 +955,93 @@ export class GameScene extends Phaser.Scene {
     c.add(close);
   }
 
+  // ───────────────────────── ESC 메뉴 ─────────────────────────
+  toggleMenu() {
+    if (this.over) return;
+    if (this.menu) this.closeMenu();
+    else this.openMenu();
+  }
+
+  openMenu() {
+    audio.init();
+    this.popup?.destroy();
+    this.popup = null;
+    if (!this.paused) this.tweens.pauseAll();
+    const c = this.add.container(0, 0).setDepth(DEPTH.overlay - 0.3);
+    this.menu = c;
+    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.6).setOrigin(0).setInteractive();
+    const px = 64;
+    const py = 236;
+    const pw = GAME_W - 128;
+    const ph = 500;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1b1b26).fillRect(px, py, pw, ph);
+    bg.fillStyle(0x262a3a).fillRect(px + 4, py + 4, pw - 8, ph - 8);
+    c.add([shade, bg]);
+    c.add(text(this, GAME_W / 2, py + 34, '메뉴', 33, '#f2c14e', { stroke: '#1b1b26', strokeThickness: 6 }).setOrigin(0.5));
+    c.add(text(this, GAME_W / 2, py + 72, '게임이 일시정지되었습니다', 16, '#9aa3b8').setOrigin(0.5));
+
+    // 볼륨 조절 줄: [-] 막대 [+] 퍼센트
+    const volRow = (y, label, get, set) => {
+      c.add(text(this, px + 24, y - 11, label, 22, '#ffffff'));
+      const bar = this.add.graphics();
+      const pct = text(this, px + pw - 20, y - 11, '', 22, '#f2c14e').setOrigin(1, 0);
+      const draw = () => {
+        const v = get();
+        bar.clear();
+        bar.fillStyle(0x1b1b26).fillRect(px + 150, y - 8, 140, 16);
+        bar.fillStyle(0x6fd36a).fillRect(px + 154, y - 4, Math.round(132 * v), 8);
+        pct.setText(`${Math.round(v * 100)}%`);
+      };
+      const minus = new Button(this, px + 120, y, 44, 40, '-', () => { set(get() - 0.1); draw(); audio.coin(); }, { fontSize: 22 });
+      const plus = new Button(this, px + 320, y, 44, 40, '+', () => { set(get() + 0.1); draw(); audio.coin(); }, { fontSize: 22 });
+      c.add([bar, pct, minus, plus]);
+      draw();
+    };
+    volRow(py + 136, '배경음', () => audio.musicVol, (v) => audio.setMusicVolume(v));
+    volRow(py + 196, '효과음', () => audio.sfxVol, (v) => audio.setSfxVolume(v));
+
+    const muteBtn = new Button(this, GAME_W / 2, py + 262, pw - 56, 52, '', () => {
+      audio.toggleMute();
+      muteBtn.setLabel(`전체 음소거: ${audio.muted ? '켜짐' : '꺼짐'}`);
+    }, { fontSize: 20 });
+    muteBtn.setLabel(`전체 음소거: ${audio.muted ? '켜짐' : '꺼짐'}`);
+    const resume = new Button(this, GAME_W / 2, py + 340, pw - 56, 64, '계속하기', () => this.closeMenu(), { color: 0x2f7d4a, fontSize: 22 });
+    let confirmQuit = false;
+    const quit = new Button(this, GAME_W / 2, py + 420, pw - 56, 64, '게임 종료', () => {
+      if (!confirmQuit) {
+        confirmQuit = true;
+        quit.setLabel('정말 종료할까요? 한 번 더 누르세요');
+        this.time.delayedCall(2500, () => {
+          if (quit.active) {
+            confirmQuit = false;
+            quit.setLabel('게임 종료');
+          }
+        });
+        return;
+      }
+      this.quitToTitle();
+    }, { color: 0x8c2b25, fontSize: 18 });
+    c.add([muteBtn, resume, quit]);
+    c.add(text(this, GAME_W / 2, py + ph - 22, 'ESC 를 누르면 닫힘', 16, '#5d6577').setOrigin(0.5));
+  }
+
+  closeMenu() {
+    if (!this.menu) return;
+    this.menu.destroy(true);
+    this.menu = null;
+    if (!this.paused) this.tweens.resumeAll();
+  }
+
+  quitToTitle() {
+    this.menu?.destroy(true);
+    this.menu = null;
+    this.tweens.resumeAll();
+    this.tweens.timeScale = 1;
+    audio.playMusic(null);
+    this.scene.start('Title');
+  }
+
   togglePause() {
     this.paused = !this.paused;
     this.pauseBtn.setLabel(this.paused ? '재개' : '정지');
@@ -954,6 +1059,8 @@ export class GameScene extends Phaser.Scene {
     this.popup?.destroy();
     this.relicChoice?.container.destroy();
     this.relicChoice = null;
+    this.menu?.destroy(true);
+    this.menu = null;
     this.select(null);
     audio.playMusic(null);
     if (victory) audio.victory();

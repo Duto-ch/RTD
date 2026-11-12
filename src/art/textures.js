@@ -1,4 +1,6 @@
-import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, MONSTER_SPRITES, ICON_SPRITES } from './sprites.js';
+import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES } from './sprites.js';
+import { BOSS_EXTRA_PALETTE } from './monsters.js';
+import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
 import { GAME_W, GAME_H, PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID } from '../config.js';
 import { RELICS } from '../data/relics.js';
 import { HEROES } from '../data/heroes.js';
@@ -154,9 +156,10 @@ export function generateTextures(scene) {
     }
   }
   // 몬스터: 종류 × 속성
-  for (const [kind, rows] of Object.entries(MONSTER_SPRITES)) {
+  // 몬스터: 디자인 40종 × 속성
+  for (const d of ALL_MONSTER_DESIGNS) {
     for (const attr of ATTRS) {
-      paintMap(scene, `mon_${kind}_${attr}`, rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr] });
+      paintMap(scene, `mon_${d.id}_${attr}`, d.rows, { ...BASE_PALETTE, ...BOSS_EXTRA_PALETTE, ...ATTR_PALETTES[attr] });
     }
   }
   paintMap(scene, 'icon_coin', ICON_SPRITES.coin, BASE_PALETTE);

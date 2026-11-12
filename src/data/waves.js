@@ -6,6 +6,7 @@ import { BALANCE } from '../config.js';
 // - 정예 웨이브: 5, 15, 25 … 95 (일반 몬스터 + 정예 10기)
 // - 보스 웨이브: 10, 20, 30 … 100 (일반 몬스터 + 보스 1기)
 // - 강화 보스 웨이브: 30, 60, 90 (일반 몬스터 + 정예 10기 + 강화 보스) — BALANCE.milestone
+// - 최종 보스 웨이브: 100 (일반 몬스터 + 최종 보스: 디버프 3개·분노·첫 사망 시 50% 부활+디버프 1개 추가) — BALANCE.final
 // - 보스는 느리게 이동하며, 성벽을 한 바퀴 다 돌면 즉시 게임 오버
 // - 한 웨이브의 몬스터 속성은 최대 BALANCE.monster.attrsPerWave 종류
 export const TOTAL_WAVES = 100;
@@ -28,6 +29,7 @@ export function normalCount(w) {
 
 export function waveInfo(w) {
   const normal = normalCount(w);
+  if (w === TOTAL_WAVES) return { type: 'final', normal, elite: 0, boss: 1 };
   if (isMilestoneWave(w)) return { type: 'milestone', normal, elite: BALANCE.milestone.extraElites, boss: 1 };
   if (isBossWave(w)) return { type: 'boss', normal, elite: 0, boss: 1 };
   if (isEliteWave(w)) return { type: 'elite', normal, elite: 10, boss: 0 };

@@ -1,15 +1,20 @@
 import Phaser from 'phaser';
 import { PX, DEPTH } from '../config.js';
 import { pathPoint } from '../systems/path.js';
-import { monsterStats } from '../data/waves.js';
+import { monsterStats, TOTAL_WAVES } from '../data/waves.js';
+import { monsterDesign } from '../data/monsters.js';
 import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Image {
   constructor(scene, kind, attr, wave, milestone = false) {
-    super(scene, 0, 0, `mon_${kind}_${attr}`);
+    const design = monsterDesign(kind, wave);
+    super(scene, 0, 0, `mon_${design.id}_${attr}`);
+    this.design = design; // { id, name } — 웨이브별 전용 외형
     const s = monsterStats(kind, wave, milestone);
     this.milestone = milestone; // 강화 보스 (30·60·90)
+    this.isFinal = kind === 'boss' && wave >= TOTAL_WAVES; // 최종 보스 (100)
+    this.revived = false;
     this.enraged = false;
     this.shiftTimer = BALANCE.milestone.shiftEvery;
     this.kind = kind;
@@ -31,7 +36,7 @@ export class Monster extends Phaser.GameObjects.Image {
     this.abilities = []; // 보스 디버프 능력 { def, cd }
     if (kind === 'boss') {
       const [min, max] = BALANCE.boss.abilityCount;
-      const n = milestone ? BALANCE.milestone.abilityCount : Phaser.Math.Between(min, max);
+      const n = this.isFinal ? BALANCE.final.abilityCount : milestone ? BALANCE.milestone.abilityCount : Phaser.Math.Between(min, max);
       this.abilities = Phaser.Utils.Array.Shuffle([...BOSS_ABILITIES])
         .slice(0, n)
         .map((def) => ({ def, cd: def.cd * 0.5 }));
@@ -84,10 +89,26 @@ export class Monster extends Phaser.GameObjects.Image {
     else if (p.dir === 'right') this.setFlipX(false);
   }
 
+  /** 분노 패턴이 있는 보스 (강화 보스·최종 보스) */
+  get canEnrage() {
+    return this.milestone || this.isFinal;
+  }
+
+  /** 최종 보스 부활: 체력 회복 + 아직 없는 디버프 능력 추가 */
+  revive() {
+    this.revived = true;
+    this.hp = this.maxHp * BALANCE.final.reviveHp;
+    const extra = Phaser.Utils.Array.Shuffle(BOSS_ABILITIES.filter((d) => !this.abilities.some((a) => a.def.id === d.id)))
+      .slice(0, BALANCE.final.reviveExtraAbilities)
+      .map((def) => ({ def, cd: 1 }));
+    this.abilities.push(...extra);
+    return extra.map((a) => a.def);
+  }
+
   /** 속성 변환 (강화 보스) */
   setAttr(attr) {
     this.attr = attr;
-    this.setTexture(`mon_${this.kind}_${attr}`);
+    this.setTexture(`mon_${this.design.id}_${attr}`);
   }
 
   tick(dt, now, speedMul) {

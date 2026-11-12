@@ -309,56 +309,6 @@ export const HERO_SPRITES = {
   }
 };
 
-// ── 몬스터 ───────────────────────────────────
-export const MONSTER_SPRITES = {
-  normal: [
-    '............',
-    '....kkkk....',
-    '...kLLAAk...',
-    '..kLAAAAAk..',
-    '..kAAAAAAk..',
-    '.kAkwAAkwAk.',
-    '.kAkkAAkkAk.',
-    '.kAAAAAAAAk.',
-    '.kAAaaaaAAk.',
-    '.kaAAAAAAak.',
-    '..kaaaaaak..',
-    '...kkkkkk...'
-  ],
-  elite: [
-    '.w........w.',
-    '.wk.kkkk.kw.',
-    '..wkLLAAkw..',
-    '..kLAAAAAk..',
-    '..kAyyyyAk..',
-    '.kAkwAAkwAk.',
-    '.kAkrAAkrAk.',
-    '.kAAAAAAAAk.',
-    '.kAwkwwkwAk.',
-    '.kaAAAAAAak.',
-    '..kaaaaaak..',
-    '...kkkkkk...'
-  ],
-  boss: [
-    '...y...yy...y...',
-    '...yy.yyyy.yy...',
-    '...yyyyyyyyyy...',
-    '..kkkkkkkkkkkk..',
-    '.kAAAAAAAAAAAAk.',
-    'kAALAAAAAAAALAAk',
-    'kAkkwAAAAAAwkkAk',
-    'kAkrrkAAAAkrrkAk',
-    'kAAkkAAAAAAkkAAk',
-    'kAAAAAAAAAAAAAAk',
-    'kAAwkwkwkwkwkAAk',
-    'kaAkwkwkwkwkwAak',
-    'kaAAkkkkkkkkAAak',
-    '.kaAAAAAAAAAAak.',
-    '..kaaaaaaaaaak..',
-    '...kkkkkkkkkk...'
-  ]
-};
-
 // ── 아이콘 ───────────────────────────────────
 export const ICON_SPRITES = {
   coin: [

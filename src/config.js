@@ -75,6 +75,12 @@ export const BALANCE = {
     shiftEvery: 8, // 속성 변환 주기(초)
     relicChoices: 3 // 처치 시 유물 선택지 수
   },
+  // 최종 보스 (100웨이브)
+  final: {
+    abilityCount: 3, // 디버프 능력 3개
+    reviveHp: 0.5, // 첫 사망 시 이 체력 비율로 부활
+    reviveExtraAbilities: 1 // 부활 시 추가되는 디버프 능력 수
+  },
   maxAlive: 100, // 필드 위 몬스터가 이 수에 도달하면 게임 오버
   prepTime: 8, // 1웨이브 시작 전 준비 시간(초)
   waveDuration: 30, // 웨이브 간격(초)
