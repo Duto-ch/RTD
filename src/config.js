@@ -32,7 +32,7 @@ export const BALANCE = {
   hireCost: 30,
   sellRefund: 0.5, // 투자 골드 대비 판매 환급 비율
   mergeCost: { 2: 20, 3: 100, 4: 240, 5: 600 }, // 해당 레벨로 올릴 때 비용 (Lv3부터 2배, 2026-11-12)
-  promoteCost: 600, // Lv5 + Lv5 → 영웅 승급 비용
+  promoteCost: 1800, // Lv5 + Lv5 → 영웅 승급 비용 (2026-11-12 3배)
   levelDamage: [1, 2.5, 6, 14, 32], // 레벨별 공격력 배율
   elementAdvantage: 1.5,
   elementDisadvantage: 0.6,
