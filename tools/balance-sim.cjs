@@ -1,4 +1,4 @@
-// 밸런스 시뮬레이터: 탐욕 봇(가능하면 머지, 아니면 고용)으로 게임 로직을 고속 실행해 도달 웨이브를 출력
+// 밸런스 시뮬레이터: 봇(빈 칸 있으면 고용, 가득 차면 낮은 레벨부터 머지)으로 게임 로직을 고속 실행해 도달 웨이브를 출력
 // 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/balance-sim.cjs ['{"hpGrowth":1.08}']
 //   인자(JSON)는 BALANCE.monster 를 덮어써서 실험할 때 사용
 const { chromium } = require('playwright');
@@ -20,9 +20,10 @@ const { chromium } = require('playwright');
       let acted = true;
       while (acted) {
         acted = false;
+        // 빈 칸이 있으면 고용 우선, 필드가 차면 낮은 레벨부터 합치기
+        if (g.gold >= g.hireCost && g.mercs.length < 25) { g.hire(); acted = true; continue; }
         const ms = g.mercs.sort((a, b) => a.level - b.level);
         outer: for (const a of ms) for (const c of ms) if (a.canMergeWith(c) && g.gold >= g.mergeCostFor(c.level)) { g.merge(a, c); acted = true; break outer; }
-        if (!acted && g.gold >= g.hireCost && g.mercs.length < 25) { g.hire(); acted = true; }
       }
       g.update(0, 100); // 0.1초
       maxAlive = Math.max(maxAlive, g.monsters.length);

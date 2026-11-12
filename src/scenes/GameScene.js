@@ -65,6 +65,7 @@ export class GameScene extends Phaser.Scene {
       this.updateWaves(dt);
       const speedMul = Math.max(0.4, 1 - 0.1 * (this.relics.frost_crown || 0));
       for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, speedMul);
+      this.updateBosses(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
     }
@@ -116,6 +117,9 @@ export class GameScene extends Phaser.Scene {
   spawnMonster(kind) {
     const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(ATTRS), this.wave);
     this.monsters.push(m);
+    if (m.isBoss) {
+      this.showBanner('보스 등장!', m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
+    }
   }
 
   cleanupMonsters() {
@@ -143,12 +147,15 @@ export class GameScene extends Phaser.Scene {
     for (const merc of this.mercs) {
       if (merc.dragging) continue;
       const st = merc.getStats(this.relics, now);
+      const deb = st.debuff;
+      merc.sprite.setTint(deb.list.length ? (deb.stun ? 0x7a6a9a : 0xc89cff) : now < (merc.buffFlashUntil || 0) ? 0xfff2a0 : 0xffffff);
+      if (deb.stun) continue; // 공포: 공격·스킬·쿨타임 모두 정지
       const inRange = this.monstersInRange(merc.x, merc.y, st.range);
 
-      // 스킬: 쿨타임이 끝나면 자동 시전
+      // 스킬: 쿨타임이 끝나면 자동 시전 (침묵 중엔 시전 불가, 시간 부식은 쿨타임 회복 저하)
       for (const s of merc.skills) {
-        s.cd -= dt;
-        if (s.cd <= 0 && this.castSkill(merc, s.def, st, inRange)) s.cd = s.def.cd;
+        s.cd -= dt * deb.cdRate;
+        if (!deb.silence && s.cd <= 0 && this.castSkill(merc, s.def, st, inRange)) s.cd = s.def.cd;
       }
 
       // 기본 공격
@@ -162,6 +169,32 @@ export class GameScene extends Phaser.Scene {
       merc.cooldown = 1 / st.rate;
       for (const m of live.slice(0, st.targets)) this.basicAttack(merc, st, m);
       this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
+    }
+  }
+
+  /** 보스 디버프 능력: 쿨타임마다 랜덤 용병/영웅에게 시전 */
+  updateBosses(dt) {
+    const now = this.gameTime;
+    for (const boss of this.monsters) {
+      if (!boss.alive || !boss.isBoss) continue;
+      for (const a of boss.abilities) {
+        a.cd -= dt;
+        if (a.cd > 0) continue;
+        a.cd = a.def.cd;
+        const mercs = this.mercs.filter((m) => !m.dragging);
+        if (!mercs.length) continue;
+        const n = BALANCE.boss.targetsBase + Math.floor(this.wave / BALANCE.boss.targetsPerWaves);
+        const targets = Phaser.Utils.Array.Shuffle([...mercs]).slice(0, n);
+        const g = this.add.graphics().setDepth(DEPTH.fx);
+        g.lineStyle(4, 0xb47cff, 0.9);
+        for (const t of targets) {
+          t.addDebuff(a.def, now);
+          g.lineBetween(boss.x, boss.y, t.x, t.y);
+          this.floatText(t.x, t.y - 36, a.def.name, '#d6a8ff', 16, true);
+        }
+        this.tweens.add({ targets: g, alpha: 0, duration: 400, onComplete: () => g.destroy() });
+        this.floatText(boss.x, boss.y - 48, a.def.name, '#d6a8ff', 22, true);
+      }
     }
   }
 
@@ -273,8 +306,7 @@ export class GameScene extends Phaser.Scene {
         this.mercs.filter((o) => Math.abs(o.col - merc.col) <= 1 && Math.abs(o.row - merc.row) <= 1);
       for (const o of who) {
         o.addBuff(b, now);
-        o.sprite.setTint(0xfff2a0);
-        this.time.delayedCall(250, () => o.active && o.sprite.clearTint());
+        o.buffFlashUntil = now + 0.25;
       }
     }
     if (def.gold) {
@@ -622,7 +654,9 @@ export class GameScene extends Phaser.Scene {
       this.waveTypeText.setText('남은 몬스터를 모두 처치하세요');
     }
     const boss = this.monsters.find((m) => m.isBoss && m.alive);
-    this.bossText.setText(boss ? `보스 진행 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}%` : '');
+    this.bossText.setText(
+      boss ? `보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${boss.abilities.map((a) => a.def.name).join(', ')}` : ''
+    );
     this.goldText.setText(`${this.gold} G`);
 
     const n = this.monsters.length;
@@ -729,8 +763,10 @@ export class GameScene extends Phaser.Scene {
     const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨 업 ${this.mergeCostFor(m.level)}G` : `영웅 승급 ${BALANCE.promoteCost}G`;
     const lines = [
       `강함 ${strong} · 약함 ${weak} · ${next}`,
-      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)}${st.buffed ? ' (버프 중)' : ''}`,
-      `사거리 ${Math.round(st.range)} · ${m.skills.length ? `스킬 ${m.skills.length}개 보유` : '스킬 없음'}`
+      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)}${st.debuff.list.length ? ' (디버프)' : st.buffed ? ' (버프 중)' : ''}`,
+      st.debuff.list.length
+        ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - this.gameTime)}초`).join(', ')}`
+        : `사거리 ${Math.round(st.range)} · ${m.skills.length ? `스킬 ${m.skills.length}개 보유` : '스킬 없음'}`
     ];
     this.infoBody.setPosition(px + 16, py + 90).setText(lines.join('\n'));
     this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * BALANCE.sellRefund)}G`);

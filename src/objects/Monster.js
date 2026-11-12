@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { PX, DEPTH } from '../config.js';
 import { pathPoint } from '../systems/path.js';
 import { monsterStats } from '../data/waves.js';
+import { BOSS_ABILITIES } from '../data/bossAbilities.js';
+import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Image {
   constructor(scene, kind, attr, wave) {
@@ -23,6 +25,14 @@ export class Monster extends Phaser.GameObjects.Image {
     this.dots = [];
     this.flashUntil = 0;
     this.alive = true;
+    this.abilities = []; // 보스 디버프 능력 { def, cd }
+    if (kind === 'boss') {
+      const [min, max] = BALANCE.boss.abilityCount;
+      const n = Phaser.Math.Between(min, max);
+      this.abilities = Phaser.Utils.Array.Shuffle([...BOSS_ABILITIES])
+        .slice(0, n)
+        .map((def) => ({ def, cd: def.cd * 0.5 }));
+    }
 
     this.setScale(kind === 'boss' ? PX + 1 : PX);
     this.setDepth(DEPTH.monster + (kind === 'boss' ? 2 : kind === 'elite' ? 1 : 0));

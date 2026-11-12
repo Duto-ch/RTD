@@ -17,6 +17,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.hero = null; // 영웅 데이터 (data/heroes.js HEROES)
     this.skills = []; // { def, cd }
     this.buffs = []; // { dmg, rate, range, until }
+    this.debuffs = []; // 보스 디버프 { def, until }
     this.col = col;
     this.row = row;
     this.cooldown = Math.random() * 0.5;
@@ -101,7 +102,28 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.buffs.push({ dmg: b.dmg || 0, rate: b.rate || 0, range: b.range || 0, until: now + b.dur });
   }
 
-  /** 유물·버프 반영 최종 능력치 */
+  addDebuff(def, now) {
+    const cur = this.debuffs.find((d) => d.def.id === def.id);
+    if (cur) cur.until = Math.max(cur.until, now + def.dur);
+    else this.debuffs.push({ def, until: now + def.dur });
+  }
+
+  /** 현재 걸린 보스 디버프 요약 */
+  debuffState(now) {
+    this.debuffs = this.debuffs.filter((d) => d.until > now);
+    const s = { rate: 0, dmg: 0, cdRate: 1, silence: false, stun: false, list: this.debuffs };
+    for (const { def } of this.debuffs) {
+      const e = def.effect;
+      if (e.rate) s.rate += e.rate;
+      if (e.dmg) s.dmg += e.dmg;
+      if (e.cdRate) s.cdRate = Math.min(s.cdRate, e.cdRate);
+      if (e.silence) s.silence = true;
+      if (e.stun) s.stun = true;
+    }
+    return s;
+  }
+
+  /** 유물·버프·디버프 반영 최종 능력치 */
   getStats(relics, now) {
     const base = this.baseStats;
     const n = (id) => relics[id] || 0;
@@ -112,14 +134,15 @@ export class Mercenary extends Phaser.GameObjects.Container {
       range: 0
     });
 
-    const dmgBonus = 0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`) + buff.dmg;
-    const rateBonus = 0.15 * n('war_drum') + buff.rate;
+    const deb = this.debuffState(now);
+    const dmgBonus = 0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`) + buff.dmg + deb.dmg;
+    const rateBonus = 0.15 * n('war_drum') + buff.rate + deb.rate;
     const rangeBonus = 0.15 * n('hawk_eye') + buff.range;
     const lv = Math.min(this.level, MAX_LEVEL);
 
     return {
-      damage: base.dmg * BALANCE.levelDamage[lv - 1] * (1 + dmgBonus),
-      rate: base.rate * (1 + rateBonus),
+      damage: base.dmg * BALANCE.levelDamage[lv - 1] * Math.max(0.1, 1 + dmgBonus),
+      rate: base.rate * Math.max(0.1, 1 + rateBonus),
       range: base.range * (1 + rangeBonus),
       crit: Math.min(1, (base.crit || 0) + 0.1 * n('lucky_coin')),
       critMult: 2,
@@ -128,7 +151,8 @@ export class Mercenary extends Phaser.GameObjects.Container {
       chain: base.chain || 0,
       slow: base.slow || 0,
       slowDur: base.slowDur || 0,
-      buffed: this.buffs.length > 0
+      buffed: this.buffs.length > 0,
+      debuff: deb
     };
   }
 }

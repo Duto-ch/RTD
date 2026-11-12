@@ -31,20 +31,27 @@ export const BALANCE = {
   startGold: 120,
   hireCost: 30,
   sellRefund: 0.5, // 투자 골드 대비 판매 환급 비율
-  mergeCost: { 2: 20, 3: 50, 4: 120, 5: 300 }, // 해당 레벨로 올릴 때 비용
+  mergeCost: { 2: 20, 3: 100, 4: 240, 5: 600 }, // 해당 레벨로 올릴 때 비용 (Lv3부터 2배, 2026-11-12)
   promoteCost: 600, // Lv5 + Lv5 → 영웅 승급 비용
   levelDamage: [1, 2.5, 6, 14, 32], // 레벨별 공격력 배율
   elementAdvantage: 1.5,
   elementDisadvantage: 0.6,
   // 몬스터 체력 = hpBase × hpGrowth^(웨이브-1) × 종류 배율
   monster: {
-    hpBase: 22,
+    hpBase: 44, // 체력 2배 (2026-11-12)
     hpGrowth: 1.08,
     eliteHpMult: 10,
     bossHpMult: 300,
-    normalSpeed: 70,
-    eliteSpeed: 55,
-    bossSpeed: 22 // 경로 1바퀴 1760px → 약 80초
+    // 이동 속도 1.5배 (2026-11-12)
+    normalSpeed: 105,
+    eliteSpeed: 82,
+    bossSpeed: 33 // 경로 1바퀴 1760px → 약 53초
+  },
+  // 보스 디버프: 보스마다 1~2개 능력을 랜덤 보유, 쿨타임마다 용병/영웅 여러 명에게 시전
+  boss: {
+    abilityCount: [1, 2],
+    targetsBase: 2, // 대상 수 = targetsBase + floor(웨이브 / targetsPerWaves)
+    targetsPerWaves: 20
   },
   maxAlive: 100, // 필드 위 몬스터가 이 수에 도달하면 게임 오버
   prepTime: 8, // 1웨이브 시작 전 준비 시간(초)
