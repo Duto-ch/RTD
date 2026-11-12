@@ -21,6 +21,7 @@
 - `npm run build` — `dist/` 로 빌드
 - `node tools/balance-sim.cjs ['{"hpGrowth":1.08}']` — 밸런스 봇 시뮬레이션. JSON 인자로 BALANCE.monster 덮어쓰기 실험 (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
 - `node tools/gen-skill-doc.mjs` — 스킬 데이터 변경 후 `docs/SKILLS.md` 재생성
+- **배포**: `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy.yml`)가 빌드해 GitHub Pages 로 자동 배포 → https://duto-ch.github.io/RTD/
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio
 
 ## 구조
@@ -82,3 +83,4 @@
 - 2026-11-12 4차: 보스 체력 110·일반/정예 속도 1.3배, 영웅 9명 개별 스프라이트, 클래스별 공격·스킬 이펙트 + 속성 파티클 + 영웅 궁극기 연출, 16비트 배경음 3곡·효과음, 승리 폭죽. 봇 3회 W3/W12/W61
 - 2026-11-12 5차: 강화 보스(30·60·90), 유물 4슬롯 활성 시스템, 속도 20웨이브마다 +10%, 웨이브당 속성 2종, 보스 넉백 면역, W1 체력 40·50기, 5% Lv2 고용, 고용비 하락 버그(계약서 중복) 수정. 봇 3회 W4/W88/W90
 - 2026-11-12 6차: 최종 보스(부활·디버프 3→4·분노·전용 BGM), 몬스터 외형 40종, ESC 메뉴(볼륨·종료). 봇 3회 W90/W61/W90
+- 2026-11-12 저장소 공개 전환, GitHub Pages 자동 배포 추가
