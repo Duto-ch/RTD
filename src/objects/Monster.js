@@ -6,9 +6,12 @@ import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Image {
-  constructor(scene, kind, attr, wave) {
+  constructor(scene, kind, attr, wave, milestone = false) {
     super(scene, 0, 0, `mon_${kind}_${attr}`);
-    const s = monsterStats(kind, wave);
+    const s = monsterStats(kind, wave, milestone);
+    this.milestone = milestone; // 강화 보스 (30·60·90)
+    this.enraged = false;
+    this.shiftTimer = BALANCE.milestone.shiftEvery;
     this.kind = kind;
     this.attr = attr;
     this.maxHp = s.hp;
@@ -28,7 +31,7 @@ export class Monster extends Phaser.GameObjects.Image {
     this.abilities = []; // 보스 디버프 능력 { def, cd }
     if (kind === 'boss') {
       const [min, max] = BALANCE.boss.abilityCount;
-      const n = Phaser.Math.Between(min, max);
+      const n = milestone ? BALANCE.milestone.abilityCount : Phaser.Math.Between(min, max);
       this.abilities = Phaser.Utils.Array.Shuffle([...BOSS_ABILITIES])
         .slice(0, n)
         .map((def) => ({ def, cd: def.cd * 0.5 }));
@@ -63,7 +66,8 @@ export class Monster extends Phaser.GameObjects.Image {
   }
 
   push(px) {
-    this.dist -= this.isBoss ? px / 3 : px;
+    if (this.isBoss) return; // 보스는 넉백 면역
+    this.dist -= px;
   }
 
   damageTakenMult(now) {
@@ -80,9 +84,16 @@ export class Monster extends Phaser.GameObjects.Image {
     else if (p.dir === 'right') this.setFlipX(false);
   }
 
+  /** 속성 변환 (강화 보스) */
+  setAttr(attr) {
+    this.attr = attr;
+    this.setTexture(`mon_${this.kind}_${attr}`);
+  }
+
   tick(dt, now, speedMul) {
     if (now > this.slowUntil) this.slowPct = 0;
-    if (now >= this.stunUntil) this.dist += this.baseSpeed * (1 - this.slowPct) * speedMul * dt;
+    const rage = this.enraged ? BALANCE.milestone.enrageSpeed : 1;
+    if (now >= this.stunUntil) this.dist += this.baseSpeed * rage * (1 - this.slowPct) * speedMul * dt;
     this.place();
 
     // 지속 피해
@@ -99,6 +110,7 @@ export class Monster extends Phaser.GameObjects.Image {
     else if (this.slowPct > 0) this.setTint(0x9fd4ff);
     else if (this.dots.length) this.setTint(0xb6ff8a);
     else if (now < this.vulnUntil) this.setTint(0xff9cf0);
+    else if (this.enraged) this.setTint(Math.floor(now * 4) % 2 ? 0xff6060 : 0xffb0b0);
     else this.clearTint();
   }
 }

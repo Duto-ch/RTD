@@ -176,7 +176,7 @@ export function describeSkill(s) {
     if (fx.stun) parts.push(`${fx.stun}초 기절 (보스 절반)`);
     if (fx.slow) parts.push(`${pct(fx.slow[0])} 감속 ${fx.slow[1]}초`);
     if (fx.vuln) parts.push(`받는 피해 +${pct(fx.vuln[0])} ${fx.vuln[1]}초`);
-    if (fx.push) parts.push(`${fx.push}만큼 뒤로 밀침 (보스 1/3)`);
+    if (fx.push) parts.push(`${fx.push}만큼 뒤로 밀침 (보스 면역)`);
     if (fx.bossMult) parts.push(`보스에게 ${fx.bossMult}배`);
     out.push(`${who}에게 ${parts.join(', ')}`);
   }

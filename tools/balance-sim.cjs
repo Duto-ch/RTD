@@ -25,6 +25,7 @@ const { chromium } = require('playwright');
         const ms = g.mercs.sort((a, b) => a.level - b.level);
         outer: for (const a of ms) for (const c of ms) if (a.canMergeWith(c) && g.gold >= g.mergeCostFor(c.level)) { g.merge(a, c); acted = true; break outer; }
       }
+      if (g.relicChoice) g.pickRelic(0); // 강화 보스 보상: 첫 번째 선택
       g.update(0, 100); // 0.1초
       maxAlive = Math.max(maxAlive, g.monsters.length);
       const boss = g.monsters.find(m => m.isBoss);

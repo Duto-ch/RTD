@@ -6,13 +6,13 @@ import { Button } from '../ui/Button.js';
 import { ATTRS, ATTR_INFO, elementMultiplier, strongAgainst, weakAgainst } from '../data/elements.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { skillOptions, describeSkill, isDamaging, ELEMENT_FLAVOR } from '../data/skills.js';
-import { RELICS } from '../data/relics.js';
-import { TOTAL_WAVES, waveInfo, spawnList } from '../data/waves.js';
+import { RELICS, RELIC_BY_ID } from '../data/relics.js';
+import { TOTAL_WAVES, waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
 import { audio } from '../systems/audio.js';
 
-const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스' };
+const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스', milestone: '강화 보스' };
 
 const text = (scene, x, y, str, size = 22, color = '#ffffff', extra = {}) =>
   scene.add.text(x, y, str, { fontFamily: FONT, fontSize: `${size}px`, color, ...extra }).setDepth(DEPTH.ui);
@@ -37,7 +37,10 @@ export class GameScene extends Phaser.Scene {
     this.spawnInterval = 0;
     this.monsters = [];
     this.grid = Array.from({ length: GRID }, () => Array(GRID).fill(null));
-    this.relics = {}; // id → 보유 개수
+    this.ownedRelics = []; // { id, active } — 활성 유물만 효과 (최대 BALANCE.maxActiveRelics)
+    this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
+    this.waveAttrs = ATTRS;
+    this.relicChoice = null;
     this.selected = null;
     this.totalKills = 0;
     this.hudTimer = 0;
@@ -63,7 +66,7 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     if (this.over) return;
-    const dt = this.paused ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
+    const dt = this.paused || this.relicChoice ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
     this.gameTime += dt;
 
     if (dt > 0) {
@@ -110,21 +113,26 @@ export class GameScene extends Phaser.Scene {
     const info = waveInfo(w);
     const list = spawnList(w);
     this.spawnQueue.push(...list);
+    // 이번 웨이브 몬스터 속성: 최대 attrsPerWave 종류
+    this.waveAttrs = Phaser.Utils.Array.Shuffle([...ATTRS]).slice(0, BALANCE.monster.attrsPerWave);
     this.spawnInterval = BALANCE.spawnWindow / list.length;
     this.spawnTimer = 0;
     this.waveTimer = BALANCE.waveDuration;
     const sub =
+      info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노·속성 변환 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌기 전에 처치하세요` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
-    this.showBanner(`WAVE ${w}`, sub, info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff');
+    const attrNames = this.waveAttrs.map((a) => ATTR_INFO[a].name).join('·');
+    const color = info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
+    this.showBanner(`WAVE ${w}`, `${sub} · ${attrNames}`, color);
   }
 
   spawnMonster(kind) {
-    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(ATTRS), this.wave);
+    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
     this.monsters.push(m);
     if (m.isBoss) {
       audio.bossAppear();
-      this.showBanner('보스 등장!', m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
+      this.showBanner(m.milestone ? '강화 보스 등장!' : '보스 등장!', m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
     }
   }
 
@@ -183,13 +191,34 @@ export class GameScene extends Phaser.Scene {
     const now = this.gameTime;
     for (const boss of this.monsters) {
       if (!boss.alive || !boss.isBoss) continue;
+      const MS = BALANCE.milestone;
+      if (boss.milestone) {
+        // 분노: 체력이 enrageAt 이하로 떨어지면 빨라지고 디버프를 더 자주 쓴다
+        if (!boss.enraged && boss.hp / boss.maxHp <= MS.enrageAt) {
+          boss.enraged = true;
+          for (const a of boss.abilities) a.cd = Math.min(a.cd, 0.5);
+          this.showBanner('보스 분노!', `이동 속도 +${Math.round((MS.enrageSpeed - 1) * 100)}%, 디버프 쿨타임 절반`, '#ff5050');
+          this.cameras.main.shake(300, 0.008);
+          audio.bossAppear();
+        }
+        // 속성 변환: 주기마다 다른 속성으로
+        boss.shiftTimer -= dt;
+        if (boss.shiftTimer <= 0) {
+          boss.shiftTimer = MS.shiftEvery;
+          const next = Phaser.Utils.Array.GetRandom(ATTRS.filter((a) => a !== boss.attr));
+          boss.setAttr(next);
+          this.vfx.burst(next, boss.x, boss.y, 24);
+          this.floatText(boss.x, boss.y - 56, `속성 변환: ${ATTR_INFO[next].name}`, ATTR_INFO[next].css, 22, true);
+        }
+      }
       for (const a of boss.abilities) {
         a.cd -= dt;
         if (a.cd > 0) continue;
-        a.cd = a.def.cd;
+        a.cd = a.def.cd * (boss.enraged ? MS.enrageCdMult : 1);
         const mercs = this.mercs.filter((m) => !m.dragging);
         if (!mercs.length) continue;
-        const n = BALANCE.boss.targetsBase + Math.floor(this.wave / BALANCE.boss.targetsPerWaves);
+        const n =
+          BALANCE.boss.targetsBase + Math.floor(this.wave / BALANCE.boss.targetsPerWaves) + (boss.milestone ? MS.extraTargets : 0);
         const targets = Phaser.Utils.Array.Shuffle([...mercs]).slice(0, n);
         for (const t of targets) {
           t.addDebuff(a.def, now);
@@ -342,7 +371,8 @@ export class GameScene extends Phaser.Scene {
     this.deathFx(m);
     if (m.isBoss) {
       audio.bossKill();
-      this.dropRelic(m.x, m.y);
+      if (m.milestone) this.offerRelicChoice();
+      else this.dropRelic(m.x, m.y);
     } else audio.kill();
     if (m.kind !== 'normal') this.floatText(m.x, m.y - 30, `+${gold}G`, '#f2c14e');
     m.destroy();
@@ -350,7 +380,7 @@ export class GameScene extends Phaser.Scene {
 
   dropRelic(x, y) {
     const relic = Phaser.Utils.Array.GetRandom(RELICS);
-    this.relics[relic.id] = (this.relics[relic.id] || 0) + 1;
+    const active = this.addRelic(relic.id);
     const icon = this.add.image(x, y, `relic_${relic.id}`).setScale(PX).setDepth(DEPTH.fx);
     this.tweens.add({
       targets: icon,
@@ -363,13 +393,85 @@ export class GameScene extends Phaser.Scene {
         this.refreshRelics();
       }
     });
-    this.showBanner(`유물 획득: ${relic.name}`, relic.desc, '#f2c14e');
+    this.showBanner(`유물 획득: ${relic.name}`, `${relic.desc}${active ? '' : ' (슬롯이 가득 차 비활성)'}`, '#f2c14e');
+    this.refreshInfo();
+  }
+
+  // ───────────────────────── 유물 ─────────────────────────
+  get activeRelicCount() {
+    return this.ownedRelics.filter((r) => r.active).length;
+  }
+
+  /** 유물 추가. 빈 슬롯이 있으면 자동 활성. 활성 여부 반환 */
+  addRelic(id) {
+    const active = this.activeRelicCount < BALANCE.maxActiveRelics;
+    this.ownedRelics.push({ id, active });
+    this.recomputeRelics();
+    return active;
+  }
+
+  recomputeRelics() {
+    this.relics = {};
+    for (const r of this.ownedRelics) if (r.active) this.relics[r.id] = (this.relics[r.id] || 0) + 1;
+  }
+
+  toggleRelic(index) {
+    const r = this.ownedRelics[index];
+    const info = RELIC_BY_ID[r.id];
+    if (!r.active && this.activeRelicCount >= BALANCE.maxActiveRelics) {
+      this.toast(`활성 유물은 최대 ${BALANCE.maxActiveRelics}개입니다. 다른 유물을 먼저 끄세요`, '#ff9a7a');
+      return;
+    }
+    r.active = !r.active;
+    this.recomputeRelics();
+    this.refreshRelics();
+    this.refreshHud();
+    this.toast(`${info.name} ${r.active ? '활성' : '비활성'} — ${info.desc}`, r.active ? '#f2c14e' : '#9aa3b8');
+  }
+
+  /** 강화 보스 처치 보상: 유물 3개 중 1개 선택 (선택하는 동안 게임 정지) */
+  offerRelicChoice() {
+    const options = Phaser.Utils.Array.Shuffle([...RELICS]).slice(0, BALANCE.milestone.relicChoices);
+    this.bannerObj?.destroy();
+    this.toastObj?.destroy();
+    const c = this.add.container(0, 0).setDepth(DEPTH.overlay - 0.5); // 배너·토스트보다 위
+    this.relicChoice = { options, container: c };
+    c.add(this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.65).setOrigin(0).setInteractive());
+    c.add(text(this, GAME_W / 2, 300, '강화 보스 처치!', 33, '#f2c14e', { stroke: '#1b1b26', strokeThickness: 6 }).setOrigin(0.5));
+    c.add(text(this, GAME_W / 2, 344, '유물 하나를 고르세요', 22, '#ffffff').setOrigin(0.5));
+    options.forEach((r, i) => {
+      const y = 430 + i * 104;
+      const card = this.add.container(GAME_W / 2, y);
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1b1b26).fillRect(-230, -44, 460, 88);
+      bg.fillStyle(0x2f3550).fillRect(-226, -40, 452, 80);
+      const icon = this.add.image(-190, 0, `relic_${r.id}`).setScale(PX + 1);
+      const name = text(this, -150, -28, r.name, 22, '#f2c14e');
+      const desc = text(this, -150, 4, r.desc, 16, '#d6dbea');
+      card.add([bg, icon, name, desc]);
+      card.setSize(460, 88).setInteractive({ useHandCursor: true });
+      card.on('pointerup', () => this.pickRelic(i));
+      c.add(card);
+    });
+    c.add(text(this, GAME_W / 2, 760, `활성 유물 ${this.activeRelicCount}/${BALANCE.maxActiveRelics} — 가득 차면 비활성으로 보관됩니다`, 16, '#9aa3b8').setOrigin(0.5));
+  }
+
+  pickRelic(i) {
+    if (!this.relicChoice) return;
+    const relic = this.relicChoice.options[i];
+    this.relicChoice.container.destroy();
+    this.relicChoice = null;
+    const active = this.addRelic(relic.id);
+    this.refreshRelics();
+    audio.promote();
+    this.showBanner(`유물 획득: ${relic.name}`, `${relic.desc}${active ? '' : ' (슬롯이 가득 차 비활성)'}`, '#f2c14e');
     this.refreshInfo();
   }
 
   // ───────────────────────── 용병 ─────────────────────────
   get hireCost() {
-    return Math.max(5, Math.round(BALANCE.hireCost * (1 - 0.2 * (this.relics.contract || 0))));
+    // 용병 계약서는 중복 효과 없음 (예전엔 중복될수록 계속 싸져서 버그처럼 보였음)
+    return Math.round(BALANCE.hireCost * (this.relics.contract ? 0.8 : 1));
   }
 
   /** level 의 유닛을 합칠 때 드는 골드 (Lv5 → 영웅 승급) */
@@ -393,8 +495,17 @@ export class GameScene extends Phaser.Scene {
     this.grid[r][c] = merc;
     merc.sprite.setY(-40).setAlpha(0);
     this.tweens.add({ targets: merc.sprite, y: -PX, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
-    this.toast(`${merc.roleName} ${merc.heroName} 합류!`, ATTR_INFO[attr].css);
-    audio.coin();
+    // 낮은 확률로 2레벨 용병 (2레벨 스킬 1개 랜덤 습득)
+    if (Math.random() < BALANCE.hireLv2Chance) {
+      const skill = Phaser.Utils.Array.GetRandom(skillOptions(attr, cls, 2));
+      merc.levelUp(skill);
+      this.levelUpFx(merc, '행운! Lv.2');
+      this.toast(`행운! Lv.2 ${merc.roleName} ${merc.heroName} 합류 — 스킬 「${skill.name}」`, '#f2c14e');
+      audio.levelUp();
+    } else {
+      this.toast(`${merc.roleName} ${merc.heroName} 합류!`, ATTR_INFO[attr].css);
+      audio.coin();
+    }
     this.refreshHud();
   }
 
@@ -627,9 +738,9 @@ export class GameScene extends Phaser.Scene {
     this.countText = text(this, GAME_W - 52, 86, '', 22).setOrigin(1, 0);
     this.countBar = this.add.graphics().setDepth(DEPTH.ui);
 
-    text(this, 16, 148, '유물', 16, '#9aa3b8');
+    this.relicLabel = text(this, 16, 148, '유물', 16, '#9aa3b8');
     this.relicRow = this.add.container(0, 0).setDepth(DEPTH.ui);
-    this.noRelicText = text(this, 64, 148, '보스를 처치하면 유물을 얻습니다', 16, '#5d6577');
+    this.noRelicText = text(this, 64, 148, '보스를 처치하면 유물을 얻습니다 (최대 4개 활성)', 16, '#5d6577');
   }
 
   refreshHud() {
@@ -639,7 +750,7 @@ export class GameScene extends Phaser.Scene {
       const label = this.wave === 0 ? '시작까지' : '다음 웨이브';
       this.timerText.setText(`${label} ${Math.ceil(Math.max(0, this.waveTimer))}초`);
       const ni = waveInfo(nextWave);
-      const extra = ni.type === 'elite' ? ' + 정예 10' : ni.type === 'boss' ? ' + 보스' : '';
+      const extra = ni.type === 'elite' ? ' + 정예 10' : ni.type === 'boss' ? ' + 보스' : ni.type === 'milestone' ? ' + 정예 10 + 강화 보스' : '';
       this.waveTypeText.setText(`다음: ${WAVE_TYPE_NAME[ni.type]} 웨이브 (${ni.normal}기${extra})`);
     } else {
       this.timerText.setText('최종 웨이브!');
@@ -648,7 +759,9 @@ export class GameScene extends Phaser.Scene {
     const boss = this.monsters.find((m) => m.isBoss && m.alive);
     if (!this.over) audio.playMusic(boss ? 'boss' : 'battle');
     this.bossText.setText(
-      boss ? `보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${boss.abilities.map((a) => a.def.name).join(', ')}` : ''
+      boss
+        ? `${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${boss.abilities.map((a) => a.def.name).join(', ')}`
+        : ''
     );
     this.goldText.setText(`${this.gold} G`);
 
@@ -663,7 +776,7 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(pct < 0.5 ? 0x6fd36a : pct < 0.8 ? 0xf2c14e : 0xff4d4d).fillRect(20, 126, Math.round((bw - 8) * pct), 8);
 
     if (this.hireBtn) {
-      this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G`);
+      this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G${this.relics.contract ? ' (-20%)' : ''}`);
       this.hireBtn.setEnabled(this.gold >= this.hireCost);
     }
     if (this.selected) this.refreshInfo();
@@ -671,19 +784,23 @@ export class GameScene extends Phaser.Scene {
 
   refreshRelics() {
     this.relicRow.removeAll(true);
-    const owned = RELICS.filter((r) => this.relics[r.id]);
-    this.noRelicText.setVisible(owned.length === 0);
-    owned.forEach((r, i) => {
-      const x = 36 + i * 52;
+    this.noRelicText.setVisible(this.ownedRelics.length === 0);
+    this.relicLabel.setText(this.ownedRelics.length ? `유물 ${this.activeRelicCount}/${BALANCE.maxActiveRelics}` : '유물');
+    this.ownedRelics.forEach((r, i) => {
+      const x = 36 + i * 50;
       const y = 196;
       const icon = this.add.image(x, y, `relic_${r.id}`).setScale(PX).setInteractive({ useHandCursor: true });
-      icon.on('pointerdown', () => this.toast(`${r.name}: ${r.desc}`, '#f2c14e'));
-      this.relicRow.add(icon);
-      if (this.relics[r.id] > 1) {
-        this.relicRow.add(text(this, x + 16, y + 6, `x${this.relics[r.id]}`, 16, '#ffffff', { stroke: '#1b1b26', strokeThickness: 4 }));
+      icon.on('pointerdown', () => this.toggleRelic(i));
+      if (r.active) {
+        const frame = this.add.rectangle(x, y, 48, 48).setStrokeStyle(4, 0xf2c14e);
+        this.relicRow.add(frame);
+      } else {
+        icon.setAlpha(0.35).setTint(0x8890a0);
       }
+      this.relicRow.add(icon);
     });
   }
+
 
   createBottomPanel() {
     const top = 744;
@@ -835,6 +952,8 @@ export class GameScene extends Phaser.Scene {
     this.bannerObj?.destroy();
     this.toastObj?.destroy();
     this.popup?.destroy();
+    this.relicChoice?.container.destroy();
+    this.relicChoice = null;
     this.select(null);
     audio.playMusic(null);
     if (victory) audio.victory();
@@ -861,7 +980,7 @@ export class GameScene extends Phaser.Scene {
     } else if (reason) {
       text(this, cx, 372, reason, 16, '#ffb4a8').setOrigin(0.5).setDepth(top);
     }
-    const relicCount = Object.values(this.relics).reduce((a, b) => a + b, 0);
+    const relicCount = this.ownedRelics.length;
     const heroes = this.mercs.filter((m) => m.isHero).length;
     text(
       this,
