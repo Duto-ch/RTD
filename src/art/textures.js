@@ -1,6 +1,7 @@
 import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, MONSTER_SPRITES, ICON_SPRITES } from './sprites.js';
 import { GAME_W, GAME_H, PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID } from '../config.js';
 import { RELICS } from '../data/relics.js';
+import { HEROES } from '../data/heroes.js';
 
 const ATTRS = ['red', 'blue', 'green'];
 
@@ -139,12 +140,17 @@ function paintBackground(scene) {
 }
 
 export function generateTextures(scene) {
-  // 용병: 클래스 × 속성 / 영웅: 원형 × 속성
-  for (const [prefix, set] of [['merc', MERC_SPRITES], ['hero', HERO_SPRITES]]) {
-    for (const [cls, rows] of Object.entries(set)) {
-      for (const attr of ATTRS) {
-        paintMap(scene, `${prefix}_${cls}_${attr}`, rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr] });
-      }
+  // 용병: 클래스 × 속성
+  for (const [cls, rows] of Object.entries(MERC_SPRITES)) {
+    for (const attr of ATTRS) {
+      paintMap(scene, `merc_${cls}_${attr}`, rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr] });
+    }
+  }
+  // 영웅: 9명 개별 디자인 (속성색 + 영웅 전용 색)
+  for (const [attr, list] of Object.entries(HEROES)) {
+    for (const h of list) {
+      const spr = HERO_SPRITES[h.id];
+      paintMap(scene, `hero_${h.id}`, spr.rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr], ...spr.palette });
     }
   }
   // 몬스터: 종류 × 속성
@@ -166,6 +172,22 @@ export function generateTextures(scene) {
   }
   // 1px 흰색 (파티클/틴트용)
   paintMap(scene, 'pixel', ['w'], { w: '#ffffff' });
+
+  // ── 이펙트용 텍스처 ──
+  const W = { w: '#ffffff' };
+  paintMap(scene, 'p_spark', ['.w.', 'www', '.w.'], W);
+  paintMap(scene, 'p_ember', ['w', 'w'], W);
+  paintMap(scene, 'p_shard', ['.w.', 'www', 'www', '.w.'], W);
+  paintMap(scene, 'p_leaf', ['.ww', 'www', 'ww.'], W);
+  paintMap(scene, 'p_star', ['..w..', '..w..', 'wwwww', '..w..', '..w..'], W);
+  for (const attr of ATTRS) {
+    const pal = { ...BASE_PALETTE, ...ATTR_PALETTES[attr] };
+    paintMap(scene, `arrow_${attr}`, ['L......k.', '.Lbbbbbwk', 'L......k.'], pal);
+    paintMap(scene, `orb_${attr}`, ['.LL.', 'LwwL', 'LwwL', '.LL.'], pal);
+    paintMap(scene, `dagger_${attr}`, ['.....', 'bAwww', '.....'], pal);
+    paintMap(scene, `rune_${attr}`, ['..LLL..', '.L...L.', 'L..w..L', 'L.www.L', 'L..w..L', '.L...L.', '..LLL..'], pal);
+  }
+  paintMap(scene, 'arrow_gold', ['y......k.', '.ybbbbbwk', 'y......k.'], BASE_PALETTE);
 
   paintBackground(scene);
 }

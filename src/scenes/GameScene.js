@@ -9,6 +9,8 @@ import { skillOptions, describeSkill, isDamaging, ELEMENT_FLAVOR } from '../data
 import { RELICS } from '../data/relics.js';
 import { TOTAL_WAVES, waveInfo, spawnList } from '../data/waves.js';
 import { cellAt, PATH_LENGTH } from '../systems/path.js';
+import { Vfx } from '../systems/vfx.js';
+import { audio } from '../systems/audio.js';
 
 const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스' };
 
@@ -46,6 +48,9 @@ export class GameScene extends Phaser.Scene {
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hintGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hpGfx = this.add.graphics().setDepth(DEPTH.hpbar);
+    this.vfx = new Vfx(this);
+    audio.playMusic('battle');
+    this.events.on('firework-pop', () => audio.firework());
 
     this.createHud();
     this.createBottomPanel();
@@ -118,6 +123,7 @@ export class GameScene extends Phaser.Scene {
     const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(ATTRS), this.wave);
     this.monsters.push(m);
     if (m.isBoss) {
+      audio.bossAppear();
       this.showBanner('보스 등장!', m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
     }
   }
@@ -185,14 +191,12 @@ export class GameScene extends Phaser.Scene {
         if (!mercs.length) continue;
         const n = BALANCE.boss.targetsBase + Math.floor(this.wave / BALANCE.boss.targetsPerWaves);
         const targets = Phaser.Utils.Array.Shuffle([...mercs]).slice(0, n);
-        const g = this.add.graphics().setDepth(DEPTH.fx);
-        g.lineStyle(4, 0xb47cff, 0.9);
         for (const t of targets) {
           t.addDebuff(a.def, now);
-          g.lineBetween(boss.x, boss.y, t.x, t.y);
           this.floatText(t.x, t.y - 36, a.def.name, '#d6a8ff', 16, true);
         }
-        this.tweens.add({ targets: g, alpha: 0, duration: 400, onComplete: () => g.destroy() });
+        this.vfx.curse(boss, targets);
+        audio.debuff();
         this.floatText(boss.x, boss.y - 48, a.def.name, '#d6a8ff', 22, true);
       }
     }
@@ -203,8 +207,14 @@ export class GameScene extends Phaser.Scene {
     this.damageMonster(target, dmg, { source: merc, crit });
   }
 
+  /** 연출·사운드용 유닛 종류: 용병 클래스 또는 영웅 원형 */
+  kindOf(merc) {
+    return merc.isHero ? merc.hero.arch : merc.cls;
+  }
+
   basicAttack(merc, st, target) {
-    this.fireProjectile(merc, target);
+    this.vfx.attack(merc, target, this.kindOf(merc));
+    audio.shoot(this.kindOf(merc));
     const crit = Math.random() < st.crit;
     if (st.slow) target.applySlow(st.slow, st.slowDur, this.gameTime);
     const pos = { x: target.x, y: target.y };
@@ -217,7 +227,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (st.chain) {
       const chain = this.chainFrom(target, st.chain + 1);
-      this.chainFx(chain, ATTR_INFO[merc.attr].color);
+      this.vfx.chain(chain, ATTR_INFO[merc.attr].color);
       for (const o of chain.slice(1)) this.hit(merc, st, o, 0.6);
     }
   }
@@ -247,29 +257,24 @@ export class GameScene extends Phaser.Scene {
   castSkill(merc, def, st, inRange) {
     const now = this.gameTime;
     const live = inRange.filter((m) => m.alive);
-    const color = ATTR_INFO[merc.attr].color;
     let targets = [];
+    let primary = null;
 
     if (def.area) {
       if (!live.length) return false;
-      const primary = def.pick === 'strongest' ? live.reduce((a, b) => (b.hp > a.hp ? b : a)) : live[0];
+      primary = def.pick === 'strongest' ? live.reduce((a, b) => (b.hp > a.hp ? b : a)) : live[0];
       const a = def.area;
       if (a.type === 'single') targets = [primary];
       else if (a.type === 'multi') targets = live.slice(0, a.n);
-      else if (a.type === 'range') {
-        targets = live;
-        this.novaFx(merc.x, merc.y, st.range, color);
-      } else if (a.type === 'circle') {
-        targets = this.monsters.filter((m) => m.alive && d2(m, primary) <= a.r * a.r);
-        this.circleFx(primary.x, primary.y, a.r, color);
-      } else if (a.type === 'chain') {
-        targets = this.chainFrom(primary, a.n);
-        this.chainFx(targets, color);
-      }
-      if (a.type === 'single' || a.type === 'multi') for (const t of targets) this.fireProjectile(merc, t, true);
+      else if (a.type === 'range') targets = live;
+      else if (a.type === 'circle') targets = this.monsters.filter((m) => m.alive && d2(m, primary) <= a.r * a.r);
+      else if (a.type === 'chain') targets = this.chainFrom(primary, a.n);
     } else if (def.buff && !live.length) {
       return false;
     }
+    this.vfx.skill(merc, def, this.kindOf(merc), targets, primary, st.range);
+    if (def.level > MAX_LEVEL) audio.ult();
+    else audio.skill(def.level, merc.attr);
 
     const fx = def.fx || {};
     const damaging = isDamaging(def);
@@ -314,7 +319,7 @@ export class GameScene extends Phaser.Scene {
       this.gold += g;
       this.floatText(merc.x, merc.y - 40, `+${g}G`, '#f2c14e');
     }
-    if (def.level >= 4) this.floatText(merc.x, merc.y - 44, def.name, ATTR_INFO[merc.attr].css, def.level > MAX_LEVEL ? 22 : 16);
+    if (def.level <= MAX_LEVEL) this.floatText(merc.x, merc.y - 40 - (merc.col % 2) * 20, def.name, ATTR_INFO[merc.attr].css, def.level >= 4 ? 22 : 16, def.level >= 4);
     return true;
   }
 
@@ -335,7 +340,10 @@ export class GameScene extends Phaser.Scene {
     if (source && source.active) source.kills += 1;
     this.gold += gold;
     this.deathFx(m);
-    if (m.isBoss) this.dropRelic(m.x, m.y);
+    if (m.isBoss) {
+      audio.bossKill();
+      this.dropRelic(m.x, m.y);
+    } else audio.kill();
     if (m.kind !== 'normal') this.floatText(m.x, m.y - 30, `+${gold}G`, '#f2c14e');
     m.destroy();
   }
@@ -386,6 +394,7 @@ export class GameScene extends Phaser.Scene {
     merc.sprite.setY(-40).setAlpha(0);
     this.tweens.add({ targets: merc.sprite, y: -PX, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
     this.toast(`${merc.roleName} ${merc.heroName} 합류!`, ATTR_INFO[attr].css);
+    audio.coin();
     this.refreshHud();
   }
 
@@ -416,11 +425,13 @@ export class GameScene extends Phaser.Scene {
       const hero = Phaser.Utils.Array.GetRandom(HEROES[dst.attr]);
       const unique = { ...hero.unique, id: `hero_${hero.id}`, level: MAX_LEVEL + 1, attr: dst.attr };
       dst.promote(hero, unique);
+      audio.promote();
       this.levelUpFx(dst, '영웅 승급!');
       this.showBanner(`영웅 ${hero.name} 탄생!`, `${dst.roleName} · 고유 스킬 「${unique.name}」`, '#f2c14e');
     } else {
       const skill = Phaser.Utils.Array.GetRandom(skillOptions(dst.attr, dst.cls, dst.level + 1));
       dst.levelUp(skill);
+      audio.levelUp();
       this.levelUpFx(dst, 'LEVEL UP!');
       this.toast(`Lv.${dst.level} ${dst.heroName} — 스킬 「${skill.name}」 습득`, '#f2c14e');
     }
@@ -524,32 +535,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ───────────────────────── 이펙트 ─────────────────────────
-  fireProjectile(merc, target, big = false) {
-    const p = this.add
-      .image(merc.x, merc.y - 8, `proj_${merc.attr}`)
-      .setScale(big ? PX * 2 : PX)
-      .setDepth(DEPTH.projectile);
-    this.tweens.add({ targets: p, x: target.x, y: target.y, duration: 90, onComplete: () => p.destroy() });
-  }
 
   circleFx(x, y, r, color) {
     const c = this.add.circle(x, y, r, color, 0.25).setDepth(DEPTH.fx);
     this.tweens.add({ targets: c, alpha: 0, scale: 1.2, duration: 220, onComplete: () => c.destroy() });
   }
 
-  novaFx(x, y, r, color) {
-    const c = this.add.circle(x, y, r).setStrokeStyle(6, color, 0.8).setDepth(DEPTH.fx).setScale(0.2);
-    this.tweens.add({ targets: c, scale: 1, alpha: 0, duration: 350, onComplete: () => c.destroy() });
-  }
 
-  chainFx(list, color) {
-    if (list.length < 2) return;
-    const g = this.add.graphics().setDepth(DEPTH.fx);
-    g.lineStyle(4, color, 1).beginPath().moveTo(list[0].x, list[0].y);
-    for (const m of list.slice(1)) g.lineTo(m.x, m.y);
-    g.strokePath();
-    this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
-  }
 
   deathFx(m) {
     const color = ATTR_INFO[m.attr].color;
@@ -654,6 +646,7 @@ export class GameScene extends Phaser.Scene {
       this.waveTypeText.setText('남은 몬스터를 모두 처치하세요');
     }
     const boss = this.monsters.find((m) => m.isBoss && m.alive);
+    if (!this.over) audio.playMusic(boss ? 'boss' : 'battle');
     this.bossText.setText(
       boss ? `보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${boss.abilities.map((a) => a.def.name).join(', ')}` : ''
     );
@@ -699,12 +692,16 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x0d0d14, 0.9).fillRect(0, top, GAME_W, GAME_H - top);
 
     this.hireBtn = new Button(this, 108, 800, 184, 88, '', () => this.hire(), { color: 0x2f7d4a, fontSize: 22 });
-    this.speedBtn = new Button(this, 60, 900, 88, 64, 'x1', () => {
+    this.speedBtn = new Button(this, 44, 900, 56, 64, 'x1', () => {
       this.speed = this.speed >= 3 ? 1 : this.speed + 1;
       this.speedBtn.setLabel(`x${this.speed}`);
       this.tweens.timeScale = this.speed;
     });
-    this.pauseBtn = new Button(this, 156, 900, 88, 64, '정지', () => this.togglePause(), { fontSize: 20 });
+    this.pauseBtn = new Button(this, 108, 900, 56, 64, '정지', () => this.togglePause(), { fontSize: 16 });
+    this.soundBtn = new Button(this, 172, 900, 56, 64, audio.muted ? '무음' : '소리', () => {
+      audio.init();
+      this.soundBtn.setLabel(audio.toggleMute() ? '무음' : '소리');
+    }, { fontSize: 16 });
 
     // 정보 패널
     const px = 216;
@@ -834,30 +831,50 @@ export class GameScene extends Phaser.Scene {
     if (this.over) return;
     this.over = true;
     this.tweens.timeScale = 1;
+    if (this.paused) this.tweens.resumeAll();
     this.bannerObj?.destroy();
     this.toastObj?.destroy();
     this.popup?.destroy();
     this.select(null);
-    this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.75).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
+    audio.playMusic(null);
+    if (victory) audio.victory();
+    else audio.defeat();
+
+    const top = DEPTH.overlay + 3; // 폭죽(overlay+2) 위에 글자
+    this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, victory ? 0.55 : 0.75).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
     const cx = GAME_W / 2;
-    text(this, cx, 320, victory ? '승리!' : '게임 오버', 44, victory ? '#f2c14e' : '#ff6a55', { stroke: '#1b1b26', strokeThickness: 8 })
+    const title = text(this, cx, 320, victory ? '100 웨이브 클리어!' : '게임 오버', 44, victory ? '#f2c14e' : '#ff6a55', {
+      stroke: '#1b1b26',
+      strokeThickness: 8
+    })
       .setOrigin(0.5)
-      .setDepth(DEPTH.overlay + 1);
-    if (reason) text(this, cx, 372, reason, 16, '#ffb4a8').setOrigin(0.5).setDepth(DEPTH.overlay + 1);
+      .setDepth(top);
+    if (victory) {
+      text(this, cx, 376, '축하합니다! 용병단이 성을 지켜냈습니다', 22, '#ffffff', { stroke: '#1b1b26', strokeThickness: 6 })
+        .setOrigin(0.5)
+        .setDepth(top);
+      this.tweens.add({ targets: title, scale: 1.08, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      // 폭죽: 화면 이곳저곳에서 계속 터진다
+      const launch = () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(120, 640));
+      for (let i = 0; i < 6; i++) this.time.delayedCall(i * 150, launch);
+      this.time.addEvent({ delay: 300, loop: true, callback: launch });
+    } else if (reason) {
+      text(this, cx, 372, reason, 16, '#ffb4a8').setOrigin(0.5).setDepth(top);
+    }
     const relicCount = Object.values(this.relics).reduce((a, b) => a + b, 0);
     const heroes = this.mercs.filter((m) => m.isHero).length;
     text(
       this,
       cx,
-      460,
+      470,
       [`도달 웨이브: ${this.wave} / ${TOTAL_WAVES}`, `처치한 몬스터: ${this.totalKills}`, `영웅: ${heroes}명 · 유물: ${relicCount}개`].join('\n'),
       22,
       '#ffffff',
-      { align: 'center', lineSpacing: 10 }
+      { align: 'center', lineSpacing: 10, stroke: '#1b1b26', strokeThickness: 4 }
     )
       .setOrigin(0.5)
-      .setDepth(DEPTH.overlay + 1);
-    new Button(this, cx, 590, 240, 72, '다시 하기', () => this.scene.restart(), { color: 0x2f7d4a }).setDepth(DEPTH.overlay + 1);
-    new Button(this, cx, 680, 240, 64, '타이틀로', () => this.scene.start('Title')).setDepth(DEPTH.overlay + 1);
+      .setDepth(top);
+    new Button(this, cx, 600, 240, 72, '다시 하기', () => this.scene.restart(), { color: 0x2f7d4a }).setDepth(top);
+    new Button(this, cx, 690, 240, 64, '타이틀로', () => this.scene.start('Title')).setDepth(top);
   }
 }

@@ -39,7 +39,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     return !!this.hero;
   }
   get textureKey() {
-    return this.hero ? `hero_${this.hero.arch}_${this.attr}` : `merc_${this.cls}_${this.attr}`;
+    return this.hero ? `hero_${this.hero.id}` : `merc_${this.cls}_${this.attr}`;
   }
   get heroName() {
     return this.hero ? this.hero.name : MERC_NAMES[this.attr][this.cls];

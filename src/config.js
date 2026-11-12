@@ -41,10 +41,10 @@ export const BALANCE = {
     hpBase: 44, // 체력 2배 (2026-11-12)
     hpGrowth: 1.08,
     eliteHpMult: 10,
-    bossHpMult: 120, // 2026-11-12 사용자 결정 (300이면 W10 보스 처치 불가)
-    // 이동 속도 1.5배 (2026-11-12)
-    normalSpeed: 105,
-    eliteSpeed: 82,
+    bossHpMult: 110, // 2026-11-12 사용자 결정
+    // 이동 속도: 일반·정예 1.3배, 보스 1.5배 (2026-11-12)
+    normalSpeed: 91,
+    eliteSpeed: 72,
     bossSpeed: 33 // 경로 1바퀴 1760px → 약 53초
   },
   // 보스 디버프: 보스마다 1~2개 능력을 랜덤 보유, 쿨타임마다 용병/영웅 여러 명에게 시전

@@ -112,62 +112,201 @@ export const MERC_SPRITES = {
   ]
 };
 
-// ── 영웅 (16x16) ── 원형 3종, 금색 장식 ─────────
+// ── 영웅 (16x16) ── 9명 모두 개별 디자인. palette 는 영웅 전용 추가 색 ──
+// 공통: A/a/L = 영웅 속성색, y = 금장식
 export const HERO_SPRITES = {
-  warlord: [
-    '................',
-    '.w..kkkk..w.....',
-    '.wkkggggkkw.....',
-    '..kggyyggk....k.',
-    '..kgsssskg...kwk',
-    '..kkskkskk...kwk',
-    '...kssssk....kwk',
-    '.kkAAAAAAkk..kwk',
-    'kaAAAyyAAAak.kwk',
-    'kaAkAAAAkAak.yyy',
-    'kaAskAAkksAk..k.',
-    'kaa.kAAAAk.ak...',
-    'ka..kaaaak..k...',
-    '.k..kak.kak.....',
-    '....kkk.kkk.....',
-    '................'
-  ],
-  archmage: [
-    '......kk........',
-    '.....kAyk.......',
-    '....kAAAAk...L..',
-    '...kAAyAAAk.LyL.',
-    '..kAAAAAAAAk.Lb.',
-    '.kyyyyyyyyyyk.b.',
-    '...kssssssk...b.',
-    '...kskksksk...b.',
-    '...kwwwwwwk...b.',
-    '..kAkwwwwkAk..b.',
-    '.kAAAkwwkAAAkkb.',
-    '.kAAyAAAAyAAk.b.',
-    '.kAAyAAAAyAAk.b.',
-    '.kaAyAAAAyAak.b.',
-    '.kaaaaaaaaaak.b.',
-    '..kkkkkkkkkk....'
-  ],
-  ranger: [
-    '..........w.....',
-    '.....kkkkkwk....',
-    '....kAAAAAAk....',
-    '...kAAAAyyAAk...',
-    '.b..kkssssk.....',
-    'kb..ksksksk.....',
-    'k.b..kssssk.....',
-    'k.bkkaAAAAakk...',
-    'k.bksaAyyAaska..',
-    'k.b.kaAAAAak.aa.',
-    'k.b.kaAAAAak.aa.',
-    'kb..kaayyaak.aa.',
-    '.b...kaaaak..a..',
-    '.....kbk.kbk....',
-    '.....kkk.kkk....',
-    '................'
-  ]
+  // 레드
+  ragnar: { // 바이킹 광전사: 뿔 투구, 붉은 수염, 쌍도끼
+    palette: { h: '#d9622b', f: '#8a6a4a' },
+    rows: [
+      '.w............w.',
+      '.wk..kkkkkk..kw.',
+      '..wkkggggggkkw..',
+      '....kgggyyggk...',
+      '....kskssksk....',
+      '....kssssssk....',
+      '...khhhsshhhk...',
+      'g..khhhhhhhhk..g',
+      'gg.kAAhhhhAAk.gg',
+      'gbkAAAAyyAAAAkbg',
+      '.bksAAAAAAAAskb.',
+      '.b.kaaayyaaak.b.',
+      '...kAAAkAAAk....',
+      '...kffk.kffk....',
+      '...kkkk.kkkk....',
+      '................'
+    ]
+  },
+  isolde: { // 화염 마녀: 불꽃 머리칼, 왕관, 불꽃 지팡이
+    palette: { h: '#ff7a3d', o: '#ffd23a' },
+    rows: [
+      '.o..............',
+      'oyo...kkkk......',
+      '.o...kyyyyk.....',
+      '.b..khhhhhhk....',
+      '.b.khhsssshhk...',
+      '.b.khsksskshk...',
+      '.b.khhssssshhk..',
+      '.bkhhkAAAAkhhk..',
+      '.bhhkAAyyAAkhh..',
+      '.bskAAAAAAAAks..',
+      '.b.kAALLLLAAk...',
+      '.b.kAAAyyAAAk...',
+      '.b.kaAAAAAAak...',
+      '.b.kaaaaaaaak...',
+      '.b..kkkkkkkk....',
+      '................'
+    ]
+  },
+  bjorn: { // 곰 사냥꾼: 곰가죽 두건, 금발 수염, 장궁
+    palette: { f: '#7a5233', h: '#e0c98a' },
+    rows: [
+      '..kk....kk......',
+      '.kffk..kffk...b.',
+      '.kfffkkfffk..bk.',
+      '.kffffffffk..b.k',
+      '.kfkssssskf..b.k',
+      '..kskssksk...b.k',
+      '..kssssssk...b.k',
+      '.kfkhhhhhkfk.b.k',
+      'kffAAAyyAAAfkb.k',
+      'kfsAAAAAAAAskb.k',
+      'kf.kAAAAAAk..bk.',
+      'kf.kaaaaaak...b.',
+      '.k.kaAk.kAak....',
+      '...kffk.kffk....',
+      '...kkkk.kkkk....',
+      '................'
+    ]
+  },
+  // 블루
+  arthur: { // 기사왕: 왕관 투구, 판금, 성검과 문장 방패
+    palette: {},
+    rows: [
+      '....y.y.y.......',
+      '....yyyyy.......',
+      '...kgggggk......',
+      '...kgkkkgk...w..',
+      '...kgggggk...w..',
+      '..akkgggkka..w..',
+      '.aakgggggkaa.w..',
+      'kkkkgAyAgkaakw..',
+      'kyykgAAAgkaayyy.',
+      'kyykgAAAgkaa.y..',
+      'kyykgggggkaa....',
+      '.kk.kAAAAkaa....',
+      '....kgk.kgk.....',
+      '....kgk.kgk.....',
+      '....kkk.kkk.....',
+      '................'
+    ]
+  },
+  solveig: { // 얼음 여왕: 눈꽃 티아라, 은발, 얼음 수정 지팡이
+    palette: { c: '#bff4ff' },
+    rows: [
+      '.....c.c.c......',
+      '.....ccccc....c.',
+      '....kwwwwwk..cLc',
+      '...kwwssswwk..c.',
+      '...kwsksskwk..b.',
+      '...kwwssswwk..b.',
+      '..kwwkAAAkwwk.b.',
+      '..kwkAALAAkwksb.',
+      '..kwkAcccAkwk.b.',
+      '..kwkAAAAAkwk.b.',
+      '..kwkALLLAkwk.b.',
+      '...kkAAAAAkk..b.',
+      '...kaAAAAAak..b.',
+      '..kaaaaaaaaak.b.',
+      '..kkkkkkkkkkk...',
+      '................'
+    ]
+  },
+  william: { // 파도의 궁수: 삼각모, 흰 스카프, 석궁
+    palette: {},
+    rows: [
+      '................',
+      '...kkkkkkkk.....',
+      '..kAAAAAAAAk....',
+      '.kAAAyyyyAAAk...',
+      '..kkssssssk.....',
+      '...kskssksk.....',
+      '...ksssssk......',
+      '..kwwwwwwwk.....',
+      '.kAAkwwwkAAk....',
+      'kbbbbbbbbbbbbk..',
+      '.ksAAAAAAAsk.b..',
+      '..kaAAyAAak.....',
+      '..kaaaaaaak.....',
+      '..kak...kak.....',
+      '..kkk...kkk.....',
+      '................'
+    ]
+  },
+  // 그린
+  halvard: { // 숲의 수호자: 사슴뿔, 이끼 수염, 잎사귀 망토, 나무 망치
+    palette: { f: '#6b4a2b', h: '#7fbf4a', e: '#2f6a22' },
+    rows: [
+      '.b.b....b.b.....',
+      '..bb....bb......',
+      '...bkkkkb.......',
+      '...kffffk...bbb.',
+      '..kfskksfk...b..',
+      '..kssssssk...b..',
+      '..khhhhhhk...b..',
+      '.ekkAAAAkke..b..',
+      'eeAAAyyAAAeekb..',
+      'eeAAAAAAAAeesb..',
+      '.ekAAAAAAke.....',
+      '.eekaaaaakee....',
+      '...kaAk.kAak....',
+      '...kbbk.kbbk....',
+      '...kkkk.kkkk....',
+      '................'
+    ]
+  },
+  freydis: { // 드루이드: 꽃 화관, 땋은 머리, 덩굴 지팡이
+    palette: { r: '#ff6f91', h: '#b5743a', e: '#3f9a3a' },
+    rows: [
+      '....r.y.r.......',
+      '...kerererek....',
+      '...khhhhhhhk..e.',
+      '..khhsssssshk.ee',
+      '..khskssksshk.b.',
+      '..khhsssssshk.b.',
+      '..khkAAAAAkhk.b.',
+      '..khkAeAeAkhksb.',
+      '..hkAAAAAAAk.b..',
+      '..h.kAAyAAk..b..',
+      '..hkAAAAAAAk.b..',
+      '..kaAAAAAAAak.b.',
+      '..kaaaaaaaaak.b.',
+      '...kkkkkkkkk..b.',
+      '................',
+      '................'
+    ]
+  },
+  richard: { // 황금 사냥꾼: 금깃털 모자, 금장 조끼, 화살통, 장궁
+    palette: {},
+    rows: [
+      '..........yy....',
+      '....kkkkkky.....',
+      '...kAAAAAAAk....',
+      '..kAAAAAAAAAk...',
+      '...kkssssk....b.',
+      '...kskssks...b.k',
+      '....kssssk...b.k',
+      '..kkyAAAAykk.b.k',
+      '.kbkAAyyAAkskb.k',
+      '.kbkAAAAAAk..b.k',
+      '.kbkyyyyyyk..bk.',
+      '..kkaaaaaak...b.',
+      '....kak.kak.....',
+      '....kbk.kbk.....',
+      '....kkk.kkk.....',
+      '................'
+    ]
+  }
 };
 
 // ── 몬스터 ───────────────────────────────────

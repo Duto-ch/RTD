@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, PX, FONT } from '../config.js';
 import { Button } from '../ui/Button.js';
+import { audio } from '../systems/audio.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { ATTRS } from '../data/elements.js';
 
@@ -11,6 +12,7 @@ export class TitleScene extends Phaser.Scene {
 
   create() {
     const cx = GAME_W / 2;
+    audio.playMusic('title');
     this.add.image(0, 0, 'background').setOrigin(0).setScale(PX);
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x0d0d14, 0.6).setOrigin(0);
 
@@ -19,10 +21,9 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.add.text(cx, 296, 'PROJECT RTD', { fontFamily: FONT, fontSize: '22px', color: '#cfd8ff' }).setOrigin(0.5);
 
-    // 영웅 (뒷줄) + 용병 행렬 (앞줄)
-    ATTRS.forEach((attr, i) => {
-      const h = HEROES[attr][i];
-      this.add.image(cx + (i - 1) * 96, 400, `hero_${h.arch}_${attr}`).setScale(PX + 1);
+    // 영웅 9명 (뒷줄) + 용병 행렬 (앞줄)
+    ATTRS.flatMap((attr) => HEROES[attr]).forEach((h, i) => {
+      this.add.image(cx + (i - 4) * 56, 404, `hero_${h.id}`).setScale(PX - 1);
     });
     MERC_CLASS_IDS.forEach((cls, i) => {
       const attr = ATTRS[i % 3];
@@ -30,7 +31,10 @@ export class TitleScene extends Phaser.Scene {
       this.tweens.add({ targets: img, y: 502, duration: 300, yoyo: true, repeat: -1, delay: i * 120, ease: 'Stepped' });
     });
 
-    new Button(this, cx, 650, 280, 84, '게임 시작', () => this.scene.start('Game'), { color: 0x2f7d4a, fontSize: 33 });
+    new Button(this, cx, 650, 280, 84, '게임 시작', () => {
+      audio.init();
+      this.scene.start('Game');
+    }, { color: 0x2f7d4a, fontSize: 33 });
 
     this.add
       .text(
