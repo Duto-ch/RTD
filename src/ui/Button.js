@@ -1,55 +1,63 @@
 import Phaser from 'phaser';
-import { DEPTH } from '../config.js';
+import { DEPTH, PX } from '../config.js';
 import { panelKey, uiText, drawIcon, CSS, C } from './theme.js';
 
-// 버튼 종류: primary(보라 그라데이션) / outline(흰 바탕 보라 테두리) / card(흰 카드 타일)
-//           soft(연보라) / danger(빨강) / gold
-const TEXT_COLOR = {
-  primary: CSS.white,
-  danger: CSS.white,
-  gold: CSS.white,
-  outline: CSS.primary,
-  card: CSS.primary,
-  soft: CSS.primary
+// 버튼 종류: primary(초록) / danger(빨강) / gold(금) / outline·card(양피지) / soft(오목 슬롯)
+const STYLE = { card: 'outline' };
+const TEXT = {
+  primary: { color: CSS.white, stroke: '#1e3a20' },
+  danger: { color: CSS.white, stroke: '#3a1210' },
+  gold: { color: CSS.white, stroke: '#3a2608' },
+  outline: { color: CSS.ink },
+  card: { color: CSS.ink },
+  soft: { color: CSS.ink }
 };
+const ICON_COLOR = { primary: 0xffffff, danger: 0xffffff, gold: 0xffffff };
 
 // 예전 color 옵션 → variant (호환용)
 const FROM_COLOR = { 0x2f7d4a: 'primary', 0x8c2b25: 'danger' };
 
-/** 둥근 버튼. h 가 작으면 알약형, icon 이 있으면 아이콘 위 + 글자 아래의 타일형 */
+/** 픽셀 버튼. icon 이 있으면 아이콘 위 + 글자 아래의 타일형 */
 export class Button extends Phaser.GameObjects.Container {
-  constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 18, icon, radius } = {}) {
+  constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 16, icon } = {}) {
     super(scene, x, y);
     this.w = w;
     this.h = h;
     this.variant = variant || FROM_COLOR[color] || 'outline';
     this.enabled = true;
-    const r = radius ?? Math.min(h / 2, 22);
-    this.bg = scene.add.image(0, 0, panelKey(scene, this.variant, w, h, r));
-    const tc = TEXT_COLOR[this.variant];
+    this.bg = scene.add.image(0, PX / 2, panelKey(scene, STYLE[this.variant] || this.variant, w, h)).setScale(PX);
+    const t = TEXT[this.variant] || TEXT.outline;
+    this.iconColor = ICON_COLOR[this.variant] ?? C.ink;
     this.icon = null;
     if (icon) {
       this.icon = scene.add.graphics();
-      drawIcon(this.icon, icon, 0, -h * 0.16, Math.min(22, h * 0.32), Phaser.Display.Color.HexStringToColor(tc).color);
+      drawIcon(this.icon, icon, 0, -h * 0.16, Math.min(21, h * 0.3), this.iconColor);
     }
-    this.label = uiText(scene, 0, icon ? h * 0.22 : 0, label, fontSize, tc, '700', { align: 'center' }).setOrigin(0.5);
+    const extra = t.stroke ? { stroke: t.stroke, strokeThickness: 4, align: 'center' } : { align: 'center' };
+    this.label = uiText(scene, 0, icon ? h * 0.22 : 0, label, fontSize, t.color, 'bold', extra).setOrigin(0.5);
     this.add([this.bg, ...(this.icon ? [this.icon] : []), this.label]);
     this.setSize(w, h);
     this.setInteractive({ useHandCursor: true });
     this.setDepth(DEPTH.ui);
     this.pressed = false;
+    // 누르면 1픽셀 내려앉는다
+    const down = (v) => {
+      this.bg.setY(PX / 2 + (v ? PX : 0));
+      this.label.setY((icon ? h * 0.22 : 0) + (v ? PX : 0));
+      if (this.icon) this.icon.setY(v ? PX : 0);
+    };
     this.on('pointerdown', () => {
       this.pressed = true;
-      this.setScale(0.96);
+      down(true);
     });
     this.on('pointerout', () => {
       this.pressed = false;
-      this.setScale(1);
+      down(false);
     });
     this.on('pointerup', () => {
       if (this.pressed && this.enabled) onClick();
       this.pressed = false;
-      this.setScale(1);
+      down(false);
     });
     scene.add.existing(this);
   }
@@ -62,14 +70,14 @@ export class Button extends Phaser.GameObjects.Container {
   setIcon(type) {
     if (!this.icon) return this;
     this.icon.clear();
-    drawIcon(this.icon, type, 0, -this.h * 0.16, Math.min(22, this.h * 0.32), C.primary);
+    drawIcon(this.icon, type, 0, -this.h * 0.16, Math.min(21, this.h * 0.3), this.iconColor);
     return this;
   }
 
   setEnabled(v) {
     if (this.enabled !== v) {
       this.enabled = v;
-      this.setAlpha(v ? 1 : 0.45);
+      this.setAlpha(v ? 1 : 0.5);
     }
     return this;
   }

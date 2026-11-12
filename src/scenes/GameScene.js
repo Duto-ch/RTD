@@ -3,7 +3,7 @@ import { GAME_W, GAME_H, PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, FONT, DEP
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
-import { panel, panelKey, backdropKey, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from '../ui/theme.js';
+import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from '../ui/theme.js';
 import { ATTRS, ATTR_INFO, elementMultiplier, strongAgainst, weakAgainst } from '../data/elements.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { skillOptions, describeSkill, isDamaging, ELEMENT_FLAVOR } from '../data/skills.js';
@@ -478,15 +478,15 @@ export class GameScene extends Phaser.Scene {
     const py = 250;
     const pw = GAME_W - 72;
     const ph = 470;
-    const c = this.modal(DEPTH.overlay - 0.5, px, py, pw, ph, null); // 배너·토스트보다 위
+    const c = this.modal(DEPTH.overlay - 0.5, px, py, pw, ph, null, '보상 선택'); // 배너·토스트보다 위
     this.relicChoice = { options, container: c };
     c.add(uiText(this, GAME_W / 2, py + 40, '강화 보스 처치!', 24, CSS.primary, '700').setOrigin(0.5));
     c.add(uiText(this, GAME_W / 2, py + 72, '유물 하나를 골라주세요', 14, CSS.sub, '600').setOrigin(0.5));
     options.forEach((r, i) => {
       const y = py + 140 + i * 96;
       const row = this.add.container(GAME_W / 2, y);
-      const bg = this.add.image(0, 0, panelKey(this, 'soft', pw - 40, 80, 20));
-      const circle = this.add.graphics().fillStyle(0xffffff, 1).fillCircle(-pw / 2 + 64, 0, 26);
+      const bg = panelImage(this, 0, 0, 'outline', pw - 40, 80);
+      const circle = panelImage(this, -pw / 2 + 64, 0, 'soft', 56, 56);
       const icon = this.add.image(-pw / 2 + 64, 0, `relic_${r.id}`).setScale(PX);
       const name = uiText(this, -pw / 2 + 104, -14, r.name, 17, CSS.ink, '700').setOrigin(0, 0.5);
       const desc = uiText(this, -pw / 2 + 104, 12, r.desc, 13, CSS.sub, '600').setOrigin(0, 0.5);
@@ -748,63 +748,65 @@ export class GameScene extends Phaser.Scene {
 
   toast(msg, color = '#ffffff') {
     if (this.toastObj) this.toastObj.destroy();
-    const t = uiText(this, 0, 0, msg, 14, color === '#ffffff' ? CSS.white : color, '600').setOrigin(0.5);
-    const w = Math.min(GAME_W - 40, t.width + 36);
-    const bg = this.add.image(0, 0, panelKey(this, 'dark', w, 38, 19));
+    const t = uiText(this, 0, 0, msg, 14, color === '#ffffff' ? CSS.white : color, 'bold').setOrigin(0.5);
+    const w = Math.min(GAME_W - 40, Math.ceil((t.width + 40) / PX) * PX);
+    const bg = panelImage(this, 0, 0, 'dark', w, 40);
     const c = this.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE + 52, [bg, t]).setDepth(DEPTH.overlay - 1);
     this.toastObj = c;
-    c.setScale(0.9).setAlpha(0);
-    this.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 140, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: c, alpha: 0, delay: 1700, duration: 350, onComplete: () => c.destroy() });
+    c.setAlpha(0);
+    this.tweens.add({ targets: c, alpha: 1, duration: 120 });
+    this.tweens.add({ targets: c, alpha: 0, delay: 1700, duration: 300, onComplete: () => c.destroy() });
   }
 
   showBanner(title, sub, color = '#ffffff') {
     if (this.bannerObj) this.bannerObj.destroy();
-    const w = 460;
+    const w = 456;
     const h = 108;
-    const bg = this.add.image(0, 0, panelKey(this, 'card', w, h, 26));
-    const bar = this.add.image(0, -h / 2 + 3, panelKey(this, 'primary', 120, 6, 3));
-    const t1 = uiText(this, 0, -16, title, 28, onLight(color), '700').setOrigin(0.5);
-    const t2 = uiText(this, 0, 22, sub, 14, CSS.sub, '600', { align: 'center', wordWrap: { width: w - 40 } }).setOrigin(0.5);
-    const c = this.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE / 2, [bg, bar, t1, t2]).setDepth(DEPTH.overlay - 2);
+    const bg = panelImage(this, 0, 0, 'card', w, h);
+    const t1 = uiText(this, 0, -14, title, 26, onLight(color), 'bold').setOrigin(0.5);
+    const t2 = uiText(this, 0, 22, sub, 13, CSS.sub, 'bold', { align: 'center', wordWrap: { width: w - 48 } }).setOrigin(0.5);
+    const c = this.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE / 2, [bg, t1, t2]).setDepth(DEPTH.overlay - 2);
     this.bannerObj = c;
-    c.setScale(0.85).setAlpha(0);
-    this.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 200, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: c, alpha: 0, y: c.y - 16, delay: 2000, duration: 400, onComplete: () => c.destroy() });
+    c.setScale(1, 0);
+    this.tweens.add({ targets: c, scaleY: 1, duration: 140, ease: 'Stepped', easeParams: [4] });
+    this.tweens.add({ targets: c, alpha: 0, delay: 2000, duration: 300, onComplete: () => c.destroy() });
   }
 
   // ───────────────────────── UI ─────────────────────────
   createHud() {
     const D = DEPTH.ui;
-    // 연보라 바탕 (지도 위쪽)
-    this.add.image(0, 0, backdropKey(this, GAME_W, 236)).setOrigin(0).setDepth(D - 2);
-    // 보라 그라데이션 헤더 카드: 웨이브·골드·몬스터 수
-    panel(this, 12, 10, GAME_W - 24, 166, 'header', 26).setDepth(D - 1);
-    this.waveText = uiText(this, 32, 24, '', 26, CSS.white, '700').setDepth(D);
-    this.waveTypeText = uiText(this, 32, 58, '', 13, CSS.onPrimary, '600').setDepth(D);
+    // 양피지 창 + 초록 제목 탭(웨이브)
+    panel(this, 12, 20, GAME_W - 24, 156, 'card').setDepth(D - 1);
+    const [tabImg, tabText] = titleTab(this, GAME_W / 2, 20, 'WAVE 0 / 100', 220);
+    tabImg.setDepth(D);
+    this.waveText = tabText.setDepth(D);
+    this.waveTypeText = uiText(this, 36, 52, '', 13, CSS.sub, 'bold').setDepth(D);
 
-    // 타이머 알약
-    panel(this, GAME_W - 172, 22, 148, 34, 'ghost', 17).setDepth(D);
+    // 타이머 슬롯
+    panel(this, GAME_W - 176, 44, 148, 32, 'soft').setDepth(D);
     const clock = this.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', GAME_W - 150, 39, 16, 0xffffff);
-    this.timerText = uiText(this, GAME_W - 134, 39, '', 14, CSS.white, '700').setOrigin(0, 0.5).setDepth(D);
-    this.bossText = uiText(this, GAME_W - 32, 66, '', 13, '#ffd0db', '700').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(clock, 'clock', GAME_W - 156, 60, 14, C.ink);
+    this.timerText = uiText(this, GAME_W - 142, 60, '', 14, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.bossText = uiText(this, GAME_W - 36, 88, '', 13, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
 
-    // 골드 (잔액처럼 크게)
-    uiText(this, 32, 86, '보유 골드', 13, CSS.onPrimary, '600').setDepth(D);
+    // 골드 / 몬스터 수
+    uiText(this, 36, 80, '골드', 13, CSS.sub, 'bold').setDepth(D);
     const coin = this.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', 44, 124, 22, 0xffc84a);
-    this.goldText = uiText(this, 62, 124, '', 32, CSS.white, '700').setOrigin(0, 0.5).setDepth(D);
-    // 필드 몬스터 수
-    uiText(this, GAME_W - 32, 86, '필드 몬스터', 13, CSS.onPrimary, '600').setOrigin(1, 0).setDepth(D);
-    this.countText = uiText(this, GAME_W - 32, 124, '', 32, CSS.white, '700').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', 48, 116, 21, 0x6a4a10);
+    this.goldText = uiText(this, 66, 116, '', 26, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    uiText(this, GAME_W - 36, 104, '몬스터', 13, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
+    const skull = this.add.graphics().setDepth(D);
+    drawIcon(skull, 'monster', GAME_W - 172, 126, 21, C.ink);
+    this.countText = uiText(this, GAME_W - 36, 126, '', 26, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
+    // 진행 막대 (오목 슬롯 + 칸 채우기)
+    panel(this, 32, 148, GAME_W - 64, 16, 'soft').setDepth(D);
     this.countBar = this.add.graphics().setDepth(D);
 
-    // 유물 줄 (흰 카드)
-    panel(this, 12, 184, GAME_W - 24, 44, 'card', 22).setDepth(D - 1);
-    this.relicLabel = uiText(this, 30, 206, '유물', 14, CSS.ink, '700').setOrigin(0, 0.5).setDepth(D);
+    // 유물 줄
+    panel(this, 12, 184, GAME_W - 24, 44, 'card').setDepth(D - 1);
+    this.relicLabel = uiText(this, 32, 206, '유물', 14, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.relicRow = this.add.container(0, 0).setDepth(D);
-    this.noRelicText = uiText(this, 104, 206, '보스를 처치하면 유물을 얻어요 · 최대 4개 활성', 13, CSS.sub, '600')
+    this.noRelicText = uiText(this, 100, 206, '보스를 처치하면 유물을 얻어요 (최대 4개 활성)', 12, CSS.sub, 'bold')
       .setOrigin(0, 0.5)
       .setDepth(D);
   }
@@ -816,17 +818,17 @@ export class GameScene extends Phaser.Scene {
       const label = this.wave === 0 ? '시작' : '다음';
       this.timerText.setText(`${label} ${Math.ceil(Math.max(0, this.waveTimer))}초`);
       const ni = waveInfo(nextWave);
-      const extra = { elite: ' + 정예 10', boss: ' + 보스', milestone: ' + 정예 10 + 강화 보스', final: ' + 최종 보스' }[ni.type] || '';
-      this.waveTypeText.setText(`${this.biome.name} · 다음 ${WAVE_TYPE_NAME[ni.type]} 웨이브 (${ni.normal}기${extra})`);
+      const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
+      this.waveTypeText.setText(`${this.biome.name} · 다음 ${ni.normal}기${extra}`);
     } else {
       this.timerText.setText('최종 웨이브');
-      this.waveTypeText.setText(`${this.biome.name} · 남은 몬스터를 모두 처치하세요`);
+      this.waveTypeText.setText(`${this.biome.name} · 모두 처치하세요`);
     }
     const boss = this.monsters.find((m) => m.isBoss && m.alive);
     if (!this.over) audio.playMusic(boss ? (boss.isFinal ? 'final' : 'boss') : 'battle');
     this.bossText.setText(
       boss
-        ? `${boss.revived ? '부활 · ' : ''}${boss.enraged ? '분노 · ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${
+        ? `${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${
             boss.abilities.length > 2 ? `디버프 ${boss.abilities.length}종` : boss.abilities.map((a) => a.def.name).join(', ')
           }`
         : ''
@@ -835,14 +837,19 @@ export class GameScene extends Phaser.Scene {
 
     const n = this.monsters.length;
     const max = BALANCE.maxAlive;
-    this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? '#ffd0db' : CSS.white);
+    this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? CSS.red : CSS.ink);
+    // 막대: 4px 단위 칸 채우기
     const g = this.countBar;
-    const bx = 32;
-    const bw = GAME_W - 64;
+    const bx = 40;
+    const bw = GAME_W - 80;
     g.clear();
-    g.fillStyle(0xffffff, 0.22).fillRoundedRect(bx, 152, bw, 10, 5);
     const pct = Math.min(1, n / max);
-    if (pct > 0) g.fillStyle(pct < 0.5 ? 0xffffff : pct < 0.8 ? 0xffd27a : 0xff8aa0, 1).fillRoundedRect(bx, 152, Math.max(10, Math.round(bw * pct)), 10, 5);
+    const fill = Math.round((bw * pct) / PX) * PX;
+    if (fill > 0) {
+      const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
+      g.fillStyle(col, 1).fillRect(bx, 152, fill, 8);
+      g.fillStyle(0xffffff, 0.35).fillRect(bx, 152, fill, 4);
+    }
 
     if (this.hireBtn) {
       this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G${this.relics.contract ? ' (-20%)' : ''}`);
@@ -856,50 +863,47 @@ export class GameScene extends Phaser.Scene {
     this.noRelicText.setVisible(this.ownedRelics.length === 0);
     this.relicLabel.setText(this.ownedRelics.length ? `유물 ${this.activeRelicCount}/${BALANCE.maxActiveRelics}` : '유물');
     this.ownedRelics.forEach((r, i) => {
-      const x = 112 + i * 40;
+      const x = 116 + i * 40;
       const y = 206;
-      const ring = this.add.graphics();
-      if (r.active) ring.fillStyle(C.soft, 1).fillCircle(x, y, 17).lineStyle(2.5, C.primary, 1).strokeCircle(x, y, 17);
-      else ring.lineStyle(2, C.line, 1).strokeCircle(x, y, 17);
-      const icon = this.add.image(x, y, `relic_${r.id}`).setScale(PX - 1).setInteractive({ useHandCursor: true });
+      const slot = panelImage(this, x, y - 2, r.active ? 'gold' : 'soft', 36, 36);
+      const icon = this.add.image(x, y - 2, `relic_${r.id}`).setScale(PX - 1).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => this.toggleRelic(i));
-      if (!r.active) icon.setAlpha(0.35).setTint(0xb0aac8);
-      this.relicRow.add([ring, icon]);
+      if (!r.active) icon.setAlpha(0.4).setTint(0xb8a07a);
+      this.relicRow.add([slot, icon]);
     });
   }
 
   createBottomPanel() {
     const D = DEPTH.ui;
-    const top = 736;
-    this.add.image(0, top, backdropKey(this, GAME_W, GAME_H - top)).setOrigin(0).setDepth(D - 2);
-
-    this.hireBtn = new Button(this, 108, 798, 192, 104, '', () => this.hire(), { variant: 'primary', fontSize: 22, radius: 24 });
-    this.speedBtn = new Button(this, 42, 906, 60, 76, 'x1', () => {
+    // 하단 나무 받침
+    panel(this, 4, 740, GAME_W - 8, GAME_H - 748, 'dark').setDepth(D - 2);
+    this.hireBtn = new Button(this, 108, 800, 188, 100, '', () => this.hire(), { variant: 'primary', fontSize: 20 });
+    this.speedBtn = new Button(this, 44, 906, 60, 76, 'x1', () => {
       this.speed = this.speed >= 3 ? 1 : this.speed + 1;
       this.speedBtn.setLabel(`x${this.speed}`);
       this.tweens.timeScale = this.speed;
-    }, { variant: 'card', icon: 'speed', fontSize: 14, radius: 18 });
-    this.pauseBtn = new Button(this, 108, 906, 60, 76, '정지', () => this.togglePause(), { variant: 'card', icon: 'pause', fontSize: 14, radius: 18 });
-    this.menuBtn = new Button(this, 174, 906, 60, 76, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 14, radius: 18 });
+    }, { variant: 'card', icon: 'speed', fontSize: 13 });
+    this.pauseBtn = new Button(this, 108, 906, 60, 76, '정지', () => this.togglePause(), { variant: 'card', icon: 'pause', fontSize: 13 });
+    this.menuBtn = new Button(this, 172, 906, 60, 76, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 13 });
 
-    // 정보 카드
+    // 정보 창
     const px = 216;
-    const py = 746;
-    const pw = GAME_W - px - 12;
-    const ph = GAME_H - py - 12;
-    panel(this, px, py, pw, ph, 'card', 22).setDepth(D - 1);
-    this.infoAvatar = this.add.graphics().setDepth(D);
-    this.infoPortrait = this.add.image(px + 40, py + 40, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
-    this.infoTitle = uiText(this, px + 20, py + 18, '', 18, CSS.ink, '700').setDepth(D);
-    this.infoSub = uiText(this, px + 76, py + 46, '', 13, CSS.sub, '600').setDepth(D);
-    this.infoBody = uiText(this, px + 20, py + 52, '', 13, CSS.ink, '600', { lineSpacing: 6, wordWrap: { width: pw - 36 } }).setDepth(D);
-    this.skillBtn = new Button(this, px + 82, py + ph - 28, 128, 36, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
+    const py = 752;
+    const pw = GAME_W - px - 16;
+    const ph = GAME_H - py - 16;
+    panel(this, px, py, pw, ph, 'card').setDepth(D - 1);
+    this.infoAvatar = panelImage(this, px + 44, py + 42, 'soft', 56, 56).setDepth(D).setVisible(false);
+    this.infoPortrait = this.add.image(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
+    this.infoTitle = uiText(this, px + 24, py + 20, '', 18, CSS.ink, 'bold').setDepth(D);
+    this.infoSub = uiText(this, px + 84, py + 46, '', 12, CSS.sub, 'bold').setDepth(D);
+    this.infoBody = uiText(this, px + 24, py + 52, '', 12, CSS.ink, 'bold', { lineSpacing: 6, wordWrap: { width: pw - 44 } }).setDepth(D);
+    this.skillBtn = new Button(this, px + 80, py + ph - 30, 124, 40, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
       variant: 'primary',
-      fontSize: 14
+      fontSize: 13
     });
-    this.sellBtn = new Button(this, px + pw - 82, py + ph - 28, 128, 36, '판매', () => this.selected && this.sell(this.selected), {
+    this.sellBtn = new Button(this, px + pw - 80, py + ph - 30, 124, 40, '판매', () => this.selected && this.sell(this.selected), {
       variant: 'outline',
-      fontSize: 14
+      fontSize: 13
     });
     this.infoBox = { px, py, pw, ph };
   }
@@ -907,38 +911,37 @@ export class GameScene extends Phaser.Scene {
   refreshInfo() {
     const m = this.selected && this.selected.active ? this.selected : null;
     const { px, py } = this.infoBox;
-    this.infoAvatar.clear();
     if (!m) {
       this.selected = null;
+      this.infoAvatar.setVisible(false);
       this.infoPortrait.setVisible(false);
       this.sellBtn.setVisible(false);
       this.skillBtn.setVisible(false);
       this.infoSub.setText('');
-      this.infoTitle.setPosition(px + 20, py + 18).setColor(CSS.ink).setText('용병단 지휘');
+      this.infoTitle.setPosition(px + 24, py + 20).setColor(CSS.ink).setText('용병단 지휘');
       this.infoBody
-        .setPosition(px + 20, py + 52)
+        .setPosition(px + 24, py + 52)
         .setColor(CSS.sub)
         .setText(
           [
             '· 고용: 빈 칸에 랜덤 용병 배치',
             '· 같은 속성·레벨끼리 겹치면 레벨 업',
             '· Lv5 + Lv5 = 영웅 승급',
-            '· 상성: 블루 > 레드 > 그린 > 블루',
-            '· 패배: 몬스터 100기 · 보스 1바퀴'
+            '· 상성: 블루>레드>그린>블루',
+            '· 패배: 몬스터 100기·보스 1바퀴'
           ].join('\n')
         );
       return;
     }
     const st = m.getStats(this.relics, this.gameTime);
     const info = ATTR_INFO[m.attr];
-    this.infoAvatar.fillStyle(m.isHero ? 0xfff1d6 : C.soft, 1).fillCircle(px + 40, py + 40, 28);
-    if (m.isHero) this.infoAvatar.lineStyle(2.5, C.gold, 1).strokeCircle(px + 40, py + 40, 28);
+    this.infoAvatar.setTexture(panelKey(this, m.isHero ? 'gold' : 'soft', 56, 56)).setVisible(true);
     this.infoPortrait.setTexture(m.textureKey).setVisible(true);
-    this.infoTitle.setPosition(px + 76, py + 18).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
+    this.infoTitle.setPosition(px + 84, py + 18).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName}` : `Lv.${m.level} ${m.roleName} · ${info.name}`);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨 업 ${this.mergeCostFor(m.level)}G` : `영웅 승급 ${BALANCE.promoteCost}G`;
+    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${this.mergeCostFor(m.level)}G` : `승급 ${BALANCE.promoteCost}G`;
     const lines = [
       `강함 ${strong} · 약함 ${weak} · ${next}`,
       `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)}${st.debuff.list.length ? ' (디버프)' : st.buffed ? ' (버프)' : ''}`,
@@ -946,21 +949,24 @@ export class GameScene extends Phaser.Scene {
         ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - this.gameTime)}초`).join(', ')}`
         : `사거리 ${Math.round(st.range)} · 스킬 ${m.skills.length}개`
     ];
-    this.infoBody.setPosition(px + 20, py + 80).setColor(CSS.ink).setText(lines.join('\n'));
+    this.infoBody.setPosition(px + 24, py + 80).setColor(CSS.ink).setText(lines.join('\n'));
     this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * BALANCE.sellRefund)}G`);
     this.skillBtn.setVisible(true);
   }
 
-  /** 흰 카드 모달 공통: 반투명 바탕 + 카드. 바탕을 누르면 onClose */
-  modal(depth, x, y, w, h, onClose) {
+  /** 양피지 창 모달: 어두운 바탕 + 창 + 초록 제목 탭 (+ 닫기 버튼) */
+  modal(depth, x, y, w, h, onClose, title) {
     const c = this.add.container(0, 0).setDepth(depth);
-    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a1238, 0.5).setOrigin(0).setInteractive();
+    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, 0.55).setOrigin(0).setInteractive();
     if (onClose) shade.on('pointerdown', onClose);
-    const card = panel(this, x, y, w, h, 'card', 28);
-    card.setInteractive(); // 카드 위 클릭은 닫히지 않게
+    const card = panel(this, x, y, w, h, 'card');
+    card.setInteractive(); // 창 위 클릭은 닫히지 않게
     c.add([shade, card]);
+    if (title) c.add(titleTab(this, x + w / 2, y, title, 180));
+    if (onClose) c.add(closeButton(this, x + w - 6, y + 6, onClose));
     return c;
   }
+
 
   showSkillPopup(m) {
     this.popup?.destroy();
@@ -976,7 +982,7 @@ export class GameScene extends Phaser.Scene {
     });
     c.add(shade);
     this.popup = c;
-    let cy = y + 22;
+    let cy = y + 36;
     const add = (str, size, color, weight = '600', gap = 6) => {
       const t = uiText(this, x + 24, cy, str, size, color, weight, { wordWrap: { width: w - 48 }, lineSpacing: 4 });
       c.add(t);
@@ -1001,8 +1007,14 @@ export class GameScene extends Phaser.Scene {
       add(`영웅 승급 후보: ${HEROES[m.attr].map((hh) => hh.name).join(' / ')}`, 13, CSS.sub, '700');
     }
     const h = Math.min(GAME_H - y - 24, cy - y + 40);
-    const card = panel(this, x, y, w, h, 'card', 28).setInteractive();
+    const card = panel(this, x, y, w, h, 'card').setInteractive();
     c.addAt(card, 1);
+    const close = () => {
+      c.destroy();
+      this.popup = null;
+    };
+    c.add(titleTab(this, x + w / 2, y, '스킬 정보', 180));
+    c.add(closeButton(this, x + w - 6, y + 6, close));
     c.add(uiText(this, x + w - 24, y + h - 14, '바깥을 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(1, 1));
   }
 
@@ -1023,10 +1035,9 @@ export class GameScene extends Phaser.Scene {
     const py = 236;
     const pw = GAME_W - 104;
     const ph = 500;
-    const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, null);
+    const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
     this.menu = c;
-    c.add(uiText(this, GAME_W / 2, py + 40, '메뉴', 26, CSS.ink, '700').setOrigin(0.5));
-    c.add(uiText(this, GAME_W / 2, py + 72, '게임이 일시정지되었습니다', 13, CSS.sub, '600').setOrigin(0.5));
+    c.add(uiText(this, GAME_W / 2, py + 52, '게임이 일시정지되었습니다', 13, CSS.sub, '600').setOrigin(0.5));
 
     // 볼륨 조절 줄: 이름 [-] 막대 [+] 퍼센트
     const volRow = (y, label, get, set) => {
@@ -1038,8 +1049,13 @@ export class GameScene extends Phaser.Scene {
       const draw = () => {
         const v = get();
         bar.clear();
-        bar.fillStyle(C.line, 1).fillRoundedRect(bx, y - 5, bw, 10, 5);
-        if (v > 0) bar.fillStyle(C.primary, 1).fillRoundedRect(bx, y - 5, Math.max(10, Math.round(bw * v)), 10, 5);
+        // 10칸짜리 픽셀 막대
+        for (let i = 0; i < 10; i++) {
+          const on = i < Math.round(v * 10);
+          bar.fillStyle(0x2b1810, 1).fillRect(bx + i * 15, y - 10, 12, 20);
+          bar.fillStyle(on ? C.primary : C.soft, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 16);
+          if (on) bar.fillStyle(0x6ccc7c, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 4);
+        }
         pct.setText(`${Math.round(v * 100)}%`);
       };
       const step = (d) => () => {
@@ -1047,8 +1063,8 @@ export class GameScene extends Phaser.Scene {
         draw();
         audio.coin();
       };
-      const minus = new Button(this, px + 120, y, 40, 40, '−', step(-0.1), { variant: 'soft', fontSize: 20, radius: 20 });
-      const plus = new Button(this, bx + bw + 30, y, 40, 40, '+', step(0.1), { variant: 'soft', fontSize: 20, radius: 20 });
+      const minus = new Button(this, px + 120, y, 40, 40, '-', step(-0.1), { variant: 'outline', fontSize: 20 });
+      const plus = new Button(this, bx + bw + 30, y, 40, 40, '+', step(0.1), { variant: 'outline', fontSize: 20 });
       c.add([bar, pct, minus, plus]);
       draw();
     };
@@ -1122,24 +1138,30 @@ export class GameScene extends Phaser.Scene {
     if (victory) audio.victory();
     else audio.defeat();
 
-    this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a1238, victory ? 0.4 : 0.55).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
-    const top = DEPTH.overlay + 3; // 폭죽(overlay+2) 위에 카드
+    this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, victory ? 0.4 : 0.55).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
+    const top = DEPTH.overlay + 3; // 폭죽(overlay+2) 위에 창
     const cw = 440;
     const ch = 440;
     const cx = GAME_W / 2;
     const cy0 = 262;
-    panel(this, cx - cw / 2, cy0, cw, ch, 'card', 30).setDepth(top);
-    // 상단 아이콘 원
-    const badge = this.add.image(cx, cy0, panelKey(this, victory ? 'gold' : 'danger', 84, 84, 42)).setDepth(top);
+    panel(this, cx - cw / 2, cy0, cw, ch, 'card').setDepth(top);
+    for (const o of titleTab(this, cx, cy0, victory ? 'WIN!' : 'TRY AGAIN', 200)) o.setDepth(top);
+    // 승리: 별 3개 (가운데 큰 별) / 패배: 큰 X
     const ico = this.add.graphics().setDepth(top);
-    if (victory) drawIcon(ico, 'crown', cx, cy0, 38, 0xffffff);
-    else drawIcon(ico, 'monster', cx, cy0 + 2, 36, 0xffffff);
-    void badge;
-    const title = uiText(this, cx, cy0 + 78, victory ? '100 웨이브 클리어!' : '게임 오버', 30, victory ? CSS.primary : CSS.red, '700')
+    if (victory) {
+      for (const [dx, dy, size] of [[-74, 52, 42], [0, 40, 63], [74, 52, 42]]) {
+        drawIcon(ico, 'star', cx + dx + 3, cy0 + dy + 3, size, 0x6a4a10); // 그림자
+        drawIcon(ico, 'star', cx + dx, cy0 + dy, size, 0xf2b33a);
+      }
+    } else {
+      drawIcon(ico, 'cross', cx + 3, cy0 + 53, 56, 0x2b1810);
+      drawIcon(ico, 'cross', cx, cy0 + 50, 56, 0x3a4fa8);
+    }
+    const title = uiText(this, cx, cy0 + 100, victory ? '100 웨이브 클리어!' : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
       .setOrigin(0.5)
       .setDepth(top);
     const sub = victory ? '축하합니다! 용병단이 성을 지켜냈어요' : reason;
-    if (sub) uiText(this, cx, cy0 + 116, sub, 14, CSS.sub, '600').setOrigin(0.5).setDepth(top);
+    if (sub) uiText(this, cx, cy0 + 132, sub, 13, CSS.sub, '600').setOrigin(0.5).setDepth(top);
     if (victory) {
       this.tweens.add({ targets: title, scale: 1.06, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       const launch = () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(120, 640));
@@ -1154,13 +1176,13 @@ export class GameScene extends Phaser.Scene {
       ['영웅 · 유물', `${heroes}명 · ${this.ownedRelics.length}개`]
     ];
     rows.forEach(([k, v], i) => {
-      const y = cy0 + 160 + i * 44;
-      if (i) this.add.rectangle(cx, y - 22, cw - 64, 1, C.line).setDepth(top);
+      const y = cy0 + 176 + i * 40;
+      if (i) this.add.rectangle(cx, y - 20, cw - 64, 4, C.line).setDepth(top);
       uiText(this, cx - cw / 2 + 36, y, k, 15, CSS.sub, '600').setOrigin(0, 0.5).setDepth(top);
       uiText(this, cx + cw / 2 - 36, y, v, 17, CSS.ink, '700').setOrigin(1, 0.5).setDepth(top);
     });
-    new Button(this, cx, cy0 + 324, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
-    new Button(this, cx, cy0 + 392, cw - 64, 50, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
+    new Button(this, cx, cy0 + 320, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
+    new Button(this, cx, cy0 + 388, cw - 64, 52, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
   }
 
 }

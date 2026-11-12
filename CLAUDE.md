@@ -14,8 +14,8 @@
 - 물리 엔진 미사용 (이동·충돌 직접 계산)
 - 해상도 544x960, `pixelArt: true`, `Scale.FIT`
 - **모든 그래픽은 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환). 외부 이미지 없음
-- 폰트: UI 는 Pretendard (OFL, KS X 1001 서브셋 400/600/700), 게임 월드 글자(피해 숫자·스킬 이름)는 픽셀 폰트 Galmuri11 (OFL). `public/assets/fonts/`
-- **UI 스타일**: 보라 그라데이션 카드 + 흰 패널 + 알약형 버튼 (모바일 금융앱 풍). `src/ui/theme.js` 의 `panel()`/`panelKey()`/`uiText()`/`drawIcon()` 와 `Button` variant(primary/outline/card/soft/danger/gold)를 쓴다. 게임 월드는 픽셀아트 유지
+- 폰트: 픽셀 폰트 Galmuri11 (OFL) — UI·게임 월드 공통. `public/assets/fonts/`
+- **UI 스타일**: 픽셀아트 RPG 풍 — 양피지 창 + 갈색 나무 테두리 + 초록 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 PX배 확대(게임과 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
 
 ## 명령어
 - `npm run dev` — 개발 서버 (http://localhost:5173)
@@ -35,8 +35,8 @@
 - `src/systems/vfx.js` — 이펙트 (클래스별 공격·스킬 연출, 속성 파티클, 영웅 궁극기, 보스 저주, 폭죽)
 - `src/systems/audio.js` — 16비트 풍 사운드 합성기 (배경음 4곡: title/battle/boss/final + 효과음, 볼륨 저장). 외부 오디오 파일 없음. 첫 입력 후 `audio.init()`
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
-- `src/ui/theme.js` — UI 색·둥근 패널 텍스처(그라데이션·그림자)·아이콘·글자 헬퍼
-- `src/ui/Button.js` — 둥근 버튼 (variant 별 스타일, 아이콘 타일)
+- `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
+- `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
 - `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성
 
 ## 작업 규칙
@@ -71,7 +71,7 @@
 - 몬스터 외형: 일반 5웨이브마다 교체(20종), 정예·보스는 웨이브마다 전용(각 10종)
 - ESC(모바일은 하단 "메뉴" 버튼) 메뉴: 일시정지, 배경음/효과음 볼륨, 음소거, 계속하기, 게임 종료(→타이틀)
 - 영웅 9명은 모두 개별 스프라이트
-- UI 는 참고 이미지(보라 그라데이션·흰 카드·알약 버튼) 스타일, 폰트 Pretendard
+- UI 는 픽셀아트 RPG 풍(양피지 창·나무 테두리·초록 탭/버튼·X 닫기·슬롯), 폰트 Galmuri11. 승리 창은 별 3개, 패배 창은 큰 X (이전 보라색 금융앱 풍 UI 는 폐기)
 - 배경은 10웨이브마다 지역 교체: 초원 → 사막 → 가을 숲 → 화산 지대 → 설원 → 늪지대 → 수정 동굴 → 망자의 묘지 → 천공의 섬 → 공허의 끝
 - 스킬은 클래스별 연출 + 속성 파티클로 구분, 영웅 고유 스킬은 화려하게 (섬광·흔들림·대형 문구)
 - 16비트 풍 배경음·공격음 (WebAudio 합성)
@@ -90,3 +90,4 @@
 - 2026-11-12 6차: 최종 보스(부활·디버프 3→4·분노·전용 BGM), 몬스터 외형 40종, ESC 메뉴(볼륨·종료). 봇 3회 W90/W61/W90
 - 2026-11-12 저장소 공개 전환, GitHub Pages 자동 배포 추가
 - 2026-11-12 7차: UI 전면 개편(보라 그라데이션 카드·흰 패널·알약 버튼·Pretendard), 지역 배경 10종(10웨이브마다 교체, 크로스페이드)
+- 2026-11-12 8차: UI 를 픽셀아트 RPG 풍(양피지 창·초록 탭/버튼)으로 재개편, Pretendard 제거. 영웅 치비 스타일(32x40) 이졸데 시안 제작 — 적용 여부 사용자 결정 대기
