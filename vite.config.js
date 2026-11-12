@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // 단위 테스트 (npm test) — 브라우저 테스트(tests/e2e)는 Playwright 가 맡는다
+  test: { include: ['tests/unit/**/*.test.js'] },
   base: './',
   server: { port: 5173 },
   build: {

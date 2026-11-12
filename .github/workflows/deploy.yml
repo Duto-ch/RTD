@@ -1,10 +1,11 @@
-# main 브랜치에 push 하면 게임을 빌드해서 GitHub Pages 로 배포한다.
-# 최초 1회: 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 선택
-name: Deploy to GitHub Pages
+# main 브랜치에 push 하면: 테스트 → (통과 시) 빌드 → GitHub Pages 배포
+# 테스트가 하나라도 실패하면 배포하지 않는다 (사이트는 이전 버전 유지)
+name: Test and Deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -13,11 +14,36 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 단위 테스트
+        run: npm test
+      - name: 브라우저 설치
+        run: npx playwright install --with-deps chromium
+      - name: 브라우저 테스트
+        run: npm run test:e2e
+      - name: 테스트 화면 저장
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screens
+          path: test-results/
+          retention-days: 7
+
   build:
+    needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

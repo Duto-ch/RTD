@@ -1,54 +1,16 @@
 # Project RTD — 용병단 디펜스
 
-> 이 프로젝트 전용 Claude 컨텍스트. **기획 상세·가정·밸런스 메모는 `docs/GDD.md`**, 전체 스킬 표는 `docs/SKILLS.md` — 기획 관련 작업 전 반드시 읽을 것.
-> 결정이 바뀌면 GDD.md 와 아래 "진행 상황"을 함께 갱신한다.
+> 이 프로젝트 전용 Claude 컨텍스트. **공용 작업 지침(기술 스택·명령어·구조·규칙·작업 루프)은 `AGENTS.md`** 에 있고 아래에서 불러온다.
+> 기획 상세·가정·밸런스 메모는 `docs/GDD.md`, 전체 스킬 표는 `docs/SKILLS.md`, 이미지 교체는 `docs/CUSTOM_ART.md`.
+> 결정이 바뀌면 GDD.md 와 아래 "확정된 결정"·"진행 상황"을 함께 갱신한다.
+
+@AGENTS.md
 
 ## 게임 개요
 - 장르: 랜덤 타워 디펜스 (RTD), 2D 픽셀아트, 세로 화면 모바일 우선
 - 핵심 플레이: 5x5 성벽 위에 골드로 랜덤 용병 고용 → 같은 속성·레벨끼리 드래그 머지로 레벨 업(용병별 고유 스킬 3종 중 랜덤, 전부 자동 시전 액티브) → Lv5+Lv5 영웅 승급(고유 스킬 추가) → 성벽 주위를 도는 몬스터 처치. 100기 쌓이거나 보스가 한 바퀴 돌면 패배, 100웨이브 생존 시 승리
 - 이름: 영미권·북유럽권 이름 한글 음차 (용병 15명, 영웅 9명)
 - 속성 상성: 블루 > 레드 > 그린 > 블루
-
-## 기술 스택
-- Phaser 3 (`phaser@^3.90`) + Vite 8, JavaScript (ES Modules, top-level await 사용 → build target es2022)
-- 물리 엔진 미사용 (이동·충돌 직접 계산)
-- 해상도 544x960, `pixelArt: true`, `Scale.FIT`
-- **그래픽은 기본적으로 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환)
-- **직접 그린 이미지·애니메이션으로 교체 가능**: `public/assets/custom/manifest.json` 에 적힌 PNG(스프라이트 시트)가 같은 키의 코드 그림을 대체 (`src/systems/customArt.js`). 애니메이션 이름: 용병·영웅 `idle`/`attack`, 몬스터 `walk`. 사용법·키 목록은 `docs/CUSTOM_ART.md`
-- 폰트: 픽셀 폰트 Galmuri11 (OFL) — UI·게임 월드 공통. `public/assets/fonts/`
-- **UI 스타일**: 픽셀아트 RPG 풍 — 양피지 창 + 갈색 나무 테두리 + 초록 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 PX배 확대(게임과 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
-
-## 명령어
-- `npm run dev` — 개발 서버 (http://localhost:5173)
-- `npm run build` — `dist/` 로 빌드
-- `node tools/balance-sim.cjs ['{"hpGrowth":1.08}']` — 밸런스 봇 시뮬레이션. JSON 인자로 BALANCE.monster 덮어쓰기 실험 (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
-- `node tools/gen-skill-doc.mjs` — 스킬 데이터 변경 후 `docs/SKILLS.md` 재생성
-- `node tools/gen-art-doc.mjs` — 영웅·몬스터·유물·지역을 추가/변경하면 `docs/CUSTOM_ART.md` 의 교체 가능 키 목록 재생성
-- **배포**: `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy.yml`)가 빌드해 GitHub Pages 로 자동 배포 → https://duto-ch.github.io/RTD/
-- 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio
-
-## 구조
-- `src/config.js` — 레이아웃 상수, **BALANCE** (골드·비용·시간·상성 배율)
-- `src/data/` — `waves.js`(웨이브 규칙·출현 순서), `bossAbilities.js`(보스 디버프 5종), `heroes.js`(용병 15·영웅 9·이름), `skills.js`(스킬 템플릿·설명 자동 생성), `relics.js`, `elements.js`
-- `src/objects/` — `Monster.js`(감속/기절/취약/지속피해), `Mercenary.js`(용병+영웅 공용 유닛, 버프·유물 반영 `getStats`)
-- 스킬 실행 엔진: `GameScene.castSkill` — 스킬은 데이터(area/fx/buff/gold)로만 정의, 새 효과 타입은 여기에 추가
-- `src/scenes/` — `BootScene`(텍스처 생성) → `TitleScene` → `GameScene`(게임 로직 + HUD 전부)
-- `src/systems/path.js` — 몬스터 경로 / 셀 좌표 변환
-- `src/systems/vfx.js` — 이펙트 (클래스별 공격·스킬 연출, 속성 파티클, 영웅 궁극기, 보스 저주, 폭죽)
-- `src/systems/audio.js` — 16비트 풍 사운드 합성기 (배경음 4곡: title/battle/boss/final + 효과음, 볼륨 저장). 외부 오디오 파일 없음. 첫 입력 후 `audio.init()`
-- `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
-- `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
-- `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
-- `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성
-
-## 작업 규칙
-- 이 프로젝트 폴더 밖의 파일(다른 프로젝트)은 수정하지 않는다.
-- Phaser **3** API만 사용한다 (Phaser 4 문법 금지).
-- 픽셀 격자 유지: 아트 1px = 화면 4px(`PX`). 배치 좌표는 4의 배수로.
-- 밸런스 수치는 코드에 흩지 말고 `config.js`의 BALANCE 또는 `data/` 에 둔다.
-- GameObject 하위 클래스에 `name`, `type`, `state` 같은 Phaser 예약 속성명 getter 금지 (예: 용병 이름은 `heroName`).
-- 유닛·몬스터 그림은 Sprite(애니메이션 가능). 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')` 로 기본 애니메이션을 다시 맞춘다. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영
-- 기능 변경 후: 빌드 → 브라우저(Playwright)로 실제 실행 확인.
 
 ## 확인 필요 (사용자에게 물어볼 것)
 - 영웅 승급 방법 (현재: Lv5 + 같은 속성 Lv5 머지 + 1800G)
@@ -99,3 +61,4 @@
 - 2026-11-12 상·하단 UI 크기 축소(상단 창 156→120, 유물 줄 44→36, 하단 영역 212→176), 다음 웨이브 바로 시작 버튼(N 키)
 - 2026-11-12 UI 겹침 수정: 상단 타이머 줄을 웨이브 탭 아래로, 정보 창 초상화·버튼을 테두리 안쪽으로, 정보 본문 2줄로 축소(레벨업 비용은 부제로)
 - 2026-11-12 직접 그린 이미지·애니메이션 교체 장치 추가 (manifest.json + 스프라이트 시트, idle/attack/walk). 테스트용 샘플로 교체·재생 확인, 저장소에는 빈 manifest 만 포함
+- 2026-11-12 에이전트 세팅: AGENTS.md(공용 지침·작업 루프) 분리, 단위 테스트(Vitest 15개)·브라우저 테스트(Playwright 7개), `npm run check`, `/verify` 명령, 배포 전 테스트 자동 실행
