@@ -40,7 +40,8 @@ export const BALANCE = {
   elementDisadvantage: 0.6,
   // 몬스터 체력 = hpBase × hpGrowth^(웨이브-1) × 종류 배율
   monster: {
-    hpBase: 40, // 1웨이브 일반 몬스터 체력
+    hpBase: 40, // 체력 공식의 기준값 (2웨이브 = 40×1.08 …)
+    firstWaveHp: 34, // 1웨이브만 예외 (2026-11-13 사용자 결정, 다른 웨이브는 공식 그대로)
     hpGrowth: 1.08,
     eliteHpMult: 10,
     bossHpMult: 110, // 2026-11-12 사용자 결정

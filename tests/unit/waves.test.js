@@ -39,9 +39,11 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('boss', 100).speed).toBe(BALANCE.monster.bossSpeed);
   });
 
-  it('1웨이브 체력 40, 웨이브마다 +8%, 강화 보스 체력 1.5배', () => {
-    expect(monsterStats('normal', 1).hp).toBe(40);
-    expect(monsterStats('normal', 2).hp / monsterStats('normal', 1).hp).toBeCloseTo(1.08);
+  it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 강화 보스 체력 1.5배', () => {
+    expect(monsterStats('normal', 1).hp).toBe(34);
+    expect(monsterStats('normal', 2).hp).toBeCloseTo(40 * 1.08);
+    expect(monsterStats('normal', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9));
+    expect(monsterStats('normal', 3).hp / monsterStats('normal', 2).hp).toBeCloseTo(1.08);
     expect(monsterStats('boss', 30, true).hp / monsterStats('boss', 30).hp).toBeCloseTo(1.5);
   });
 });
