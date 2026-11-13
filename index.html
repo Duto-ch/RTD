@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>용병단 디펜스</title>
     <style>
-      html, body { margin: 0; padding: 0; height: 100%; background: #2b1810; touch-action: none; overscroll-behavior: none; }
-      #game { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+      /* 게임 화면 밖 여백은 검은색. 가운데 정렬은 Phaser(Scale.CENTER_BOTH)가 맡는다 */
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; overscroll-behavior: none; }
+      #game { width: 100%; height: 100%; background: #000; }
     </style>
   </head>
   <body>

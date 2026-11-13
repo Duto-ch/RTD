@@ -23,7 +23,8 @@ test('고용 → 웨이브 진행 → 처치', async ({ page }) => {
   expect(await game(page, () => window.game.scene.getScene('Game').mercs.length)).toBe(4);
   await page.mouse.click(544 - 68, 56); // 바로 시작
   expect(await game(page, () => window.game.scene.getScene('Game').wave)).toBe(1);
-  await page.waitForTimeout(6000);
+  // 첫 처치가 나올 때까지 기다린다 (고정 대기는 느린 환경에서 가끔 실패)
+  await page.waitForFunction(() => window.game.scene.getScene('Game').totalKills > 0, null, { timeout: 20000 });
   const s = await game(page, () => { const g = window.game.scene.getScene('Game'); return { kills: g.totalKills, alive: g.monsters.length }; });
   expect(s.kills).toBeGreaterThan(0);
   await page.screenshot({ path: SHOT('02-battle') });
@@ -116,4 +117,21 @@ test('승리·패배 화면', async ({ page }) => {
   await page.waitForFunction(() => window.game.scene.getScene('Game').over);
   await page.screenshot({ path: SHOT('06-lose') });
   expect(errors).toEqual([]);
+});
+
+test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색', async ({ page }) => {
+  for (const [w, h] of [[1400, 800], [400, 1000]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.goto('/');
+    await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+    await page.waitForTimeout(200);
+    const r = await page.evaluate(() => {
+      const c = document.querySelector('canvas').getBoundingClientRect();
+      return { left: c.left, right: innerWidth - c.right, top: c.top, bottom: innerHeight - c.bottom, bg: getComputedStyle(document.body).backgroundColor };
+    });
+    expect(Math.abs(r.left - r.right)).toBeLessThanOrEqual(1);
+    expect(Math.abs(r.top - r.bottom)).toBeLessThanOrEqual(1);
+    expect(r.bg).toBe('rgb(0, 0, 0)');
+    await page.screenshot({ path: SHOT(`08-center-${w}x${h}`) });
+  }
 });
