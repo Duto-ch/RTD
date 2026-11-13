@@ -8,6 +8,9 @@ import { playBase } from '../systems/customArt.js';
 export const MAX_LEVEL = 5; // 용병 최고 레벨. 그 다음은 영웅 승급
 
 /** 필드 위 유닛. 1~5레벨은 용병, 승급하면 영웅(hero) */
+// 픽셀 별 모양 (5x5)
+const STAR = ['..x..', '.xxx.', 'xxxxx', '.xxx.', '.x.x.'].flatMap((r, j) => [...r].flatMap((c, i) => (c === 'x' ? [[i, j]] : [])));
+
 export class Mercenary extends Phaser.GameObjects.Container {
   constructor(scene, col, row, attr, cls) {
     const c = cellCenter(col, row);
@@ -55,17 +58,20 @@ export class Mercenary extends Phaser.GameObjects.Container {
   }
 
   drawPips() {
+    // 레벨 표시: 픽셀 별 (5x5, 1칸=2px) + 검은 외곽선. Lv5 는 금색
     const g = this.pips;
     g.clear();
-    const color = ATTR_INFO[this.attr].color;
+    const color = this.level >= MAX_LEVEL ? 0xf2c14e : ATTR_INFO[this.attr].color;
     const n = Math.min(this.level, MAX_LEVEL);
-    const total = n * 8 - 2;
-    const sx = -Math.round(total / 2 / PX) * PX;
-    const y = CELL / 2 - 10;
+    const step = 12;
+    const sx = -Math.round(((n - 1) * step) / 2) - 5;
+    const y = CELL / 2 - 13;
     for (let i = 0; i < n; i++) {
-      const x = sx + i * 8;
-      g.fillStyle(0x1b1b26).fillRect(x - 2, y - 2, 10, 10);
-      g.fillStyle(this.level >= MAX_LEVEL ? 0xf2c14e : color).fillRect(x, y, 6, 6);
+      const x = sx + i * step;
+      g.fillStyle(0x1b1b26);
+      STAR.forEach(([cx, cy]) => g.fillRect(x + cx * 2 - 1, y + cy * 2 - 1, 4, 4));
+      g.fillStyle(color);
+      STAR.forEach(([cx, cy]) => g.fillRect(x + cx * 2, y + cy * 2, 2, 2));
     }
     if (this.isHero) {
       // 영웅: 금색 테두리

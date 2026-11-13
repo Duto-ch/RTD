@@ -18,98 +18,327 @@ export const ATTR_PALETTES = {
   green: { A: '#4caf50', a: '#2e6b31', L: '#a6e88a' }
 };
 
-// ── 용병 (16x16) ───────────────────────────────
+// ── 용병 (16x16) ── 15명 모두 개별 디자인 (키: 클래스_속성). palette 는 용병 전용 추가 색 ──
+// 클래스마다 무기는 같은 계열(궁수 활·마법사 지팡이·저격수 장총·주술사 토템·도적 단검)이라 역할은 한눈에 구분된다
 export const MERC_SPRITES = {
-  archer: [
-    '................',
-    '......kkkk......',
-    '.....kAAAAk.....',
-    '....kAAAAAAk..b.',
-    '....kAkssskk.bk.',
-    '....kksksksk.b.k',
-    '.....kssssk..b.k',
-    '....kkAAAAkk.b.k',
-    '...kAAaAAaAAkb.k',
-    '...ksAAyyAAskb.k',
-    '...kskAAAAkskb.k',
-    '....kkaAAakk.bk.',
-    '.....kaa.aak.b..',
-    '.....kbk.kbk....',
-    '.....kkk.kkk....',
-    '................'
-  ],
-  mage: [
-    '........k.......',
-    '.......kAk......',
-    '......kAAAk.....',
-    '.....kAAyAAk....',
-    '...kkAAAAAAAkk..',
-    '..kaaaaaaaaaaak.',
-    '..L.kssssssk....',
-    '.kLk.ksksksk....',
-    '..b..kssssk.....',
-    '..b.kAAAAAAk....',
-    '..bkAAAyyAAAk...',
-    '..bksAAAAAAsk...',
-    '..b.kAAAAAAk....',
-    '..b.kaaaaaak....',
-    '..b..kk..kk.....',
-    '................'
-  ],
-  sniper: [
-    '................',
-    '.....kkkkkk.....',
-    '....kggggggk....',
-    '....kgAAAAgk....',
-    '....kkssssk.....',
-    '....ksksksk.....',
-    '.....kssssk.....',
-    '...kkAAAAAAkk...',
-    '..kAAAaAAaAAAk..',
-    'kbbbbbbbbbbbbggk',
-    '..kskAAAAAAksk..',
-    '....kAAyyAAk....',
-    '....kaaaaaak....',
-    '....kak..kak....',
-    '....kkk..kkk....',
-    '................'
-  ],
-  shaman: [
-    '..L..........L..',
-    '..Lk........kL..',
-    '...kAkkkkkkkAk..',
-    '....kAAAAAAAk...',
-    '....kwkwwwkwk...',
-    '....kwwkwkwwk...',
-    '.....kwwwwwk....',
-    '...kkAAAAAAAkk..',
-    '..kLAAaAAAaAALk.',
-    '..ksAALLLLLAAsk.',
-    '...kkAAAAAAAkk..',
-    '....kAAyyyAAk...',
-    '....kaaaaaaak...',
-    '.....kak.kak....',
-    '.....kkk.kkk....',
-    '................'
-  ],
-  rogue: [
-    '................',
-    '......kkkk......',
-    '.....kaaaak.....',
-    '....kAAAAAAk....',
-    '....kAAAAAAkAk..',
-    '....kkssssk..Ak.',
-    '....kskksksk....',
-    '.....kssssk.....',
-    '...kkaaaaaakk...',
-    '..kakaAAAAakak..',
-    '..gk.kaAAak.kg..',
-    '.gk..kaaaak..kg.',
-    '.....kaAAak.....',
-    '.....kak.kak....',
-    '.....kkk..kk....',
-    '................'
-  ]
+  // 레드
+  archer_red: { // 에릭: 구릿빛 삐죽머리, 붉은 머리띠, 짧은 활
+    palette: { h: '#b85a24', q: '#5a3a1e' },
+    rows: [
+      '.....k.k.k......',
+      '....khkhkhk...b.',
+      '...khhhhhhhk.bk.',
+      '...kAAAAAAAk.b.k',
+      '...khskskshk.b.k',
+      '....ksssssk..b.k',
+      '.....kkkkk...b.k',
+      '....kqAAAAkk.b.k',
+      '...kAAqAAaAAkb.k',
+      '...ksAAqyAAsskbk',
+      '...kskAAqAkk.b.k',
+      '....kkaaaaak.bk.',
+      '.....kaa.aak.b..',
+      '.....kqk.kqk....',
+      '.....kkk.kkk....',
+      '................'
+    ]
+  },
+  mage_red: { // 브리짓: 긴 주황 머리, 금 서클릿, 불꽃 지팡이
+    palette: { h: '#e0702a' },
+    rows: [
+      '..y.............',
+      '.yLy...kkkk.....',
+      '.yAy..khhhhk....',
+      '..b..khhyyhhk...',
+      '..b..khskskhk...',
+      '..b..khsssshk...',
+      '..b.khhkkkkhhk..',
+      '..bkkhkAAAAkhk..',
+      '..bskAAAyyAAAk..',
+      '..bkkAAAAAAAAk..',
+      '..b.kAALLLLAAk..',
+      '..b.kAAAAAAAAk..',
+      '..bkaAAAAAAAAak.',
+      '..bkaaaaaaaaaak.',
+      '.....kk..kk.....',
+      '................'
+    ]
+  },
+  sniper_red: { // 군나르: 털모자, 덥수룩한 붉은 수염, 장총
+    palette: { h: '#c8502a', f: '#d8c8a8' },
+    rows: [
+      '................',
+      '....kkkkkkkk....',
+      '...kffffffffk...',
+      '...kfkkkkkkfk...',
+      '....kskssksk....',
+      '....kssssssk....',
+      '....khhhhhhk....',
+      '...kkhhhhhhkk...',
+      '..kAAAhhhhAAAk..',
+      'kbbbbbbbbbbbbggk',
+      '..kskAAyyAAksk..',
+      '...kkAAAAAAkk...',
+      '....kaaaaaak....',
+      '....kak..kak....',
+      '....kkk..kkk....',
+      '................'
+    ]
+  },
+  shaman_red: { // 헬가: 늑대 가죽 두건, 땋은 머리, 뼈 목걸이, 해골 토템
+    palette: { h: '#d07a3a', f: '#7a6a5a' },
+    rows: [
+      '....k.....k..ww.',
+      '...kfk...kfk.wkw',
+      '...kfffffffk.ww.',
+      '...kfkkkkkfk..b.',
+      '...khskskhk...b.',
+      '...khsssshk...b.',
+      '...h.kkkk.h...b.',
+      '...hkAAAAAAk.sb.',
+      '..khAAwwwAAAkkb.',
+      '..ksAAAAAAAAk.b.',
+      '...kAAyyyAAk..b.',
+      '...kaAAAAAak..b.',
+      '...kaaaaaaak..b.',
+      '....kak.kak...b.',
+      '....kkk.kkk.....',
+      '................'
+    ]
+  },
+  rogue_red: { // 로완: 검은 머리, 붉은 복면 스카프, 역수 단검
+    palette: { h: '#3a2418' },
+    rows: [
+      '................',
+      '.....kkkkk......',
+      '....khhhhhk.....',
+      '...khhhhhhhhk...',
+      '...khhsksksk....',
+      '....kAAAAAAk....',
+      '...kAAAaaAk.....',
+      '..kAAkaaaakk....',
+      '.kAkaAaaaaAakg..',
+      '.k.kskaAAaksgk..',
+      '....kkaaaakk.g..',
+      '.....kaaaak.....',
+      '.....kaAAak.....',
+      '.....kak.kak....',
+      '.....kkk..kk....',
+      '................'
+    ]
+  },
+  // 블루
+  archer_blue: { // 시그리드: 금발 땋은 머리, 밝은 망토, 왼손 활
+    palette: { h: '#f0d070' },
+    rows: [
+      '................',
+      '.b....kkkk......',
+      'kb...khhhhk.....',
+      'k.b.khhhhhhk....',
+      'k.b.khskskhk....',
+      'k.b.khsssshk....',
+      'k.b..kkkkkhk....',
+      'k.bkkAAAAAAkhk..',
+      'k.bsAAaAAaAAkh..',
+      'k.bkAAAyyAAAkh..',
+      'k.b.kAAAAAAk.k..',
+      '.kb.kLLLLLLk....',
+      '..b.kaaaaaak....',
+      '....kak..kak....',
+      '....kkk..kkk....',
+      '................'
+    ]
+  },
+  mage_blue: { // 올라프: 별 고깔모자, 흰 수염, 수정 지팡이
+    palette: {},
+    rows: [
+      '.......k........',
+      '......kAk.....L.',
+      '.....kAyAk...kLk',
+      '....kAAAAAk...b.',
+      '..kkaaaaaaakk.b.',
+      '....kskssksk..b.',
+      '....kwwsswwk..b.',
+      '...kkwwwwwwkk.b.',
+      '..kAAkwwwwkAAks.',
+      '..kAAAkwwkAAAkb.',
+      '..kAAAAkkAAAAkb.',
+      '..kAAyAAAAyAAkb.',
+      '..kAAAAAAAAAAkb.',
+      '..kaaaaaaaaaakb.',
+      '....kk....kk..b.',
+      '................'
+    ]
+  },
+  sniper_blue: { // 에드먼드: 깃털 챙모자, 콧수염, 흰 깃, 머스킷
+    palette: { h: '#4a2a18' },
+    rows: [
+      '..........L.....',
+      '......kkkkLL....',
+      '.....kAAAAAkL...',
+      '..kkkAAAAAAAkkk.',
+      '...kkkkkkkkkkk..',
+      '....kskssksk....',
+      '....kshhhhsk....',
+      '.....kssssk.....',
+      '...kkwAAAAwkk...',
+      'kgggbbbbbbbbbbk.',
+      '..kskAAyyAAksk..',
+      '....kAAAAAAk....',
+      '....kaaaaaak....',
+      '....kak..kak....',
+      '....kkk..kkk....',
+      '................'
+    ]
+  },
+  shaman_blue: { // 잉그리드: 얼음 왕관, 은빛 긴 머리, 서리 구슬
+    palette: { h: '#dfe8f0' },
+    rows: [
+      '......L.L.L.....',
+      '.....kLkLkLk....',
+      '....khhhhhhhk...',
+      '...khhhhhhhhhk..',
+      '...khhskskshhk..',
+      '...khhssssshhk..',
+      '...khhkkkkkhhk..',
+      '...khkAAAAAkhk..',
+      '..khkAAwAwAAkhk.',
+      '.kLk.kAAAAAAk...',
+      '.LwLsAAyyyAAs...',
+      '.kLk.kAAAAAk....',
+      '....kLLLLLLLk...',
+      '...kaaaaaaaaak..',
+      '....kk.....kk...',
+      '................'
+    ]
+  },
+  rogue_blue: { // 핀: 해적 두건, 줄무늬 셔츠, 웃는 얼굴, 투척 단검 둘
+    palette: {},
+    rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....kAAAAAAkk...',
+      '...kAAyAAAAkAk..',
+      '...kAAAAAAAk.Ak.',
+      '....kskssksk....',
+      '....kssswwsk....',
+      '.....kssssk.....',
+      '...kkLAAAALkk...',
+      '.gkskwAwAwAkskg.',
+      'g...kAwAwAwk...g',
+      '....kaaaaaak....',
+      '....kaa..aak....',
+      '....kbk..kbk....',
+      '....kkk..kkk....',
+      '................'
+    ]
+  },
+  // 그린
+  archer_green: { // 로빈: 붉은 깃털 고깔 모자, 갈색 머리, 장궁
+    palette: { h: '#6a3a1a' },
+    rows: [
+      '.....r..........',
+      '.....rkkkkk.....',
+      '...kkAAAAAAk..b.',
+      '..kAAAAAAAAAk.bk',
+      '....khskskhk.b.k',
+      '....khsssshk.b.k',
+      '.....kssssk..b.k',
+      '....kbAAAAbk.b.k',
+      '...kAAbAAbAAkbsk',
+      '...ksAAyyAAskb.k',
+      '...kskAAAAksk.bk',
+      '....kkaAAakk.b..',
+      '.....kaa.aak....',
+      '.....kbk.kbk....',
+      '.....kkk.kkk....',
+      '................'
+    ]
+  },
+  mage_green: { // 프레야: 꽃 화관, 금발, 넝쿨 지팡이
+    palette: { h: '#e8c050' },
+    rows: [
+      '..............L.',
+      '......kkkk...LAL',
+      '....kryrwryk..b.',
+      '...khhhhhhhhk.b.',
+      '...khskssskhk.b.',
+      '...khsssssshk.b.',
+      '...khhkkkkkhhkb.',
+      '...khkAAAAAkhsb.',
+      '...khAAyAyAAk.b.',
+      '...khAAAAAAAk.b.',
+      '...kAALLLLLAAkb.',
+      '..kAAAAAAAAAAkb.',
+      '..kaAAAAAAAAakb.',
+      '..kaaaaaaaaaak..',
+      '....kk....kk....',
+      '................'
+    ]
+  },
+  sniper_green: { // 토르발드: 땅딸막한 드워프, 두건, 큰 수염, 석궁
+    palette: { h: '#8a5a2a' },
+    rows: [
+      '................',
+      '................',
+      '.....kkkkkk.....',
+      '....kAAAAAAk....',
+      '...kAAAAAAAAk...',
+      '...kAskssksAk...',
+      '...kAhhsshhAk...',
+      '...khhhhhhhhk...',
+      '..kkhhhhhhhhkk..',
+      'kgbbbbbbbbbbbbgk',
+      '.k.kskhhhhksk.k.',
+      '..kAAAAyyAAAAk..',
+      '..kaaaaaaaaaak..',
+      '...kbbk..kbbk...',
+      '...kkkk..kkkk...',
+      '................'
+    ]
+  },
+  shaman_green: { // 아스트리드: 사슴뿔 관, 적갈색 땋은 머리, 떠다니는 잎사귀
+    palette: { h: '#c87a3a' },
+    rows: [
+      '..b.b......b.b..',
+      '...bb......bb...',
+      '....bkkkkkkb....',
+      '....khhhhhhk....',
+      '...khsksskshk...',
+      '...khsssssshk...',
+      '...hhkkkkkkhh...',
+      '..L.hkAAAAkh.L..',
+      '.LAL.kALALAk.LAL',
+      '..L.kskAAkskL...',
+      '....kAAyyAAk....',
+      '...kALAAAALAk...',
+      '..kALAAAAAALAk..',
+      '..kaaaaaaaaaak..',
+      '....kk....kk....',
+      '................'
+    ]
+  },
+  rogue_green: { // 레이프: 뾰족 귀, 금발, 어두운 망토, 휜 단검 둘
+    palette: { h: '#e8c060' },
+    rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....khhhhhhk....',
+      '...khhhhhhhhk...',
+      '..skkhskskhkks..',
+      '...kkhsssshkk...',
+      '.....kssssk.....',
+      '...kkaAAAAakk...',
+      '..kaakAyyAkaak..',
+      '.gkaksAAAAskakg.',
+      'g..ka.kAAk.ak..g',
+      '...ka.kaak.ak...',
+      '...kk.kaak.kk...',
+      '.....kak.kak....',
+      '.....kkk.kkk....',
+      '................'
+    ]
+  }
 };
 
 // ── 영웅 (16x16) ── 9명 모두 개별 디자인. palette 는 영웅 전용 추가 색 ──

@@ -135,3 +135,25 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
     await page.screenshot({ path: SHOT(`08-center-${w}x${h}`) });
   }
 });
+
+test('용병 15명 개별 그림, 레벨은 별로 표시', async ({ page }) => {
+  const errors = await startGame(page);
+  const info = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 99999;
+    for (let i = 0; i < 15; i++) g.hire();
+    const classes = ['archer', 'mage', 'sniper', 'shaman', 'rogue'];
+    const attrs = ['red', 'blue', 'green'];
+    // 15칸을 15명 서로 다른 용병으로, 레벨은 1~5 순서로
+    g.mercs.forEach((m, i) => {
+      m.cls = classes[i % 5]; m.attr = attrs[Math.floor(i / 5)];
+      m.level = (i % 5) + 1; m.skills = [];
+      m.sprite.setTexture(m.textureKey); m.drawPips();
+    });
+    return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length };
+  });
+  expect(info).toEqual({ keys: 15, n: 15 });
+  await page.waitForTimeout(3000); // 시작 배너가 사라진 뒤 촬영
+  await page.screenshot({ path: SHOT('09-mercs-stars') });
+  expect(errors).toEqual([]);
+});

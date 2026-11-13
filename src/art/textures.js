@@ -229,11 +229,10 @@ function paintDecorations(px, rect, rand, W, H, biome) {
 }
 
 export function generateTextures(scene) {
-  // 용병: 클래스 × 속성
-  for (const [cls, rows] of Object.entries(MERC_SPRITES)) {
-    for (const attr of ATTRS) {
-      paintMap(scene, `merc_${cls}_${attr}`, rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr] });
-    }
+  // 용병: 15명 개별 디자인 (속성색 + 용병 전용 색)
+  for (const [key, spr] of Object.entries(MERC_SPRITES)) {
+    const attr = key.split('_')[1];
+    paintMap(scene, `merc_${key}`, spr.rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr], ...spr.palette });
   }
   // 영웅: 9명 개별 디자인 (속성색 + 영웅 전용 색)
   for (const [attr, list] of Object.entries(HEROES)) {

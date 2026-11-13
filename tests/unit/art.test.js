@@ -1,15 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { HERO_SPRITES, MERC_SPRITES } from '../../src/art/sprites.js';
 import { NORMAL_DESIGNS, ELITE_DESIGNS, BOSS_DESIGNS } from '../../src/art/monsters.js';
-import { HEROES } from '../../src/data/heroes.js';
+import { HEROES, MERC_CLASS_IDS } from '../../src/data/heroes.js';
 import { monsterDesign } from '../../src/data/monsters.js';
 import { BIOMES, biomeForWave } from '../../src/data/biomes.js';
 
 const square = (rows, size) => rows.length === size && rows.every((r) => r.length === size);
 
 describe('픽셀아트 데이터', () => {
-  it('용병·영웅 스프라이트는 16×16, 영웅 9명 모두 개별 그림', () => {
-    for (const rows of Object.values(MERC_SPRITES)) expect(square(rows, 16)).toBe(true);
+  it('용병 15명은 모두 개별 그림 (16×16)', () => {
+    const keys = MERC_CLASS_IDS.flatMap((cls) => ['red', 'blue', 'green'].map((a) => `${cls}_${a}`));
+    expect(Object.keys(MERC_SPRITES).sort()).toEqual(keys.sort());
+    for (const k of keys) expect(square(MERC_SPRITES[k].rows, 16)).toBe(true);
+    expect(new Set(keys.map((k) => MERC_SPRITES[k].rows.join(''))).size).toBe(15);
+  });
+
+  it('영웅 스프라이트는 16×16, 영웅 9명 모두 개별 그림', () => {
     for (const list of Object.values(HEROES)) for (const h of list) expect(square(HERO_SPRITES[h.id].rows, 16)).toBe(true);
   });
 
