@@ -221,7 +221,8 @@ export class GameScene extends Phaser.Scene {
       merc.cooldown = 1 / st.rate;
       for (const m of live.slice(0, st.targets)) this.basicAttack(merc, st, m);
       // 공격 애니메이션이 있으면 재생, 없으면 살짝 튀어오르는 기본 동작
-      if (!playOnce(merc.sprite, 'attack', 'idle')) this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
+      // 애니메이션은 다음 공격 전에 끝나도록 (배속 반영) 공격 간격의 90% 안에 맞춘다
+      if (!playOnce(merc.sprite, 'attack', 'idle', (900 / st.rate) / this.speed)) this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
     }
   }
 

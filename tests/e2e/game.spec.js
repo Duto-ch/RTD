@@ -181,20 +181,28 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('직접 그린 그림: 시그리드 기본 스탠딩(32x32, 9프레임 idle)', async ({ page }) => {
+test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async ({ page }) => {
   const errors = await startGame(page);
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.hire();
     const m = g.mercs[0];
-    m.cls = 'archer'; m.attr = 'blue';
+    m.cls = 'archer'; m.attr = 'blue'; m.level = 1; m.skills = []; m.drawPips();
     window.__rtd.setArt(m.sprite, m.textureKey, 4);
     m.sprite.play('merc_archer_blue:idle');
     g.select(m);
-    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, frames: m.sprite.texture.frameTotal - 1, anim: m.sprite.anims.currentAnim?.key };
+    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anim: m.sprite.anims.currentAnim?.key };
   });
-  expect(s).toEqual({ key: 'merc_archer_blue', w: 64, frames: 9, anim: 'merc_archer_blue:idle' });
+  // 40x32 프레임 × 0.5 배율 → 화면 80x64 (한 칸 높이), 기본 18프레임 = 대기 9 + 공격 9
+  expect(s).toEqual({ key: 'merc_archer_blue', w: 80, h: 64, frames: 18, anim: 'merc_archer_blue:idle' });
   await page.waitForTimeout(2600);
   await page.screenshot({ path: SHOT('11-custom-sigrid') });
+
+  // 웨이브를 시작하면 공격 모션 재생 → 끝나면 다시 대기 모션
+  await page.keyboard.press('n');
+  // 공격 모션과 그 재생 속도를 같은 순간에 읽는다 (모션이 끝나면 속도가 1로 돌아가므로)
+  const atk = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return sp.anims.currentAnim?.key === 'merc_archer_blue:attack' ? sp.anims.timeScale : 0; });
+  await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBeGreaterThan(1); // 1.8초짜리 모션을 공격 간격 안에 맞춰 빠르게 재생
+  await page.screenshot({ path: SHOT('12-custom-sigrid-attack') });
   expect(errors).toEqual([]);
 });

@@ -68,7 +68,10 @@ export function artScale(scene, key) {
 export function setArt(obj, key, base) {
   // 다른 그림의 애니메이션이 돌고 있으면 멈춘다 (그대로 두면 이전 그림 프레임이 계속 나온다)
   const cur = obj.anims?.currentAnim;
-  if (cur && !cur.key.startsWith(`${key}:`)) obj.anims.stop();
+  if (cur && !cur.key.startsWith(`${key}:`)) {
+    obj.anims.stop();
+    obj.anims.timeScale = 1;
+  }
   obj.setTexture(key);
   obj.setScale(base * artScale(obj.scene, key));
   return obj;
@@ -90,11 +93,21 @@ export function playBase(sprite, name) {
   }
 }
 
-/** 공격처럼 한 번 재생하고 기본 동작으로 돌아가는 애니메이션 */
-export function playOnce(sprite, name, back) {
+/**
+ * 공격처럼 한 번 재생하고 기본 동작으로 돌아가는 애니메이션.
+ * maxMs 를 주면 그 시간 안에 끝나도록 빠르게 재생한다 (다음 공격 전에 끝나게).
+ * 이미 같은 애니메이션이 재생 중이면 새로 시작하지 않는다 (true 반환).
+ */
+export function playOnce(sprite, name, back, maxMs) {
   const key = `${sprite.texture.key}:${name}`;
   if (!sprite.scene || !sprite.scene.anims.exists(key)) return false;
+  if (sprite.anims.isPlaying && sprite.anims.currentAnim?.key === key) return true;
+  const anim = sprite.scene.anims.get(key);
+  sprite.anims.timeScale = maxMs && anim.duration > maxMs ? anim.duration / maxMs : 1;
   sprite.play(key);
-  sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => playBase(sprite, back));
+  sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+    sprite.anims.timeScale = 1;
+    playBase(sprite, back);
+  });
   return true;
 }
