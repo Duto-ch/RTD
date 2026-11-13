@@ -3,7 +3,7 @@ import { PX, DEPTH } from '../config.js';
 import { pathPoint } from '../systems/path.js';
 import { monsterStats, TOTAL_WAVES } from '../data/waves.js';
 import { monsterDesign } from '../data/monsters.js';
-import { playBase } from '../systems/customArt.js';
+import { playBase, setArt } from '../systems/customArt.js';
 import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
@@ -43,7 +43,8 @@ export class Monster extends Phaser.GameObjects.Sprite {
         .map((def) => ({ def, cd: def.cd * 0.5 }));
     }
 
-    this.setScale(kind === 'boss' ? PX + 1 : PX);
+    this.baseScale = kind === 'boss' ? PX + 1 : PX;
+    setArt(this, this.texture.key, this.baseScale);
     this.setDepth(DEPTH.monster + (kind === 'boss' ? 2 : kind === 'elite' ? 1 : 0));
     scene.add.existing(this);
     playBase(this, 'walk');
@@ -111,7 +112,7 @@ export class Monster extends Phaser.GameObjects.Sprite {
   /** 속성 변환 (강화 보스) */
   setAttr(attr) {
     this.attr = attr;
-    this.setTexture(`mon_${this.design.id}_${attr}`);
+    setArt(this, `mon_${this.design.id}_${attr}`, this.baseScale);
     playBase(this, 'walk');
   }
 

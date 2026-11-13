@@ -1,4 +1,28 @@
 {
   "_설명": "직접 그린 이미지로 교체할 목록. 형식과 키 목록은 docs/CUSTOM_ART.md 참고. 비어 있으면 기본 그림을 쓴다.",
-  "sprites": {}
+  "sprites": {
+    "merc_archer_blue": {
+      "file": "mercs/sigrid_idle.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "scale": 0.5,
+      "animations": {
+        "idle": {
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "fps": 5,
+          "loop": true
+        }
+      }
+    }
+  }
 }

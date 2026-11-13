@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, FONT, BALANCE } from './config.js';
 import { skillOptions } from './data/skills.js';
+import { setArt } from './systems/customArt.js';
 import { audio } from './systems/audio.js';
 import { HEROES } from './data/heroes.js';
 import { BootScene } from './scenes/BootScene.js';
@@ -43,4 +44,4 @@ const game = new Phaser.Game({
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
 window.game = game;
 window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
-window.__rtd = { skillOptions, HEROES, audio }; // 디버그·테스트용
+window.__rtd = { skillOptions, HEROES, audio, setArt }; // 디버그·테스트용

@@ -11,7 +11,7 @@ import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { TOTAL_WAVES, waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
-import { playOnce } from '../systems/customArt.js';
+import { playOnce, playBase, setArt } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
 
@@ -740,7 +740,7 @@ export class GameScene extends Phaser.Scene {
     const ring = this.add.circle(merc.x, merc.y, 20).setStrokeStyle(4, 0xf2c14e).setDepth(DEPTH.fx);
     this.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 400, onComplete: () => ring.destroy() });
     this.floatText(merc.x, merc.y - 30, label, '#f2c14e', 22, true);
-    this.tweens.add({ targets: merc.sprite, scale: PX * 1.3, duration: 120, yoyo: true });
+    this.tweens.add({ targets: merc.sprite, scale: merc.sprite.scaleX * 1.3, duration: 120, yoyo: true });
   }
 
   floatText(x, y, str, color = '#ffffff', size = 16, force = false) {
@@ -944,7 +944,7 @@ export class GameScene extends Phaser.Scene {
     const ph = 160;
     panel(this, px, py, pw, ph, 'card').setDepth(D - 1);
     this.infoAvatar = panelImage(this, px + 44, py + 42, 'soft', 48, 48).setDepth(D).setVisible(false);
-    this.infoPortrait = this.add.image(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
+    this.infoPortrait = this.add.sprite(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
     this.infoTitle = uiText(this, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
     this.infoSub = uiText(this, px + 78, py + 44, '', 11, CSS.sub, 'bold').setDepth(D);
     this.infoBody = uiText(this, px + 20, py + 44, '', 11, CSS.ink, 'bold', { lineSpacing: 2, wordWrap: { width: pw - 40 } }).setDepth(D);
@@ -988,7 +988,8 @@ export class GameScene extends Phaser.Scene {
     const st = m.getStats(this.relics, this.gameTime);
     const info = ATTR_INFO[m.attr];
     this.infoAvatar.setTexture(panelKey(this, m.isHero ? 'gold' : 'soft', 48, 48)).setVisible(true);
-    this.infoPortrait.setTexture(m.textureKey).setVisible(true);
+    setArt(this.infoPortrait, m.textureKey, PX - 1).setVisible(true);
+    playBase(this.infoPortrait, 'idle');
     this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;

@@ -39,6 +39,8 @@ export function loadCustomArt(scene, onDone) {
       if (!scene.textures.exists(tmp)) continue;
       if (scene.textures.exists(key)) scene.textures.remove(key);
       scene.textures.renameTexture(tmp, key);
+      // 더 촘촘하게 그린 그림(예: 32x32)은 scale 0.5 로 기본 그림과 같은 크기에 맞춘다
+      scene.textures.get(key).customData.artScale = def.scale ?? 1;
       applied++;
       for (const [name, a] of Object.entries(def.animations || {})) {
         const animKey = `${key}:${name}`;
@@ -55,6 +57,21 @@ export function loadCustomArt(scene, onDone) {
     onDone();
   });
   scene.load.start();
+}
+
+/** 텍스처의 표시 배율 (manifest 의 scale, 기본 1). 실제 크기 = 기본 확대 배율 × 이 값 */
+export function artScale(scene, key) {
+  return scene.textures.exists(key) ? scene.textures.get(key).customData?.artScale ?? 1 : 1;
+}
+
+/** 그림을 바꾸고 크기(기본 배율 × artScale)도 함께 맞춘다 */
+export function setArt(obj, key, base) {
+  // 다른 그림의 애니메이션이 돌고 있으면 멈춘다 (그대로 두면 이전 그림 프레임이 계속 나온다)
+  const cur = obj.anims?.currentAnim;
+  if (cur && !cur.key.startsWith(`${key}:`)) obj.anims.stop();
+  obj.setTexture(key);
+  obj.setScale(base * artScale(obj.scene, key));
+  return obj;
 }
 
 /** 애니메이션이 있으면 재생하고 true, 없으면 false (정지 그림 그대로) */

@@ -3,7 +3,7 @@ import { PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { MERC_CLASSES, MERC_NAMES, HERO_ARCHETYPES } from '../data/heroes.js';
 import { ATTR_INFO } from '../data/elements.js';
 import { cellCenter } from '../systems/path.js';
-import { playBase } from '../systems/customArt.js';
+import { playBase, setArt } from '../systems/customArt.js';
 
 export const MAX_LEVEL = 5; // 용병 최고 레벨. 그 다음은 영웅 승급
 
@@ -28,7 +28,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.invested = 0;
     this.kills = 0;
 
-    this.sprite = scene.add.sprite(0, -PX, this.textureKey).setScale(PX);
+    this.sprite = setArt(scene.add.sprite(0, -PX, this.textureKey), this.textureKey, PX);
     scene.sys.updateList.add(this.sprite); // 컨테이너 안 스프라이트도 애니메이션이 돌도록
     playBase(this.sprite, 'idle');
     this.pips = scene.add.graphics();
@@ -108,7 +108,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.hero = hero;
     this.level = MAX_LEVEL + 1;
     this.learn(uniqueSkill);
-    this.sprite.setTexture(this.textureKey);
+    setArt(this.sprite, this.textureKey, PX);
     playBase(this.sprite, 'idle');
     this.drawPips();
   }

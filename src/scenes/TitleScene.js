@@ -5,6 +5,7 @@ import { audio } from '../systems/audio.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { ATTRS } from '../data/elements.js';
 import { panel, panelImage, titleTab, uiText, CSS } from '../ui/theme.js';
+import { setArt, playBase } from '../systems/customArt.js';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -24,7 +25,8 @@ export class TitleScene extends Phaser.Scene {
     titleTab(this, cx, wy, 'PROJECT RTD', 200);
     uiText(this, cx, wy + 76, '용병단 디펜스', 44, CSS.ink, 'bold', { stroke: '#f2dfb0', strokeThickness: 2 }).setOrigin(0.5);
     uiText(this, cx, wy + 126, '랜덤 타워 디펜스', 16, CSS.sub, 'bold').setOrigin(0.5);
-    const hero = this.add.image(cx, wy + 196, 'hero_arthur').setScale(PX + 1);
+    const hero = setArt(this.add.sprite(cx, wy + 196, 'hero_arthur'), 'hero_arthur', PX + 1);
+    playBase(hero, 'idle');
     this.tweens.add({ targets: hero, y: wy + 190, duration: 420, yoyo: true, repeat: -1, ease: 'Stepped', easeParams: [2] });
 
     // 인벤토리 창: 영웅 9 · 용병 5
@@ -35,13 +37,15 @@ export class TitleScene extends Phaser.Scene {
     ATTRS.flatMap((attr) => HEROES[attr]).forEach((h, i) => {
       const x = wx + 44 + i * 48;
       panelImage(this, x, iy + 84, 'soft', 44, 44);
-      this.add.image(x, iy + 84, `hero_${h.id}`).setScale(PX - 2);
+      playBase(setArt(this.add.sprite(x, iy + 84, `hero_${h.id}`), `hero_${h.id}`, PX - 2), 'idle');
     });
     uiText(this, wx + 28, iy + 124, '용병', 14, CSS.primary, 'bold');
     MERC_CLASS_IDS.forEach((cls, i) => {
       const x = wx + 76 + i * 76;
       panelImage(this, x, iy + 176, 'soft', 56, 56);
-      const img = this.add.image(x, iy + 176, `merc_${cls}_${ATTRS[i % 3]}`).setScale(PX - 1);
+      const key = `merc_${cls}_${ATTRS[i % 3]}`;
+      const img = setArt(this.add.sprite(x, iy + 176, key), key, PX - 1);
+      playBase(img, 'idle');
       this.tweens.add({ targets: img, y: iy + 172, duration: 300, yoyo: true, repeat: -1, delay: i * 120, ease: 'Stepped' });
     });
 

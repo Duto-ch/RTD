@@ -148,7 +148,7 @@ test('용병 15명 개별 그림, 레벨은 별로 표시', async ({ page }) => 
     g.mercs.forEach((m, i) => {
       m.cls = classes[i % 5]; m.attr = attrs[Math.floor(i / 5)];
       m.level = (i % 5) + 1; m.skills = [];
-      m.sprite.setTexture(m.textureKey); m.drawPips();
+      window.__rtd.setArt(m.sprite, m.textureKey, 4); m.drawPips();
     });
     return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length };
   });
@@ -178,5 +178,23 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   await expect.poll(async () => (await tip())?.[1]).toBe('비활성');
   await page.mouse.move(272, 500); // 아이콘 밖
   await expect.poll(tip).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test('직접 그린 그림: 시그리드 기본 스탠딩(32x32, 9프레임 idle)', async ({ page }) => {
+  const errors = await startGame(page);
+  const s = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.hire();
+    const m = g.mercs[0];
+    m.cls = 'archer'; m.attr = 'blue';
+    window.__rtd.setArt(m.sprite, m.textureKey, 4);
+    m.sprite.play('merc_archer_blue:idle');
+    g.select(m);
+    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, frames: m.sprite.texture.frameTotal - 1, anim: m.sprite.anims.currentAnim?.key };
+  });
+  expect(s).toEqual({ key: 'merc_archer_blue', w: 64, frames: 9, anim: 'merc_archer_blue:idle' });
+  await page.waitForTimeout(2600);
+  await page.screenshot({ path: SHOT('11-custom-sigrid') });
   expect(errors).toEqual([]);
 });
