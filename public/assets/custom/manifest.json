@@ -6,6 +6,8 @@
       "frameWidth": 40,
       "frameHeight": 32,
       "scale": 0.5,
+      "faceTarget": true,
+      "pivotX": 17,
       "animations": {
         "idle": {
           "frames": [0, 1, 2, 3, 4, 5, 6, 7, 8],

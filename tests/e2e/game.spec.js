@@ -204,5 +204,11 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
   const atk = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return sp.anims.currentAnim?.key === 'merc_archer_blue:attack' ? sp.anims.timeScale : 0; });
   await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBeGreaterThan(1); // 1.8초짜리 모션을 공격 간격 안에 맞춰 빠르게 재생
   await page.screenshot({ path: SHOT('12-custom-sigrid-attack') });
+
+  // 왼쪽 대상을 공격하면 좌우 반전, 오른쪽이면 원래대로. 반전해도 몸 중심(pivotX 17)은 제자리
+  const face = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return { flip: sp.flipX, ox: Math.round(sp.originX * 40) }; });
+  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 23 });
+  await page.screenshot({ path: SHOT('13-custom-sigrid-left') });
+  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 17 });
   expect(errors).toEqual([]);
 });

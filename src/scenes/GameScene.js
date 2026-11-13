@@ -11,7 +11,7 @@ import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { TOTAL_WAVES, waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
-import { playOnce, playBase, setArt } from '../systems/customArt.js';
+import { playOnce, playBase, setArt, setFacing } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
 
@@ -220,6 +220,9 @@ export class GameScene extends Phaser.Scene {
       }
       merc.cooldown = 1 / st.rate;
       for (const m of live.slice(0, st.targets)) this.basicAttack(merc, st, m);
+      // 대상 쪽을 바라본다 (거의 위·아래에 있으면 방향 유지)
+      const dx = live[0].x - merc.x;
+      if (Math.abs(dx) > 8) setFacing(merc.sprite, dx < 0);
       // 공격 애니메이션이 있으면 재생, 없으면 살짝 튀어오르는 기본 동작
       // 애니메이션은 다음 공격 전에 끝나도록 (배속 반영) 공격 간격의 90% 안에 맞춘다
       if (!playOnce(merc.sprite, 'attack', 'idle', (900 / st.rate) / this.speed)) this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
