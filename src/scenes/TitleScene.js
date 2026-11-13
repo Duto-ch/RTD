@@ -68,7 +68,7 @@ export class TitleScene extends Phaser.Scene {
     meta.load();
     new Button(this, cx, 724, GAME_W - 120, 52, `명성 강화  ·  보유 ${meta.fame.toLocaleString()}`, () => {
       audio.init();
-      this.scene.start('Upgrade');
+      this.scene.start('Upgrade', { from: 'title' });
     }, { variant: 'gold', fontSize: 17 });
 
     // 규칙 창

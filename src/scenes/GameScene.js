@@ -1405,7 +1405,7 @@ export class GameScene extends Phaser.Scene {
     });
     new Button(this, cx, cy0 + 348, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
     const bw = (cw - 64 - 12) / 2;
-    new Button(this, cx - bw / 2 - 6, cy0 + 416, bw, 52, '명성 강화', () => this.scene.start('Upgrade'), { variant: 'gold', fontSize: 16 }).setDepth(top);
+    new Button(this, cx - bw / 2 - 6, cy0 + 416, bw, 52, '명성 강화', () => this.scene.start('Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
     new Button(this, cx + bw / 2 + 6, cy0 + 416, bw, 52, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
   }
 

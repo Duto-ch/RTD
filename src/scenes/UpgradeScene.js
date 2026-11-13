@@ -63,7 +63,11 @@ export class UpgradeScene extends Phaser.Scene {
     super('Upgrade');
   }
 
-  /** from: 'game' 이면 전투 중 성탑에서 연 것 (닫으면 전투로 돌아감) */
+  /**
+   * from: 'game' 이면 전투 중 성탑에서 연 것 (닫으면 전투로 돌아감), 'title'·'result' 면 일반 화면.
+   * 주의: Phaser 는 데이터 없이 다시 시작하면 지난번 데이터를 그대로 쓰므로, 여는 곳마다 from 을 꼭 넘긴다.
+   * (멈춰 있는 전투가 없는데 '닫기'를 누르면 close() 가 타이틀로 보낸다)
+   */
   init(data) {
     this.fromGame = data?.from === 'game';
   }
@@ -144,6 +148,7 @@ export class UpgradeScene extends Phaser.Scene {
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
   close() {
+    if (!this.scene.isPaused('Game')) return this.scene.start('Title'); // 돌아갈 전투가 없으면 타이틀로
     this.scene.stop();
     this.scene.resume('Game');
   }

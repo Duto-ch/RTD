@@ -341,3 +341,29 @@ test('필드 가운데 성탑: 용병은 못 놓고, 누르면 전투가 멈추�
   expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15); // 즉시 반영
   expect(errors).toEqual([]);
 });
+
+test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 타이틀로 정상 이동', async ({ page }) => {
+  const errors = await startGame(page);
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
+  // 1) 전투 중 성탑으로 강화 창을 열었다 닫는다
+  const t = await game(page, () => { const tw = window.game.scene.getScene('Game').tower; return { x: tw.x, y: tw.y - 30 }; });
+  await page.mouse.click(t.x, t.y);
+  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !window.game.scene.isActive('Upgrade'));
+  // 2) 게임 오버 → 결과 창 "명성 강화"
+  await game(page, () => window.game.scene.getScene('Game').endGame(false, '테스트'));
+  await page.waitForTimeout(400);
+  await page.mouse.click(272 - 108, 262 + 416);
+  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  expect(await game(page, () => window.game.scene.getScene('Upgrade').fromGame)).toBe(false); // 일반 화면 (게임 시작·타이틀로 버튼)
+  // 3) 포인트 사용 후 타이틀로
+  const p = await game(page, () => window.game.scene.getScene('Upgrade').nodeScreenPos('origin'));
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(544 - 112, 688 + 140);
+  expect(await game(page, () => window.__rtd.meta.level('origin'))).toBe(1);
+  await page.mouse.click(272 + 140, 916); // 타이틀로
+  await page.waitForFunction(() => window.game.scene.isActive('Title'));
+  expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Title']);
+  expect(errors).toEqual([]);
+});
