@@ -51,14 +51,21 @@ test('같은 속성·레벨 용병을 끌어다 놓으면 레벨 업', async ({ 
   expect(errors).toEqual([]);
 });
 
-test('바로 시작 버튼: 연타는 한 번만, N 키도 동작', async ({ page }) => {
+test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼·N 키)', async ({ page }) => {
   const errors = await startGame(page);
-  await page.mouse.click(544 - 68, 56);
-  await page.mouse.click(544 - 68, 56);
-  expect(await game(page, () => window.game.scene.getScene('Game').wave)).toBe(1);
+  const wave = () => game(page, () => window.game.scene.getScene('Game').wave);
+  await page.mouse.click(544 - 68, 56); // 시작 전 필드는 비어 있음 → 동작
+  await page.mouse.click(544 - 68, 56); // 몬스터가 나오는 중 → 무시
+  expect(await wave()).toBe(1);
   await page.waitForTimeout(700);
+  await page.keyboard.press('n'); // 몬스터가 남아 있음 → 무시
+  expect(await wave()).toBe(1);
+  expect(await game(page, () => window.game.scene.getScene('Game').nextWaveBtn.enabled)).toBe(false);
+  // 전부 처치하면 다시 활성화
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.spawnQueue = []; for (const m of [...g.monsters]) g.killMonster(m); g.cleanupMonsters(); g.refreshHud(); });
+  expect(await game(page, () => window.game.scene.getScene('Game').nextWaveBtn.enabled)).toBe(true);
   await page.keyboard.press('n');
-  expect(await game(page, () => window.game.scene.getScene('Game').wave)).toBe(2);
+  expect(await wave()).toBe(2);
   expect(errors).toEqual([]);
 });
 
@@ -215,7 +222,7 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
   expect(errors).toEqual([]);
 });
 
-test('명성 강화: 타이틀 → 강화 화면에서 구매 → 게임에 반영', async ({ page }) => {
+test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반영, 잠긴 노드는 못 삼', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -224,13 +231,47 @@ test('명성 강화: 타이틀 → 강화 화면에서 구매 → 게임에 반�
   await page.mouse.click(272, 724); // 명성 강화
   await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
   await page.waitForTimeout(200);
-  await page.mouse.click(12 + 84, 196 + 70); // 공격 갈래 첫 칸: 단련된 무기
-  const s = await game(page, () => ({ lv: window.__rtd.meta.level('atk'), fame: window.__rtd.meta.fame }));
-  expect(s).toEqual({ lv: 1, fame: 47 });
+  const at = (id) => game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id);
+  const buy = { x: 544 - 112, y: 688 + 140 };
+  // 잠긴 노드(단련된 무기)는 뿌리를 배우기 전엔 강화 불가
+  let p = await at('atk');
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(buy.x, buy.y);
+  expect(await game(page, () => window.__rtd.meta.level('atk'))).toBe(0);
+  // 뿌리 → 단련된 무기 순서로 강화
+  p = await at('origin');
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(buy.x, buy.y);
+  p = await at('atk');
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(buy.x, buy.y);
+  const s = await game(page, () => ({ origin: window.__rtd.meta.level('origin'), atk: window.__rtd.meta.level('atk'), fame: window.__rtd.meta.fame }));
+  expect(s).toEqual({ origin: 1, atk: 1, fame: 50 - 1 - 3 });
+  // 드래그로 트리 이동
+  await page.mouse.move(272, 300); await page.mouse.down(); await page.mouse.move(330, 360, { steps: 5 }); await page.mouse.up();
+  expect(await game(page, () => window.game.scene.getScene('Upgrade').tree.x)).toBeGreaterThan(272);
   await page.screenshot({ path: SHOT('14-upgrade-tree') });
-  await page.mouse.click(272 - 92, 892); // 게임 시작
+  await page.mouse.click(272 - 92, 916); // 게임 시작
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
   expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15);
+  expect(errors).toEqual([]);
+});
+
+test('강화 효과: 징집령(무료 용병)·군량 보급·몬스터 한도', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); Object.assign(m.data.levels, { origin: 1, wall: 2, conscript: 2, veteran: 1, funds: 1, bounty: 1, stipend: 2 }); m.save(); });
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  const s = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const gold0 = g.gold;
+    g.startWave(1);
+    return { mercs: g.mercs.length, lv: g.mercs.map((m) => m.level), gold0, waveGold: g.gold - gold0, maxAlive: g.maxAlive };
+  });
+  expect(s).toEqual({ mercs: 2, lv: [2, 2], gold0: 140, waveGold: 10, maxAlive: 106 });
   expect(errors).toEqual([]);
 });
 

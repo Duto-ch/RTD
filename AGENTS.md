@@ -20,6 +20,7 @@
 - `npm run check` — 위 두 가지 모두 (작업 끝날 때마다 실행)
 - `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇 시뮬레이션. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째 JSON: 명성 강화 레벨 (없으면 강화 0 = 기준 W10~15) (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
 - `node tools/gen-skill-doc.mjs` — 스킬 데이터 변경 후 `docs/SKILLS.md` 재생성
+- `node tools/gen-upgrade-doc.mjs` — 강화 트리 노드 변경 후 `docs/UPGRADES.md` 재생성
 - `node tools/gen-art-doc.mjs` — 영웅·몬스터·유물·지역을 추가/변경하면 `docs/CUSTOM_ART.md` 의 교체 가능 키 목록 재생성
 - **배포**: `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy.yml`)가 **테스트 → 통과 시 빌드·배포** → https://duto-ch.github.io/RTD/ (실패하면 배포 안 됨, 테스트 화면은 Actions 실행 결과의 `test-screens` 에서 내려받기)
 - Claude Code: `/verify` — 작업 루프(검사 → 실패 시 수정 반복 → 화면 확인)를 한 번에 수행
@@ -37,7 +38,7 @@
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
 - `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
-- `src/data/upgrades.js` — 명성 강화 트리 12종(비용·효과·선행), 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 강화 화면. GameScene 은 `this.bonus`(판 시작 시 강화 효과)·`this.difficulty`(0 노멀/1 하드)를 쓴다
+- `src/data/upgrades.js` — 명성 강화 트리 45노드(부모·갈래·글자·비용·효과), 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`·Mercenary `getStats` 에서 사용, 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 방사형 강화 트리 화면(`layoutTree()` 배치, 드래그·확대). GameScene 은 `this.bonus`(판 시작 시 강화 효과)·`this.difficulty`(0 노멀/1 하드)를 쓴다
 - `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성
 - `tests/unit/` — 단위 테스트 (Vitest), `tests/e2e/` — 브라우저 테스트 (Playwright), `playwright.config.js`
 
@@ -58,5 +59,5 @@
 3. **검사** — `npm run check` (단위 + 브라우저 테스트). 실패하면 원인을 고치고 3번을 다시 돈다. 통과할 때까지 반복.
 4. **눈으로 확인** — `test-results/screens/*.png` 를 열어 UI 겹침·잘림·색을 본다. 새 화면이면 e2e 에 스크린샷을 추가한다.
 5. **밸런스에 영향**이 있으면 `node tools/balance-sim.cjs` 를 2~3회 돌려 도달 웨이브를 기록한다 (`docs/GDD.md` 밸런스 메모).
-6. **문서** — 결정이 바뀌면 `CLAUDE.md`(확정 결정·진행 로그)와 `docs/GDD.md` 갱신. 데이터가 바뀌면 `node tools/gen-skill-doc.mjs` / `node tools/gen-art-doc.mjs`.
+6. **문서** — 결정이 바뀌면 `CLAUDE.md`(확정 결정·진행 로그)와 `docs/GDD.md` 갱신. 데이터가 바뀌면 `node tools/gen-skill-doc.mjs` / `node tools/gen-art-doc.mjs` / `node tools/gen-upgrade-doc.mjs`.
 7. **커밋·푸시** — `main` 에 push 하면 GitHub Actions 가 테스트를 통과한 경우에만 배포한다.

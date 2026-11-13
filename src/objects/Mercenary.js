@@ -8,7 +8,7 @@ import { playBase, setArt } from '../systems/customArt.js';
 export const MAX_LEVEL = 5; // 용병 최고 레벨. 그 다음은 영웅 승급
 
 /** 필드 위 유닛. 1~5레벨은 용병, 승급하면 영웅(hero) */
-const NO_BONUS = { dmg: 0, rate: 0, range: 0, crit: 0 };
+const NO_BONUS = {};
 
 // 픽셀 별 모양 (5x5)
 const STAR = ['..x..', '.xxx.', 'xxxxx', '.xxx.', '.x.x.'].flatMap((r, j) => [...r].flatMap((c, i) => (c === 'x' ? [[i, j]] : [])));
@@ -119,10 +119,11 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.buffs.push({ dmg: b.dmg || 0, rate: b.rate || 0, range: b.range || 0, until: now + b.dur });
   }
 
-  addDebuff(def, now) {
+  addDebuff(def, now, durMult = 1) {
+    const dur = def.dur * durMult;
     const cur = this.debuffs.find((d) => d.def.id === def.id);
-    if (cur) cur.until = Math.max(cur.until, now + def.dur);
-    else this.debuffs.push({ def, until: now + def.dur });
+    if (cur) cur.until = Math.max(cur.until, now + dur);
+    else this.debuffs.push({ def, until: now + dur });
   }
 
   /** 현재 걸린 보스 디버프 요약 */
@@ -152,21 +153,25 @@ export class Mercenary extends Phaser.GameObjects.Container {
     });
 
     const deb = this.debuffState(now);
-    const dmgBonus = 0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`) + buff.dmg + deb.dmg;
-    const rateBonus = 0.15 * n('war_drum') + buff.rate + deb.rate;
-    const rangeBonus = 0.15 * n('hawk_eye') + buff.range;
-    const lv = Math.min(this.level, MAX_LEVEL);
-    // 명성 강화(영구) — 유물·버프와 따로 곱한다
+    // 명성 강화(영구) — 유물·버프와 따로 곱한다. 유물 효과는 '유물 감정'만큼 커진다
     const mb = this.scene?.bonus || NO_BONUS;
+    const v = (k) => mb[k] || 0;
+    const rp = 1 + v('relicPow');
+    const dmgBonus = (0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`)) * rp + buff.dmg + deb.dmg;
+    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + deb.rate;
+    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range;
+    // 속성·병과·영웅 전용 강화
+    const special = 1 + v(`attr_${this.attr}`) + (this.isHero ? v('heroDmg') : v(`cls_${this.cls}`));
+    const lv = Math.min(this.level, MAX_LEVEL);
 
     return {
-      damage: base.dmg * BALANCE.levelDamage[lv - 1] * BALANCE.baseDamageMult * (1 + mb.dmg) * Math.max(0.1, 1 + dmgBonus),
-      rate: base.rate * (1 + mb.rate) * Math.max(0.1, 1 + rateBonus),
-      range: base.range * (1 + mb.range) * (1 + rangeBonus),
-      crit: Math.min(1, (base.crit || 0) + 0.1 * n('lucky_coin') + mb.crit),
-      critMult: 2,
-      targets: base.targets || 1,
-      splash: base.splash || 0,
+      damage: base.dmg * BALANCE.levelDamage[lv - 1] * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
+      rate: base.rate * (1 + v('rate')) * Math.max(0.1, 1 + rateBonus),
+      range: base.range * (1 + v('range')) * (1 + rangeBonus),
+      crit: Math.min(1, (base.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit')),
+      critMult: 2 + v('critDmg'),
+      targets: (base.targets || 1) + v('targets'),
+      splash: (base.splash || 0) * (1 + v('splash')),
       chain: base.chain || 0,
       slow: base.slow || 0,
       slowDur: base.slowDur || 0,

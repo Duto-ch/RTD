@@ -41,7 +41,7 @@ export const meta = {
     const u = UPGRADE_BY_ID[id];
     const lv = this.level(id);
     if (lv >= u.max) return 'max';
-    if (u.req && this.level(u.req) < 1) return 'locked';
+    if (u.parent && this.level(u.parent) < 1) return 'locked';
     if (this.data.fame < upgradeCost(u, lv)) return 'poor';
     return 'ok';
   },
