@@ -157,3 +157,26 @@ test('용병 15명 개별 그림, 레벨은 별로 표시', async ({ page }) => 
   await page.screenshot({ path: SHOT('09-mercs-stars') });
   expect(errors).toEqual([]);
 });
+
+test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }) => {
+  const errors = await startGame(page);
+  await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.addRelic('war_drum'); g.addRelic('hawk_eye'); g.addRelic('frost_crown'); g.addRelic('contract'); g.addRelic('lucky_coin');
+    g.refreshRelics();
+  });
+  const tip = () => game(page, () => {
+    const t = window.game.scene.getScene('Game').relicTip;
+    return t ? t.container.list.filter((o) => o.text).map((o) => o.text) : null;
+  });
+  expect(await tip()).toBeNull();
+  await page.mouse.move(108, 160); // 첫 유물 (전쟁의 북)
+  await expect.poll(tip).toEqual(['전쟁의 북', '활성', '모든 용병 공격 속도 +15%', '클릭: 비활성으로 전환']);
+  await page.waitForTimeout(100);
+  await page.screenshot({ path: SHOT('10-relic-tooltip') });
+  await page.mouse.move(108 + 4 * 36, 160); // 다섯 번째 (슬롯이 가득 차 비활성)
+  await expect.poll(async () => (await tip())?.[1]).toBe('비활성');
+  await page.mouse.move(272, 500); // 아이콘 밖
+  await expect.poll(tip).toBeNull();
+  expect(errors).toEqual([]);
+});

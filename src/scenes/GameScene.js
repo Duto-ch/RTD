@@ -45,6 +45,7 @@ export class GameScene extends Phaser.Scene {
     this.waveAttrs = ATTRS;
     this.relicChoice = null;
     this.menu = null;
+    this.relicTip = null;
     this.popup = null;
     this.selected = null;
     this.totalKills = 0;
@@ -883,9 +884,44 @@ export class GameScene extends Phaser.Scene {
       const slot = panelImage(this, x, y, r.active ? 'gold' : 'soft', 32, 32);
       const icon = this.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => this.toggleRelic(i));
+      icon.on('pointerover', () => this.showRelicTip(i, x, y));
+      icon.on('pointerout', () => this.hideRelicTip());
       if (!r.active) icon.setAlpha(0.4).setTint(0xb8a07a);
       this.relicRow.add([slot, icon]);
     });
+    // 아이콘이 다시 그려졌으니, 마우스가 올라가 있던 툴팁은 새 상태로 갱신
+    if (this.relicTip) this.showRelicTip(this.relicTip.index, this.relicTip.x, this.relicTip.y);
+  }
+
+  /** 유물 툴팁: 이름·활성 상태·능력. 아이콘 아래에 띄우고 화면 밖으로 나가지 않게 맞춘다 */
+  showRelicTip(index, x, y) {
+    this.hideRelicTip();
+    const owned = this.ownedRelics[index];
+    if (!owned) return;
+    const relic = RELIC_BY_ID[owned.id];
+    const D = DEPTH.ui + 50;
+    const c = this.add.container(0, 0).setDepth(D);
+    const title = uiText(this, 0, 0, relic.name, 15, CSS.ink, 'bold');
+    const state = uiText(this, 0, 0, owned.active ? '활성' : '비활성', 12, owned.active ? CSS.green : CSS.sub, 'bold');
+    const desc = uiText(this, 0, 0, relic.desc, 13, CSS.ink);
+    const hint = uiText(this, 0, 0, owned.active ? '클릭: 비활성으로 전환' : '클릭: 활성으로 전환 (최대 4개)', 11, CSS.sub);
+    const pad = 16;
+    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / PX) * PX;
+    const h = 96;
+    const left = Phaser.Math.Clamp(Math.round((x - w / 2) / PX) * PX, 8, GAME_W - 8 - w);
+    const top = y + 24;
+    const bg = panel(this, left, top, w, h, 'card');
+    title.setPosition(left + pad, top + 14);
+    state.setPosition(left + pad + title.width + 12, top + 17);
+    desc.setPosition(left + pad, top + 42);
+    hint.setPosition(left + pad, top + 66);
+    c.add([bg, title, state, desc, hint]);
+    this.relicTip = { index, x, y, container: c };
+  }
+
+  hideRelicTip() {
+    this.relicTip?.container.destroy();
+    this.relicTip = null;
   }
 
   createBottomPanel() {
