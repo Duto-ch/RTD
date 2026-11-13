@@ -195,8 +195,8 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
     g.hire();
     const m = g.mercs[0];
     m.cls = 'archer'; m.attr = 'blue'; m.level = 1; m.skills = []; m.drawPips();
-    // 가운데 칸에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다)
-    g.grid[m.row][m.col] = null; m.col = 2; m.row = 2; g.grid[2][2] = m; m.snapToCell();
+    // 가운데 열에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다. 정가운데는 성탑)
+    g.grid[m.row][m.col] = null; m.col = 2; m.row = 1; g.grid[1][2] = m; m.snapToCell();
     window.__rtd.setArt(m.sprite, m.textureKey, 4);
     m.sprite.play('merc_archer_blue:idle');
     g.select(m);
@@ -307,5 +307,37 @@ test('노멀 100웨이브 클리어 → 하드 1웨이브 (용병·유물 초기
   // 하드 1웨이브 몬스터 체력은 노멀의 hpMult 배
   const hp = await game(page, () => { const g = window.game.scene.getScene('Game'); g.startWave(1); g.spawnMonster(g.spawnQueue.shift()); return g.monsters.at(-1).maxHp; });
   expect(hp).toBe(34 * 4);
+  expect(errors).toEqual([]);
+});
+
+test('필드 가운데 성탑: 용병은 못 놓고, 누르면 전투가 멈추고 강화 트리 → 강화하면 바로 반영', async ({ page }) => {
+  const errors = await startGame(page);
+  // 성탑 칸에는 고용·이동 불가 → 용병 칸은 24개
+  const slots = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 99999;
+    for (let i = 0; i < 30; i++) g.hire();
+    return { mercs: g.mercs.length, center: g.grid[2][2], slots: g.fieldSlots };
+  });
+  expect(slots).toEqual({ mercs: 24, center: null, slots: 24 });
+  await page.screenshot({ path: SHOT('17-tower-field') });
+  // 명성이 있으면 "!" 표시
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(30); window.game.scene.getScene('Game').refreshHud(); });
+  expect(await game(page, () => window.game.scene.getScene('Game').towerBadge.visible)).toBe(true);
+  // 성탑 클릭 → 강화 트리 (전투 일시정지)
+  const t = await game(page, () => { const tw = window.game.scene.getScene('Game').tower; return { x: tw.x, y: tw.y - 30 }; });
+  await page.mouse.click(t.x, t.y);
+  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  expect(await game(page, () => window.game.scene.isPaused('Game'))).toBe(true);
+  const at = (id) => game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id);
+  for (const id of ['origin', 'atk']) {
+    const p = await at(id);
+    await page.mouse.click(p.x, p.y);
+    await page.mouse.click(544 - 112, 688 + 140); // 강화
+  }
+  await page.screenshot({ path: SHOT('18-tower-upgrade') });
+  await page.keyboard.press('Escape'); // 닫고 전투로
+  await page.waitForFunction(() => !window.game.scene.isActive('Upgrade') && !window.game.scene.isPaused('Game'));
+  expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15); // 즉시 반영
   expect(errors).toEqual([]);
 });

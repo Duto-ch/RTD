@@ -208,6 +208,7 @@
 
 | 키 | 크기 | 설명 |
 |---|---|---|
+| `bld_tower` | 16×20 | 필드 가운데 성탑 (누르면 명성 강화 트리) |
 | `icon_coin`, `icon_skull` | 8×8 | 동전·해골 아이콘 |
 | `arrow_red`, `orb_red`, `dagger_red`, `rune_red`, `proj_red` | 작은 크기 | 레드 투사체 (화살·마력구·단검·룬·기본) |
 | `arrow_blue`, `orb_blue`, `dagger_blue`, `rune_blue`, `proj_blue` | 작은 크기 | 블루 투사체 (화살·마력구·단검·룬·기본) |

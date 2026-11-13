@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, FONT, DEPTH, BALANCE } from '../config.js';
+import { GAME_W, GAME_H, PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
@@ -9,13 +9,13 @@ import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { skillOptions, describeSkill, isDamaging, ELEMENT_FLAVOR } from '../data/skills.js';
 import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { TOTAL_WAVES, waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
-import { cellAt, PATH_LENGTH } from '../systems/path.js';
+import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
 import { playOnce, playBase, setArt, setFacing } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
-import { FAME } from '../data/upgrades.js';
+import { FAME, UPGRADES } from '../data/upgrades.js';
 
 const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스', milestone: '강화 보스', final: '최종 보스' };
 
@@ -68,6 +68,7 @@ export class GameScene extends Phaser.Scene {
     audio.playMusic('battle');
     this.events.on('firework-pop', () => audio.firework());
 
+    this.createTower();
     this.createHud();
     this.createBottomPanel();
     this.setupInput();
@@ -75,6 +76,55 @@ export class GameScene extends Phaser.Scene {
     this.refreshInfo();
     this.showBanner('용병단 디펜스', `${BALANCE.prepTime}초 후 1웨이브 시작`);
     this.conscript();
+  }
+
+  // ───────────────────────── 성탑 (명성 강화) ─────────────────────────
+  /** 필드 가운데 성탑: 누르면 전투를 멈추고 강화 트리를 연다. 살 수 있는 노드가 있으면 "!" 표시 */
+  createTower() {
+    const c = cellCenter(TOWER_CELL.col, TOWER_CELL.row);
+    this.tower = setArt(this.add.sprite(c.x, c.y + CELL / 2 - PX, 'bld_tower'), 'bld_tower', PX).setOrigin(0.5, 1).setDepth(DEPTH.merc - 0.5);
+    playBase(this.tower, 'idle');
+    this.tower.setInteractive({ useHandCursor: true });
+    this.tower.on('pointerover', () => this.tower.setTint(0xfff1c0));
+    this.tower.on('pointerout', () => this.tower.clearTint());
+    this.tower.on('pointerup', () => this.openUpgrades());
+    // "!" 말풍선 (살 수 있는 노드가 있을 때)
+    this.towerBadge = this.add.container(c.x + 20, c.y - 18).setDepth(DEPTH.merc + 1).setVisible(false);
+    this.towerBadge.add([
+      this.add.circle(0, 0, 11, 0xffd36a).setStrokeStyle(3, 0x3a2608),
+      uiText(this, 0, 0, '!', 14, '#3a2608', 'bold').setOrigin(0.5)
+    ]);
+    this.tweens.add({ targets: this.towerBadge, y: c.y - 24, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // 강화 창을 닫고 돌아오면 효과를 바로 반영
+    const onResume = () => this.applyBonus();
+    this.events.on('resume', onResume);
+    this.events.once('shutdown', () => this.events.off('resume', onResume));
+  }
+
+  isTowerCell(col, row) {
+    return col === TOWER_CELL.col && row === TOWER_CELL.row;
+  }
+
+  /** 용병을 놓을 수 있는 칸 수 (성탑 칸 제외) */
+  get fieldSlots() {
+    return GRID * GRID - 1;
+  }
+
+  openUpgrades() {
+    if (this.over || this.menu || this.relicChoice) return;
+    this.select(null);
+    this.hideRelicTip();
+    this.scene.launch('Upgrade', { from: 'game' });
+    this.scene.bringToTop('Upgrade');
+    this.scene.pause();
+  }
+
+  /** 강화 효과 다시 읽기 (시작 골드·징집령처럼 판 시작 때만 쓰는 효과는 다음 판/하드 진입부터) */
+  applyBonus() {
+    this.bonus = meta.bonus();
+    this.refreshRelics();
+    this.refreshHud();
+    this.refreshInfo();
   }
 
   /** 명성 강화 '징집령': 시작할 때 무료 용병 배치 (하드 진입 때도) */
@@ -609,7 +659,7 @@ export class GameScene extends Phaser.Scene {
     const cost = free ? 0 : this.hireCost;
     if (this.gold < cost) return this.toast('골드가 부족합니다');
     const empty = [];
-    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) if (!this.grid[r][c]) empty.push({ c, r });
+    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) if (!this.grid[r][c] && !this.isTowerCell(c, r)) empty.push({ c, r });
     if (!empty.length) return this.toast('빈 자리가 없습니다');
     const { c, r } = Phaser.Utils.Array.GetRandom(empty);
     const attr = Phaser.Utils.Array.GetRandom(ATTRS);
@@ -687,7 +737,7 @@ export class GameScene extends Phaser.Scene {
 
   handleDrop(merc, x, y) {
     const cell = cellAt(x, y);
-    if (!cell || (cell.col === merc.col && cell.row === merc.row)) return merc.snapToCell();
+    if (!cell || (cell.col === merc.col && cell.row === merc.row) || this.isTowerCell(cell.col, cell.row)) return merc.snapToCell();
     const other = this.grid[cell.row][cell.col];
 
     if (!other) {
@@ -939,6 +989,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.nextWaveBtn?.setEnabled(this.canCallNextWave);
+    this.towerBadge?.setVisible(!this.over && UPGRADES.some((u) => meta.status(u.id) === 'ok'));
     if (this.hireBtn) {
       this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G${this.relics.contract ? ' (-20%)' : ''}`);
       this.hireBtn.setEnabled(this.gold >= this.hireCost);
@@ -1231,16 +1282,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ───────────────────────── 명성 · 하드 ─────────────────────────
-  /** 명성 적립 (하드는 배율) — 판이 끝날 때 creditFame 으로 저장 */
+  /** 명성 적립 (하드는 배율) — 바로 저장해서 판 도중에도 성탑에서 쓸 수 있다 */
   earnFame(n) {
-    this.fameEarned += Math.round(n * (this.difficulty ? BALANCE.hard.fameMult : 1) * (1 + this.bonus.fameMult));
+    const v = Math.round(n * (this.difficulty ? BALANCE.hard.fameMult : 1) * (1 + this.bonus.fameMult));
+    this.fameEarned += v;
+    meta.addFame(v);
   }
 
-  /** 이번 판 명성·최고 기록 저장 (한 번만) */
+  /** 판이 끝날 때 최고 기록 저장 (한 번만) */
   creditFame() {
     if (this.fameCredited) return;
     this.fameCredited = true;
-    meta.addFame(this.fameEarned);
     meta.record(this.difficulty, this.wave);
   }
 

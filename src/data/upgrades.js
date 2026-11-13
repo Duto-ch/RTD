@@ -75,6 +75,9 @@ export const UPGRADES = [
   N('veteran', 'conscript', 'defense', '노련한 신병', '노', 'veteran', 1, 1, [80, 1], 'flag', '무료 용병이 Lv2로 시작')
 ];
 
+// 판을 시작할 때만 쓰는 효과 — 판 도중(성탑)에 사면 다음 판(또는 하드 진입)부터 적용
+export const START_ONLY = new Set(['funds', 'conscript', 'veteran']);
+
 export const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 export const childrenOf = (id) => UPGRADES.filter((u) => u.parent === id);
 

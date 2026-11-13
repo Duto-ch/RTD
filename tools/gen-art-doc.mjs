@@ -24,6 +24,7 @@ for (const r of RELICS) md += `| \`relic_${r.id}\` | ${r.name} |\n`;
 md += '\n### 지역 배경 (136×240, 화면 전체)\n\n| 키 | 지역 |\n|---|---|\n';
 for (const b of BIOMES) md += `| \`bg_${b.id}\` | ${b.name} |\n`;
 md += '\n### 기타\n\n| 키 | 크기 | 설명 |\n|---|---|---|\n';
+md += '| `bld_tower` | 16×20 | 필드 가운데 성탑 (누르면 명성 강화 트리) |\n';
 md += '| `icon_coin`, `icon_skull` | 8×8 | 동전·해골 아이콘 |\n';
 for (const a of A) md += `| \`arrow_${a}\`, \`orb_${a}\`, \`dagger_${a}\`, \`rune_${a}\`, \`proj_${a}\` | 작은 크기 | ${ATTR[a]} 투사체 (화살·마력구·단검·룬·기본) |\n`;
 

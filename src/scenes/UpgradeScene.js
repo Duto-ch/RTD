@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
-import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
+import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
 import { meta } from '../systems/meta.js';
 import { audio } from '../systems/audio.js';
 
@@ -63,9 +63,14 @@ export class UpgradeScene extends Phaser.Scene {
     super('Upgrade');
   }
 
+  /** from: 'game' 이면 전투 중 성탑에서 연 것 (닫으면 전투로 돌아감) */
+  init(data) {
+    this.fromGame = data?.from === 'game';
+  }
+
   create() {
     meta.load();
-    audio.playMusic('title');
+    if (!this.fromGame) audio.playMusic('title');
     this.pos = layoutTree();
     this.selected = 'origin';
     this.zoom = 1;
@@ -105,7 +110,7 @@ export class UpgradeScene extends Phaser.Scene {
     this.fameText = uiText(this, 60, 44, '', 22, CSS.gold, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.bestText = uiText(this, GAME_W - 32, 38, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
     this.countText = uiText(this, GAME_W - 32, 58, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
-    uiText(this, 32, 74, '판이 끝나면 버틴 웨이브만큼 명성 · 강화는 영구 유지', 11, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    uiText(this, 32, 74, '웨이브를 버틸 때마다 명성 · 강화는 영구 유지', 11, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
   }
 
   // ───────────── 아래 정보 창 ─────────────
@@ -123,13 +128,24 @@ export class UpgradeScene extends Phaser.Scene {
 
   createControls() {
     const D = 10;
-    new Button(this, GAME_W / 2 - 92, 916, 236, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-    new Button(this, GAME_W / 2 + 140, 916, 200, 60, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    if (this.fromGame) {
+      new Button(this, GAME_W / 2, 916, GAME_W - 48, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      this.input.keyboard?.on('keydown-ESC', () => this.close());
+    } else {
+      new Button(this, GAME_W / 2 - 92, 916, 236, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      new Button(this, GAME_W / 2 + 140, 916, 200, 60, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    }
     // 확대·축소·가운데로
     const zx = GAME_W - 36;
     new Button(this, zx, VIEW.top + 24, 40, 40, '+', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
     new Button(this, zx, VIEW.top + 70, 40, 40, '-', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
     new Button(this, zx, VIEW.top + 116, 40, 40, '◎', () => this.recenter(), { variant: 'outline', fontSize: 16 }).setDepth(D);
+  }
+
+  /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
+  close() {
+    this.scene.stop();
+    this.scene.resume('Game');
   }
 
   setZoom(z) {
@@ -270,7 +286,8 @@ export class UpgradeScene extends Phaser.Scene {
       this.dNote.setText(`먼저 「${UPGRADE_BY_ID[u.parent].name}」을(를) 배워야 열립니다`).setColor(CSS.red);
       this.buyBtn.setLabel(`잠김 · 명성 ${cost}`).setEnabled(false);
     } else {
-      this.dNote.setText(status === 'poor' ? `명성이 ${cost - meta.fame} 부족합니다` : '강화 버튼을 누르면 1레벨 올라갑니다').setColor(status === 'poor' ? CSS.red : CSS.sub);
+      const hint = START_ONLY.has(u.id) ? '판을 시작할 때 적용 (전투 중이면 다음 판·하드부터)' : '강화 버튼을 누르면 1레벨 올라갑니다 · 즉시 적용';
+      this.dNote.setText(status === 'poor' ? `명성이 ${cost - meta.fame} 부족합니다` : hint).setColor(status === 'poor' ? CSS.red : CSS.sub);
       this.buyBtn.setLabel(`강화 · 명성 ${cost}`).setEnabled(status === 'ok');
     }
   }

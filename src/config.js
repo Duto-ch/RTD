@@ -4,6 +4,7 @@ export const GAME_W = 544; // 136 아트 px
 export const GAME_H = 960; // 240 아트 px
 
 export const GRID = 5;
+export const TOWER_CELL = { col: 2, row: 2 }; // 필드 가운데 성탑 칸 (용병을 놓을 수 없다)
 export const CELL = 64; // 16 아트 px
 export const FIELD_SIZE = GRID * CELL; // 320
 export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 112

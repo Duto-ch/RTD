@@ -27,7 +27,7 @@ const { chromium } = require('playwright');
       while (acted) {
         acted = false;
         // 빈 칸이 있으면 고용 우선, 필드가 차면 낮은 레벨부터 합치기
-        if (g.gold >= g.hireCost && g.mercs.length < 25) { g.hire(); acted = true; continue; }
+        if (g.gold >= g.hireCost && g.mercs.length < g.fieldSlots) { g.hire(); acted = true; continue; }
         const ms = g.mercs.sort((a, b) => a.level - b.level);
         outer: for (const a of ms) for (const c of ms) if (a.canMergeWith(c) && g.gold >= g.mergeCostFor(c.level)) { g.merge(a, c); acted = true; break outer; }
       }

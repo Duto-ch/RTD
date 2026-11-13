@@ -539,6 +539,35 @@ export const HERO_SPRITES = {
 };
 
 // ── 아이콘 ───────────────────────────────────
+// ── 건물 ── 필드 가운데 성탑 (16x20): 누르면 명성 강화 트리가 열린다
+export const BUILDING_SPRITES = {
+  tower: {
+    palette: { c: '#36d6c8', L: '#b8fff6', d: '#6b7280', r: '#c0392b' },
+    rows: [
+      '.......cc.......',
+      '......cLLc......',
+      '......cLcc......',
+      '......kyyk......',
+      '..kk.kk..kk.kk..',
+      '..kgkkgkkgkkgk..',
+      '..kggggggggggk..',
+      '...kwgggggggk...',
+      '...kwggkkgggk...',
+      '...kwgkcckggk...',
+      '...kwgkcckggk...',
+      '...kwggggdggk...',
+      '...kwgkrrkggk...',
+      '...kwgkryrkgk...',
+      '...kwgkrrkggk...',
+      '...kwggkkgdgk...',
+      '..kwggkbbkgggk..',
+      '..kwggkbbkgggk..',
+      '.kddddkbbkddddk.',
+      '.kkkkkkkkkkkkkk.'
+    ]
+  }
+};
+
 export const ICON_SPRITES = {
   coin: [
     '..kkkk..',

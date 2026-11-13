@@ -1,4 +1,4 @@
-import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES } from './sprites.js';
+import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES, BUILDING_SPRITES } from './sprites.js';
 import { BOSS_EXTRA_PALETTE } from './monsters.js';
 import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
 import { GAME_W, GAME_H, PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID } from '../config.js';
@@ -248,6 +248,7 @@ export function generateTextures(scene) {
       paintMap(scene, `mon_${d.id}_${attr}`, d.rows, { ...BASE_PALETTE, ...BOSS_EXTRA_PALETTE, ...ATTR_PALETTES[attr] });
     }
   }
+  paintMap(scene, 'bld_tower', BUILDING_SPRITES.tower.rows, { ...BASE_PALETTE, ...BUILDING_SPRITES.tower.palette });
   paintMap(scene, 'icon_coin', ICON_SPRITES.coin, BASE_PALETTE);
   paintMap(scene, 'icon_skull', ICON_SPRITES.skull, BASE_PALETTE);
   for (const relic of RELICS) {
