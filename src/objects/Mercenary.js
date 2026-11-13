@@ -8,6 +8,8 @@ import { playBase, setArt } from '../systems/customArt.js';
 export const MAX_LEVEL = 5; // 용병 최고 레벨. 그 다음은 영웅 승급
 
 /** 필드 위 유닛. 1~5레벨은 용병, 승급하면 영웅(hero) */
+const NO_BONUS = { dmg: 0, rate: 0, range: 0, crit: 0 };
+
 // 픽셀 별 모양 (5x5)
 const STAR = ['..x..', '.xxx.', 'xxxxx', '.xxx.', '.x.x.'].flatMap((r, j) => [...r].flatMap((c, i) => (c === 'x' ? [[i, j]] : [])));
 
@@ -154,12 +156,14 @@ export class Mercenary extends Phaser.GameObjects.Container {
     const rateBonus = 0.15 * n('war_drum') + buff.rate + deb.rate;
     const rangeBonus = 0.15 * n('hawk_eye') + buff.range;
     const lv = Math.min(this.level, MAX_LEVEL);
+    // 명성 강화(영구) — 유물·버프와 따로 곱한다
+    const mb = this.scene?.bonus || NO_BONUS;
 
     return {
-      damage: base.dmg * BALANCE.levelDamage[lv - 1] * Math.max(0.1, 1 + dmgBonus),
-      rate: base.rate * Math.max(0.1, 1 + rateBonus),
-      range: base.range * (1 + rangeBonus),
-      crit: Math.min(1, (base.crit || 0) + 0.1 * n('lucky_coin')),
+      damage: base.dmg * BALANCE.levelDamage[lv - 1] * BALANCE.baseDamageMult * (1 + mb.dmg) * Math.max(0.1, 1 + dmgBonus),
+      rate: base.rate * (1 + mb.rate) * Math.max(0.1, 1 + rateBonus),
+      range: base.range * (1 + mb.range) * (1 + rangeBonus),
+      crit: Math.min(1, (base.crit || 0) + 0.1 * n('lucky_coin') + mb.crit),
       critMult: 2,
       targets: base.targets || 1,
       splash: base.splash || 0,

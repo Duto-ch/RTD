@@ -6,6 +6,7 @@ import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { ATTRS } from '../data/elements.js';
 import { panel, panelImage, titleTab, uiText, CSS } from '../ui/theme.js';
 import { setArt, playBase } from '../systems/customArt.js';
+import { meta } from '../systems/meta.js';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -63,17 +64,24 @@ export class TitleScene extends Phaser.Scene {
       { variant: 'primary', fontSize: 22 }
     );
 
+    // 명성 강화 (영구 강화 트리)
+    meta.load();
+    new Button(this, cx, 724, GAME_W - 120, 52, `명성 강화  ·  보유 ${meta.fame.toLocaleString()}`, () => {
+      audio.init();
+      this.scene.start('Upgrade');
+    }, { variant: 'gold', fontSize: 17 });
+
     // 규칙 창
-    panel(this, wx, 714, ww, 156, 'card');
+    panel(this, wx, 768, ww, 140, 'card');
     uiText(
       this,
       cx,
-      792,
-      '용병을 고용하고, 같은 속성·같은 레벨끼리\n합쳐서 강화하세요.\n몬스터 100마리가 쌓이거나 보스가 한 바퀴 돌면 패배!\n100웨이브를 버티면 승리합니다.',
+      838,
+      '용병을 고용하고 같은 속성·레벨끼리 합쳐 강화하세요.\n몬스터 100마리가 쌓이거나 보스가 한 바퀴 돌면 패배!\n판이 끝나면 명성을 얻어 영구 강화할 수 있어요.\n100웨이브를 버티면 HARD 난이도가 열립니다.',
       13,
       CSS.ink,
       'bold',
-      { align: 'center', lineSpacing: 8 }
+      { align: 'center', lineSpacing: 6 }
     ).setOrigin(0.5);
     uiText(this, cx, GAME_H - 40, 'ESC: 메뉴 · 소리는 화면을 누른 뒤 재생돼요', 12, '#ffffff', 'bold', { stroke: '#2b1810', strokeThickness: 4 }).setOrigin(0.5);
   }

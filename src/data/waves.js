@@ -54,9 +54,9 @@ export function speedMultiplier(w) {
 }
 
 /** 몬스터 능력치 (수치는 config.js BALANCE.monster) */
-export function monsterStats(kind, w, milestone = false) {
+export function monsterStats(kind, w, milestone = false, difficulty = 0) {
   const M = BALANCE.monster;
-  const hp = w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1);
+  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1)) * (difficulty ? BALANCE.hard.hpMult : 1);
   switch (kind) {
     case 'boss':
       return { hp: hp * M.bossHpMult * (milestone ? BALANCE.milestone.hpMult : 1), speed: M.bossSpeed, gold: 150 + w * 5 };

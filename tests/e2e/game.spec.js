@@ -111,7 +111,7 @@ test('승리·패배 화면', async ({ page }) => {
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.wave = 100; g.endGame(true); });
   await page.waitForTimeout(800);
   await page.screenshot({ path: SHOT('05-win') });
-  await page.mouse.click(272, 262 + 320); // 다시 하기
+  await page.mouse.click(272, 262 + 348); // 다시 하기
   await page.waitForTimeout(500);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.wave = 10; g.spawnMonster('boss'); g.monsters.at(-1).dist = 1755; });
   await page.waitForFunction(() => window.game.scene.getScene('Game').over);
@@ -188,6 +188,8 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
     g.hire();
     const m = g.mercs[0];
     m.cls = 'archer'; m.attr = 'blue'; m.level = 1; m.skills = []; m.drawPips();
+    // 가운데 칸에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다)
+    g.grid[m.row][m.col] = null; m.col = 2; m.row = 2; g.grid[2][2] = m; m.snapToCell();
     window.__rtd.setArt(m.sprite, m.textureKey, 4);
     m.sprite.play('merc_archer_blue:idle');
     g.select(m);
@@ -210,5 +212,59 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
   await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 23 });
   await page.screenshot({ path: SHOT('13-custom-sigrid-left') });
   await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 17 });
+  expect(errors).toEqual([]);
+});
+
+test('명성 강화: 타이틀 → 강화 화면에서 구매 → 게임에 반영', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
+  await page.mouse.click(272, 724); // 명성 강화
+  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await page.waitForTimeout(200);
+  await page.mouse.click(12 + 84, 196 + 70); // 공격 갈래 첫 칸: 단련된 무기
+  const s = await game(page, () => ({ lv: window.__rtd.meta.level('atk'), fame: window.__rtd.meta.fame }));
+  expect(s).toEqual({ lv: 1, fame: 47 });
+  await page.screenshot({ path: SHOT('14-upgrade-tree') });
+  await page.mouse.click(272 - 92, 892); // 게임 시작
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15);
+  expect(errors).toEqual([]);
+});
+
+test('판이 끝나면 버틴 웨이브만큼 명성 적립', async ({ page }) => {
+  const errors = await startGame(page);
+  const fame = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    window.__rtd.meta.reset();
+    for (let w = 1; w <= 4; w++) g.startWave(w); // 1~3웨이브를 버팀
+    g.endGame(false, '테스트');
+    return { earned: g.fameEarned, saved: window.__rtd.meta.fame };
+  });
+  expect(fame).toEqual({ earned: 3, saved: 3 });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT('15-fame-result') });
+  expect(errors).toEqual([]);
+});
+
+test('노멀 100웨이브 클리어 → 하드 1웨이브 (용병·유물 초기화, 300골드)', async ({ page }) => {
+  const errors = await startGame(page);
+  const s = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 999; g.hire(); g.hire(); g.addRelic('war_drum'); g.refreshRelics();
+    g.wave = 100; g.spawnQueue = [];
+    for (const m of [...g.monsters]) m.destroy();
+    g.monsters = [];
+    g.update(0, 16);
+    return { diff: g.difficulty, gold: g.gold, mercs: g.mercs.length, relics: g.ownedRelics.length, wave: g.wave, over: g.over, tab: g.waveText.text };
+  });
+  expect(s).toEqual({ diff: 1, gold: 300, mercs: 0, relics: 0, wave: 0, over: false, tab: 'HARD 0 / 100' });
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: SHOT('16-hard-start') });
+  // 하드 1웨이브 몬스터 체력은 노멀의 hpMult 배
+  const hp = await game(page, () => { const g = window.game.scene.getScene('Game'); g.startWave(1); g.spawnMonster(g.spawnQueue.shift()); return g.monsters.at(-1).maxHp; });
+  expect(hp).toBe(34 * 4);
   expect(errors).toEqual([]);
 });

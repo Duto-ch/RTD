@@ -14,6 +14,8 @@ import { Vfx } from '../systems/vfx.js';
 import { playOnce, playBase, setArt, setFacing } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
+import { meta } from '../systems/meta.js';
+import { FAME } from '../data/upgrades.js';
 
 const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스', milestone: '강화 보스', final: '최종 보스' };
 
@@ -32,7 +34,11 @@ export class GameScene extends Phaser.Scene {
     this.speed = 1;
     this.paused = false;
     this.over = false;
-    this.gold = BALANCE.startGold;
+    this.bonus = meta.load().bonus(); // 명성 강화 효과 (판 시작 시 고정)
+    this.difficulty = 0; // 0 노멀, 1 하드
+    this.fameEarned = 0; // 이번 판에서 얻은 명성 (판이 끝날 때 저장)
+    this.fameCredited = false;
+    this.gold = BALANCE.startGold + this.bonus.startGold;
     this.wave = 0;
     this.waveTimer = BALANCE.prepTime;
     this.spawnQueue = [];
@@ -40,7 +46,7 @@ export class GameScene extends Phaser.Scene {
     this.spawnInterval = 0;
     this.monsters = [];
     this.grid = Array.from({ length: GRID }, () => Array(GRID).fill(null));
-    this.ownedRelics = []; // { id, active } — 활성 유물만 효과 (최대 BALANCE.maxActiveRelics)
+    this.ownedRelics = []; // { id, active } — 활성 유물만 효과 (최대 BALANCE.maxActiveRelics + 명성 강화)
     this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
     this.waveAttrs = ATTRS;
     this.relicChoice = null;
@@ -97,7 +103,11 @@ export class GameScene extends Phaser.Scene {
     const boss = this.monsters.find((m) => m.isBoss && m.dist >= PATH_LENGTH);
     if (boss) this.endGame(false, '보스가 성벽을 한 바퀴 돌았습니다');
     else if (this.monsters.length >= BALANCE.maxAlive) this.endGame(false, `몬스터가 ${BALANCE.maxAlive}기 쌓였습니다`);
-    else if (this.wave >= TOTAL_WAVES && this.spawnQueue.length === 0 && this.monsters.length === 0) this.endGame(true);
+    else if (this.wave >= TOTAL_WAVES && this.spawnQueue.length === 0 && this.monsters.length === 0) {
+      this.earnFame(FAME.perWave(TOTAL_WAVES));
+      if (this.difficulty === 0) this.enterHard();
+      else this.endGame(true);
+    }
   }
 
   // ───────────────────────── 웨이브 ─────────────────────────
@@ -116,6 +126,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   startWave(w) {
+    if (w >= 2) this.earnFame(FAME.perWave(w - 1)); // 앞 웨이브를 버텼으니 명성
     this.wave = w;
     const info = waveInfo(w);
     const list = spawnList(w);
@@ -166,7 +177,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnMonster(kind) {
-    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
+    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave), this.difficulty);
     this.monsters.push(m);
     if (m.isBoss) {
       audio.bossAppear();
@@ -207,7 +218,7 @@ export class GameScene extends Phaser.Scene {
       // 스킬: 쿨타임이 끝나면 자동 시전 (침묵 중엔 시전 불가, 시간 부식은 쿨타임 회복 저하)
       for (const s of merc.skills) {
         s.cd -= dt * deb.cdRate;
-        if (!deb.silence && s.cd <= 0 && this.castSkill(merc, s.def, st, inRange)) s.cd = s.def.cd;
+        if (!deb.silence && s.cd <= 0 && this.castSkill(merc, s.def, st, inRange)) s.cd = s.def.cd * (1 - this.bonus.cdr);
       }
 
       // 기본 공격
@@ -277,7 +288,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   hit(merc, st, target, mult, crit = false) {
-    const dmg = st.damage * mult * elementMultiplier(merc.attr, target.attr);
+    const giant = target.kind === 'normal' ? 1 : BALANCE.bossDamageMult + this.bonus.bossDmg; // 명성 강화: 보스·정예 피해
+    const dmg = st.damage * mult * giant * elementMultiplier(merc.attr, target.attr);
     this.damageMonster(target, dmg, { source: merc, crit });
   }
 
@@ -411,11 +423,12 @@ export class GameScene extends Phaser.Scene {
     if (m.isFinal && !m.revived) return this.reviveFinalBoss(m);
     m.alive = false;
     this.totalKills += 1;
-    const gold = Math.round(m.gold * (1 + 0.25 * (this.relics.golden_grail || 0)));
+    const gold = Math.round(m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) + this.bonus.bounty));
     if (source && source.active) source.kills += 1;
     this.gold += gold;
     this.deathFx(m);
     if (m.isBoss) {
+      this.earnFame(m.isFinal ? FAME.finalBoss : m.milestone ? FAME.milestoneBoss : FAME.boss);
       audio.bossKill();
       if (m.milestone) this.offerRelicChoice();
       else this.dropRelic(m.x, m.y);
@@ -456,13 +469,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ───────────────────────── 유물 ─────────────────────────
+  /** 활성 유물 최대 수 (명성 강화 '유물 보관함'으로 늘어남) */
+  get maxRelics() {
+    return BALANCE.maxActiveRelics + this.bonus.relicSlots;
+  }
+
   get activeRelicCount() {
     return this.ownedRelics.filter((r) => r.active).length;
   }
 
   /** 유물 추가. 빈 슬롯이 있으면 자동 활성. 활성 여부 반환 */
   addRelic(id) {
-    const active = this.activeRelicCount < BALANCE.maxActiveRelics;
+    const active = this.activeRelicCount < this.maxRelics;
     this.ownedRelics.push({ id, active });
     this.recomputeRelics();
     return active;
@@ -476,8 +494,8 @@ export class GameScene extends Phaser.Scene {
   toggleRelic(index) {
     const r = this.ownedRelics[index];
     const info = RELIC_BY_ID[r.id];
-    if (!r.active && this.activeRelicCount >= BALANCE.maxActiveRelics) {
-      this.toast(`활성 유물은 최대 ${BALANCE.maxActiveRelics}개입니다. 다른 유물을 먼저 끄세요`, '#ff9a7a');
+    if (!r.active && this.activeRelicCount >= this.maxRelics) {
+      this.toast(`활성 유물은 최대 ${this.maxRelics}개입니다. 다른 유물을 먼저 끄세요`, '#ff9a7a');
       return;
     }
     r.active = !r.active;
@@ -517,7 +535,7 @@ export class GameScene extends Phaser.Scene {
       c.add(row);
     });
     c.add(
-      uiText(this, GAME_W / 2, py + ph - 26, `활성 유물 ${this.activeRelicCount}/${BALANCE.maxActiveRelics} · 가득 차면 비활성으로 보관돼요`, 12, CSS.sub, '600').setOrigin(0.5)
+      uiText(this, GAME_W / 2, py + ph - 26, `활성 유물 ${this.activeRelicCount}/${this.maxRelics} · 가득 차면 비활성으로 보관돼요`, 12, CSS.sub, '600').setOrigin(0.5)
     );
   }
 
@@ -537,12 +555,13 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 용병 ─────────────────────────
   get hireCost() {
     // 용병 계약서는 중복 효과 없음 (예전엔 중복될수록 계속 싸져서 버그처럼 보였음)
-    return Math.round(BALANCE.hireCost * (this.relics.contract ? 0.8 : 1));
+    return Math.max(1, Math.round((BALANCE.hireCost - this.bonus.hireDiscount) * (this.relics.contract ? 0.8 : 1)));
   }
 
   /** level 의 유닛을 합칠 때 드는 골드 (Lv5 → 영웅 승급) */
   mergeCostFor(level) {
-    return level >= MAX_LEVEL ? BALANCE.promoteCost : BALANCE.mergeCost[level + 1];
+    const base = level >= MAX_LEVEL ? BALANCE.promoteCost : BALANCE.mergeCost[level + 1];
+    return Math.round(base * (1 - this.bonus.mergeDiscount));
   }
 
   hire() {
@@ -562,7 +581,7 @@ export class GameScene extends Phaser.Scene {
     merc.sprite.setY(-40).setAlpha(0);
     this.tweens.add({ targets: merc.sprite, y: -PX, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
     // 낮은 확률로 2레벨 용병 (2레벨 스킬 1개 랜덤 습득)
-    if (Math.random() < BALANCE.hireLv2Chance) {
+    if (Math.random() < BALANCE.hireLv2Chance + this.bonus.lv2Chance) {
       const skill = Phaser.Utils.Array.GetRandom(skillOptions(attr, cls, 2));
       merc.levelUp(skill);
       this.levelUpFx(merc, '행운! Lv.2');
@@ -824,7 +843,7 @@ export class GameScene extends Phaser.Scene {
     panel(this, 12, 144, GAME_W - 24, 36, 'card').setDepth(D - 1);
     this.relicLabel = uiText(this, 30, 162, '유물', 13, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.relicRow = this.add.container(0, 0).setDepth(D);
-    this.noRelicText = uiText(this, 96, 162, '보스를 처치하면 유물을 얻어요 (최대 4개 활성)', 12, CSS.sub, 'bold')
+    this.noRelicText = uiText(this, 96, 162, `보스를 처치하면 유물을 얻어요 (최대 ${this.maxRelics}개 활성)`, 12, CSS.sub, 'bold')
       .setOrigin(0, 0.5)
       .setDepth(D);
   }
@@ -832,7 +851,7 @@ export class GameScene extends Phaser.Scene {
 
   refreshHud() {
     const nextWave = this.wave + 1;
-    this.waveText.setText(`WAVE ${this.wave} / ${TOTAL_WAVES}`);
+    this.waveText.setText(`${this.difficulty ? 'HARD' : 'WAVE'} ${this.wave} / ${TOTAL_WAVES}`);
     if (this.wave < TOTAL_WAVES) {
       const label = this.wave === 0 ? '시작' : '다음';
       this.timerText.setText(`${label} ${Math.ceil(Math.max(0, this.waveTimer))}초`);
@@ -881,7 +900,7 @@ export class GameScene extends Phaser.Scene {
   refreshRelics() {
     this.relicRow.removeAll(true);
     this.noRelicText.setVisible(this.ownedRelics.length === 0);
-    this.relicLabel.setText(this.ownedRelics.length ? `유물 ${this.activeRelicCount}/${BALANCE.maxActiveRelics}` : '유물');
+    this.relicLabel.setText(this.ownedRelics.length ? `유물 ${this.activeRelicCount}/${this.maxRelics}` : '유물');
     this.ownedRelics.forEach((r, i) => {
       const x = 108 + i * 36;
       const y = 160;
@@ -908,7 +927,7 @@ export class GameScene extends Phaser.Scene {
     const title = uiText(this, 0, 0, relic.name, 15, CSS.ink, 'bold');
     const state = uiText(this, 0, 0, owned.active ? '활성' : '비활성', 12, owned.active ? CSS.green : CSS.sub, 'bold');
     const desc = uiText(this, 0, 0, relic.desc, 13, CSS.ink);
-    const hint = uiText(this, 0, 0, owned.active ? '클릭: 비활성으로 전환' : '클릭: 활성으로 전환 (최대 4개)', 11, CSS.sub);
+    const hint = uiText(this, 0, 0, owned.active ? '클릭: 비활성으로 전환' : `클릭: 활성으로 전환 (최대 ${this.maxRelics}개)`, 11, CSS.sub);
     const pad = 16;
     const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / PX) * PX;
     const h = 96;
@@ -997,7 +1016,7 @@ export class GameScene extends Phaser.Scene {
     this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${this.mergeCostFor(m.level)}G` : `승급 ${BALANCE.promoteCost}G`;
+    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${this.mergeCostFor(m.level)}G` : `승급 ${this.mergeCostFor(MAX_LEVEL)}G`;
     this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
     // 본문은 2줄: 능력치 / (디버프 또는 상성·스킬 수)
     const lines = [
@@ -1162,7 +1181,49 @@ export class GameScene extends Phaser.Scene {
     if (!this.paused) this.tweens.resumeAll();
   }
 
+  // ───────────────────────── 명성 · 하드 ─────────────────────────
+  /** 명성 적립 (하드는 배율) — 판이 끝날 때 creditFame 으로 저장 */
+  earnFame(n) {
+    this.fameEarned += Math.round(n * (this.difficulty ? BALANCE.hard.fameMult : 1));
+  }
+
+  /** 이번 판 명성·최고 기록 저장 (한 번만) */
+  creditFame() {
+    if (this.fameCredited) return;
+    this.fameCredited = true;
+    meta.addFame(this.fameEarned);
+    meta.record(this.difficulty, this.wave);
+  }
+
+  /** 노멀 100웨이브 클리어 → 하드 1웨이브: 용병·유물 초기화, 300골드로 다시 시작 */
+  enterHard() {
+    meta.record(0, TOTAL_WAVES);
+    this.difficulty = 1;
+    this.select(null);
+    this.hideRelicTip();
+    for (const m of this.mercs) {
+      this.grid[m.row][m.col] = null;
+      m.destroy();
+    }
+    this.ownedRelics = [];
+    this.recomputeRelics();
+    this.refreshRelics();
+    this.gold = BALANCE.hard.startGold;
+    this.wave = 0;
+    this.waveTimer = BALANCE.prepTime;
+    this.spawnQueue = [];
+    this.changeBiome(biomeForWave(1));
+    audio.victory();
+    this.time.delayedCall(1200, () => !this.over && audio.playMusic('battle'));
+    for (let i = 0; i < 8; i++) this.time.delayedCall(i * 180, () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(160, 600)));
+    this.cameras.main.flash(500, 255, 220, 120);
+    this.showBanner('HARD 난이도 시작!', `용병·유물 초기화 · ${BALANCE.hard.startGold}골드로 1웨이브부터 · 몬스터 체력 ${BALANCE.hard.hpMult}배`, '#ff4dd2');
+    this.refreshHud();
+    this.refreshInfo();
+  }
+
   quitToTitle() {
+    this.creditFame();
     this.menu?.destroy(true);
     this.menu = null;
     this.tweens.resumeAll();
@@ -1181,6 +1242,7 @@ export class GameScene extends Phaser.Scene {
   endGame(victory, reason = '') {
     if (this.over) return;
     this.over = true;
+    this.creditFame();
     this.tweens.timeScale = 1;
     if (this.paused) this.tweens.resumeAll();
     this.bannerObj?.destroy();
@@ -1198,7 +1260,7 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, victory ? 0.4 : 0.55).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
     const top = DEPTH.overlay + 3; // 폭죽(overlay+2) 위에 창
     const cw = 440;
-    const ch = 440;
+    const ch = 480;
     const cx = GAME_W / 2;
     const cy0 = 262;
     panel(this, cx - cw / 2, cy0, cw, ch, 'card').setDepth(top);
@@ -1214,7 +1276,7 @@ export class GameScene extends Phaser.Scene {
       drawIcon(ico, 'cross', cx + 3, cy0 + 53, 56, 0x2b1810);
       drawIcon(ico, 'cross', cx, cy0 + 50, 56, 0x3a4fa8);
     }
-    const title = uiText(this, cx, cy0 + 100, victory ? '100 웨이브 클리어!' : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
+    const title = uiText(this, cx, cy0 + 100, victory ? (this.difficulty ? 'HARD 100 웨이브 클리어!' : '100 웨이브 클리어!') : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
       .setOrigin(0.5)
       .setDepth(top);
     const sub = victory ? '축하합니다! 용병단이 성을 지켜냈어요' : reason;
@@ -1228,18 +1290,21 @@ export class GameScene extends Phaser.Scene {
     // 기록 줄 (거래 내역처럼)
     const heroes = this.mercs.filter((m) => m.isHero).length;
     const rows = [
-      ['도달 웨이브', `${this.wave} / ${TOTAL_WAVES}`],
+      ['도달 웨이브', `${this.difficulty ? 'HARD ' : ''}${this.wave} / ${TOTAL_WAVES}`],
       ['처치한 몬스터', this.totalKills.toLocaleString()],
-      ['영웅 · 유물', `${heroes}명 · ${this.ownedRelics.length}개`]
+      ['영웅 · 유물', `${heroes}명 · ${this.ownedRelics.length}개`],
+      ['획득 명성', `+${this.fameEarned} (보유 ${meta.fame})`]
     ];
     rows.forEach(([k, v], i) => {
-      const y = cy0 + 176 + i * 40;
-      if (i) this.add.rectangle(cx, y - 20, cw - 64, 4, C.line).setDepth(top);
+      const y = cy0 + 168 + i * 38;
+      if (i) this.add.rectangle(cx, y - 19, cw - 64, 4, C.line).setDepth(top);
       uiText(this, cx - cw / 2 + 36, y, k, 15, CSS.sub, '600').setOrigin(0, 0.5).setDepth(top);
       uiText(this, cx + cw / 2 - 36, y, v, 17, CSS.ink, '700').setOrigin(1, 0.5).setDepth(top);
     });
-    new Button(this, cx, cy0 + 320, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
-    new Button(this, cx, cy0 + 388, cw - 64, 52, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
+    new Button(this, cx, cy0 + 348, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
+    const bw = (cw - 64 - 12) / 2;
+    new Button(this, cx - bw / 2 - 6, cy0 + 416, bw, 52, '명성 강화', () => this.scene.start('Upgrade'), { variant: 'gold', fontSize: 16 }).setDepth(top);
+    new Button(this, cx + bw / 2 + 6, cy0 + 416, bw, 52, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
   }
 
 }

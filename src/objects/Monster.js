@@ -8,11 +8,11 @@ import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Sprite {
-  constructor(scene, kind, attr, wave, milestone = false) {
+  constructor(scene, kind, attr, wave, milestone = false, difficulty = 0) {
     const design = monsterDesign(kind, wave);
     super(scene, 0, 0, `mon_${design.id}_${attr}`);
     this.design = design; // { id, name } — 웨이브별 전용 외형
-    const s = monsterStats(kind, wave, milestone);
+    const s = monsterStats(kind, wave, milestone, difficulty);
     this.milestone = milestone; // 강화 보스 (30·60·90)
     this.isFinal = kind === 'boss' && wave >= TOTAL_WAVES; // 최종 보스 (100)
     this.revived = false;

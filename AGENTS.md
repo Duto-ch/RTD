@@ -18,12 +18,12 @@
 - `npm test` — 단위 테스트 (Vitest, `tests/unit/`): 확정된 게임 규칙·데이터 검사, 1초 이내
 - `npm run test:e2e` — 브라우저 테스트 (Playwright, `tests/e2e/`): 빌드를 띄워 실제로 조작, 화면을 `test-results/screens/` 에 저장
 - `npm run check` — 위 두 가지 모두 (작업 끝날 때마다 실행)
-- `node tools/balance-sim.cjs ['{"hpGrowth":1.08}']` — 밸런스 봇 시뮬레이션. JSON 인자로 BALANCE.monster 덮어쓰기 실험 (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
+- `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇 시뮬레이션. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째 JSON: 명성 강화 레벨 (없으면 강화 0 = 기준 W10~15) (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
 - `node tools/gen-skill-doc.mjs` — 스킬 데이터 변경 후 `docs/SKILLS.md` 재생성
 - `node tools/gen-art-doc.mjs` — 영웅·몬스터·유물·지역을 추가/변경하면 `docs/CUSTOM_ART.md` 의 교체 가능 키 목록 재생성
 - **배포**: `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy.yml`)가 **테스트 → 통과 시 빌드·배포** → https://duto-ch.github.io/RTD/ (실패하면 배포 안 됨, 테스트 화면은 Actions 실행 결과의 `test-screens` 에서 내려받기)
 - Claude Code: `/verify` — 작업 루프(검사 → 실패 시 수정 반복 → 화면 확인)를 한 번에 수행
-- 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio
+- 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio·setArt·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 
 ## 구조
 - `src/config.js` — 레이아웃 상수, **BALANCE** (골드·비용·시간·상성 배율)
@@ -37,6 +37,7 @@
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
 - `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
+- `src/data/upgrades.js` — 명성 강화 트리 12종(비용·효과·선행), 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 강화 화면. GameScene 은 `this.bonus`(판 시작 시 강화 효과)·`this.difficulty`(0 노멀/1 하드)를 쓴다
 - `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성
 - `tests/unit/` — 단위 테스트 (Vitest), `tests/e2e/` — 브라우저 테스트 (Playwright), `playwright.config.js`
 
