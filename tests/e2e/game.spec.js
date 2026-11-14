@@ -397,3 +397,32 @@ test('PixelLab 이펙트: 시트 8종 로드, 명중·속성 폭발·영웅 기�
   await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.sheetCount === 0, null, { timeout: 5000 });
   expect(errors).toEqual([]);
 });
+
+test('PixelLab 이펙트 2: 몬스터 사망·보스 저주·버프 오라·머지 레벨 업', async ({ page }) => {
+  const errors = await startGame(page);
+  const keys = ['death', 'boss_death', 'curse', 'buff', 'merge', 'levelup'];
+  expect(await game(page, (ks) => ks.filter((k) => !window.game.scene.getScene('Game').anims.exists(`fx_${k}_play`)), keys)).toEqual([]);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    while (g.mercs.length < 2) g.hire({ free: true });
+    const [a, b] = g.mercs;
+    // 버프 오라: 버프를 걸면 붙고, 끝나면 떨어진다
+    a.addBuff({ rate: 0.5, dur: 0.5 }, g.gameTime);
+    g.vfx.buffAura(a);
+    const auraOn = !!a.auraFx?.active;
+    // 사망·저주·레벨 업 (몬스터 대신 위치·속성만 가진 객체)
+    const d1 = g.vfx.death({ x: 140, y: 330, attr: 'red', kind: 'normal', isBoss: false });
+    const d2 = g.vfx.death({ x: 400, y: 330, attr: 'blue', kind: 'boss', isBoss: true });
+    g.vfx.curse({ x: 272, y: 300 }, [b]);
+    g.vfx.levelUp(a, true);
+    return { auraOn, d1, d2, aId: a.id ?? null };
+  });
+  expect(r.auraOn && r.d1 && r.d2).toBe(true);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT('20-pixellab-fx2') });
+  // 버프 시간이 지나면 오라가 꺼진다 (게임 시간 기준)
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gameTime += 2; g.updateMercs(0); });
+  expect(await game(page, () => !window.game.scene.getScene('Game').mercs[0].auraFx)).toBe(true);
+  expect(errors).toEqual([]);
+});

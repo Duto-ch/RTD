@@ -282,6 +282,7 @@ export class GameScene extends Phaser.Scene {
       const st = merc.getStats(this.relics, now);
       const deb = st.debuff;
       merc.sprite.setTint(deb.list.length ? (deb.stun ? 0x7a6a9a : 0xc89cff) : now < (merc.buffFlashUntil || 0) ? 0xfff2a0 : 0xffffff);
+      if (merc.auraFx && !st.buffed) this.vfx.clearBuffAura(merc); // 버프가 끝나면 오라도 끈다
       if (deb.stun) continue; // 공포: 공격·스킬·쿨타임 모두 정지
       const inRange = this.monstersInRange(merc.x, merc.y, st.range);
 
@@ -472,6 +473,7 @@ export class GameScene extends Phaser.Scene {
       for (const o of who) {
         o.addBuff(b, now);
         o.buffFlashUntil = now + 0.25;
+        this.vfx.buffAura(o);
       }
     }
     if (def.gold) {
@@ -715,7 +717,7 @@ export class GameScene extends Phaser.Scene {
       const unique = { ...hero.unique, id: `hero_${hero.id}`, level: MAX_LEVEL + 1, attr: dst.attr };
       dst.promote(hero, unique);
       audio.promote();
-      this.levelUpFx(dst, '영웅 승급!');
+      this.levelUpFx(dst, '영웅 승급!', true);
       this.showBanner(`영웅 ${hero.name} 탄생!`, `${dst.roleName} · 고유 스킬 「${unique.name}」`, '#f2c14e');
     } else {
       const skill = Phaser.Utils.Array.GetRandom(skillOptions(dst.attr, dst.cls, dst.level + 1));
@@ -835,6 +837,7 @@ export class GameScene extends Phaser.Scene {
 
 
   deathFx(m) {
+    if (this.vfx.death(m) && !m.isBoss) return; // PixelLab 시트 (보스는 파편도 함께)
     const color = ATTR_INFO[m.attr].color;
     const n = m.isBoss ? 16 : 5;
     for (let i = 0; i < n; i++) {
@@ -852,7 +855,8 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  levelUpFx(merc, label) {
+  levelUpFx(merc, label, hero = false) {
+    this.vfx.levelUp(merc, hero);
     const ring = this.add.circle(merc.x, merc.y, 20).setStrokeStyle(4, 0xf2c14e).setDepth(DEPTH.fx);
     this.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 400, onComplete: () => ring.destroy() });
     this.floatText(merc.x, merc.y - 30, label, '#f2c14e', 22, true);

@@ -59,6 +59,41 @@ export class Vfx {
     return true;
   }
 
+  /** 몬스터 사망: 시트가 나오면 true (아니면 GameScene 이 픽셀 파편으로 대신한다) */
+  death(m) {
+    if (m.isBoss) {
+      this.s.cameras.main.shake(160, 0.004);
+      return this.play('boss_death', m.x, m.y, { scale: FX_SCALE * (m.isFinal ? 3 : 2), depth: DEPTH.fx + 1, optional: false });
+    }
+    return this.play('death', m.x, m.y, { tint: m.attr, scale: m.kind === 'elite' ? FX_SCALE * 1.5 : FX_SCALE });
+  }
+
+  /** 머지·레벨 업: 빛 알갱이가 모인 뒤 빛기둥. hero 면 더 크게 */
+  levelUp(merc, hero = false) {
+    const x = merc.x;
+    const y = merc.y;
+    this.play('merge', x, y, { tint: hero ? 0xf2c14e : merc.attr, scale: FX_SCALE * (hero ? 2 : 1.5), depth: DEPTH.fx + 1, optional: false });
+    this.s.time.delayedCall(260, () => this.play('levelup', x, y + 28, { scale: FX_SCALE * (hero ? 2.5 : 1), depth: DEPTH.fx + 1, optional: false }));
+  }
+
+  /**
+   * 버프 오라: 용병 컨테이너 안(몸 뒤)에 반복 이펙트를 붙인다. 이미 있으면 그대로 둔다.
+   * 버프가 끝나면 GameScene.updateMercs 가 clearBuffAura 로 지운다. 용병이 사라지면 함께 사라진다.
+   */
+  buffAura(merc) {
+    if (merc.auraFx?.active || !this.s.anims.exists(fxAnim('buff'))) return;
+    const d = FX.buff;
+    const a = this.s.add.sprite(0, 24, fxTexture('buff'), 0).setOrigin(d.ox, d.oy).setScale(FX_SCALE).setAlpha(0.9);
+    merc.addAt(a, 0);
+    a.play(fxAnim('buff'));
+    merc.auraFx = a;
+  }
+
+  clearBuffAura(merc) {
+    merc.auraFx?.destroy();
+    merc.auraFx = null;
+  }
+
   /** 기본 공격 명중: 클래스별 시트 + 속성 색 */
   hitFx(kind, attr, x, y) {
     const key = HIT_FX[kind];
@@ -369,6 +404,7 @@ export class Vfx {
     for (const t of targets) {
       this.lightning(boss.x, boss.y, t.x, t.y, 0xb47cff, 3);
       this.burst('curse', t.x, t.y, 8);
+      this.play('curse', t.x, t.y + 24, { scale: FX_SCALE * 1.5, depth: DEPTH.fx, optional: false });
     }
   }
 

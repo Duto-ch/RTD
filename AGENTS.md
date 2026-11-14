@@ -36,7 +36,7 @@
 - `src/scenes/` — `BootScene`(텍스처 생성) → `TitleScene` → `GameScene`(게임 진행·전투·유물·명성. 화면 UI 는 `src/ui/Hud.js`)
 - `src/systems/path.js` — 몬스터 경로 / 셀 좌표 변환
 - `src/systems/vfx.js` — 이펙트 (클래스별 공격·스킬 연출, 속성 파티클, 영웅 궁극기, 보스 저주, 폭죽)
-- `src/data/fx.js` + `public/assets/fx/` — **PixelLab 으로 만든 스프라이트 시트 이펙트 8종**(명중 별·마법 폭발·저격 불꽃·베기, 속성 폭발 화염/얼음/가시, 영웅 금빛 기둥). `vfx.play(key, x, y, {tint, scale})` 로 재생하고 끝나면 스스로 지운다. 흰색 시트(`tint: true`)는 속성 색을 입힌다. 화면 배율은 `FX_SCALE`(아트 1px = 화면 2px). 동시 48개 상한을 넘으면 명중 이펙트부터 생략. 시트가 없으면 기존 코드 이펙트만 나온다. 원본은 PixelLab My effects(`effect` id)에서 슬라이더로 고칠 수 있다 (`mcp__pixellab__vfx_workbench start --effect <id>` → export → PNG 교체)
+- `src/data/fx.js` + `public/assets/fx/` — **PixelLab 으로 만든 스프라이트 시트 이펙트 14종**(명중 별·마법 폭발·저격 불꽃·베기, 속성 폭발 화염/얼음/가시, 영웅 금빛 기둥, 몬스터 사망 연기·보스 폭발, 보스 저주, 버프 오라(반복, 용병 컨테이너 안에 붙어 버프가 끝나면 `clearBuffAura`), 머지 빛 모임·레벨 업 빛기둥). `vfx.play(key, x, y, {tint, scale})` 로 재생하고 끝나면 스스로 지운다. 흰색 시트(`tint: true`)는 속성 색을 입힌다. 화면 배율은 `FX_SCALE`(아트 1px = 화면 2px). 동시 48개 상한을 넘으면 명중 이펙트부터 생략. 시트가 없으면 기존 코드 이펙트만 나온다. 원본은 PixelLab My effects(`effect` id)에서 슬라이더로 고칠 수 있다 (`mcp__pixellab__vfx_workbench start --effect <id>` → export → PNG 교체)
 - `src/systems/audio.js` — 16비트 풍 사운드 합성기 (배경음 4곡: title/battle/boss/final + 효과음, 볼륨 저장). 외부 오디오 파일 없음. 첫 입력 후 `audio.init()`
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
