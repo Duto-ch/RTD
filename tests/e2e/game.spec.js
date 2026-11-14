@@ -367,3 +367,33 @@ test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 타�
   expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Title']);
   expect(errors).toEqual([]);
 });
+
+test('PixelLab 이펙트: 시트 8종 로드, 명중·속성 폭발·영웅 기둥 재생', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const keys = ['hit_star', 'hit_magic', 'hit_snipe', 'slash', 'skill_red', 'skill_blue', 'skill_green', 'ultimate'];
+    const missing = keys.filter((k) => !g.anims.exists(`fx_${k}_play`));
+    g.tweens.pauseAll();
+    const v = g.vfx;
+    const played = [
+      v.elementBlast(140, 330, 60, 'red'),
+      v.elementBlast(272, 330, 60, 'blue'),
+      v.elementBlast(404, 330, 60, 'green'),
+      v.play('slash', 140, 520, { tint: 'blue', scale: 3 }),
+      v.play('hit_snipe', 272, 520, { scale: 3 }),
+      v.play('hit_magic', 404, 520, { tint: 'green', scale: 3 }),
+      v.play('hit_star', 200, 640, { tint: 'red', scale: 3 }),
+      v.play('ultimate', 340, 700, { scale: 3 })
+    ];
+    return { missing, played, live: v.sheetCount };
+  });
+  expect(r.missing).toEqual([]);
+  expect(r.played.every(Boolean)).toBe(true);
+  expect(r.live).toBe(8);
+  await page.waitForTimeout(260);
+  await page.screenshot({ path: SHOT('19-pixellab-fx') });
+  // 재생이 끝나면 스스로 지워진다
+  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.sheetCount === 0, null, { timeout: 5000 });
+  expect(errors).toEqual([]);
+});

@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { PX, DEPTH, GAME_W, GAME_H } from '../config.js';
 import { ATTR_INFO } from '../data/elements.js';
+import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim } from '../data/fx.js';
+
+const MAX_SHEET_FX = 48; // 동시에 재생하는 시트 이펙트 상한 (넘으면 명중 이펙트부터 생략)
 
 // 시각 효과 모음 — 클래스마다 다른 공격 모양, 속성마다 다른 파티클, 스킬은 클래스별 고유 연출
 // 클래스 키: 용병 cls(archer/mage/sniper/shaman/rogue) 또는 영웅 arch(warlord/archmage/ranger)
@@ -8,6 +11,7 @@ export class Vfx {
   constructor(scene) {
     this.s = scene;
     this.em = {};
+    this.sheetCount = 0;
     const mk = (key, tex, cfg) => {
       this.em[key] = scene.add.particles(0, 0, tex, { emitting: false, ...cfg }).setDepth(DEPTH.fx);
     };
@@ -36,6 +40,39 @@ export class Vfx {
     });
   }
 
+  /**
+   * PixelLab 시트 이펙트를 한 번 재생하고 지운다. 시트가 없거나 너무 많이 떠 있으면 false.
+   * opts: scale(기본 FX_SCALE), tint(속성 키 또는 색), depth, angle, optional(true 면 상한에 걸릴 때 생략)
+   */
+  play(key, x, y, opts = {}) {
+    const d = FX[key];
+    const s = this.s;
+    if (!d || !s.anims.exists(fxAnim(key))) return false;
+    if (this.sheetCount >= MAX_SHEET_FX && opts.optional !== false) return false;
+    const spr = s.add.sprite(x, y, fxTexture(key), 0).setOrigin(d.ox, d.oy).setScale(opts.scale ?? FX_SCALE).setDepth(opts.depth ?? DEPTH.fx);
+    if (d.tint && opts.tint !== undefined) spr.setTint(typeof opts.tint === 'string' ? this.color(opts.tint) : opts.tint);
+    if (opts.angle) spr.setAngle(opts.angle);
+    this.sheetCount++;
+    spr.once('animationcomplete', () => spr.destroy());
+    spr.once('destroy', () => this.sheetCount--);
+    spr.play(fxAnim(key));
+    return true;
+  }
+
+  /** 기본 공격 명중: 클래스별 시트 + 속성 색 */
+  hitFx(kind, attr, x, y) {
+    const key = HIT_FX[kind];
+    if (key) this.play(key, x, y, { tint: kind === 'ranger' ? 0xf2c14e : attr, scale: kind === 'warlord' ? FX_SCALE * 1.5 : FX_SCALE });
+  }
+
+  /** 속성 스킬 폭발 (레드 화염 · 블루 얼음 · 그린 가시). 반경 r(화면 px)에 맞춰 키운다 */
+  elementBlast(x, y, r, attr) {
+    const d = FX[`skill_${attr}`];
+    if (!d) return false;
+    const scale = Phaser.Math.Clamp(Math.round(((r * 2) / d.w) * 2) / 2, FX_SCALE, FX_SCALE * 2.5);
+    return this.play(`skill_${attr}`, x, y, { scale, optional: false });
+  }
+
   burst(kind, x, y, n) {
     this.em[kind]?.explode(n, x, y);
   }
@@ -58,7 +95,10 @@ export class Vfx {
     const ty = target.y;
     const attr = unit.attr;
     const ang = Phaser.Math.Angle.Between(sx, sy, tx, ty);
-    const hit = (n = 2) => this.burst(attr, tx, ty, n);
+    const hit = (n = 2) => {
+      this.burst(attr, tx, ty, n);
+      this.hitFx(kind, attr, tx, ty);
+    };
 
     switch (kind) {
       case 'archer':
@@ -80,7 +120,7 @@ export class Vfx {
         this.fade(g, 140);
         const f = s.add.circle(sx, sy, 10, 0xffffff, 0.9).setDepth(DEPTH.fx);
         this.fade(f, 100, { scale: 1.8 });
-        hit(4);
+        hit(3);
         break;
       }
       case 'shaman': {
@@ -167,19 +207,31 @@ export class Vfx {
         break;
       case 'mage':
       case 'archmage':
-        if (area.type === 'chain') this.chain(targets, color);
-        else this.magicCircle(cx, cy, area.type === 'single' || area.type === 'multi' ? 36 : r, attr);
-        if (area.type === 'multi') for (const t of targets) this.magicCircle(t.x, t.y, 28, attr);
+        if (area.type === 'chain') {
+          this.chain(targets, color);
+          for (const t of targets.slice(0, 8)) this.play('hit_magic', t.x, t.y, { tint: attr });
+        } else {
+          this.magicCircle(cx, cy, area.type === 'single' || area.type === 'multi' ? 36 : r, attr);
+          this.elementBlast(cx, cy, area.type === 'single' || area.type === 'multi' ? 40 : r, attr);
+        }
+        if (area.type === 'multi') for (const t of targets.slice(0, 6)) this.elementBlast(t.x, t.y, 28, attr);
         break;
       case 'sniper':
-        for (const t of targets.slice(0, 8)) this.snipe(unit, t, attr);
+        for (const t of targets.slice(0, 8)) {
+          this.snipe(unit, t, attr);
+          s.time.delayedCall(120, () => this.play('hit_snipe', t.x, t.y, { scale: FX_SCALE * 1.5, optional: false }));
+        }
         break;
       case 'shaman':
         this.totem(cx, cy, area.type === 'single' ? 40 : r, attr);
+        this.elementBlast(cx, cy, area.type === 'single' ? 40 : r, attr);
         break;
       case 'rogue':
       case 'warlord':
-        for (const t of targets.slice(0, 10)) this.slash(t.x, t.y, color, kind === 'warlord');
+        for (const t of targets.slice(0, 10)) {
+          if (!this.play('slash', t.x, t.y, { tint: attr, scale: kind === 'warlord' ? FX_SCALE * 2 : FX_SCALE * 1.5, angle: Phaser.Math.Between(-30, 30) }))
+            this.slash(t.x, t.y, color, kind === 'warlord');
+        }
         if (area.type === 'range' || area.type === 'circle') this.shockwave(cx, cy, r, color);
         break;
       default:
@@ -297,6 +349,7 @@ export class Vfx {
     const s = this.s;
     const c = ATTR_INFO[unit.attr].color;
     s.cameras.main.flash(180, (c >> 16) & 255, (c >> 8) & 255, c & 255, true);
+    this.play('ultimate', unit.x, unit.y + 24, { scale: FX_SCALE * 1.5, depth: DEPTH.fx + 2, optional: false });
     s.cameras.main.shake(220, 0.006);
     const t = s.add
       .text(GAME_W / 2, unit.y - 70, def.name, {
