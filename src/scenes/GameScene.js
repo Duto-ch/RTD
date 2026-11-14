@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { GAME_W, GAME_H, PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
-import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from '../ui/theme.js';
-import { ATTRS, ATTR_INFO, elementMultiplier, strongAgainst, weakAgainst } from '../data/elements.js';
+import { Hud } from '../ui/Hud.js';
+import { panel, panelImage, titleTab, uiText, drawIcon, C, CSS } from '../ui/theme.js';
+import { ATTRS, ATTR_INFO, elementMultiplier } from '../data/elements.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
-import { skillOptions, describeSkill, isDamaging, ELEMENT_FLAVOR } from '../data/skills.js';
+import { skillOptions, isDamaging } from '../data/skills.js';
 import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { TOTAL_WAVES, waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
@@ -16,8 +17,6 @@ import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { FAME, UPGRADES } from '../data/upgrades.js';
-
-const WAVE_TYPE_NAME = { normal: '일반', elite: '정예', boss: '보스', milestone: '강화 보스', final: '최종 보스' };
 
 const text = (scene, x, y, str, size = 22, color = '#ffffff', extra = {}) =>
   scene.add.text(x, y, str, { fontFamily: FONT, fontSize: `${size}px`, color, ...extra }).setDepth(DEPTH.ui);
@@ -50,9 +49,6 @@ export class GameScene extends Phaser.Scene {
     this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
     this.waveAttrs = ATTRS;
     this.relicChoice = null;
-    this.menu = null;
-    this.relicTip = null;
-    this.popup = null;
     this.selected = null;
     this.totalKills = 0;
     this.hudTimer = 0;
@@ -69,8 +65,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('firework-pop', () => audio.firework());
 
     this.createTower();
-    this.createHud();
-    this.createBottomPanel();
+    this.hud = new Hud(this);
     this.setupInput();
     this.refreshHud();
     this.refreshInfo();
@@ -111,9 +106,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   openUpgrades() {
-    if (this.over || this.menu || this.relicChoice) return;
+    if (this.over || this.menuOpen || this.relicChoice) return;
     this.select(null);
-    this.hideRelicTip();
+    this.hud.hideRelicTip();
     this.scene.launch('Upgrade', { from: 'game' });
     this.scene.bringToTop('Upgrade');
     this.scene.pause();
@@ -135,7 +130,7 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     if (this.over) return;
-    const dt = this.paused || this.relicChoice || this.menu ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
+    const dt = this.paused || this.relicChoice || this.menuOpen ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
     this.gameTime += dt;
 
     if (dt > 0) {
@@ -224,7 +219,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
   callNextWave() {
-    if (this.menu || this.relicChoice || !this.canCallNextWave) return;
+    if (this.menuOpen || this.relicChoice || !this.canCallNextWave) return;
     const now = this.time.now;
     if (now - (this.lastCall || 0) < 600) return;
     this.lastCall = now;
@@ -597,13 +592,12 @@ export class GameScene extends Phaser.Scene {
   /** 강화 보스 처치 보상: 유물 3개 중 1개 선택 (선택하는 동안 게임 정지) */
   offerRelicChoice() {
     const options = Phaser.Utils.Array.Shuffle([...RELICS]).slice(0, BALANCE.milestone.relicChoices);
-    this.bannerObj?.destroy();
-    this.toastObj?.destroy();
+    this.hud.clearNotices();
     const px = 36;
     const py = 250;
     const pw = GAME_W - 72;
     const ph = 470;
-    const c = this.modal(DEPTH.overlay - 0.5, px, py, pw, ph, null, '보상 선택'); // 배너·토스트보다 위
+    const c = this.hud.modal(DEPTH.overlay - 0.5, px, py, pw, ph, null, '보상 선택'); // 배너·토스트보다 위
     this.relicChoice = { options, container: c };
     c.add(uiText(this, GAME_W / 2, py + 40, '강화 보스 처치!', 24, CSS.primary, '700').setOrigin(0.5));
     c.add(uiText(this, GAME_W / 2, py + 72, '유물 하나를 골라주세요', 14, CSS.sub, '600').setOrigin(0.5));
@@ -765,7 +759,7 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.input.dragDistanceThreshold = 6;
-    this.input.keyboard?.on('keydown-ESC', () => this.toggleMenu());
+    this.input.keyboard?.on('keydown-ESC', () => this.hud.toggleMenu());
     this.input.keyboard?.on('keydown-N', () => this.callNextWave()); // N: 다음 웨이브 바로 시작
     this.input.on('gameobjectdown', (_p, obj) => {
       if (obj instanceof Mercenary) this.select(obj);
@@ -883,402 +877,35 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  toast(msg, color = '#ffffff') {
-    if (this.toastObj) this.toastObj.destroy();
-    const t = uiText(this, 0, 0, msg, 14, color === '#ffffff' ? CSS.white : color, 'bold').setOrigin(0.5);
-    const w = Math.min(GAME_W - 40, Math.ceil((t.width + 40) / PX) * PX);
-    const bg = panelImage(this, 0, 0, 'dark', w, 40);
-    const c = this.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE + 52, [bg, t]).setDepth(DEPTH.overlay - 1);
-    this.toastObj = c;
-    c.setAlpha(0);
-    this.tweens.add({ targets: c, alpha: 1, duration: 120 });
-    this.tweens.add({ targets: c, alpha: 0, delay: 1700, duration: 300, onComplete: () => c.destroy() });
+  // ───────────────────────── 화면 (src/ui/Hud.js) ─────────────────────────
+  // 게임 로직에서 자주 부르는 화면 갱신은 짧게 쓰도록 hud 로 넘긴다.
+  toast(msg, color) {
+    this.hud.toast(msg, color);
   }
 
-  showBanner(title, sub, color = '#ffffff') {
-    if (this.bannerObj) this.bannerObj.destroy();
-    const w = 456;
-    const h = 108;
-    const bg = panelImage(this, 0, 0, 'card', w, h);
-    const t1 = uiText(this, 0, -14, title, 26, onLight(color), 'bold').setOrigin(0.5);
-    const t2 = uiText(this, 0, 22, sub, 13, CSS.sub, 'bold', { align: 'center', wordWrap: { width: w - 48 } }).setOrigin(0.5);
-    const c = this.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE / 2, [bg, t1, t2]).setDepth(DEPTH.overlay - 2);
-    this.bannerObj = c;
-    c.setScale(1, 0);
-    this.tweens.add({ targets: c, scaleY: 1, duration: 140, ease: 'Stepped', easeParams: [4] });
-    this.tweens.add({ targets: c, alpha: 0, delay: 2000, duration: 300, onComplete: () => c.destroy() });
+  showBanner(title, sub, color) {
+    this.hud.showBanner(title, sub, color);
   }
 
-  // ───────────────────────── UI ─────────────────────────
-  createHud() {
-    const D = DEPTH.ui;
-    // 상태 창 (높이 120) + 초록 제목 탭(웨이브)
-    panel(this, 12, 16, GAME_W - 24, 120, 'card').setDepth(D - 1);
-    const [tabImg, tabText] = titleTab(this, GAME_W / 2, 16, 'WAVE 0 / 100', 220);
-    tabImg.setDepth(D);
-    this.waveText = tabText.setDepth(D);
-    this.waveTypeText = uiText(this, 32, 56, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
-
-    // 타이머 슬롯 + 바로 시작 버튼
-    panel(this, GAME_W - 220, 44, 108, 24, 'soft').setDepth(D);
-    const clock = this.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', GAME_W - 204, 56, 12, C.ink);
-    this.timerText = uiText(this, GAME_W - 192, 56, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(this, GAME_W - 68, 56, 84, 28, '바로 시작', () => this.callNextWave(), { variant: 'primary', fontSize: 12 });
-    this.bossText = uiText(this, GAME_W - 32, 78, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
-
-    // 골드 / 몬스터 수
-    const coin = this.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', 42, 94, 18, 0x6a4a10);
-    this.goldText = uiText(this, 58, 94, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    const skull = this.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', GAME_W - 152, 96, 18, C.ink);
-    this.countText = uiText(this, GAME_W - 32, 96, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
-    // 진행 막대
-    panel(this, 32, 108, GAME_W - 64, 16, 'soft').setDepth(D);
-    this.countBar = this.add.graphics().setDepth(D);
-
-    // 유물 줄 (높이 36)
-    panel(this, 12, 144, GAME_W - 24, 36, 'card').setDepth(D - 1);
-    this.relicLabel = uiText(this, 30, 162, '유물', 13, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.relicRow = this.add.container(0, 0).setDepth(D);
-    this.noRelicText = uiText(this, 96, 162, `보스를 처치하면 유물을 얻어요 (최대 ${this.maxRelics}개 활성)`, 12, CSS.sub, 'bold')
-      .setOrigin(0, 0.5)
-      .setDepth(D);
-  }
-
-
+  /** 배경음(보스 여부)·성탑 "!" 표시를 맞추고 HUD 숫자를 갱신 */
   refreshHud() {
-    const nextWave = this.wave + 1;
-    this.waveText.setText(`${this.difficulty ? 'HARD' : 'WAVE'} ${this.wave} / ${TOTAL_WAVES}`);
-    if (this.wave < TOTAL_WAVES) {
-      const label = this.wave === 0 ? '시작' : '다음';
-      this.timerText.setText(`${label} ${Math.ceil(Math.max(0, this.waveTimer))}초`);
-      const ni = waveInfo(nextWave);
-      const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
-      this.waveTypeText.setText(`${this.biome.name} · 다음 ${ni.normal}기${extra}`);
-    } else {
-      this.timerText.setText('최종 웨이브');
-      this.waveTypeText.setText(`${this.biome.name} · 모두 처치하세요`);
-    }
     const boss = this.monsters.find((m) => m.isBoss && m.alive);
     if (!this.over) audio.playMusic(boss ? (boss.isFinal ? 'final' : 'boss') : 'battle');
-    this.bossText.setText(
-      boss
-        ? `${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${
-            boss.abilities.length > 2 ? `디버프 ${boss.abilities.length}종` : boss.abilities.map((a) => a.def.name).join(', ')
-          }`
-        : ''
-    );
-    this.goldText.setText(`${this.gold.toLocaleString()} G`);
-
-    const n = this.monsters.length;
-    const max = this.maxAlive;
-    this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? CSS.red : CSS.ink);
-    // 막대: 4px 단위 칸 채우기
-    const g = this.countBar;
-    const bx = 40;
-    const bw = GAME_W - 80;
-    g.clear();
-    const pct = Math.min(1, n / max);
-    const fill = Math.round((bw * pct) / PX) * PX;
-    if (fill > 0) {
-      const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
-      g.fillStyle(col, 1).fillRect(bx, 112, fill, 8);
-      g.fillStyle(0xffffff, 0.35).fillRect(bx, 112, fill, 4);
-    }
-
-    this.nextWaveBtn?.setEnabled(this.canCallNextWave);
     this.towerBadge?.setVisible(!this.over && UPGRADES.some((u) => meta.status(u.id) === 'ok'));
-    if (this.hireBtn) {
-      this.hireBtn.setLabel(`용병 고용\n${this.hireCost} G${this.relics.contract ? ' (-20%)' : ''}`);
-      this.hireBtn.setEnabled(this.gold >= this.hireCost);
-    }
-    if (this.selected) this.refreshInfo();
+    this.hud.refresh();
   }
 
   refreshRelics() {
-    this.relicRow.removeAll(true);
-    this.noRelicText.setVisible(this.ownedRelics.length === 0);
-    this.relicLabel.setText(this.ownedRelics.length ? `유물 ${this.activeRelicCount}/${this.maxRelics}` : '유물');
-    this.ownedRelics.forEach((r, i) => {
-      const x = 108 + i * 36;
-      const y = 160;
-      const slot = panelImage(this, x, y, r.active ? 'gold' : 'soft', 32, 32);
-      const icon = this.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
-      icon.on('pointerdown', () => this.toggleRelic(i));
-      icon.on('pointerover', () => this.showRelicTip(i, x, y));
-      icon.on('pointerout', () => this.hideRelicTip());
-      if (!r.active) icon.setAlpha(0.4).setTint(0xb8a07a);
-      this.relicRow.add([slot, icon]);
-    });
-    // 아이콘이 다시 그려졌으니, 마우스가 올라가 있던 툴팁은 새 상태로 갱신
-    if (this.relicTip) this.showRelicTip(this.relicTip.index, this.relicTip.x, this.relicTip.y);
+    this.hud.refreshRelics();
   }
-
-  /** 유물 툴팁: 이름·활성 상태·능력. 아이콘 아래에 띄우고 화면 밖으로 나가지 않게 맞춘다 */
-  showRelicTip(index, x, y) {
-    this.hideRelicTip();
-    const owned = this.ownedRelics[index];
-    if (!owned) return;
-    const relic = RELIC_BY_ID[owned.id];
-    const D = DEPTH.ui + 50;
-    const c = this.add.container(0, 0).setDepth(D);
-    const title = uiText(this, 0, 0, relic.name, 15, CSS.ink, 'bold');
-    const state = uiText(this, 0, 0, owned.active ? '활성' : '비활성', 12, owned.active ? CSS.green : CSS.sub, 'bold');
-    const desc = uiText(this, 0, 0, relic.desc, 13, CSS.ink);
-    const hint = uiText(this, 0, 0, owned.active ? '클릭: 비활성으로 전환' : `클릭: 활성으로 전환 (최대 ${this.maxRelics}개)`, 11, CSS.sub);
-    const pad = 16;
-    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / PX) * PX;
-    const h = 96;
-    const left = Phaser.Math.Clamp(Math.round((x - w / 2) / PX) * PX, 8, GAME_W - 8 - w);
-    const top = y + 24;
-    const bg = panel(this, left, top, w, h, 'card');
-    title.setPosition(left + pad, top + 14);
-    state.setPosition(left + pad + title.width + 12, top + 17);
-    desc.setPosition(left + pad, top + 42);
-    hint.setPosition(left + pad, top + 66);
-    c.add([bg, title, state, desc, hint]);
-    this.relicTip = { index, x, y, container: c };
-  }
-
-  hideRelicTip() {
-    this.relicTip?.container.destroy();
-    this.relicTip = null;
-  }
-
-  createBottomPanel() {
-    const D = DEPTH.ui;
-    // 하단 나무 받침 (높이 176)
-    panel(this, 4, 776, GAME_W - 8, 176, 'dark').setDepth(D - 2);
-    this.hireBtn = new Button(this, 100, 824, 168, 80, '', () => this.hire(), { variant: 'primary', fontSize: 18 });
-    this.speedBtn = new Button(this, 40, 906, 52, 64, 'x1', () => {
-      this.speed = this.speed >= 3 ? 1 : this.speed + 1;
-      this.speedBtn.setLabel(`x${this.speed}`);
-      this.tweens.timeScale = this.speed;
-    }, { variant: 'card', icon: 'speed', fontSize: 12 });
-    this.pauseBtn = new Button(this, 100, 906, 52, 64, '정지', () => this.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
-    this.menuBtn = new Button(this, 160, 906, 52, 64, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
-
-    // 정보 창
-    const px = 196;
-    const py = 788;
-    const pw = GAME_W - px - 16;
-    const ph = 160;
-    panel(this, px, py, pw, ph, 'card').setDepth(D - 1);
-    this.infoAvatar = panelImage(this, px + 44, py + 42, 'soft', 48, 48).setDepth(D).setVisible(false);
-    this.infoPortrait = this.add.sprite(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
-    this.infoTitle = uiText(this, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
-    this.infoSub = uiText(this, px + 78, py + 44, '', 11, CSS.sub, 'bold').setDepth(D);
-    this.infoBody = uiText(this, px + 20, py + 44, '', 11, CSS.ink, 'bold', { lineSpacing: 2, wordWrap: { width: pw - 40 } }).setDepth(D);
-    this.skillBtn = new Button(this, px + 80, py + ph - 34, 112, 32, '스킬 정보', () => this.selected && this.showSkillPopup(this.selected), {
-      variant: 'primary',
-      fontSize: 12
-    });
-    this.sellBtn = new Button(this, px + pw - 80, py + ph - 34, 112, 32, '판매', () => this.selected && this.sell(this.selected), {
-      variant: 'outline',
-      fontSize: 12
-    });
-    this.infoBox = { px, py, pw, ph };
-  }
-
 
   refreshInfo() {
-    const m = this.selected && this.selected.active ? this.selected : null;
-    const { px, py } = this.infoBox;
-    if (!m) {
-      this.selected = null;
-      this.infoAvatar.setVisible(false);
-      this.infoPortrait.setVisible(false);
-      this.sellBtn.setVisible(false);
-      this.skillBtn.setVisible(false);
-      this.infoSub.setText('');
-      this.infoTitle.setPosition(px + 22, py + 20).setColor(CSS.ink).setText('용병단 지휘');
-      this.infoBody
-        .setPosition(px + 22, py + 48)
-        .setColor(CSS.sub)
-        .setText(
-          [
-            '· 고용: 빈 칸에 랜덤 용병 배치',
-            '· 같은 속성·레벨끼리 겹치면 레벨 업',
-            '· Lv5 + Lv5 = 영웅 승급',
-            '· 상성: 블루>레드>그린>블루',
-            '· 패배: 몬스터 100기·보스 1바퀴'
-          ].join('\n')
-        );
-      return;
-    }
-    const st = m.getStats(this.relics, this.gameTime);
-    const info = ATTR_INFO[m.attr];
-    this.infoAvatar.setTexture(panelKey(this, m.isHero ? 'gold' : 'soft', 48, 48)).setVisible(true);
-    setArt(this.infoPortrait, m.textureKey, PX - 1).setVisible(true);
-    playBase(this.infoPortrait, 'idle');
-    this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
-    const strong = ATTR_INFO[strongAgainst(m.attr)].name;
-    const weak = ATTR_INFO[weakAgainst(m.attr)].name;
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${this.mergeCostFor(m.level)}G` : `승급 ${this.mergeCostFor(MAX_LEVEL)}G`;
-    this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
-    // 본문은 2줄: 능력치 / (디버프 또는 상성·스킬 수)
-    const lines = [
-      `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)} · 사거리 ${Math.round(st.range)}${st.buffed && !st.debuff.list.length ? ' (버프)' : ''}`,
-      st.debuff.list.length
-        ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - this.gameTime)}초`).join(', ')}`
-        : `강함 ${strong} · 약함 ${weak} · 스킬 ${m.skills.length}개`
-    ];
-    this.infoBody.setPosition(px + 22, py + 72).setColor(CSS.ink).setText(lines.join('\n'));
-    this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * this.sellRefund)}G`);
-    this.skillBtn.setVisible(true);
+    this.hud.refreshInfo();
   }
 
-  /** 양피지 창 모달: 어두운 바탕 + 창 + 초록 제목 탭 (+ 닫기 버튼) */
-  modal(depth, x, y, w, h, onClose, title) {
-    const c = this.add.container(0, 0).setDepth(depth);
-    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, 0.55).setOrigin(0).setInteractive();
-    if (onClose) shade.on('pointerdown', onClose);
-    const card = panel(this, x, y, w, h, 'card');
-    card.setInteractive(); // 창 위 클릭은 닫히지 않게
-    c.add([shade, card]);
-    if (title) c.add(titleTab(this, x + w / 2, y, title, 180));
-    if (onClose) c.add(closeButton(this, x + w - 6, y + 6, onClose));
-    return c;
-  }
-
-
-  showSkillPopup(m) {
-    this.popup?.destroy();
-    const x = 20;
-    const y = 240;
-    const w = GAME_W - 40;
-    // 카드 높이는 내용에 맞춘다: 먼저 글자를 놓고, 마지막에 카드를 뒤에 끼운다
-    const c = this.add.container(0, 0).setDepth(DEPTH.overlay - 5);
-    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a1238, 0.5).setOrigin(0).setInteractive();
-    shade.on('pointerdown', () => {
-      c.destroy();
-      this.popup = null;
-    });
-    c.add(shade);
-    this.popup = c;
-    let cy = y + 36;
-    const add = (str, size, color, weight = '600', gap = 6) => {
-      const t = uiText(this, x + 24, cy, str, size, color, weight, { wordWrap: { width: w - 48 }, lineSpacing: 4 });
-      c.add(t);
-      cy += t.height + gap;
-      return t;
-    };
-    add(`${m.heroName} · ${m.isHero ? `영웅 ${m.roleName}` : `Lv.${m.level} ${m.roleName}`}`, 20, m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr], '700', 4);
-    add(`${ELEMENT_FLAVOR[m.attr].desc} (피해 스킬에 추가 적용)`, 13, CSS.sub, '600', 12);
-    if (!m.skills.length) add('아직 스킬이 없습니다.', 14, CSS.ink);
-    for (const s of m.skills) {
-      const d = s.def;
-      const tag = d.level > MAX_LEVEL ? '영웅 고유' : `Lv${d.level}`;
-      add(`${tag}  ${d.name}  ·  쿨타임 ${d.cd}초`, 15, d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
-      add(describeSkill(d), 13, CSS.ink, '600', 10);
-    }
-    if (!m.isHero && m.level < MAX_LEVEL) {
-      cy += 4;
-      add(`다음 레벨(Lv${m.level + 1}) 후보 — 이 중 1개 랜덤 습득`, 13, CSS.sub, '700', 4);
-      for (const o of skillOptions(m.attr, m.cls, m.level + 1)) add(`· ${o.name}: ${describeSkill(o)}`, 12, CSS.sub, '600', 3);
-    } else if (!m.isHero) {
-      cy += 4;
-      add(`영웅 승급 후보: ${HEROES[m.attr].map((hh) => hh.name).join(' / ')}`, 13, CSS.sub, '700');
-    }
-    const h = Math.min(GAME_H - y - 24, cy - y + 40);
-    const card = panel(this, x, y, w, h, 'card').setInteractive();
-    c.addAt(card, 1);
-    const close = () => {
-      c.destroy();
-      this.popup = null;
-    };
-    c.add(titleTab(this, x + w / 2, y, '스킬 정보', 180));
-    c.add(closeButton(this, x + w - 6, y + 6, close));
-    c.add(uiText(this, x + w - 24, y + h - 14, '바깥을 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(1, 1));
-  }
-
-
-  // ───────────────────────── ESC 메뉴 ─────────────────────────
-  toggleMenu() {
-    if (this.over) return;
-    if (this.menu) this.closeMenu();
-    else this.openMenu();
-  }
-
-  openMenu() {
-    audio.init();
-    this.popup?.destroy();
-    this.popup = null;
-    if (!this.paused) this.tweens.pauseAll();
-    const px = 52;
-    const py = 236;
-    const pw = GAME_W - 104;
-    const ph = 500;
-    const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
-    this.menu = c;
-    c.add(uiText(this, GAME_W / 2, py + 52, '게임이 일시정지되었습니다', 13, CSS.sub, '600').setOrigin(0.5));
-
-    // 볼륨 조절 줄: 이름 [-] 막대 [+] 퍼센트
-    const volRow = (y, label, get, set) => {
-      c.add(uiText(this, px + 28, y, label, 16, CSS.ink, '700').setOrigin(0, 0.5));
-      const bar = this.add.graphics();
-      const pct = uiText(this, px + pw - 26, y, '', 15, CSS.primary, '700').setOrigin(1, 0.5);
-      const bx = px + 150;
-      const bw = 150;
-      const draw = () => {
-        const v = get();
-        bar.clear();
-        // 10칸짜리 픽셀 막대
-        for (let i = 0; i < 10; i++) {
-          const on = i < Math.round(v * 10);
-          bar.fillStyle(0x2b1810, 1).fillRect(bx + i * 15, y - 10, 12, 20);
-          bar.fillStyle(on ? C.primary : C.soft, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 16);
-          if (on) bar.fillStyle(0x6ccc7c, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 4);
-        }
-        pct.setText(`${Math.round(v * 100)}%`);
-      };
-      const step = (d) => () => {
-        set(get() + d);
-        draw();
-        audio.coin();
-      };
-      const minus = new Button(this, px + 120, y, 40, 40, '-', step(-0.1), { variant: 'outline', fontSize: 20 });
-      const plus = new Button(this, bx + bw + 30, y, 40, 40, '+', step(0.1), { variant: 'outline', fontSize: 20 });
-      c.add([bar, pct, minus, plus]);
-      draw();
-    };
-    volRow(py + 128, '배경음', () => audio.musicVol, (v) => audio.setMusicVolume(v));
-    volRow(py + 184, '효과음', () => audio.sfxVol, (v) => audio.setSfxVolume(v));
-
-    const bw = pw - 56;
-    const muteBtn = new Button(this, GAME_W / 2, py + 252, bw, 50, '', () => {
-      audio.toggleMute();
-      muteBtn.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
-    }, { variant: 'outline', fontSize: 16 });
-    muteBtn.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
-    const resume = new Button(this, GAME_W / 2, py + 322, bw, 56, '계속하기', () => this.closeMenu(), { variant: 'primary', fontSize: 18 });
-    let confirmQuit = false;
-    const quit = new Button(this, GAME_W / 2, py + 394, bw, 56, '게임 종료', () => {
-      if (!confirmQuit) {
-        confirmQuit = true;
-        quit.setLabel('정말 종료할까요? 한 번 더 누르세요');
-        this.time.delayedCall(2500, () => {
-          if (quit.active) {
-            confirmQuit = false;
-            quit.setLabel('게임 종료');
-          }
-        });
-        return;
-      }
-      this.quitToTitle();
-    }, { variant: 'danger', fontSize: 16 });
-    c.add([muteBtn, resume, quit]);
-    c.add(uiText(this, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
-  }
-
-
-  closeMenu() {
-    if (!this.menu) return;
-    this.menu.destroy(true);
-    this.menu = null;
-    if (!this.paused) this.tweens.resumeAll();
+  /** ESC 메뉴가 열려 있는지 (열려 있으면 전투가 멈춘다) */
+  get menuOpen() {
+    return !!this.hud.menu;
   }
 
   // ───────────────────────── 명성 · 하드 ─────────────────────────
@@ -1301,7 +928,7 @@ export class GameScene extends Phaser.Scene {
     meta.record(0, TOTAL_WAVES);
     this.difficulty = 1;
     this.select(null);
-    this.hideRelicTip();
+    this.hud.hideRelicTip();
     for (const m of this.mercs) {
       this.grid[m.row][m.col] = null;
       m.destroy();
@@ -1326,8 +953,7 @@ export class GameScene extends Phaser.Scene {
 
   quitToTitle() {
     this.creditFame();
-    this.menu?.destroy(true);
-    this.menu = null;
+    this.hud.closeAll();
     this.tweens.resumeAll();
     this.tweens.timeScale = 1;
     audio.playMusic(null);
@@ -1336,7 +962,7 @@ export class GameScene extends Phaser.Scene {
 
   togglePause() {
     this.paused = !this.paused;
-    this.pauseBtn.setLabel(this.paused ? '재개' : '정지');
+    this.hud.setPaused(this.paused);
     if (this.paused) this.tweens.pauseAll();
     else this.tweens.resumeAll();
   }
@@ -1347,13 +973,9 @@ export class GameScene extends Phaser.Scene {
     this.creditFame();
     this.tweens.timeScale = 1;
     if (this.paused) this.tweens.resumeAll();
-    this.bannerObj?.destroy();
-    this.toastObj?.destroy();
-    this.popup?.destroy();
+    this.hud.closeAll();
     this.relicChoice?.container.destroy();
     this.relicChoice = null;
-    this.menu?.destroy(true);
-    this.menu = null;
     this.select(null);
     audio.playMusic(null);
     if (victory) audio.victory();

@@ -60,10 +60,10 @@ test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼·
   await page.waitForTimeout(700);
   await page.keyboard.press('n'); // 몬스터가 남아 있음 → 무시
   expect(await wave()).toBe(1);
-  expect(await game(page, () => window.game.scene.getScene('Game').nextWaveBtn.enabled)).toBe(false);
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(false);
   // 전부 처치하면 다시 활성화
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.spawnQueue = []; for (const m of [...g.monsters]) g.killMonster(m); g.cleanupMonsters(); g.refreshHud(); });
-  expect(await game(page, () => window.game.scene.getScene('Game').nextWaveBtn.enabled)).toBe(true);
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(true);
   await page.keyboard.press('n');
   expect(await wave()).toBe(2);
   expect(errors).toEqual([]);
@@ -173,7 +173,7 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
     g.refreshRelics();
   });
   const tip = () => game(page, () => {
-    const t = window.game.scene.getScene('Game').relicTip;
+    const t = window.game.scene.getScene('Game').hud.relicTip;
     return t ? t.container.list.filter((o) => o.text).map((o) => o.text) : null;
   });
   expect(await tip()).toBeNull();
@@ -299,7 +299,7 @@ test('노멀 100웨이브 클리어 → 하드 1웨이브 (용병·유물 초기
     for (const m of [...g.monsters]) m.destroy();
     g.monsters = [];
     g.update(0, 16);
-    return { diff: g.difficulty, gold: g.gold, mercs: g.mercs.length, relics: g.ownedRelics.length, wave: g.wave, over: g.over, tab: g.waveText.text };
+    return { diff: g.difficulty, gold: g.gold, mercs: g.mercs.length, relics: g.ownedRelics.length, wave: g.wave, over: g.over, tab: g.hud.waveText.text };
   });
   expect(s).toEqual({ diff: 1, gold: 300, mercs: 0, relics: 0, wave: 0, over: false, tab: 'HARD 0 / 100' });
   await page.waitForTimeout(600);
