@@ -23,6 +23,8 @@
 - `node tools/gen-upgrade-doc.mjs` — 강화 트리 노드 변경 후 `docs/UPGRADES.md` 재생성
 - `node tools/gen-art-doc.mjs` — 영웅·몬스터·유물·지역을 추가/변경하면 `docs/CUSTOM_ART.md` 의 교체 가능 키 목록 재생성
 - **배포**: `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy.yml`)가 **테스트 → 통과 시 빌드·배포** → https://duto-ch.github.io/RTD/ (실패하면 배포 안 됨, 테스트 화면은 Actions 실행 결과의 `test-screens` 에서 내려받기)
+- Claude Code: `/graphify .` — 코드베이스 지식 그래프 생성(`graphify-out/`, 커밋 안 함). 스킬은 `.claude/skills/graphify/` (없으면 스킬이 `pip install graphifyy` 를 스스로 실행)
+- **PixelLab MCP** (`.mcp.json`, 픽셀아트 생성): 토큰은 저장소에 넣지 않는다 — `Bearer proxy-injected` 자리에 클라우드 환경의 네트워크 비밀값이 자동으로 들어간다. 새 세션부터 도구가 보인다
 - Claude Code: `/verify` — 작업 루프(검사 → 실패 시 수정 반복 → 화면 확인)를 한 번에 수행
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio·setArt·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 
