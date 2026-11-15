@@ -1,0 +1,1073 @@
+{
+ "frames": [
+  {
+   "filename": "rtd-coin-scatter 0",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 1",
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 2",
+   "frame": {
+    "x": 176,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 3",
+   "frame": {
+    "x": 264,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 4",
+   "frame": {
+    "x": 352,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 5",
+   "frame": {
+    "x": 440,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 6",
+   "frame": {
+    "x": 528,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 7",
+   "frame": {
+    "x": 0,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 8",
+   "frame": {
+    "x": 88,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 9",
+   "frame": {
+    "x": 176,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 10",
+   "frame": {
+    "x": 264,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 11",
+   "frame": {
+    "x": 352,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 12",
+   "frame": {
+    "x": 440,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 13",
+   "frame": {
+    "x": 528,
+    "y": 80,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 14",
+   "frame": {
+    "x": 0,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 15",
+   "frame": {
+    "x": 88,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 16",
+   "frame": {
+    "x": 176,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 17",
+   "frame": {
+    "x": 264,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 18",
+   "frame": {
+    "x": 352,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 19",
+   "frame": {
+    "x": 440,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 20",
+   "frame": {
+    "x": 528,
+    "y": 160,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 21",
+   "frame": {
+    "x": 0,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 22",
+   "frame": {
+    "x": 88,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 23",
+   "frame": {
+    "x": 176,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 24",
+   "frame": {
+    "x": 264,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 25",
+   "frame": {
+    "x": 352,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 26",
+   "frame": {
+    "x": 440,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 27",
+   "frame": {
+    "x": 528,
+    "y": 240,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 28",
+   "frame": {
+    "x": 0,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 29",
+   "frame": {
+    "x": 88,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 30",
+   "frame": {
+    "x": 176,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 31",
+   "frame": {
+    "x": 264,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 32",
+   "frame": {
+    "x": 352,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 33",
+   "frame": {
+    "x": 440,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 34",
+   "frame": {
+    "x": 528,
+    "y": 320,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 35",
+   "frame": {
+    "x": 0,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 36",
+   "frame": {
+    "x": 88,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 37",
+   "frame": {
+    "x": 176,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 38",
+   "frame": {
+    "x": 264,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 39",
+   "frame": {
+    "x": 352,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 40",
+   "frame": {
+    "x": 440,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 41",
+   "frame": {
+    "x": 528,
+    "y": 400,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 42",
+   "frame": {
+    "x": 0,
+    "y": 480,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 43",
+   "frame": {
+    "x": 88,
+    "y": 480,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 44",
+   "frame": {
+    "x": 176,
+    "y": 480,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 45",
+   "frame": {
+    "x": 264,
+    "y": 480,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-scatter 46",
+   "frame": {
+    "x": 352,
+    "y": 480,
+    "w": 88,
+    "h": 80
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 80
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 80
+   },
+   "duration": 42
+  }
+ ],
+ "meta": {
+  "app": "https://github.com/patch-gg/pixelfx",
+  "version": "1",
+  "image": "rtd-coin-scatter.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 616,
+   "h": 560
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "rtd-coin-scatter",
+    "from": 0,
+    "to": 46,
+    "direction": "forward"
+   }
+  ],
+  "pixelfx": {
+   "id": "spawn/rtd-coin-scatter",
+   "name": "RTD coin scatter",
+   "fps": 24,
+   "loop": false,
+   "frames": 47,
+   "frameSize": [
+    88,
+    80
+   ],
+   "pivot": [
+    44,
+    56
+   ],
+   "columns": 7
+  }
+ }
+}

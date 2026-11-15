@@ -1,0 +1,1271 @@
+{
+ "frames": [
+  {
+   "filename": "rtd-coin-shower 0",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 1",
+   "frame": {
+    "x": 104,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 2",
+   "frame": {
+    "x": 208,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 3",
+   "frame": {
+    "x": 312,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 4",
+   "frame": {
+    "x": 416,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 5",
+   "frame": {
+    "x": 520,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 6",
+   "frame": {
+    "x": 624,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 7",
+   "frame": {
+    "x": 728,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 8",
+   "frame": {
+    "x": 0,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 9",
+   "frame": {
+    "x": 104,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 10",
+   "frame": {
+    "x": 208,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 11",
+   "frame": {
+    "x": 312,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 12",
+   "frame": {
+    "x": 416,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 13",
+   "frame": {
+    "x": 520,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 14",
+   "frame": {
+    "x": 624,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 15",
+   "frame": {
+    "x": 728,
+    "y": 116,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 16",
+   "frame": {
+    "x": 0,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 17",
+   "frame": {
+    "x": 104,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 18",
+   "frame": {
+    "x": 208,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 19",
+   "frame": {
+    "x": 312,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 20",
+   "frame": {
+    "x": 416,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 21",
+   "frame": {
+    "x": 520,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 22",
+   "frame": {
+    "x": 624,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 23",
+   "frame": {
+    "x": 728,
+    "y": 232,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 24",
+   "frame": {
+    "x": 0,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 25",
+   "frame": {
+    "x": 104,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 26",
+   "frame": {
+    "x": 208,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 27",
+   "frame": {
+    "x": 312,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 28",
+   "frame": {
+    "x": 416,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 29",
+   "frame": {
+    "x": 520,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 30",
+   "frame": {
+    "x": 624,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 31",
+   "frame": {
+    "x": 728,
+    "y": 348,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 32",
+   "frame": {
+    "x": 0,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 33",
+   "frame": {
+    "x": 104,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 34",
+   "frame": {
+    "x": 208,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 35",
+   "frame": {
+    "x": 312,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 36",
+   "frame": {
+    "x": 416,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 37",
+   "frame": {
+    "x": 520,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 38",
+   "frame": {
+    "x": 624,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 39",
+   "frame": {
+    "x": 728,
+    "y": 464,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 40",
+   "frame": {
+    "x": 0,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 41",
+   "frame": {
+    "x": 104,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 42",
+   "frame": {
+    "x": 208,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 43",
+   "frame": {
+    "x": 312,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 44",
+   "frame": {
+    "x": 416,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 45",
+   "frame": {
+    "x": 520,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 46",
+   "frame": {
+    "x": 624,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 47",
+   "frame": {
+    "x": 728,
+    "y": 580,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 48",
+   "frame": {
+    "x": 0,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 49",
+   "frame": {
+    "x": 104,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 50",
+   "frame": {
+    "x": 208,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 51",
+   "frame": {
+    "x": 312,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 52",
+   "frame": {
+    "x": 416,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 53",
+   "frame": {
+    "x": 520,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 54",
+   "frame": {
+    "x": 624,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  },
+  {
+   "filename": "rtd-coin-shower 55",
+   "frame": {
+    "x": 728,
+    "y": 696,
+    "w": 104,
+    "h": 116
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 116
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 116
+   },
+   "duration": 42
+  }
+ ],
+ "meta": {
+  "app": "https://github.com/patch-gg/pixelfx",
+  "version": "1",
+  "image": "rtd-coin-shower.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 832,
+   "h": 812
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "rtd-coin-shower",
+    "from": 0,
+    "to": 55,
+    "direction": "forward"
+   }
+  ],
+  "pixelfx": {
+   "id": "spawn/rtd-coin-shower",
+   "name": "RTD coin shower",
+   "fps": 24,
+   "loop": false,
+   "frames": 56,
+   "frameSize": [
+    104,
+    116
+   ],
+   "pivot": [
+    52,
+    94
+   ],
+   "columns": 8
+  }
+ }
+}
