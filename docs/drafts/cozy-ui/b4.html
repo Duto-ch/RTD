@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="common.css">
+<style>
+  body { width: 1920px; height: 1080px; overflow: hidden; background: url(wide_game.png) center/cover; image-rendering: pixelated; position: relative; }
+  body * { image-rendering: auto; }
+  .card { position: absolute; background: rgba(251, 247, 236, .96); padding: 22px 26px; }
+  .tl { left: 34px; top: 30px; width: 500px; }
+  .wave { display: flex; align-items: baseline; gap: 14px; } .wave h2 { font-size: 44px; } .wave span { color: var(--sub); font-size: 19px; }
+  .line { display: flex; align-items: center; gap: 12px; margin-top: 14px; font-size: 20px; }
+  .line .num { font-size: 30px; } .r { margin-left: auto; }
+  .next { margin-top: 16px; display: flex; gap: 12px; align-items: center; }
+  .rel { left: 34px; top: 404px; width: 500px; }
+  .relics { display: flex; gap: 14px; margin-top: 14px; }
+  .tip { left: 34px; bottom: 34px; width: 500px; background: rgba(122, 154, 92, .96); border-color: #93b071; color: #fffbea; display: flex; gap: 16px; align-items: center; }
+  .tip b { font-family: 'Gowun Batang'; font-size: 22px; display: block; margin-bottom: 4px; } .tip p { font-size: 18px; line-height: 1.5; }
+  .tr { right: 34px; top: 30px; width: 520px; }
+  .merc { display: flex; gap: 18px; margin-top: 14px; }
+  .por { width: 112px; height: 112px; border-radius: 50%; background: var(--card2) url(p_robin.png) center/96px no-repeat; image-rendering: pixelated; border: 3px solid var(--line); flex: none; }
+  .merc h3 { font-size: 28px; color: #3f8a3e; } .merc .sub { color: var(--sub); font-size: 17px; margin: 2px 0 8px; }
+  .acts { display: flex; gap: 12px; margin-top: 16px; } .acts .pill { font-size: 18px; padding: 10px 22px; }
+  .br { right: 34px; bottom: 34px; width: 520px; display: flex; flex-direction: column; gap: 16px; }
+  .hire { font-size: 30px; padding: 22px; border-radius: 24px; justify-content: center; font-family: 'Gowun Batang'; font-weight: 700; }
+  .rounds { display: flex; gap: 14px; }
+  .round { flex: 1; height: 74px; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--card2); border: 2px solid var(--line); color: var(--sage-d); font-size: 18px; box-shadow: 0 4px 0 rgba(120,95,50,.14); }
+  .banner { left: 50%; transform: translateX(-50%); top: 26px; padding: 12px 34px; display: flex; gap: 14px; align-items: center; font-size: 20px; border-radius: 99px; }
+  .banner b { font-family: 'Gowun Batang'; font-size: 26px; color: var(--sage-d); }
+
+  /* B-4 숲 유리: 짙은 숲색 반투명 카드 + 크림 글자 — 밝은 지역(설원·사막)에서도 눈에 잘 띈다 */
+  :root { --line: rgba(220, 235, 200, .25); --card2: rgba(255, 255, 255, .08); --sub: #c9d6b4; }
+  .card { background: rgba(38, 58, 34, .86) !important; border: 2px solid rgba(190, 215, 160, .35); color: #f3ead2; box-shadow: 0 10px 30px rgba(0,0,0,.35); backdrop-filter: blur(3px); }
+  .ttl, .wave h2, .line, .merc h3 { color: #f6efdc !important; }
+  .merc h3 { color: #b6e08f !important; }
+  .bar { background: rgba(255,255,255,.14); }
+  .pill { background: rgba(255,255,255,.1); color: #f3ead2; border-color: rgba(220,235,200,.35); box-shadow: none; }
+  .pill.sage { background: #e8c25a; border-color: #b8902a; color: #3a2a10; box-shadow: 0 5px 0 #9a7420; }
+  .round { background: rgba(255,255,255,.08); color: #e9e2c8; border-color: rgba(220,235,200,.3); box-shadow: none; }
+  .slot { background: rgba(255,255,255,.08); border-color: rgba(220,235,200,.35); }
+  .chip { background: rgba(255,255,255,.1); color: #d9e4c6; } .chip svg circle, .chip svg path { stroke: #d9e4c6; }
+  .tip { background: rgba(122, 154, 92, .9) !important; }
+  .banner b { color: #e8c25a; }
+</style></head><body>
+<section class="card tl"><div class="ttl"><i data-i="leaf"></i>초원 지역<span class="more">최고 W32</span></div>
+  <div class="wave"><h2 class="serif">WAVE 3</h2><span>다음: 일반 54기</span></div>
+  <div class="line"><i data-i="coin"></i>골드<span class="r num">969 G</span></div>
+  <div class="line"><i data-i="skull"></i>몬스터<span class="r num">12 / 100</span></div>
+  <div class="bar" style="margin-top:10px"><i style="width:12%"></i></div>
+  <div class="next"><span class="chip"><i data-i="clock"></i>다음 웨이브 24초</span><button class="pill sage" style="margin-left:auto;font-size:17px;padding:8px 20px">바로 시작</button></div></section>
+<section class="card rel"><div class="ttl"><i data-i="leaf"></i>유물<span class="more">2 / 4 활성</span></div>
+  <div class="relics"><div class="slot"><div class="gem" style="background:#d4523e"></div></div><div class="slot"><div class="gem" style="background:#e3b23a"></div></div><div class="slot" style="border-style:dashed"></div><div class="slot" style="border-style:dashed"></div></div></section>
+<section class="card tip"><i data-i="sprout"></i><div><b>오늘의 팁</b><p>상성은 블루 › 레드 › 그린 › 블루.<br>약한 속성이 몰려오면 상성 용병을 앞에!</p></div></section>
+<div class="card banner"><i data-i="leaf"></i><b>WAVE 3</b>몬스터 54기 · 레드·블루</div>
+<section class="card tr"><div class="ttl"><i data-i="leaf"></i>선택한 용병</div>
+  <div class="merc"><div class="por"></div><div><h3 class="serif">로빈</h3><div class="sub">Lv.2 궁수 · 그린 · 레벨업 40G</div>
+    <div style="font-size:18px">공격 14 · 공속 1.40 · 사거리 220</div><div style="font-size:16px;color:var(--sub);margin-top:6px">강함 블루 · 약함 레드 · 스킬 1개</div></div></div>
+  <div class="acts"><button class="pill sage">스킬 정보</button><button class="pill">판매 +15G (S)</button></div></section>
+<section class="card br"><button class="pill sage hire"><i data-i="plus"></i>용병 고용 · 30 G</button>
+  <div class="rounds"><div class="round"><i data-i="play"></i>x1</div><div class="round"><i data-i="pause"></i>정지</div><div class="round"><i data-i="menu"></i>메뉴</div></div></section>
+<script src="icons.js"></script></body></html>

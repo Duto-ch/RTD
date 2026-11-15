@@ -1,0 +1,9 @@
+body { width: 1920px; height: 1080px; overflow: hidden; background: url(wide_game.png) center/cover; image-rendering: pixelated; position: relative; }
+body * { image-rendering: auto; }
+.abs { position: absolute; }
+.line { display: flex; align-items: center; gap: 12px; font-size: 20px; }
+.line .num { font-size: 30px; } .r { margin-left: auto; }
+.relics { display: flex; gap: 14px; }
+.por { border-radius: 50%; background: var(--card2) url(p_robin.png) center/86% no-repeat; image-rendering: pixelated; border: 3px solid var(--line); flex: none; }
+.round { height: 70px; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--card2); border: 2px solid var(--line); color: var(--sage-d); font-size: 18px; box-shadow: 0 4px 0 rgba(120,95,50,.14); }
+.hire { font-family: 'Gowun Batang'; font-weight: 700; justify-content: center; }
