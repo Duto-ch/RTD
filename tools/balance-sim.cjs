@@ -8,8 +8,12 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const levels = JSON.parse(process.argv[3] || '{}');
   await p.addInitScript((levels) => { try { localStorage.setItem('rtd_meta_v1', JSON.stringify({ fame: 0, levels })); } catch {} }, levels);
-  await p.goto('http://localhost:4173'); await p.waitForTimeout(1200);
-  await p.mouse.click(272, 650); await p.waitForTimeout(300);
+  // 고정 대기 대신 화면 준비를 기다린다 (여러 개를 동시에 돌리면 로딩이 늦어져 게임 시작 전에 봇이 움직이던 문제)
+  await p.goto('http://localhost:4173');
+  await p.waitForFunction(() => window.game?.scene.isActive('Title'), null, { timeout: 60000 });
+  await p.evaluate(() => window.game.scene.start('Game'));
+  await p.waitForFunction(() => window.game.scene.isActive('Game') && window.game.scene.getScene('Game').hud, null, { timeout: 60000 });
+  await p.waitForTimeout(300);
   const override = JSON.parse(process.argv[2] || '{}');
   const res = await p.evaluate((override) => {
     for (const [k, v] of Object.entries(override)) {
