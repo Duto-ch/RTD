@@ -1,0 +1,1029 @@
+{
+ "frames": [
+  {
+   "filename": "topdown-archer 0",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 1",
+   "frame": {
+    "x": 128,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 2",
+   "frame": {
+    "x": 256,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 3",
+   "frame": {
+    "x": 384,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 4",
+   "frame": {
+    "x": 512,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 5",
+   "frame": {
+    "x": 0,
+    "y": 48,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 6",
+   "frame": {
+    "x": 128,
+    "y": 48,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 7",
+   "frame": {
+    "x": 256,
+    "y": 48,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 8",
+   "frame": {
+    "x": 384,
+    "y": 48,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 9",
+   "frame": {
+    "x": 512,
+    "y": 48,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 10",
+   "frame": {
+    "x": 0,
+    "y": 96,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 11",
+   "frame": {
+    "x": 128,
+    "y": 96,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 12",
+   "frame": {
+    "x": 256,
+    "y": 96,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 13",
+   "frame": {
+    "x": 384,
+    "y": 96,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 14",
+   "frame": {
+    "x": 512,
+    "y": 96,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 15",
+   "frame": {
+    "x": 0,
+    "y": 144,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 16",
+   "frame": {
+    "x": 128,
+    "y": 144,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 17",
+   "frame": {
+    "x": 256,
+    "y": 144,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 18",
+   "frame": {
+    "x": 384,
+    "y": 144,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 19",
+   "frame": {
+    "x": 512,
+    "y": 144,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 20",
+   "frame": {
+    "x": 0,
+    "y": 192,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 21",
+   "frame": {
+    "x": 128,
+    "y": 192,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 22",
+   "frame": {
+    "x": 256,
+    "y": 192,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 23",
+   "frame": {
+    "x": 384,
+    "y": 192,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 24",
+   "frame": {
+    "x": 512,
+    "y": 192,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 25",
+   "frame": {
+    "x": 0,
+    "y": 240,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 26",
+   "frame": {
+    "x": 128,
+    "y": 240,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 27",
+   "frame": {
+    "x": 256,
+    "y": 240,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 28",
+   "frame": {
+    "x": 384,
+    "y": 240,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 29",
+   "frame": {
+    "x": 512,
+    "y": 240,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 30",
+   "frame": {
+    "x": 0,
+    "y": 288,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 31",
+   "frame": {
+    "x": 128,
+    "y": 288,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 32",
+   "frame": {
+    "x": 256,
+    "y": 288,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 33",
+   "frame": {
+    "x": 384,
+    "y": 288,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 34",
+   "frame": {
+    "x": 512,
+    "y": 288,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 35",
+   "frame": {
+    "x": 0,
+    "y": 336,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 36",
+   "frame": {
+    "x": 128,
+    "y": 336,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 37",
+   "frame": {
+    "x": 256,
+    "y": 336,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 38",
+   "frame": {
+    "x": 384,
+    "y": 336,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 39",
+   "frame": {
+    "x": 512,
+    "y": 336,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 40",
+   "frame": {
+    "x": 0,
+    "y": 384,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 41",
+   "frame": {
+    "x": 128,
+    "y": 384,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 42",
+   "frame": {
+    "x": 256,
+    "y": 384,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 43",
+   "frame": {
+    "x": 384,
+    "y": 384,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  },
+  {
+   "filename": "topdown-archer 44",
+   "frame": {
+    "x": 512,
+    "y": 384,
+    "w": 128,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 48
+   },
+   "duration": 33
+  }
+ ],
+ "meta": {
+  "app": "https://github.com/patch-gg/pixelfx",
+  "version": "1",
+  "image": "topdown-archer.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 640,
+   "h": 432
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "topdown-archer",
+    "from": 0,
+    "to": 44,
+    "direction": "forward"
+   }
+  ],
+  "pixelfx": {
+   "id": "moves/topdown-archer",
+   "name": "Top-down archer",
+   "fps": 30,
+   "loop": true,
+   "frames": 45,
+   "frameSize": [
+    128,
+    48
+   ],
+   "pivot": [
+    32,
+    24
+   ],
+   "columns": 5
+  }
+ }
+}
