@@ -178,11 +178,11 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
     return t ? t.container.list.filter((o) => o.text).map((o) => o.text) : null;
   });
   expect(await tip()).toBeNull();
-  await page.mouse.move(108, 160); // 첫 유물 (전쟁의 북)
+  await page.mouse.move(124, 161); // 첫 유물 (전쟁의 북)
   await expect.poll(tip).toEqual(['전쟁의 북', '활성', '모든 용병 공격 속도 +15%', '클릭: 비활성으로 전환']);
   await page.waitForTimeout(100);
   await page.screenshot({ path: SHOT('10-relic-tooltip') });
-  await page.mouse.move(108 + 4 * 36, 160); // 다섯 번째 (슬롯이 가득 차 비활성)
+  await page.mouse.move(124 + 4 * 36, 161); // 다섯 번째 (슬롯이 가득 차 비활성)
   await expect.poll(async () => (await tip())?.[1]).toBe('비활성');
   await page.mouse.move(272, 500); // 아이콘 밖
   await expect.poll(tip).toBeNull();

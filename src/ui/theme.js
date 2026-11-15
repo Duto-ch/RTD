@@ -38,6 +38,8 @@ const STYLES = {
   // 양피지 창: 검은 외곽 · 나무 테두리 · 어두운 안쪽 선 · 양피지
   card: { layers: ['#2a1608', '#ffc84d', '#ffc84d', '#8a4f22', '#fff4d9'], hi: '#ffe08a', shade: '#f3e3be', grain: '#f0a830', cut: 2 },
   header: { layers: ['#2a1608', '#ffc84d', '#ffc84d', '#8a4f22', '#fff4d9'], hi: '#ffe08a', shade: '#f3e3be', grain: '#f0a830', cut: 2 },
+  // 얇은 금빛 띠 (유물 줄처럼 낮은 줄: 테두리를 얇게 해 안쪽 높이 확보)
+  strip: { layers: ['#2a1608', '#ffc84d', '#fff4d9'], hi: '#ffe08a', shade: '#f3e3be', cut: 1 },
   // 버튼
   primary: { layers: ['#3a1606', '#d0661a'], hi: '#f08c3a', shade: '#a84a10', cut: 1 },
   danger: { layers: ['#3a1210', '#c2453a'], hi: '#e8735f', shade: '#8e2a24', cut: 1 },

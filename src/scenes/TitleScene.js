@@ -38,8 +38,8 @@ export class TitleScene extends Phaser.Scene {
     titleTab(this, cx, iy, '용병단', 160);
     uiText(this, wx + 28, iy + 34, '영웅', 14, CSS.primary, 'bold');
     ATTRS.flatMap((attr) => HEROES[attr]).forEach((h, i) => {
-      const x = wx + 44 + i * 48;
-      panelImage(this, x, iy + 84, 'soft', 44, 44);
+      const x = wx + 48 + i * 46; // 칸 40 · 사이 6 · 창 양옆 16 (2026-11-15)
+      panelImage(this, x, iy + 84, 'soft', 40, 40);
       playBase(setArt(this.add.sprite(x, iy + 84, `hero_${h.id}`), `hero_${h.id}`, PX - 2), 'idle');
     });
     uiText(this, wx + 28, iy + 124, '용병', 14, CSS.primary, 'bold');

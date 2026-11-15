@@ -129,7 +129,7 @@ export class UpgradeScene extends Phaser.Scene {
     this.dLevel = uiText(this, GAME_W - 32, y + 24, '', 14, CSS.sub, 'bold').setOrigin(1, 0).setDepth(D);
     this.dEffect = uiText(this, 32, y + 80, '', 15, CSS.ink, 'bold').setDepth(D);
     this.dNote = uiText(this, 32, y + 108, '', 13, CSS.sub, 'bold').setDepth(D);
-    this.buyBtn = new Button(this, GAME_W - 112, y + 140, 176, 48, '강화', () => this.buySelected(), { variant: 'primary', fontSize: 16 }).setDepth(D);
+    this.buyBtn = new Button(this, GAME_W - 122, y + 132, 168, 44, '강화', () => this.buySelected(), { variant: 'primary', fontSize: 16 }).setDepth(D);
   }
 
   createControls() {

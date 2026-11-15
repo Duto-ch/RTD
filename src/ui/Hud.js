@@ -123,7 +123,6 @@ export class Hud {
     drawIcon(clock, 'clock', GAME_W - 220, 56, 12, C.ink);
     this.timerText = uiText(s, GAME_W - 208, 56, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.nextWaveBtn = new Button(s, GAME_W - 72, 56, 84, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
-    this.bossText = uiText(s, GAME_W - 32, 74, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
 
     // 골드 / 몬스터 수
     const coin = s.add.graphics().setDepth(D);
@@ -137,7 +136,7 @@ export class Hud {
     this.countBar = s.add.graphics().setDepth(D);
 
     // 유물 줄 (높이 36)
-    panel(s, 12, 144, GAME_W - 24, 36, 'card').setDepth(D - 1);
+    panel(s, 12, 142, GAME_W - 24, 40, 'strip').setDepth(D - 1); // 얇은 테두리 → 아이콘 위아래 여백 (2026-11-15)
     this.relicLabel = uiText(s, 30, 162, '유물', 13, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.relicRow = s.add.container(0, 0).setDepth(D);
     this.noRelicText = uiText(s, 96, 162, `보스를 처치하면 유물을 얻어요 (최대 ${s.maxRelics}개 활성)`, 12, CSS.sub, 'bold')
@@ -155,15 +154,17 @@ export class Hud {
     this.timerText.setText(`${label} ${Math.ceil(Math.max(0, s.waveTimer))}초`);
     const ni = waveInfo(nextWave);
     const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
-    this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`);
+    // 보스가 있으면 왼쪽 안내 줄을 보스 상태(빨강)로 바꾼다 — 예전엔 오른쪽 몬스터 수 위에 겹쳐 떴다 (2026-11-15)
     const boss = s.monsters.find((m) => m.isBoss && m.alive);
-    this.bossText.setText(
-      boss
-        ? `${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${
-            boss.abilities.length > 2 ? `디버프 ${boss.abilities.length}종` : boss.abilities.map((a) => a.def.name).join(', ')
-          }`
-        : ''
-    );
+    if (boss) {
+      const debuffs = boss.abilities.length > 2 ? `디버프 ${boss.abilities.length}종` : boss.abilities.map((a) => a.def.name).join(', ');
+      this.waveTypeText
+        .setText(`${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${debuffs}`)
+        .setColor(CSS.red);
+    } else {
+      this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
+    }
+    this.fitText(this.waveTypeText, GAME_W - 236 - 48);
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
 
     const n = s.monsters.length;
@@ -194,9 +195,10 @@ export class Hud {
     this.noRelicText.setVisible(s.ownedRelics.length === 0);
     this.relicLabel.setText(s.ownedRelics.length ? `유물 ${s.activeRelicCount}/${s.maxRelics}` : '유물');
     s.ownedRelics.forEach((r, i) => {
-      const x = 108 + i * 36;
-      const y = 160;
-      const slot = panelImage(s, x, y, r.active ? 'gold' : 'soft', 32, 32);
+      // 칸 27px, 칸 사이 9px (예전 32px 칸이 4px 간격으로 붙고 띠 테두리에 닿았다)
+      const x = 124 + i * 36;
+      const y = 161;
+      const slot = panelImage(s, x, y, r.active ? 'gold' : 'soft', 27, 27);
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => s.toggleRelic(i));
       icon.on('pointerover', () => this.showRelicTip(i, x, y));
@@ -266,11 +268,11 @@ export class Hud {
     this.infoTitle = uiText(s, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
     this.infoSub = uiText(s, px + 78, py + 44, '', 11, CSS.sub, 'bold').setDepth(D);
     this.infoBody = uiText(s, px + 20, py + 44, '', 11, CSS.ink, 'bold', { lineSpacing: 2, wordWrap: { width: pw - 40 } }).setDepth(D);
-    this.skillBtn = new Button(s, px + 80, py + ph - 34, 112, 32, '스킬 정보', () => s.selected && this.showSkillPopup(s.selected), {
+    this.skillBtn = new Button(s, px + 80, py + ph - 40, 112, 30, '스킬 정보', () => s.selected && this.showSkillPopup(s.selected), {
       variant: 'primary',
       fontSize: 12
     });
-    this.sellBtn = new Button(s, px + pw - 80, py + ph - 34, 112, 32, '판매', () => s.selected && s.sell(s.selected), {
+    this.sellBtn = new Button(s, px + pw - 80, py + ph - 40, 112, 30, '판매', () => s.selected && s.sell(s.selected), {
       variant: 'outline',
       fontSize: 12
     });
@@ -325,7 +327,7 @@ export class Hud {
         ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - s.gameTime)}초`).join(', ')}`
         : `강함 ${strong} · 약함 ${weak} · 스킬 ${m.skills.length}개`
     ];
-    this.infoBody.setPosition(px + 22, py + 72).setColor(CSS.ink).setText(lines.join('\n'));
+    this.infoBody.setPosition(px + 22, py + 68).setColor(CSS.ink).setText(lines.join('\n'));
     this.sellBtn.setVisible(true).setLabel(`판매 +${Math.floor(m.invested * s.sellRefund)}G`);
     this.skillBtn.setVisible(true);
   }
