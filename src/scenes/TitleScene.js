@@ -26,7 +26,7 @@ export class TitleScene extends Phaser.Scene {
     const ww = GAME_W - 80;
     panel(this, wx, wy, ww, 196, 'card');
     titleTab(this, cx, wy, 'PROJECT RTD', 200);
-    uiText(this, cx, wy + 76, '용병단 디펜스', 44, CSS.ink, 'bold', { stroke: '#f2dfb0', strokeThickness: 2 }).setOrigin(0.5);
+    uiText(this, cx, wy + 76, '용병단 디펜스', 44, CSS.ink, 'bold', { stroke: '#fff4d9', strokeThickness: 2 }).setOrigin(0.5);
     uiText(this, cx, wy + 126, '랜덤 타워 디펜스', 16, CSS.sub, 'bold').setOrigin(0.5);
     const hero = setArt(this.add.sprite(cx, wy + 196, 'hero_arthur'), 'hero_arthur', PX + 1);
     playBase(hero, 'idle');

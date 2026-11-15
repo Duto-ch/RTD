@@ -5,7 +5,7 @@ import { panelKey, uiText, drawIcon, CSS, C } from './theme.js';
 // 버튼 종류: primary(초록) / danger(빨강) / gold(금) / outline·card(양피지) / soft(오목 슬롯)
 const STYLE = { card: 'outline' };
 const TEXT = {
-  primary: { color: CSS.white, stroke: '#1e3a20' },
+  primary: { color: CSS.white, stroke: '#3a1606' },
   danger: { color: CSS.white, stroke: '#3a1210' },
   gold: { color: CSS.white, stroke: '#3a2608' },
   outline: { color: CSS.ink },

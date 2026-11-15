@@ -599,3 +599,32 @@ test('스킬 리롤: 스킬 정보 창에서 스킬마다 200/500/1500/3000G 로
   expect(dis).toEqual([true, false, false, false]);
   expect(errors).toEqual([]);
 });
+
+test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈춘다 · 확인 · 끄기 · 다시 보기', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('rtd_tutorial_test', '1'));
+  const errors = await startGame(page);
+  const tut = () => game(page, () => window.game.scene.getScene('Game').tut.open);
+  await page.waitForFunction(() => window.game.scene.getScene('Game').tut.open === 'hire', null, { timeout: 5000 });
+  // 떠 있는 동안 전투 시간이 멈춘다
+  const t0 = await game(page, () => window.game.scene.getScene('Game').gameTime);
+  await page.waitForTimeout(400);
+  expect(await game(page, () => window.game.scene.getScene('Game').gameTime)).toBe(t0);
+  await page.screenshot({ path: SHOT('26-tutorial') });
+  // 확인 버튼을 실제로 누른다
+  const ok = await game(page, () => { const b = window.game.scene.getScene('Game').tut.okBtn; return { x: b.x, y: b.y }; });
+  await page.mouse.click(ok.x, ok.y);
+  expect(await tut()).toBe(null);
+  expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v1')).tutorial.seen.hire)).toBe(true);
+  // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
+  expect(await tut()).toBe('select');
+  await page.screenshot({ path: SHOT('27-tutorial-select') });
+  // 끄기 → 이후 단계는 뜨지 않는다
+  const off = await game(page, () => { const b = window.game.scene.getScene('Game').tut.offBtn; return { x: b.x, y: b.y }; });
+  await page.mouse.click(off.x, off.y);
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.select(null); g.startWave(1); });
+  expect(await tut()).toBe(null);
+  // 메뉴의 '다시 보기' → 다시 켜진다
+  expect(await game(page, () => { window.__rtd.meta.resetTutorial(); const g = window.game.scene.getScene('Game'); g.select(g.mercs[0]); return g.tut.open; })).toBe('select');
+  expect(errors).toEqual([]);
+});

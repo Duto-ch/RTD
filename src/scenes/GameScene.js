@@ -4,6 +4,7 @@ import { GAME_W, GAME_H, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, B
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
+import { Tutorial } from '../ui/Tutorial.js';
 import { Hud } from '../ui/Hud.js';
 import { panel, panelImage, titleTab, uiText, drawIcon, C, CSS } from '../ui/theme.js';
 import { ATTRS, ATTR_INFO, elementMultiplier } from '../data/elements.js';
@@ -68,6 +69,8 @@ export class GameScene extends Phaser.Scene {
 
     this.createTower();
     this.hud = new Hud(this);
+    this.tut = new Tutorial(this);
+    this.time.delayedCall(400, () => this.tut.show('hire'));
     this.setupInput();
     this.refreshHud();
     this.refreshInfo();
@@ -108,7 +111,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   openUpgrades() {
-    if (this.over || this.menuOpen || this.relicChoice) return;
+    if (this.over || this.menuOpen || this.relicChoice || this.tut.open) return;
     this.select(null);
     this.hud.hideRelicTip();
     this.scene.launch('Upgrade', { from: 'game' });
@@ -132,7 +135,7 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     if (this.over) return;
-    const dt = this.paused || this.relicChoice || this.menuOpen ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
+    const dt = this.paused || this.relicChoice || this.menuOpen || this.tut.open ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
     this.gameTime += dt;
 
     if (dt > 0) {
@@ -212,6 +215,7 @@ export class GameScene extends Phaser.Scene {
     const attrNames = this.waveAttrs.map((a) => ATTR_INFO[a].name).join('·');
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
     this.showBanner(`WAVE ${w}`, `${sub} · ${attrNames}`, color);
+    if (w === 1) this.tut.show('wave');
   }
 
   /** 바로 시작은 필드의 몬스터를 전부 처치했을 때만 (나올 몬스터도 남아 있지 않을 때) */
@@ -221,7 +225,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
   callNextWave() {
-    if (this.menuOpen || this.relicChoice || !this.canCallNextWave) return;
+    if (this.menuOpen || this.relicChoice || this.tut.open || !this.canCallNextWave) return;
     const now = this.time.now;
     if (now - (this.lastCall || 0) < 600) return;
     this.lastCall = now;
@@ -253,6 +257,7 @@ export class GameScene extends Phaser.Scene {
     this.monsters.push(m);
     if (m.isBoss) {
       audio.bossAppear();
+      this.tut.show('boss');
       this.showBanner(m.isFinal ? `최종 보스: ${m.design.name}` : `${m.milestone ? '강화 보스' : '보스'}: ${m.design.name}`, m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
     }
   }
@@ -573,6 +578,7 @@ export class GameScene extends Phaser.Scene {
     const active = this.activeRelicCount < this.maxRelics;
     this.ownedRelics.push({ id, active });
     this.recomputeRelics();
+    this.tut.show('relic');
     return active;
   }
 
@@ -790,12 +796,12 @@ export class GameScene extends Phaser.Scene {
 
   setupInput() {
     this.input.dragDistanceThreshold = 6;
-    this.input.keyboard?.on('keydown-ESC', () => this.hud.toggleMenu());
+    this.input.keyboard?.on('keydown-ESC', () => !this.tut.open && this.hud.toggleMenu());
     // Space: 다음 웨이브 바로 시작 · S: 선택한 용병 판매
     this.input.keyboard?.addCapture('SPACE');
     this.input.keyboard?.on('keydown-SPACE', () => this.callNextWave());
     this.input.keyboard?.on('keydown-S', () => {
-      if (this.over || this.menuOpen || this.relicChoice || this.hud.popup) return;
+      if (this.over || this.menuOpen || this.relicChoice || this.tut.open || this.hud.popup) return;
       if (this.selected?.active) this.sell(this.selected);
     });
     this.input.on('gameobjectdown', (_p, obj) => {
@@ -825,6 +831,26 @@ export class GameScene extends Phaser.Scene {
   select(merc) {
     this.selected = merc;
     this.refreshInfo();
+    if (merc) this.tut.show('select');
+  }
+
+  /** 머지할 수 있는 용병 한 쌍 (level 을 주면 그 레벨만) — 튜토리얼이 비출 곳 */
+  mergePair(level) {
+    for (const a of this.mercs) {
+      if (level && a.level !== level) continue;
+      const b = this.mercs.find((o) => a.canMergeWith(o));
+      if (b) return [a, b];
+    }
+    return null;
+  }
+
+  /** 상황이 처음 생겼을 때 튜토리얼 (HUD 를 새로 그릴 때마다 확인) */
+  checkTutorials() {
+    if (!this.tut?.enabled || this.over) return;
+    if (this.mergePair(5)) this.tut.show('hero');
+    else if (this.mergePair()) this.tut.show('merge');
+    if (this.wave >= 1 && this.canCallNextWave) this.tut.show('next');
+    if (this.towerBadge?.visible && this.wave >= 1) this.tut.show('tower');
   }
 
   drawMergeHints(merc) {
@@ -933,6 +959,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.over) audio.playMusic(boss ? (boss.isFinal ? 'final' : 'boss') : 'battle');
     this.towerBadge?.setVisible(!this.over && UPGRADES.some((u) => meta.status(u.id) === 'ok'));
     this.hud.refresh();
+    this.checkTutorials();
   }
 
   refreshRelics() {
@@ -987,6 +1014,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < 8; i++) this.time.delayedCall(i * 180, () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(160, 600)));
     this.cameras.main.flash(500, 255, 220, 120);
     this.showBanner('HARD 난이도 시작!', `용병·유물 초기화 · ${BALANCE.hard.startGold}골드로 1웨이브부터 · 몬스터 체력 ${BALANCE.hard.hpMult}배`, '#ff4dd2');
+    this.tut.show('hard');
     this.refreshHud();
     this.refreshInfo();
   }

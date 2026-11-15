@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { GAME_W, GAME_H, PX, UI_PX, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
 import { MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
+import { meta } from '../systems/meta.js';
 import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
 import { ATTR_INFO, strongAgainst, weakAgainst } from '../data/elements.js';
 import { HEROES } from '../data/heroes.js';
@@ -406,6 +407,7 @@ export class Hud {
     c.add(titleTab(s, x + w / 2, y, '스킬 정보', 180));
     c.add(closeButton(s, x + w - 6, y + 6, close));
     c.add(uiText(s, x + w - 24, y + h - 14, '바깥을 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(1, 1));
+    s.tut?.show('skill');
   }
 
   // ───────────────────────── ESC 메뉴 ─────────────────────────
@@ -424,7 +426,7 @@ export class Hud {
     const px = 52;
     const py = 236;
     const pw = GAME_W - 104;
-    const ph = 500;
+    const ph = 560;
     const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
     this.menu = c;
     c.add(uiText(s, GAME_W / 2, py + 52, '게임이 일시정지되었습니다', 13, CSS.sub, '600').setOrigin(0.5));
@@ -444,7 +446,7 @@ export class Hud {
           const on = i < Math.round(v * 10);
           bar.fillStyle(0x2b1810, 1).fillRect(bx + i * 15, y - 10, 12, 20);
           bar.fillStyle(on ? C.primary : C.soft, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 16);
-          if (on) bar.fillStyle(0x6ccc7c, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 4);
+          if (on) bar.fillStyle(0xf08c3a, 1).fillRect(bx + i * 15 + 2, y - 8, 8, 4);
         }
         pct.setText(`${Math.round(v * 100)}%`);
       };
@@ -483,7 +485,11 @@ export class Hud {
       }
       s.quitToTitle();
     }, { variant: 'danger', fontSize: 16 });
-    c.add([muteBtn, resume, quit]);
+    const tutBtn = new Button(s, GAME_W / 2, py + 458, bw, 44, '튜토리얼 처음부터 다시 보기', () => {
+      meta.resetTutorial();
+      tutBtn.setLabel('튜토리얼이 다시 켜졌어요');
+    }, { variant: 'outline', fontSize: 11 });
+    c.add([muteBtn, resume, quit, tutBtn]);
     c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   }
 

@@ -199,13 +199,17 @@ function paintBackground(scene, biome) {
       const sx = toArt(FIELD_X + gx * CELL);
       const sy = toArt(FIELD_Y + gy * CELL);
       const cs = toArt(FIELD_X + (gx + 1) * CELL) - sx; // 21 또는 22 (64/3 이 나누어떨어지지 않음)
-      const base = (gx + gy) % 2 === 0 ? '#6e7380' : '#696e7a';
+      // 밝은/어두운 석판 체크무늬
+      const T = (gx + gy) % 2 === 0
+        ? { base: '#adafb7', spot: ['#a3a5ae', '#b6b8bf'], crack: '#8e919b', hi: '#c3c5cc', hi2: '#bbbdc4', sh: '#93959f', worn: '#cfd1d6' }
+        : { base: '#696e7a', spot: ['#656a76', '#737885'], crack: '#555a65', hi: '#858b97', hi2: '#7c8290', sh: '#5b606b', worn: '#959ba6' };
+      const base = T.base;
       rect(sx, sy, cs, cs, base);
       // 석판 안 큰 얼룩 한두 개 (같은 계열 밝은/어두운 톤)
       for (let k = 0; k < 2; k++) {
         const bx = sx + 2 + Math.floor(tileRand() * (cs - 7));
         const by = sy + 2 + Math.floor(tileRand() * (cs - 6));
-        const c = k ? '#737885' : '#656a76';
+        const c = T.spot[k];
         rect(bx, by, 3, 2, c);
         rect(bx + 1, by + 2, 2, 1, c);
       }
@@ -215,20 +219,20 @@ function paintBackground(scene, biome) {
         let cy = sy + 3 + Math.floor(tileRand() * (cs - 8));
         const dir = tileRand() < 0.5 ? 1 : -1;
         for (let k = 0; k < 4; k++) {
-          px(cx, cy, '#555a65');
+          px(cx, cy, T.crack);
           cx += dir;
           cy += k % 2;
         }
       }
       // 모서리 빛(위·왼쪽) / 그림자(아래·오른쪽) / 줄눈
-      rect(sx + 1, sy + 1, cs - 2, 1, '#858b97');
-      rect(sx + 1, sy + 1, 1, cs - 2, '#7c8290');
-      rect(sx + 1, sy + cs - 2, cs - 2, 1, '#5b606b');
-      rect(sx + cs - 2, sy + 1, 1, cs - 2, '#5b606b');
+      rect(sx + 1, sy + 1, cs - 2, 1, T.hi);
+      rect(sx + 1, sy + 1, 1, cs - 2, T.hi2);
+      rect(sx + 1, sy + cs - 2, cs - 2, 1, T.sh);
+      rect(sx + cs - 2, sy + 1, 1, cs - 2, T.sh);
       rect(sx, sy, cs, 1, '#454953');
       rect(sx, sy, 1, cs, '#454953');
       // 귀퉁이 닳음
-      px(sx + 1, sy + 1, '#959ba6');
+      px(sx + 1, sy + 1, T.worn);
     }
   }
   // 성벽이 바닥 위쪽·왼쪽에 드리우는 그림자 1px

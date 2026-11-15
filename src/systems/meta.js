@@ -3,7 +3,7 @@
 import { UPGRADE_BY_ID, upgradeCost, metaBonus } from '../data/upgrades.js';
 
 const KEY = 'rtd_meta_v1';
-const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0, hard: 0 }, hardUnlocked: false });
+const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0, hard: 0 }, hardUnlocked: false, tutorial: { seen: {}, off: false } });
 
 export const meta = {
   data: fresh(),
@@ -24,6 +24,28 @@ export const meta = {
     } catch {
       /* 저장 실패: 이번 접속 동안만 유지 */
     }
+  },
+
+  // ── 튜토리얼 (기능별 최초 1회) ──
+  get tutorialOff() {
+    return !!this.data.tutorial?.off;
+  },
+  tutorialSeen(id) {
+    return !!this.data.tutorial?.seen?.[id];
+  },
+  markTutorial(id) {
+    this.data.tutorial = { seen: {}, off: false, ...this.data.tutorial };
+    this.data.tutorial.seen = { ...this.data.tutorial.seen, [id]: true };
+    this.save();
+  },
+  setTutorialOff(v) {
+    this.data.tutorial = { seen: {}, ...this.data.tutorial, off: v };
+    this.save();
+  },
+  /** 처음부터 다시 보기 */
+  resetTutorial() {
+    this.data.tutorial = { seen: {}, off: false };
+    this.save();
   },
 
   get fame() {

@@ -10,7 +10,7 @@
 - **그래픽은 기본적으로 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환)
 - **직접 그린 이미지·애니메이션으로 교체 가능**: `public/assets/custom/manifest.json` 에 적힌 PNG(스프라이트 시트)가 같은 키의 코드 그림을 대체 (`src/systems/customArt.js`). 애니메이션 이름: 용병·영웅 `idle`/`attack`, 몬스터 `walk`. 촘촘하게 그린 그림은 manifest `scale`(예: 32×32 → 0.5)로 크기를 맞추고, 유닛 그림을 바꿀 때는 `setArt(obj, key, 기본배율)` 을 쓴다. manifest `faceTarget`+`pivotX` 가 있는 그림은 `setFacing(sprite, left)` 로 공격 방향을 바라본다. 사용법·키 목록은 `docs/CUSTOM_ART.md`
 - 폰트: 픽셀 폰트 Galmuri11 (OFL) — UI·게임 월드 공통. `public/assets/fonts/`
-- **UI 스타일**: 픽셀아트 RPG 풍 — 양피지 창 + 갈색 나무 테두리(나뭇결) + 초록 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 UI_PX(3)배 확대(캐릭터와 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
+- **UI 스타일**: 픽셀아트 RPG 풍 — 크림색 창 + 금빛 테두리 + 주황 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 UI_PX(3)배 확대(캐릭터와 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
 
 ## 명령어
 - `npm run dev` — 개발 서버 (http://localhost:5173)
@@ -42,6 +42,7 @@
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
 - `src/ui/Hud.js` — 전투 화면 UI(상단 상태 창·유물 줄·툴팁, 하단 버튼·정보 창, 토스트·배너, 스킬 정보 팝업, ESC 메뉴). GameScene 이 `this.hud` 로 들고 있고, 게임 상태는 읽기만 한다. GameScene 의 `toast`/`showBanner`/`refreshHud`/`refreshRelics`/`refreshInfo` 는 hud 로 넘기는 짧은 통로. 새 HUD 요소는 GameScene 이 아니라 여기에 추가. 배너·토스트는 필드·몬스터 길(y 232~728)을 가리지 않는 띠(`BANNER_Y`/`TOAST_Y`)에만 띄운다
+- `src/ui/Tutorial.js` — 기능별 최초 1회 튜토리얼. 단계는 `TUTORIAL_STEPS`(제목·본문·비출 영역), GameScene 이 `this.tut.show(id)` 로 띄운다(본 단계·끄기는 `meta.tutorial`). 떠 있는 동안 `tut.open` 이라 전투 dt 0·키 입력 무시. 자동화 브라우저에서는 꺼짐 — e2e 는 localStorage `rtd_tutorial_test` 로 켠다. 새 기능을 넣으면 단계도 하나 추가
 - `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
 - `src/data/upgrades.js` — 명성 강화 트리 45노드(부모·갈래·글자·비용·효과), 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`·Mercenary `getStats` 에서 사용, 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 방사형 강화 트리 화면(`layoutTree()` 배치, 드래그·확대). GameScene 은 `this.bonus`(강화 효과, 성탑 창을 닫으면 `applyBonus()` 로 다시 읽음)·`this.difficulty`(0 노멀/1 하드)를 쓴다. 필드 가운데 성탑 칸(`TOWER_CELL`)은 용병 금지 — 빈 칸 검사는 `isTowerCell()`, 용병 칸 수는 `fieldSlots`(24)
 - `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성 — 플랫 스타일: 땅·길은 저주파 노이즈(`valueNoise`) 2~3톤 덩어리(한 픽셀씩 흩뿌린 잡티 금지), 장식은 그림자 있는 작은 픽셀 그림으로 보이는 땅(길 바깥·HUD 사이)에만 놓는다

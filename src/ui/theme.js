@@ -1,15 +1,15 @@
-// UI 테마 — 픽셀아트 RPG 풍: 양피지 창 + 갈색 나무 테두리 + 초록 제목 탭/버튼 + 픽셀 글꼴
+// UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
 import { UI_PX as PX, FONT } from '../config.js';
 
 export const UI_FONT = FONT; // Galmuri11 (픽셀 글꼴)
 
 export const C = {
-  primary: 0x3f9a52, // 초록 버튼·탭
-  primaryDeep: 0x2c7a3e,
+  primary: 0xd0661a, // 주황 버튼·탭
+  primaryDeep: 0xa84a10,
   bg: 0x2b1810,
-  soft: 0xe7d2a0, // 슬롯(오목한 칸)
-  card: 0xf2dfb0, // 양피지
+  soft: 0xeedcb0, // 슬롯(오목한 칸)
+  card: 0xfff4d9, // 크림
   ink: 0x4a2a14, // 본문 글자 (진갈색)
   sub: 0x8a6a48,
   line: 0xc9a96a,
@@ -19,7 +19,7 @@ export const C = {
 };
 
 export const CSS = {
-  primary: '#2f7a3e',
+  primary: '#b4500f',
   ink: '#4a2a14',
   sub: '#8a6a48',
   white: '#ffffff',
@@ -36,16 +36,16 @@ export const ATTR_CSS_DARK = { red: '#c0362c', blue: '#2f62c4', green: '#2a8a3e'
 // 아트 픽셀 단위 스타일. layers: 바깥→안쪽 순서로 1px씩 채움
 const STYLES = {
   // 양피지 창: 검은 외곽 · 나무 테두리 · 어두운 안쪽 선 · 양피지
-  card: { layers: ['#2b1810', '#a86b34', '#a86b34', '#7a4a22', '#f2dfb0'], hi: '#c98a48', shade: '#e2c890', grain: '#8f5a2a', nails: '#5a3618', cut: 2 },
-  header: { layers: ['#2b1810', '#a86b34', '#a86b34', '#7a4a22', '#f2dfb0'], hi: '#c98a48', shade: '#e2c890', grain: '#8f5a2a', nails: '#5a3618', cut: 2 },
+  card: { layers: ['#2a1608', '#ffc84d', '#ffc84d', '#8a4f22', '#fff4d9'], hi: '#ffe08a', shade: '#f3e3be', grain: '#f0a830', cut: 2 },
+  header: { layers: ['#2a1608', '#ffc84d', '#ffc84d', '#8a4f22', '#fff4d9'], hi: '#ffe08a', shade: '#f3e3be', grain: '#f0a830', cut: 2 },
   // 버튼
-  primary: { layers: ['#1e3a20', '#3f9a52'], hi: '#6ccc7c', shade: '#2c7a3e', cut: 1 },
+  primary: { layers: ['#3a1606', '#d0661a'], hi: '#f08c3a', shade: '#a84a10', cut: 1 },
   danger: { layers: ['#3a1210', '#c2453a'], hi: '#e8735f', shade: '#8e2a24', cut: 1 },
   gold: { layers: ['#3a2608', '#e0a32a'], hi: '#ffd36a', shade: '#a8741a', cut: 1 },
-  outline: { layers: ['#2b1810', '#f2dfb0'], hi: '#fff3d0', shade: '#d6b97c', cut: 1 },
+  outline: { layers: ['#2a1608', '#fff2d4'], hi: '#ffffff', shade: '#d9c08a', cut: 1 },
   // 슬롯 (오목): 위·왼쪽이 어둡다
-  soft: { layers: ['#9a7448', '#e7d2a0'], inset: '#cdb27a', cut: 1 },
-  ghost: { layers: ['#9a7448', '#e7d2a0'], inset: '#cdb27a', cut: 1 },
+  soft: { layers: ['#a8875a', '#eedcb0'], inset: '#ceb37b', cut: 1 },
+  ghost: { layers: ['#a8875a', '#eedcb0'], inset: '#ceb37b', cut: 1 },
   // 어두운 나무 (토스트)
   dark: { layers: ['#1a0f08', '#5a3618'], hi: '#7a4e26', shade: '#43280f', cut: 1 }
 };
@@ -135,7 +135,7 @@ export function panelImage(scene, x, y, style, w, h) {
 
 /** 초록 제목 탭 (패널 위쪽 가장자리에 걸친다). [이미지, 글자] 반환 */
 export function titleTab(scene, cx, cy, label, minW = 160) {
-  const t = uiText(scene, cx, cy, label, 16, CSS.white, 'bold', { stroke: '#1e3a20', strokeThickness: 4 }).setOrigin(0.5);
+  const t = uiText(scene, cx, cy, label, 16, CSS.white, 'bold', { stroke: '#3a1606', strokeThickness: 4 }).setOrigin(0.5);
   const w = Math.max(minW, Math.ceil((t.width + 40) / PX) * PX);
   const img = panelImage(scene, cx, cy, 'primary', w, 36);
   scene.children.bringToTop(t); // 글자를 탭 이미지 위로
