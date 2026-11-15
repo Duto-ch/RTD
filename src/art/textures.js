@@ -71,7 +71,30 @@ function shade(hex, k) {
  * 땅·길은 한 픽셀씩 흩뿌린 잡티 대신 큰 얼룩(2~3톤) + 손으로 찍은 듯한 작은 무늬(풀 포기·돌멩이)로,
  * 성벽은 벽돌마다 위 밝은 줄·아래 그림자, 바깥엔 성가퀴, 바닥은 모서리가 빛나는 석판 + 금 몇 줄.
  */
+// 필드 도트 시안 (2026-11-15, 미적용): 주소에 ?fieldstyle=warm|garden|deck 을 붙이면 초원 필드 색·재질을 바꿔 본다
+const FIELD_STYLES = {
+  base: null,
+  // 포근한 초원: 밝은 풀 · 크림색 흙길 · 베이지 석벽 · 모래색 체크 바닥
+  warm: { ground: ['#7fa65a', '#6e9450', '#8fb866'], path: ['#e2c99a', '#d4b884', '#ecd8ae', '#b8986a'],
+    stone: ['#cdbf9f', '#c4b593', '#d6c9aa'], mortar: '#a3936f', outline: '#5e5038', merlonOn: ['#efe6cf', '#ddd1b4', '#d6c9aa'], merlonOff: ['#8a7a5c', '#9c8d6e', '#7c6d52'],
+    tiles: [{ base: '#efe4c8', spot: ['#e8dcbd', '#f4ebd4'], crack: '#d2c29c', hi: '#faf3e1', hi2: '#f6eed8', sh: '#d8c9a5', worn: '#fffaec' },
+            { base: '#dccba4', spot: ['#d5c39a', '#e3d3b0'], crack: '#bfab82', hi: '#eadcbc', hi2: '#e4d5b2', sh: '#c4b089', worn: '#f1e6cb' }], grout: '#b29f78' },
+  // 정원 잔디: 짙은 세이지 풀 · 자갈길 · 생울타리 벽 · 줄무늬 잔디 바닥
+  garden: { ground: ['#5f8a4a', '#527a40', '#6c9854'], path: ['#d6cbb4', '#c4b9a1', '#e3dac6', '#958a72'],
+    stone: ['#4f7a3a', '#5a8742', '#46703a'], mortar: '#365c2c', outline: '#26401f', merlonOn: ['#86b262', '#6f9c50', '#5a8742'], merlonOff: ['#2f4f27', '#3a5f30', '#28441f'],
+    tiles: [{ base: '#a6cb82', spot: ['#9cc278', '#b0d38c'], crack: '#8db56c', hi: '#bddc9a', hi2: '#b4d692', sh: '#8fb66e', worn: '#cbe6aa' },
+            { base: '#8fb86c', spot: ['#86ae63', '#98c075'], crack: '#78a058', hi: '#a3c87f', hi2: '#9bc278', sh: '#79a05a', worn: '#b2d48e' }], grout: '#6a9450' },
+  // 숲속 나무 데크: 깊은 숲 · 붉은 흙길 · 통나무 벽 · 나무 판자 바닥
+  deck: { ground: ['#3f6a3e', '#355c35', '#4a7848'], path: ['#b58c5c', '#a27a4e', '#c49c6a', '#6e4f30'],
+    stone: ['#a8743f', '#9a6a38', '#b57f48'], mortar: '#6a4524', outline: '#3a2614', merlonOn: ['#d29a5c', '#bd8549', '#a8743f'], merlonOff: ['#5a3a1c', '#6a4524', '#4a3018'],
+    tiles: [{ base: '#e0bc86', spot: ['#d8b37c', '#e6c592'], crack: '#c39a64', hi: '#efd2a2', hi2: '#e9c996', sh: '#c79f6a', worn: '#f6dfb6', planks: true },
+            { base: '#cfa56e', spot: ['#c79c65', '#d6ae79'], crack: '#b08654', hi: '#ddb782', hi2: '#d7af7a', sh: '#b38957', worn: '#e7c494', planks: true }], grout: '#8a5f34' }
+};
+const FIELD_STYLE = FIELD_STYLES[typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('fieldstyle') || 'base' : 'base'] || null;
+
 function paintBackground(scene, biome) {
+  const FS = biome.id === 'grass' ? FIELD_STYLE : null;
+  if (FS) biome = { ...biome, ground: FS.ground, path: FS.path };
   const W = Math.ceil(GAME_W / BP);
   const H = Math.ceil(GAME_H / BP);
   const tex = scene.textures.createCanvas(`bg_${biome.id}`, W, H);
@@ -157,11 +180,16 @@ function paintBackground(scene, biome) {
   const wx = fx - w;
   const wy = fy - w;
   const ws = fs + 2 * w;
-  const STONE = ['#8a8f99', '#7f848e', '#949aa4'];
+  const STONE = FS ? FS.stone : ['#8a8f99', '#7f848e', '#949aa4'];
+  const MORTAR = FS ? FS.mortar : '#555963';
+  const OUTLINE = FS ? FS.outline : '#2a2c33';
+  const MON = FS ? FS.merlonOn : ['#c3c8d0', '#a7acb5', '#a7acb5'];
+  const MOFF = FS ? FS.merlonOff : ['#44474f', '#5b5f68', '#3a3d45'];
+  const GROUT = FS ? FS.grout : '#454953';
   // 벽 그림자: 오른쪽·아래로 1px 길 위에 드리움
   rect(wx + 1, wy + ws, ws, 1, shade(p1, 0.7));
   rect(wx + ws, wy + 1, 1, ws, shade(p1, 0.7));
-  rect(wx - 1, wy - 1, ws + 2, ws + 2, '#2a2c33');
+  rect(wx - 1, wy - 1, ws + 2, ws + 2, OUTLINE);
   // 벽돌: 6x3 (줄마다 반 칸 어긋남) — 위 밝은 줄 / 가운데 / 아래 줄눈
   for (let by = 0; by < ws; by += 3) {
     const row = by / 3;
@@ -174,7 +202,7 @@ function paintBackground(scene, biome) {
           if (X < wx || X >= wx + ws || Y >= wy + ws) continue;
           if (X >= fx && X < fx + fs && Y >= fy && Y < fy + fs) continue;
           const mortar = y === 2 || x === 5;
-          px(X, Y, mortar ? '#555963' : y === 0 ? shade(c, 1.12) : c);
+          px(X, Y, mortar ? MORTAR : y === 0 ? shade(c, 1.12) : c);
         }
       }
     }
@@ -182,14 +210,14 @@ function paintBackground(scene, biome) {
   // 성가퀴: 바깥 테두리 2px 띠에 3칸 간격 요철 (위 밝음·옆 그림자)
   for (let i = 0; i < ws; i++) {
     const on = Math.floor(i / 4) % 2 === 0;
-    const top = on ? '#c3c8d0' : '#44474f';
-    const sub = on ? '#a7acb5' : '#5b5f68';
+    const top = on ? MON[0] : MOFF[0];
+    const sub = on ? MON[1] : MOFF[1];
     px(wx + i, wy, top);
     px(wx + i, wy + 1, sub);
-    px(wx + i, wy + ws - 1, on ? '#a7acb5' : '#3a3d45');
+    px(wx + i, wy + ws - 1, on ? MON[2] : MOFF[2]);
     px(wx, wy + i, top);
     px(wx + 1, wy + i, sub);
-    px(wx + ws - 1, wy + i, on ? '#a7acb5' : '#3a3d45');
+    px(wx + ws - 1, wy + i, on ? MON[2] : MOFF[2]);
   }
 
   // ── 성벽 위 바닥: 5x5 석판 (모서리 빛·그림자, 금 몇 줄, 이끼 약간) ──
@@ -200,7 +228,7 @@ function paintBackground(scene, biome) {
       const sy = toArt(FIELD_Y + gy * CELL);
       const cs = toArt(FIELD_X + (gx + 1) * CELL) - sx; // 21 또는 22 (64/3 이 나누어떨어지지 않음)
       // 밝은/어두운 석판 체크무늬
-      const T = (gx + gy) % 2 === 0
+      const T = FS ? FS.tiles[(gx + gy) % 2] : (gx + gy) % 2 === 0
         ? { base: '#adafb7', spot: ['#a3a5ae', '#b6b8bf'], crack: '#8e919b', hi: '#c3c5cc', hi2: '#bbbdc4', sh: '#93959f', worn: '#cfd1d6' }
         : { base: '#696e7a', spot: ['#656a76', '#737885'], crack: '#555a65', hi: '#858b97', hi2: '#7c8290', sh: '#5b606b', worn: '#959ba6' };
       const base = T.base;
@@ -213,8 +241,13 @@ function paintBackground(scene, biome) {
         rect(bx, by, 3, 2, c);
         rect(bx + 1, by + 2, 2, 1, c);
       }
+      // 나무 판자 바닥: 7px 마다 판자 이음선 + 엇갈린 끝선
+      if (T.planks) {
+        for (let k = 7; k < cs - 2; k += 7) rect(sx + 1, sy + k, cs - 2, 1, T.crack);
+        for (let k = 0; k * 7 < cs; k++) px(sx + 4 + ((k * 9) % (cs - 8)), sy + k * 7 + 3, T.crack);
+      }
       // 금: 짧은 대각선 3~4px
-      if (tileRand() < 0.55) {
+      else if (tileRand() < 0.55) {
         let cx = sx + 3 + Math.floor(tileRand() * (cs - 8));
         let cy = sy + 3 + Math.floor(tileRand() * (cs - 8));
         const dir = tileRand() < 0.5 ? 1 : -1;
@@ -229,17 +262,17 @@ function paintBackground(scene, biome) {
       rect(sx + 1, sy + 1, 1, cs - 2, T.hi2);
       rect(sx + 1, sy + cs - 2, cs - 2, 1, T.sh);
       rect(sx + cs - 2, sy + 1, 1, cs - 2, T.sh);
-      rect(sx, sy, cs, 1, '#454953');
-      rect(sx, sy, 1, cs, '#454953');
+      rect(sx, sy, cs, 1, GROUT);
+      rect(sx, sy, 1, cs, GROUT);
       // 귀퉁이 닳음
       px(sx + 1, sy + 1, T.worn);
     }
   }
   // 성벽이 바닥 위쪽·왼쪽에 드리우는 그림자 1px
-  rect(fx, fy, fs, 1, '#3a3d45');
-  rect(fx, fy, 1, fs, '#3a3d45');
-  rect(fx, fy + fs - 1, fs, 1, '#454953');
-  rect(fx + fs - 1, fy, 1, fs, '#454953');
+  rect(fx, fy, fs, 1, (FS ? FS.outline : '#3a3d45'));
+  rect(fx, fy, 1, fs, (FS ? FS.outline : '#3a3d45'));
+  rect(fx, fy + fs - 1, fs, 1, GROUT);
+  rect(fx + fs - 1, fy, 1, fs, GROUT);
 
   tex.refresh();
 }
