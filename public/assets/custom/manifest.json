@@ -3,20 +3,79 @@
   "sprites": {
     "merc_archer_blue": {
       "file": "mercs/sigrid.png",
-      "frameWidth": 40,
-      "frameHeight": 32,
-      "scale": 0.5,
+      "frameWidth": 28,
+      "frameHeight": 24,
+      "scale": 0.75,
       "faceTarget": true,
-      "pivotX": 17,
+      "pivotX": 12,
       "animations": {
         "idle": {
-          "frames": [0, 1, 2, 3, 4, 5, 6, 7, 8],
-          "fps": 5,
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "fps": 6,
           "loop": true
         },
         "attack": {
-          "frames": [9, 10, 11, 12, 13, 14, 15, 16, 17],
-          "fps": 5
+          "frames": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "fps": 12
+        }
+      }
+    },
+    "merc_mage_red": {
+      "file": "mercs/bridget.png",
+      "frameWidth": 28,
+      "frameHeight": 24,
+      "scale": 0.75,
+      "faceTarget": true,
+      "pivotX": 13,
+      "animations": {
+        "idle": {
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "fps": 6,
+          "loop": true
+        },
+        "attack": {
+          "frames": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "fps": 12
         }
       }
     }

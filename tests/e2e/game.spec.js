@@ -202,8 +202,8 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
     g.select(m);
     return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anim: m.sprite.anims.currentAnim?.key };
   });
-  // 40x32 프레임 × 0.5 배율 → 화면 80x64 (한 칸 높이), 기본 18프레임 = 대기 9 + 공격 9
-  expect(s).toEqual({ key: 'merc_archer_blue', w: 80, h: 64, frames: 18, anim: 'merc_archer_blue:idle' });
+  // 28x24 프레임 × 0.75 배율(아트 1px = 화면 3px) → 화면 84x72, 18프레임 = 대기 9 + 공격 9
+  expect(s).toEqual({ key: 'merc_archer_blue', w: 84, h: 72, frames: 18, anim: 'merc_archer_blue:idle' });
   await page.waitForTimeout(2600);
   await page.screenshot({ path: SHOT('11-custom-sigrid') });
 
@@ -214,11 +214,11 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
   await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBeGreaterThan(1); // 1.8초짜리 모션을 공격 간격 안에 맞춰 빠르게 재생
   await page.screenshot({ path: SHOT('12-custom-sigrid-attack') });
 
-  // 왼쪽 대상을 공격하면 좌우 반전, 오른쪽이면 원래대로. 반전해도 몸 중심(pivotX 17)은 제자리
-  const face = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return { flip: sp.flipX, ox: Math.round(sp.originX * 40) }; });
-  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 23 });
+  // 왼쪽 대상을 공격하면 좌우 반전, 오른쪽이면 원래대로. 반전해도 몸 중심(pivotX 12)은 제자리
+  const face = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return { flip: sp.flipX, ox: Math.round(sp.originX * 28) }; });
+  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 16 });
   await page.screenshot({ path: SHOT('13-custom-sigrid-left') });
-  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 17 });
+  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 12 });
   expect(errors).toEqual([]);
 });
 
@@ -482,5 +482,20 @@ test('필드 도트(플랫 스타일): 지역 10종 배경이 모두 그려지�
   expect(r.missing).toEqual([]);
   expect(r.changeRate).toBeLessThan(0.25);
   await page.screenshot({ path: SHOT('22-field-flat') });
+  expect(errors).toEqual([]);
+});
+
+test('PixelLab 시범 캐릭터: 브리짓(레드 마법사) 3픽셀 사양 대기·공격 모션', async ({ page }) => {
+  const errors = await startGame(page);
+  const s = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.hire();
+    const m = g.mercs[0];
+    m.cls = 'mage'; m.attr = 'red'; m.level = 1; m.skills = []; m.drawPips();
+    window.__rtd.setArt(m.sprite, m.textureKey, 4);
+    m.sprite.play('merc_mage_red:idle');
+    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anims: ['idle', 'attack'].every((a) => g.anims.exists(`merc_mage_red:${a}`)) };
+  });
+  expect(s).toEqual({ key: 'merc_mage_red', w: 84, h: 72, frames: 18, anims: true });
   expect(errors).toEqual([]);
 });
