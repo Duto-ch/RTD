@@ -1,0 +1,30 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><link rel="stylesheet" href="b_base.css">
+<style>
+ /* B-1 양쪽 기둥형: 왼쪽 한 장(상태+유물), 오른쪽 한 장(용병+행동) — 카드 수를 줄여 전장이 더 넓게 보이게 */
+ .col { position: absolute; top: 30px; bottom: 30px; width: 440px; display: flex; flex-direction: column; padding: 24px; gap: 18px; }
+ .L { left: 30px; } .R { right: 30px; }
+ .wave h2 { font-size: 46px; } .sep { height: 2px; background: var(--line); border-radius: 2px; }
+ .merc { display: flex; gap: 16px; } .merc .por { width: 96px; height: 96px; }
+ .merc h3 { font-size: 26px; color: #3f8a3e; } .merc .s { color: var(--sub); font-size: 16px; }
+ .sk { font-size: 16px; display: grid; gap: 10px; } .sk span { display: flex; justify-content: space-between; margin-bottom: 4px; }
+ .grow { flex: 1; } .hire { font-size: 28px; padding: 22px; border-radius: 22px; }
+ .rounds { display: flex; gap: 12px; } .rounds .round { flex: 1; }
+</style></head><body>
+<section class="card col L"><div class="ttl"><i data-i="leaf"></i>초원 지역<span class="more">최고 W32</span></div>
+ <div class="wave"><h2 class="serif">WAVE 3</h2><span class="chip" style="margin-top:8px"><i data-i="clock"></i>다음 웨이브 24초</span></div>
+ <div class="line"><i data-i="coin"></i>골드<span class="r num">969 G</span></div>
+ <div class="line"><i data-i="skull"></i>몬스터<span class="r num">12 / 100</span></div><div class="bar"><i style="width:12%"></i></div>
+ <button class="pill sage" style="justify-content:center">바로 시작 (Space)</button>
+ <div class="sep"></div>
+ <div class="ttl" style="font-size:22px"><i data-i="leaf"></i>유물<span class="more">2 / 4</span></div>
+ <div class="relics"><div class="slot"><div class="gem" style="background:#d4523e"></div></div><div class="slot"><div class="gem" style="background:#e3b23a"></div></div><div class="slot" style="border-style:dashed"></div><div class="slot" style="border-style:dashed"></div></div>
+ <div class="grow"></div>
+ <div class="chip" style="white-space:normal;line-height:1.5;border-radius:16px;padding:12px 16px"><i data-i="leaf"></i>상성: 블루 › 레드 › 그린 › 블루</div></section>
+<section class="card col R"><div class="ttl"><i data-i="leaf"></i>선택한 용병<span class="more">스킬 정보</span></div>
+ <div class="merc"><div class="por"></div><div><h3 class="serif">로빈</h3><div class="s">Lv.2 궁수 · 그린 · 레벨업 40G</div><div style="font-size:17px;margin-top:6px">공격 14 · 공속 1.40 · 사거리 220</div></div></div>
+ <div class="sk"><div><span>바람 화살<em style="color:var(--sub);font-style:normal">6초</em></span><div class="bar"><i style="width:64%"></i></div></div></div>
+ <button class="pill" style="justify-content:center">판매 +15G (S)</button>
+ <div class="grow"></div>
+ <button class="pill sage hire"><i data-i="plus"></i>용병 고용 · 30 G</button>
+ <div class="rounds"><div class="round"><i data-i="play"></i>x1</div><div class="round"><i data-i="pause"></i>정지</div><div class="round"><i data-i="menu"></i>메뉴</div></div></section>
+<script src="icons.js"></script></body></html>

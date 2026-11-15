@@ -1,0 +1,47 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><link rel="stylesheet" href="b_base.css">
+<style>
+ /* B-2 배치(위 상태 바 + 아래 도크) + B-3 스타일(세이지 머리띠 · 나무 간판) */
+ .strip { background: linear-gradient(#8fae6c, var(--sage)); color: #fffbea; border-bottom: 3px solid var(--sage-d); display: flex; align-items: center; gap: 10px; font-family: 'Gowun Batang'; font-weight: 700; }
+ .strip svg path:first-child { fill: #eef3dc; stroke: #eef3dc; } .strip svg path { stroke: #eef3dc; }
+ .strip small { font-family: 'Gowun Dodum'; font-weight: 400; color: #eef3dc; margin-left: auto; font-size: 16px; }
+ .wood { background: linear-gradient(#c99a62, var(--wood)); border: 4px solid var(--wood-d); border-radius: 14px; color: #fff7e2; font-family: 'Gowun Batang'; font-weight: 700; box-shadow: 0 5px 0 #6e4626; text-shadow: 0 2px 0 #7a4e2a; white-space: nowrap; }
+ /* 위 상태 바 */
+ .top { left: 50%; transform: translateX(-50%); top: 18px; width: 1330px; padding: 0; overflow: hidden; border-radius: 26px; }
+ .top .strip { padding: 8px 26px; font-size: 19px; }
+ .top .body { display: flex; align-items: center; gap: 22px; padding: 12px 22px 14px; white-space: nowrap; font-size: 19px; }
+ .top .wood { font-size: 28px; padding: 6px 22px; }
+ .top .v { width: 2px; height: 36px; background: var(--line); }
+ .top .num { font-size: 27px; } .top .slot { width: 46px; height: 46px; } .top .gem { width: 22px; height: 22px; }
+ .top .bar { width: 150px; height: 9px; }
+ /* 웨이브 시작 알림 (나무 간판) · 토스트 */
+ /* 알림은 몬스터 길을 가리지 않게 양옆 빈 땅에 — 웨이브 간판은 왼쪽, 짧은 알림은 오른쪽 */
+ .sign { position: absolute; left: 70px; top: 200px; font-size: 24px; padding: 8px 28px; }
+ .sign small { font-family: 'Gowun Dodum'; font-weight: 400; font-size: 17px; margin-left: 12px; }
+ .toast { right: 70px; top: 204px; padding: 10px 24px; border-radius: 99px; font-size: 18px; display: flex; gap: 10px; align-items: center; }
+ /* 아래 도크 */
+ .dock { left: 50%; transform: translateX(-50%); bottom: 14px; padding: 0; overflow: hidden; border-radius: 26px; white-space: nowrap; }
+ .dock * { white-space: nowrap; }
+ .dock .strip { padding: 7px 22px; font-size: 18px; }
+ .dock .body { display: flex; align-items: center; gap: 14px; padding: 10px 16px 12px; }
+ .merc { display: flex; gap: 12px; align-items: center; background: var(--card2); border-radius: 18px; padding: 8px 14px; }
+ .merc .por { width: 58px; height: 58px; } .merc h3 { font-size: 22px; color: #3f8a3e; } .merc div div { font-size: 15px; color: var(--sub); }
+ .hire { font-size: 24px; padding: 16px 30px; border-radius: 20px; }
+ .round { width: 70px; height: 62px; flex-direction: column; gap: 2px; font-size: 14px; }
+</style></head><body>
+<section class="card abs top">
+ <div class="strip"><i data-i="leaf"></i>초원 지역<small>최고 기록 W32 · 다음: 일반 54기</small></div>
+ <div class="body"><div class="wood">WAVE 3</div>
+  <i data-i="clock"></i><span>다음 웨이브 24초</span><button class="pill sage" style="font-size:16px;padding:6px 16px">바로 시작</button><span class="v"></span>
+  <i data-i="coin"></i><span class="num">969 G</span><span class="v"></span>
+  <i data-i="skull"></i><span class="num">12/100</span><div class="bar"><i style="width:12%"></i></div><span class="v"></span>
+  <span class="serif" style="font-size:19px">유물</span><div class="slot"><div class="gem" style="background:#d4523e"></div></div><div class="slot"><div class="gem" style="background:#e3b23a"></div></div><div class="slot" style="border-style:dashed"></div><div class="slot" style="border-style:dashed"></div></div>
+</section>
+<div class="wood sign">WAVE 3<small>몬스터 54기 · 레드·블루</small></div>
+<div class="card abs toast"><i data-i="leaf"></i>궁수 로빈 합류!</div>
+<section class="card abs dock">
+ <div class="strip"><i data-i="leaf"></i>용병단 지휘<small>Space 바로 시작 · S 판매 · ESC 메뉴</small></div>
+ <div class="body"><div class="merc"><div class="por"></div><div><h3 class="serif">로빈</h3><div>Lv.2 궁수 · 공격 14 · 사거리 220</div></div><button class="pill" style="font-size:15px;padding:8px 14px;margin-left:10px">스킬</button><button class="pill" style="font-size:15px;padding:8px 14px">판매</button></div>
+ <button class="pill sage hire"><i data-i="plus"></i>용병 고용 · 30 G</button>
+ <div class="round"><i data-i="play"></i>x1</div><div class="round"><i data-i="pause"></i>정지</div><div class="round"><i data-i="menu"></i>메뉴</div></div>
+</section>
+<script src="icons.js"></script></body></html>

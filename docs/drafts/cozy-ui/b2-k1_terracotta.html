@@ -1,0 +1,31 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><link rel="stylesheet" href="b_base.css">
+<style>
+ /* B-2 위 알약 바 + 아래 도크: 상태는 한 줄로, 조작은 화면 아래 가운데 — 양옆 땅은 비워 둔다 */
+ .topbar { left: 50%; transform: translateX(-50%); top: 24px; display: flex; align-items: center; gap: 26px; padding: 14px 30px; border-radius: 99px; font-size: 19px; white-space: nowrap; }
+ .topbar .num { font-size: 26px; } .topbar .v { width: 2px; height: 34px; background: var(--line); }
+ .topbar .slot { width: 46px; height: 46px; } .topbar .gem { width: 22px; height: 22px; }
+ .dock { left: 50%; transform: translateX(-50%); bottom: 14px; display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-radius: 26px; white-space: nowrap; }
+ .dock * { white-space: nowrap; }
+ .merc { display: flex; gap: 12px; align-items: center; background: var(--card2); border-radius: 20px; padding: 10px 16px; }
+ .merc .por { width: 58px; height: 58px; } .merc h3 { font-size: 22px; color: #3f8a3e; } .merc div div { font-size: 15px; color: var(--sub); }
+ .hire { font-size: 24px; padding: 16px 30px; border-radius: 20px; }
+ .round { width: 70px; height: 62px; flex-direction: column; gap: 2px; font-size: 14px; }
+ .toast { left: 50%; transform: translateX(-50%); bottom: 124px; padding: 10px 24px; border-radius: 99px; font-size: 18px; display: flex; gap: 10px; align-items: center; }
+
+ /* 키 컬러: 테라코타 — 주요 버튼·게이지·잎 아이콘·구분 강조 */
+ .pill.sage { background: #d0743c !important; border-color: #a9542a !important; box-shadow: 0 5px 0 #a9542a !important; }
+ .bar > i { background: linear-gradient(#e9a36e, #d0743c) !important; }
+ .leaf path:first-child { fill: #d0743c !important; stroke: #a9542a !important; } .leaf path { stroke: #a9542a !important; }
+ .round { color: #a9542a !important; }
+ .merc h3 { color: #a9542a !important; }
+ .topbar b.serif { color: #a9542a; }
+</style></head><body>
+<div class="card abs topbar"><i data-i="leaf"></i><b class="serif" style="font-size:28px">WAVE 3</b><span style="color:var(--sub)">초원 · 최고 W32</span><span class="v"></span>
+ <i data-i="clock"></i><span>24초</span><button class="pill sage" style="font-size:16px;padding:6px 16px">바로 시작</button><span class="v"></span>
+ <i data-i="coin"></i><span class="num">969</span><span class="v"></span><i data-i="skull"></i><span class="num">12/100</span><span class="v"></span>
+ <div class="slot"><div class="gem" style="background:#d4523e"></div></div><div class="slot"><div class="gem" style="background:#e3b23a"></div></div><div class="slot" style="border-style:dashed"></div><div class="slot" style="border-style:dashed"></div></div>
+<div class="card abs toast"><i data-i="leaf"></i>궁수 로빈 합류!</div>
+<div class="card abs dock"><div class="merc"><div class="por"></div><div><h3 class="serif">로빈</h3><div>Lv.2 궁수 · 공격 14 · 사거리 220</div></div><button class="pill" style="font-size:15px;padding:8px 14px;margin-left:10px">스킬</button><button class="pill" style="font-size:15px;padding:8px 14px">판매</button></div>
+ <button class="pill sage hire"><i data-i="plus"></i>용병 고용 · 30 G</button>
+ <div class="round"><i data-i="play"></i>x1</div><div class="round"><i data-i="pause"></i>정지</div><div class="round"><i data-i="menu"></i>메뉴</div></div>
+<script src="icons.js"></script></body></html>
