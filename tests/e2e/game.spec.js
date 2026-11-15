@@ -398,32 +398,45 @@ test('PixelLab 이펙트: 시트 8종 로드, 명중·속성 폭발·영웅 기�
   expect(errors).toEqual([]);
 });
 
-test('PixelLab 이펙트 2: 몬스터 사망·보스 저주·버프 오라·머지 레벨 업', async ({ page }) => {
+test('PixelLab 이펙트 2: 몬스터 사망·보스 폭발·버프/디버프 상태 표시·레벨 업(용병을 따라감)', async ({ page }) => {
   const errors = await startGame(page);
-  const keys = ['death', 'boss_death', 'curse', 'buff', 'merge', 'levelup'];
+  const keys = ['death', 'boss_death', 'buff', 'debuff', 'levelup'];
   expect(await game(page, (ks) => ks.filter((k) => !window.game.scene.getScene('Game').anims.exists(`fx_${k}_play`)), keys)).toEqual([]);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 9999;
     while (g.mercs.length < 2) g.hire({ free: true });
     const [a, b] = g.mercs;
-    // 버프 오라: 버프를 걸면 붙고, 끝나면 떨어진다
-    a.addBuff({ rate: 0.5, dur: 0.5 }, g.gameTime);
-    g.vfx.buffAura(a);
-    const auraOn = !!a.auraFx?.active;
-    // 사망·저주·레벨 업 (몬스터 대신 위치·속성만 가진 객체)
+    // 버프: 걸려 있는 동안 계속 붙어 있다
+    a.addBuff({ rate: 0.5, dur: 1 }, g.gameTime);
+    g.updateMercs(0);
+    const buffOn = !!a.buffFx?.active && a.list.includes(a.buffFx);
+    // 디버프 상태 표시
+    g.vfx.setStatus(b, 'debuff', true);
+    const debuffOn = !!b.debuffFx?.active && b.debuffFx.anims.isPlaying;
+    // 레벨 업: 용병 컨테이너의 자식 → 옮기면 같이 움직인다
+    g.levelUpFx(a, 'LEVEL UP!', true);
+    const lv = a.list.find((o) => o.texture?.key === 'fx_levelup');
+    const before = lv.getWorldTransformMatrix().tx;
+    a.x += 64;
+    const after = lv.getWorldTransformMatrix().tx;
     const d1 = g.vfx.death({ x: 140, y: 330, attr: 'red', kind: 'normal', isBoss: false });
     const d2 = g.vfx.death({ x: 400, y: 330, attr: 'blue', kind: 'boss', isBoss: true });
-    g.vfx.curse({ x: 272, y: 300 }, [b]);
-    g.vfx.levelUp(a, true);
-    return { auraOn, d1, d2, aId: a.id ?? null };
+    return { buffOn, debuffOn, follows: after - before === 64, d1, d2 };
   });
-  expect(r.auraOn && r.d1 && r.d2).toBe(true);
-  await page.waitForTimeout(400);
+  expect(r).toEqual({ buffOn: true, debuffOn: true, follows: true, d1: true, d2: true });
+  await page.waitForTimeout(200);
   await page.screenshot({ path: SHOT('20-pixellab-fx2') });
-  // 버프 시간이 지나면 오라가 꺼진다 (게임 시간 기준)
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gameTime += 2; g.updateMercs(0); });
-  expect(await game(page, () => !window.game.scene.getScene('Game').mercs[0].auraFx)).toBe(true);
+  // 효과가 끝나면 상태 표시가 떨어지고, 레벨 업 이펙트는 스스로 지워진다
+  await page.waitForTimeout(700);
+  const after = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gameTime += 5;
+    g.updateMercs(0);
+    const [a, b] = g.mercs;
+    return { buff: !!a.buffFx, debuff: !!b.debuffFx, levelup: a.list.some((o) => o.texture?.key === 'fx_levelup') };
+  });
+  expect(after).toEqual({ buff: false, debuff: false, levelup: false });
   expect(errors).toEqual([]);
 });
 

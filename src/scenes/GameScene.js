@@ -282,7 +282,9 @@ export class GameScene extends Phaser.Scene {
       const st = merc.getStats(this.relics, now);
       const deb = st.debuff;
       merc.sprite.setTint(deb.list.length ? (deb.stun ? 0x7a6a9a : 0xc89cff) : now < (merc.buffFlashUntil || 0) ? 0xfff2a0 : 0xffffff);
-      if (merc.auraFx && !st.buffed) this.vfx.clearBuffAura(merc); // 버프가 끝나면 오라도 끈다
+      // 상태 표시: 버프·디버프가 남아 있는 동안 계속 붙어 있고, 끝나면 떨어진다
+      this.vfx.setStatus(merc, 'buff', st.buffed);
+      this.vfx.setStatus(merc, 'debuff', deb.list.length > 0);
       if (deb.stun) continue; // 공포: 공격·스킬·쿨타임 모두 정지
       const inRange = this.monstersInRange(merc.x, merc.y, st.range);
 
@@ -473,7 +475,6 @@ export class GameScene extends Phaser.Scene {
       for (const o of who) {
         o.addBuff(b, now);
         o.buffFlashUntil = now + 0.25;
-        this.vfx.buffAura(o);
       }
     }
     if (def.gold) {
@@ -855,12 +856,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** 레벨 업 연출(약 0.5초): 이펙트와 문구 모두 용병 컨테이너에 붙어 옮겨도 따라간다 */
   levelUpFx(merc, label, hero = false) {
     this.vfx.levelUp(merc, hero);
-    const ring = this.add.circle(merc.x, merc.y, 20).setStrokeStyle(4, 0xf2c14e).setDepth(DEPTH.fx);
-    this.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 400, onComplete: () => ring.destroy() });
-    this.floatText(merc.x, merc.y - 30, label, '#f2c14e', 22, true);
-    this.tweens.add({ targets: merc.sprite, scale: merc.sprite.scaleX * 1.3, duration: 120, yoyo: true });
+    const t = text(this, 0, -30, label, hero ? 22 : 18, '#f2c14e', { stroke: '#1b1b26', strokeThickness: 4 }).setOrigin(0.5);
+    merc.add(t);
+    this.tweens.add({ targets: t, y: -52, alpha: 0, delay: 150, duration: 400, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: merc.sprite, scale: merc.sprite.scaleX * 1.2, duration: 90, yoyo: true });
   }
 
   floatText(x, y, str, color = '#ffffff', size = 16, force = false) {

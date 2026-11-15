@@ -49,7 +49,7 @@ export class Vfx {
     const s = this.s;
     if (!d || !s.anims.exists(fxAnim(key))) return false;
     if (this.sheetCount >= MAX_SHEET_FX && opts.optional !== false) return false;
-    const spr = s.add.sprite(x, y, fxTexture(key), 0).setOrigin(d.ox, d.oy).setScale(opts.scale ?? FX_SCALE).setDepth(opts.depth ?? DEPTH.fx);
+    const spr = s.add.sprite(x, y, fxTexture(key), 0).setOrigin(d.ox, d.oy).setScale(opts.scale ?? d.px ?? FX_SCALE).setDepth(opts.depth ?? DEPTH.fx);
     if (d.tint && opts.tint !== undefined) spr.setTint(typeof opts.tint === 'string' ? this.color(opts.tint) : opts.tint);
     if (opts.angle) spr.setAngle(opts.angle);
     this.sheetCount++;
@@ -63,35 +63,41 @@ export class Vfx {
   death(m) {
     if (m.isBoss) {
       this.s.cameras.main.shake(160, 0.004);
-      return this.play('boss_death', m.x, m.y, { scale: FX_SCALE * (m.isFinal ? 3 : 2), depth: DEPTH.fx + 1, optional: false });
+      return this.play('boss_death', m.x, m.y, { depth: DEPTH.fx + 1, optional: false });
     }
     return this.play('death', m.x, m.y, { tint: m.attr, scale: m.kind === 'elite' ? FX_SCALE * 1.5 : FX_SCALE });
   }
 
-  /** 머지·레벨 업: 빛 알갱이가 모인 뒤 빛기둥. hero 면 더 크게 */
+  /**
+   * 용병에 붙는 이펙트: 용병 컨테이너 안(몸 뒤, 발밑 기준)에 넣어서 용병을 옮기면 같이 움직이고,
+   * 용병이 사라지면 함께 사라진다. 반복 시트는 남겨 두고, 한 번 재생 시트는 끝나면 지운다.
+   */
+  attach(merc, key, scale) {
+    const d = FX[key];
+    if (!d || !this.s.anims.exists(fxAnim(key))) return null;
+    const a = this.s.add.sprite(0, 28, fxTexture(key), 0).setOrigin(d.ox, d.oy).setScale(scale ?? d.px ?? FX_SCALE);
+    merc.addAt(a, 0);
+    a.play(fxAnim(key));
+    if (!d.loop) a.once('animationcomplete', () => a.destroy());
+    return a;
+  }
+
+  /** 레벨 업(0.44초). 영웅 승급도 같은 크기 — 대신 배너·큰 문구로 구분 */
   levelUp(merc, hero = false) {
-    const x = merc.x;
-    const y = merc.y;
-    this.play('merge', x, y, { tint: hero ? 0xf2c14e : merc.attr, scale: FX_SCALE * (hero ? 2 : 1.5), depth: DEPTH.fx + 1, optional: false });
-    this.s.time.delayedCall(260, () => this.play('levelup', x, y + 28, { scale: FX_SCALE * (hero ? 2.5 : 1), depth: DEPTH.fx + 1, optional: false }));
+    this.attach(merc, 'levelup');
   }
 
   /**
-   * 버프 오라: 용병 컨테이너 안(몸 뒤)에 반복 이펙트를 붙인다. 이미 있으면 그대로 둔다.
-   * 버프가 끝나면 GameScene.updateMercs 가 clearBuffAura 로 지운다. 용병이 사라지면 함께 사라진다.
+   * 버프·디버프 상태 표시: on 이면 반복 이펙트를 붙이고(이미 있으면 그대로), off 면 뗀다.
+   * GameScene.updateMercs 가 매 프레임 버프(st.buffed)·디버프(st.debuff.list) 상태로 부른다.
    */
-  buffAura(merc) {
-    if (merc.auraFx?.active || !this.s.anims.exists(fxAnim('buff'))) return;
-    const d = FX.buff;
-    const a = this.s.add.sprite(0, 24, fxTexture('buff'), 0).setOrigin(d.ox, d.oy).setScale(FX_SCALE).setAlpha(0.9);
-    merc.addAt(a, 0);
-    a.play(fxAnim('buff'));
-    merc.auraFx = a;
-  }
-
-  clearBuffAura(merc) {
-    merc.auraFx?.destroy();
-    merc.auraFx = null;
+  setStatus(merc, key, on) {
+    const slot = `${key}Fx`;
+    if (on && !merc[slot]?.active) merc[slot] = this.attach(merc, key);
+    else if (!on && merc[slot]) {
+      merc[slot].destroy();
+      merc[slot] = null;
+    }
   }
 
   /** 기본 공격 명중: 클래스별 시트 + 속성 색 */
@@ -104,7 +110,8 @@ export class Vfx {
   elementBlast(x, y, r, attr) {
     const d = FX[`skill_${attr}`];
     if (!d) return false;
-    const scale = Phaser.Math.Clamp(Math.round(((r * 2) / d.w) * 2) / 2, FX_SCALE, FX_SCALE * 2.5);
+    // 플랫 시트(px 4)는 게임 픽셀 굵기 그대로, 촘촘한 시트는 반경에 맞춰 키운다
+    const scale = d.px ?? Phaser.Math.Clamp(Math.round(((r * 2) / d.w) * 2) / 2, FX_SCALE, FX_SCALE * 2.5);
     return this.play(`skill_${attr}`, x, y, { scale, optional: false });
   }
 
@@ -404,7 +411,6 @@ export class Vfx {
     for (const t of targets) {
       this.lightning(boss.x, boss.y, t.x, t.y, 0xb47cff, 3);
       this.burst('curse', t.x, t.y, 8);
-      this.play('curse', t.x, t.y + 24, { scale: FX_SCALE * 1.5, depth: DEPTH.fx, optional: false });
     }
   }
 
