@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
@@ -56,7 +56,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
 
     this.biome = biomeForWave(1);
-    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setScale(PX).setDepth(DEPTH.bg);
+    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setScale(UI_PX).setDepth(DEPTH.bg);
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hintGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hpGfx = this.add.graphics().setDepth(DEPTH.hpbar);
@@ -233,7 +233,7 @@ export class GameScene extends Phaser.Scene {
     if (biome.id === this.biome.id) return;
     this.biome = biome;
     const old = this.bgImage;
-    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setScale(PX).setDepth(DEPTH.bg + 0.5).setAlpha(0);
+    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setScale(UI_PX).setDepth(DEPTH.bg + 0.5).setAlpha(0);
     this.tweens.add({
       targets: this.bgImage,
       alpha: 1,

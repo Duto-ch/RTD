@@ -10,7 +10,7 @@
 - **그래픽은 기본적으로 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환)
 - **직접 그린 이미지·애니메이션으로 교체 가능**: `public/assets/custom/manifest.json` 에 적힌 PNG(스프라이트 시트)가 같은 키의 코드 그림을 대체 (`src/systems/customArt.js`). 애니메이션 이름: 용병·영웅 `idle`/`attack`, 몬스터 `walk`. 촘촘하게 그린 그림은 manifest `scale`(예: 32×32 → 0.5)로 크기를 맞추고, 유닛 그림을 바꿀 때는 `setArt(obj, key, 기본배율)` 을 쓴다. manifest `faceTarget`+`pivotX` 가 있는 그림은 `setFacing(sprite, left)` 로 공격 방향을 바라본다. 사용법·키 목록은 `docs/CUSTOM_ART.md`
 - 폰트: 픽셀 폰트 Galmuri11 (OFL) — UI·게임 월드 공통. `public/assets/fonts/`
-- **UI 스타일**: 픽셀아트 RPG 풍 — 양피지 창 + 갈색 나무 테두리 + 초록 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 PX배 확대(게임과 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
+- **UI 스타일**: 픽셀아트 RPG 풍 — 양피지 창 + 갈색 나무 테두리(나뭇결) + 초록 제목 탭·버튼 + X 닫기 버튼 + 오목 슬롯. 패널은 아트 해상도로 그려 UI_PX(3)배 확대(캐릭터와 같은 픽셀 격자). `src/ui/theme.js` 의 `panel()`/`panelImage()`/`panelKey()`/`titleTab()`/`closeButton()`/`uiText()`/`drawIcon()`(7x7 픽셀 아이콘) 와 `Button` variant(primary 초록/danger/gold/outline·card 양피지/soft 슬롯)를 쓴다
 
 ## 명령어
 - `npm run dev` — 개발 서버 (http://localhost:5173)
@@ -49,7 +49,7 @@
 ## 작업 규칙
 - 이 프로젝트 폴더 밖의 파일(다른 프로젝트)은 수정하지 않는다.
 - Phaser **3** API만 사용한다 (Phaser 4 문법 금지).
-- 픽셀 격자 유지: 아트 1px = 화면 4px(`PX`). 배치 좌표는 4의 배수로.
+- 픽셀 격자: **배경·UI 는 아트 1px = 화면 3px(`UI_PX`)**, 직접 그린 캐릭터도 3px(28x24 × manifest scale 0.75). 아직 코드로 그린 유닛·몬스터·성탑·유물 아이콘·이펙트는 4px(`PX`) — 캐릭터 교체가 끝나면 함께 3px 로 옮길 예정. 화면 칸(64px)은 3으로 나누어떨어지지 않으므로 배경은 `toArt()` 로 가장 가까운 픽셀 경계에 맞춘다
 - 밸런스 수치는 코드에 흩지 말고 `config.js`의 BALANCE 또는 `data/` 에 둔다.
 - GameObject 하위 클래스에 `name`, `type`, `state` 같은 Phaser 예약 속성명 getter 금지 (예: 용병 이름은 `heroName`).
 - 유닛·몬스터 그림은 Sprite(애니메이션 가능). 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')` 로 기본 애니메이션을 다시 맞춘다. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영

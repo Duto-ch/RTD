@@ -1,7 +1,11 @@
 import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES, BUILDING_SPRITES } from './sprites.js';
 import { BOSS_EXTRA_PALETTE } from './monsters.js';
 import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
-import { GAME_W, GAME_H, PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
+
+// 배경은 UI_PX(3) 해상도로 그린다. 화면 좌표 → 배경 아트 좌표 (가장 가까운 픽셀 경계로 맞춤)
+const BP = UI_PX;
+const toArt = (v) => Math.round(v / BP);
 import { RELICS } from '../data/relics.js';
 import { HEROES } from '../data/heroes.js';
 import { BIOMES } from '../data/biomes.js';
@@ -63,13 +67,13 @@ function shade(hex, k) {
 }
 
 /**
- * 지역(biome)별 배경 — 플랫 픽셀 스타일 (2026-11-15 개편)
+ * 지역(biome)별 배경 — 플랫 픽셀 스타일 (2026-11-15 개편, 같은 날 3px 밀도로 재작업)
  * 땅·길은 한 픽셀씩 흩뿌린 잡티 대신 큰 얼룩(2~3톤) + 손으로 찍은 듯한 작은 무늬(풀 포기·돌멩이)로,
  * 성벽은 벽돌마다 위 밝은 줄·아래 그림자, 바깥엔 성가퀴, 바닥은 모서리가 빛나는 석판 + 금 몇 줄.
  */
 function paintBackground(scene, biome) {
-  const W = GAME_W / PX;
-  const H = GAME_H / PX;
+  const W = Math.ceil(GAME_W / BP);
+  const H = Math.ceil(GAME_H / BP);
   const tex = scene.textures.createCanvas(`bg_${biome.id}`, W, H);
   const ctx = tex.getContext();
   const rand = rng(1234 + biome.id.length * 97 + biome.id.charCodeAt(0));
@@ -85,8 +89,8 @@ function paintBackground(scene, biome) {
   };
 
   // ── 땅: 큰 얼룩 3톤 + 작은 무늬 ──
-  const n1 = valueNoise(rand, W, H, 14);
-  const n2 = valueNoise(rand, W, H, 5);
+  const n1 = valueNoise(rand, W, H, 19);
+  const n2 = valueNoise(rand, W, H, 7);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const v = n1(x, y) * 0.75 + n2(x, y) * 0.25;
@@ -94,7 +98,7 @@ function paintBackground(scene, biome) {
     }
   }
   // 풀 포기·잔무늬: 어두운 V 자 + 밝은 끝 (땅 색만 써서 지역마다 자연스럽게)
-  for (let i = 0; i < 170; i++) {
+  for (let i = 0; i < 300; i++) {
     const x = Math.floor(rand() * W);
     const y = Math.floor(rand() * H);
     px(x, y, g1);
@@ -104,22 +108,20 @@ function paintBackground(scene, biome) {
   }
   paintDecorations(px, rect, rand, W, H, biome);
 
-  const fx = FIELD_X / PX;
-  const fy = FIELD_Y / PX;
-  const fs = FIELD_SIZE / PX;
-  const off = PATH_OFF / PX;
-  const half = PATH_WIDTH / PX / 2;
+  const fx = toArt(FIELD_X);
+  const fy = toArt(FIELD_Y);
+  const fs = toArt(FIELD_X + FIELD_SIZE) - fx;
 
-  // ── 흙길 (사각 링): 얼룩 2톤 + 자갈 + 바퀴 자국, 바깥 모서리는 둥글게 ──
-  const ox = fx - off - half;
-  const oy = fy - off - half;
-  const os = fs + 2 * (off + half);
-  const ix = fx - off + half;
-  const iy = fy - off + half;
-  const is = fs + 2 * (off - half);
+  // ── 흙길 (사각 링): 얼룩 2톤 + 자갈, 바깥 모서리는 둥글게 ──
+  const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
+  const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
+  const os = toArt(FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) - ox;
+  const ix = toArt(FIELD_X - PATH_OFF + PATH_WIDTH / 2);
+  const iy = toArt(FIELD_Y - PATH_OFF + PATH_WIDTH / 2);
+  const is = toArt(FIELD_X + FIELD_SIZE + PATH_OFF - PATH_WIDTH / 2) - ix;
   const inPath = (x, y) => x >= ox && x < ox + os && y >= oy && y < oy + os && !(x >= ix && x < ix + is && y >= iy && y < iy + is);
   const corner = (x, y) => (x === ox || x === ox + os - 1) && (y === oy || y === oy + os - 1);
-  const pn = valueNoise(rand, W, H, 6);
+  const pn = valueNoise(rand, W, H, 8);
   for (let y = oy; y < oy + os; y++) {
     for (let x = ox; x < ox + os; x++) {
       if (!inPath(x, y) || corner(x, y)) continue;
@@ -128,7 +130,7 @@ function paintBackground(scene, biome) {
     }
   }
   // 자갈: 2x1 어두운 돌 + 위 밝은 점
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 150; i++) {
     const x = ox + Math.floor(rand() * os);
     const y = oy + Math.floor(rand() * os);
     if (!inPath(x, y) || !inPath(x + 1, y) || !inPath(x, y - 1)) continue;
@@ -151,7 +153,7 @@ function paintBackground(scene, biome) {
   rect(ox + 1, oy + 1, os - 2, 1, p1); // 위쪽 안 그림자 (바깥 둑에서 드리움)
 
   // ── 성벽 ──
-  const w = WALL / PX;
+  const w = toArt(WALL);
   const wx = fx - w;
   const wy = fy - w;
   const ws = fs + 2 * w;
@@ -179,7 +181,7 @@ function paintBackground(scene, biome) {
   }
   // 성가퀴: 바깥 테두리 2px 띠에 3칸 간격 요철 (위 밝음·옆 그림자)
   for (let i = 0; i < ws; i++) {
-    const on = Math.floor(i / 3) % 2 === 0;
+    const on = Math.floor(i / 4) % 2 === 0;
     const top = on ? '#c3c8d0' : '#44474f';
     const sub = on ? '#a7acb5' : '#5b5f68';
     px(wx + i, wy, top);
@@ -191,12 +193,12 @@ function paintBackground(scene, biome) {
   }
 
   // ── 성벽 위 바닥: 5x5 석판 (모서리 빛·그림자, 금 몇 줄, 이끼 약간) ──
-  const cs = fs / GRID;
   const tileRand = rng(77);
   for (let gy = 0; gy < GRID; gy++) {
     for (let gx = 0; gx < GRID; gx++) {
-      const sx = fx + gx * cs;
-      const sy = fy + gy * cs;
+      const sx = toArt(FIELD_X + gx * CELL);
+      const sy = toArt(FIELD_Y + gy * CELL);
+      const cs = toArt(FIELD_X + (gx + 1) * CELL) - sx; // 21 또는 22 (64/3 이 나누어떨어지지 않음)
       const base = (gx + gy) % 2 === 0 ? '#6e7380' : '#696e7a';
       rect(sx, sy, cs, cs, base);
       // 석판 안 큰 얼룩 한두 개 (같은 계열 밝은/어두운 톤)
@@ -244,13 +246,14 @@ function paintDecorations(px, rect, rand, W, H, biome) {
   const g1 = biome.ground[1];
   const dark = shade(g1, 0.8);
   // 보이는 땅에만 놓는다: 몬스터 길 바깥 + 상단 HUD(y 180)와 하단 패널(y 776) 사이. 길·HUD 에 가려질 자리는 건너뜀
-  const ox = (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / PX;
-  const oy = (FIELD_Y - PATH_OFF - PATH_WIDTH / 2) / PX;
-  const os = (FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH) / PX;
-  const top = 180 / PX;
-  const bottom = 776 / PX;
+  const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
+  const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
+  const os = toArt(FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH);
+  const top = toArt(180);
+  const bottom = toArt(776);
   const visible = (x, y) => y - 2 >= top && y + 9 <= bottom && x >= 1 && x + 5 < W && !(x + 5 >= ox && x - 3 < ox + os && y + 9 >= oy && y - 2 < oy + os);
-  const spots = (n, fn) => {
+  const spots = (n0, fn) => {
+    const n = Math.round(n0 * 1.5); // 3px 밀도: 같은 땅에 픽셀이 1.8배 → 장식을 조금 더 촘촘히
     let placed = 0;
     for (let tries = 0; placed < n && tries < n * 60; tries++) {
       const x = Math.floor(rand() * W);

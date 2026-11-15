@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { audio } from '../systems/audio.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
@@ -16,7 +16,7 @@ export class TitleScene extends Phaser.Scene {
   create() {
     const cx = GAME_W / 2;
     audio.playMusic('title');
-    this.add.image(0, 0, 'bg_grass').setOrigin(0).setScale(PX);
+    this.add.image(0, 0, 'bg_grass').setOrigin(0).setScale(UI_PX);
 
     // 제목 창
     const wx = 40;

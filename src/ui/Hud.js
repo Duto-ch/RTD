@@ -2,7 +2,7 @@
 // GameScene 은 게임 진행만 맡고, 화면 표시는 이 클래스에 맡긴다 (scene.hud).
 // 게임 상태는 읽기만 하고, 버튼을 누르면 scene 의 동작(hire, sell, callNextWave …)을 부른다.
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
 import { MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
@@ -55,7 +55,7 @@ export class Hud {
     if (this.toastObj) this.toastObj.destroy();
     const t = uiText(s, 0, 0, msg, 13, color === '#ffffff' ? CSS.white : color, 'bold').setOrigin(0.5);
     this.fitText(t, GAME_W - 64);
-    const w = Math.min(GAME_W - 32, Math.ceil((t.width + 32) / PX) * PX);
+    const w = Math.min(GAME_W - 32, Math.ceil((t.width + 32) / UI_PX) * UI_PX);
     const bg = panelImage(s, 0, 0, 'dark', w, 36);
     const c = s.add.container(GAME_W / 2, TOAST_Y, [bg, t]).setDepth(DEPTH.overlay - 1);
     this.toastObj = c;
@@ -177,7 +177,7 @@ export class Hud {
     const bw = GAME_W - 80;
     g.clear();
     const pct = Math.min(1, n / max);
-    const fill = Math.round((bw * pct) / PX) * PX;
+    const fill = Math.round((bw * pct) / UI_PX) * UI_PX;
     if (fill > 0) {
       const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
       g.fillStyle(col, 1).fillRect(bx, 112, fill, 8);
@@ -224,9 +224,9 @@ export class Hud {
     const desc = uiText(s, 0, 0, relic.desc, 13, CSS.ink);
     const hint = uiText(s, 0, 0, owned.active ? '클릭: 비활성으로 전환' : `클릭: 활성으로 전환 (최대 ${s.maxRelics}개)`, 11, CSS.sub);
     const pad = 16;
-    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / PX) * PX;
+    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / UI_PX) * UI_PX;
     const h = 96;
-    const left = Phaser.Math.Clamp(Math.round((x - w / 2) / PX) * PX, 8, GAME_W - 8 - w);
+    const left = Phaser.Math.Clamp(Math.round((x - w / 2) / UI_PX) * UI_PX, 8, GAME_W - 8 - w);
     const top = y + 24;
     const bg = panel(s, left, top, w, h, 'card');
     title.setPosition(left + pad, top + 14);

@@ -1,6 +1,6 @@
 // UI 테마 — 픽셀아트 RPG 풍: 양피지 창 + 갈색 나무 테두리 + 초록 제목 탭/버튼 + 픽셀 글꼴
-// 패널은 아트 해상도(화면 1/4)로 그려서 PX(4)배 확대 → 게임 월드와 같은 픽셀 격자
-import { PX, FONT } from '../config.js';
+// 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
+import { UI_PX as PX, FONT } from '../config.js';
 
 export const UI_FONT = FONT; // Galmuri11 (픽셀 글꼴)
 
@@ -36,8 +36,8 @@ export const ATTR_CSS_DARK = { red: '#c0362c', blue: '#2f62c4', green: '#2a8a3e'
 // 아트 픽셀 단위 스타일. layers: 바깥→안쪽 순서로 1px씩 채움
 const STYLES = {
   // 양피지 창: 검은 외곽 · 나무 테두리 · 어두운 안쪽 선 · 양피지
-  card: { layers: ['#2b1810', '#a86b34', '#7a4a22', '#f2dfb0'], hi: '#c98a48', shade: '#e2c890', nails: '#5a3618', cut: 2 },
-  header: { layers: ['#2b1810', '#a86b34', '#7a4a22', '#f2dfb0'], hi: '#c98a48', shade: '#e2c890', nails: '#5a3618', cut: 2 },
+  card: { layers: ['#2b1810', '#a86b34', '#a86b34', '#7a4a22', '#f2dfb0'], hi: '#c98a48', shade: '#e2c890', grain: '#8f5a2a', nails: '#5a3618', cut: 2 },
+  header: { layers: ['#2b1810', '#a86b34', '#a86b34', '#7a4a22', '#f2dfb0'], hi: '#c98a48', shade: '#e2c890', grain: '#8f5a2a', nails: '#5a3618', cut: 2 },
   // 버튼
   primary: { layers: ['#1e3a20', '#3f9a52'], hi: '#6ccc7c', shade: '#2c7a3e', cut: 1 },
   danger: { layers: ['#3a1210', '#c2453a'], hi: '#e8735f', shade: '#8e2a24', cut: 1 },
@@ -94,6 +94,27 @@ export function panelKey(scene, style, w, h) {
   if (S.inset) {
     for (let x = L; x < aw - L; x++) px(x, L, S.inset); // 오목: 위·왼쪽 어둡게
     for (let y = L; y < ah - L; y++) px(L, y, S.inset);
+  }
+  // 나뭇결: 나무 테두리(1~2번째 겹)에 결 방향 짧은 어두운 줄을 띄엄띄엄 (같은 크기면 늘 같은 무늬)
+  if (S.grain && aw > 12 && ah > 12) {
+    let seed = aw * 31 + ah * 17;
+    const r = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    for (let x = 4; x < aw - 6; x += 3 + Math.floor(r() * 4)) {
+      const len = 2 + Math.floor(r() * 3);
+      const row = r() < 0.5 ? 1 : 2;
+      for (let k = 0; k < len && x + k < aw - 4; k++) {
+        px(x + k, row, S.grain);
+        px(x + k, ah - 1 - row, S.grain);
+      }
+    }
+    for (let y = 4; y < ah - 6; y += 3 + Math.floor(r() * 4)) {
+      const len = 2 + Math.floor(r() * 3);
+      const col = r() < 0.5 ? 1 : 2;
+      for (let k = 0; k < len && y + k < ah - 4; k++) {
+        px(col, y + k, S.grain);
+        px(aw - 1 - col, y + k, S.grain);
+      }
+    }
   }
   if (S.nails && aw > 10 && ah > 10) {
     for (const [x, y] of [[2, 2], [aw - 3, 2], [2, ah - 3], [aw - 3, ah - 3]]) px(x, y, S.nails);
@@ -175,7 +196,8 @@ const ICONS = {
 export function drawIcon(g, type, x, y, s, color) {
   const map = ICONS[type];
   if (!map) return;
-  const b = Math.max(2, Math.round(s / 7));
+  // 아이콘 1칸 = UI 픽셀 배수. 7칸 × 3px = 21px 보다 작게 써야 하는 아이콘(시계 등)은 2px 칸으로
+  const b = s >= 18 ? Math.max(1, Math.round(s / 7 / PX)) * PX : 2;
   const ox = Math.round(x - (7 * b) / 2);
   const oy = Math.round(y - (7 * b) / 2);
   map.forEach((row, j) =>

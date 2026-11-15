@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DEPTH, PX } from '../config.js';
+import { DEPTH, UI_PX as PX } from '../config.js';
 import { panelKey, uiText, drawIcon, CSS, C } from './theme.js';
 
 // 버튼 종류: primary(초록) / danger(빨강) / gold(금) / outline·card(양피지) / soft(오목 슬롯)
