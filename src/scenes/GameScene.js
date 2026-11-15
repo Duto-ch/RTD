@@ -1027,28 +1027,28 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, victory ? 0.4 : 0.55).setOrigin(0).setDepth(DEPTH.overlay).setInteractive();
     const top = DEPTH.overlay + 3; // 폭죽(overlay+2) 위에 창
     const cw = 440;
-    const ch = 480;
+    const ch = 510; // X·별 아이콘이 제목 탭에서 떨어지도록 위 여백 확보 (2026-11-15)
     const cx = GAME_W / 2;
-    const cy0 = 262;
+    const cy0 = 248;
     panel(this, cx - cw / 2, cy0, cw, ch, 'card').setDepth(top);
     for (const o of titleTab(this, cx, cy0, victory ? 'WIN!' : 'TRY AGAIN', 200)) o.setDepth(top);
     // 승리: 별 3개 (가운데 큰 별) / 패배: 큰 X
     const ico = this.add.graphics().setDepth(top);
     if (victory) {
-      for (const [dx, dy, size] of [[-74, 52, 42], [0, 40, 63], [74, 52, 42]]) {
+      for (const [dx, dy, size] of [[-74, 74, 42], [0, 62, 63], [74, 74, 42]]) {
         drawIcon(ico, 'star', cx + dx + 3, cy0 + dy + 3, size, 0x6a4a10); // 그림자
         drawIcon(ico, 'star', cx + dx, cy0 + dy, size, 0xf2b33a);
       }
     } else {
-      drawIcon(ico, 'cross', cx + 3, cy0 + 53, 56, 0x2b1810);
-      drawIcon(ico, 'cross', cx, cy0 + 50, 56, 0x3a4fa8);
+      drawIcon(ico, 'cross', cx + 3, cy0 + 75, 56, 0x2b1810);
+      drawIcon(ico, 'cross', cx, cy0 + 72, 56, 0x3a4fa8);
     }
-    const title = uiText(this, cx, cy0 + 100, victory ? '용병단 해산' : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
+    const title = uiText(this, cx, cy0 + 128, victory ? '용병단 해산' : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
       .setOrigin(0.5)
       .setDepth(top);
     const newBest = this.wave > this.bestWave;
     const sub = victory ? '수고했어요! 용병단이 성을 지켜냈어요' : `${reason}${newBest ? ' · 최고 기록 갱신!' : ''}`;
-    if (sub) uiText(this, cx, cy0 + 132, sub, 13, CSS.sub, '600').setOrigin(0.5).setDepth(top);
+    if (sub) uiText(this, cx, cy0 + 160, sub, 13, CSS.sub, '600').setOrigin(0.5).setDepth(top);
     if (victory) {
       this.tweens.add({ targets: title, scale: 1.06, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       const launch = () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(120, 640));
@@ -1064,15 +1064,15 @@ export class GameScene extends Phaser.Scene {
       ['획득 명성', `+${this.fameEarned} (보유 ${meta.fame})`]
     ];
     rows.forEach(([k, v], i) => {
-      const y = cy0 + 168 + i * 38;
+      const y = cy0 + 196 + i * 38;
       if (i) this.add.rectangle(cx, y - 19, cw - 64, 4, C.line).setDepth(top);
       uiText(this, cx - cw / 2 + 36, y, k, 15, CSS.sub, '600').setOrigin(0, 0.5).setDepth(top);
       uiText(this, cx + cw / 2 - 36, y, v, 17, CSS.ink, '700').setOrigin(1, 0.5).setDepth(top);
     });
-    new Button(this, cx, cy0 + 348, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
+    new Button(this, cx, cy0 + 376, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
     const bw = (cw - 64 - 12) / 2;
-    new Button(this, cx - bw / 2 - 6, cy0 + 416, bw, 52, '명성 강화', () => this.scene.start('Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
-    new Button(this, cx + bw / 2 + 6, cy0 + 416, bw, 52, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
+    new Button(this, cx - bw / 2 - 6, cy0 + 444, bw, 52, '명성 강화', () => this.scene.start('Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
+    new Button(this, cx + bw / 2 + 6, cy0 + 444, bw, 52, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(top);
   }
 
 }

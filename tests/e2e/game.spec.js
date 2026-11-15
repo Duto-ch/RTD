@@ -121,7 +121,7 @@ test('패배 화면: 도달 웨이브·최고 기록 저장 → 다시 하기', 
   await page.waitForTimeout(400);
   await page.screenshot({ path: SHOT('06-lose') });
   expect(await game(page, () => window.__rtd.meta.data.best.normal)).toBe(10);
-  await page.mouse.click(272, 262 + 348); // 다시 하기
+  await page.mouse.click(272, 248 + 376); // 다시 하기
   await page.waitForFunction(() => { const g = window.game.scene.getScene('Game'); return !g.over && g.wave === 0; });
   expect(await game(page, () => window.game.scene.getScene('Game').hud.waveTypeText.text)).toContain('최고 W10');
   expect(errors).toEqual([]);
@@ -361,7 +361,7 @@ test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 타�
   // 2) 게임 오버 → 결과 창 "명성 강화"
   await game(page, () => window.game.scene.getScene('Game').endGame(false, '테스트'));
   await page.waitForTimeout(400);
-  await page.mouse.click(272 - 108, 262 + 416);
+  await page.mouse.click(272 - 108, 248 + 444);
   await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
   expect(await game(page, () => window.game.scene.getScene('Upgrade').fromGame)).toBe(false); // 일반 화면 (게임 시작·타이틀로 버튼)
   // 3) 포인트 사용 후 타이틀로

@@ -117,22 +117,23 @@ export class Hud {
     this.waveTypeText = uiText(s, 32, 56, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
 
     // 타이머 슬롯 + 바로 시작 버튼
-    panel(s, GAME_W - 220, 44, 108, 24, 'soft').setDepth(D);
+    // 타이머 칸과 버튼 사이 14px 띄움 (2026-11-15 간격 확보)
+    panel(s, GAME_W - 236, 43, 108, 26, 'soft').setDepth(D);
     const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', GAME_W - 204, 56, 12, C.ink);
-    this.timerText = uiText(s, GAME_W - 192, 56, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, GAME_W - 68, 56, 84, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
-    this.bossText = uiText(s, GAME_W - 32, 78, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(clock, 'clock', GAME_W - 220, 56, 12, C.ink);
+    this.timerText = uiText(s, GAME_W - 208, 56, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, GAME_W - 72, 56, 84, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
+    this.bossText = uiText(s, GAME_W - 32, 74, '', 12, CSS.red, 'bold').setOrigin(1, 0.5).setDepth(D);
 
     // 골드 / 몬스터 수
     const coin = s.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', 42, 94, 18, 0x6a4a10);
-    this.goldText = uiText(s, 58, 94, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', 42, 88, 18, 0x6a4a10);
+    this.goldText = uiText(s, 58, 88, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', GAME_W - 152, 96, 18, C.ink);
-    this.countText = uiText(s, GAME_W - 32, 96, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
-    // 진행 막대
-    panel(s, 32, 108, GAME_W - 64, 16, 'soft').setDepth(D);
+    drawIcon(skull, 'monster', GAME_W - 152, 89, 18, C.ink);
+    this.countText = uiText(s, GAME_W - 32, 88, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
+    // 진행 막대: 창 아래 테두리와 띄우고 조금 얇게 (위 숫자와도 간격)
+    panel(s, 32, 104, GAME_W - 64, 15, 'soft').setDepth(D);
     this.countBar = s.add.graphics().setDepth(D);
 
     // 유물 줄 (높이 36)
@@ -177,8 +178,8 @@ export class Hud {
     const fill = Math.round((bw * pct) / UI_PX) * UI_PX;
     if (fill > 0) {
       const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
-      g.fillStyle(col, 1).fillRect(bx, 112, fill, 8);
-      g.fillStyle(0xffffff, 0.35).fillRect(bx, 112, fill, 4);
+      g.fillStyle(col, 1).fillRect(bx, 108, fill, 7);
+      g.fillStyle(0xffffff, 0.35).fillRect(bx, 108, fill, 3);
     }
 
     this.nextWaveBtn.setEnabled(s.canCallNextWave);
