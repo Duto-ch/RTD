@@ -78,6 +78,42 @@
           "fps": 12
         }
       }
+    },
+    "hero_ragnar": {
+      "file": "heroes/ragnar.png",
+      "scale": 0.75
+    },
+    "hero_isolde": {
+      "file": "heroes/isolde.png",
+      "scale": 0.75
+    },
+    "hero_bjorn": {
+      "file": "heroes/bjorn.png",
+      "scale": 0.75
+    },
+    "hero_arthur": {
+      "file": "heroes/arthur.png",
+      "scale": 0.75
+    },
+    "hero_solveig": {
+      "file": "heroes/solveig.png",
+      "scale": 0.75
+    },
+    "hero_william": {
+      "file": "heroes/william.png",
+      "scale": 0.75
+    },
+    "hero_halvard": {
+      "file": "heroes/halvard.png",
+      "scale": 0.75
+    },
+    "hero_freydis": {
+      "file": "heroes/freydis.png",
+      "scale": 0.75
+    },
+    "hero_richard": {
+      "file": "heroes/richard.png",
+      "scale": 0.75
     }
   }
 }
