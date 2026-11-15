@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="common.css">
+<style>
+  body { width: 544px; height: 960px; overflow: hidden; background: url(tall_game.png) center/cover; image-rendering: pixelated; position: relative; }
+  body * { image-rendering: auto; }
+  .card { position: absolute; background: rgba(251, 247, 236, .97); border-radius: 20px; }
+  .top { left: 12px; right: 12px; top: 12px; padding: 14px 18px; }
+  .t1 { display: flex; align-items: center; gap: 8px; } .t1 h2 { font-size: 26px; } .t1 .chip { margin-left: auto; font-size: 13px; padding: 4px 10px; }
+  .t2 { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 15px; } .t2 .num { font-size: 22px; } .t2 .sp { flex: 1; }
+  .t2 svg { width: 22px; height: 22px; }
+  .rel { left: 12px; right: 12px; top: 172px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; border-radius: 99px; }
+  .rel .slot { width: 36px; height: 36px; } .rel .gem { width: 18px; height: 18px; }
+  .rel .ttl { font-size: 17px; } .rel .ttl svg { width: 20px; height: 20px; }
+  .sheet { left: 0; right: 0; bottom: 0; height: 188px; border-radius: 26px 26px 0 0; padding: 16px; display: grid; grid-template-columns: 180px 1fr; gap: 12px; border-bottom: 0; }
+  .hire { grid-row: 1 / 3; border-radius: 20px; font-size: 21px; flex-direction: column; justify-content: center; font-family: 'Gowun Batang'; font-weight: 700; padding: 0; }
+  .merc { display: flex; gap: 10px; align-items: center; background: var(--card2); border-radius: 16px; padding: 8px 10px; }
+  .por { width: 58px; height: 58px; border-radius: 50%; background: #fbf7ec url(p_robin.png) center/52px no-repeat; image-rendering: pixelated; border: 2px solid var(--line); flex: none; }
+  .merc h3 { font-size: 17px; color: #3f8a3e; } .merc div div { font-size: 12px; color: var(--sub); }
+  .btns { display: flex; gap: 8px; } .btns .b { flex: 1; height: 52px; border-radius: 14px; background: var(--card2); border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 13px; color: var(--sage-d); }
+  .btns svg { width: 16px; height: 16px; }
+  .toast { left: 50%; transform: translateX(-50%); bottom: 202px; padding: 8px 18px; font-size: 14px; white-space: nowrap; border-radius: 99px; display: flex; gap: 8px; align-items: center; }
+  .toast svg { width: 18px; height: 18px; }
+</style></head><body>
+<section class="card top"><div class="t1"><i data-i="leaf"></i><h2 class="serif">WAVE 3</h2><span class="chip"><i data-i="clock"></i>24초 · 바로 시작</span></div>
+  <div class="t2"><i data-i="coin"></i><span class="num">969 G</span><span class="sp"></span><i data-i="skull"></i><span class="num">12 / 100</span></div>
+  <div class="bar" style="margin-top:8px;height:8px"><i style="width:12%"></i></div>
+  <div style="font-size:12px;color:var(--sub);margin-top:6px">초원 · 다음 54기 · 최고 W32</div></section>
+<section class="card rel"><span class="ttl"><i data-i="leaf"></i>유물</span><div class="slot"><div class="gem" style="background:#d4523e"></div></div><div class="slot"><div class="gem" style="background:#e3b23a"></div></div><div class="slot" style="border-style:dashed"></div><div class="slot" style="border-style:dashed"></div><span style="margin-left:auto;font-size:13px;color:var(--sub)">2/4 활성</span></section>
+<div class="card toast"><i data-i="leaf"></i>궁수 로빈 합류!</div>
+<section class="card sheet"><button class="pill sage hire"><span>용병 고용</span><span style="font-size:24px">30 G</span></button>
+  <div class="merc"><div class="por"></div><div><h3 class="serif">로빈</h3><div>Lv.2 궁수 · 공격 14 · 사거리 220</div></div><button class="pill" style="margin-left:auto;font-size:12px;padding:6px 10px">판매</button></div>
+  <div class="btns"><div class="b"><i data-i="play"></i>x1</div><div class="b"><i data-i="pause"></i>정지</div><div class="b"><i data-i="menu"></i>메뉴</div></div></section>
+<script src="icons.js"></script></body></html>

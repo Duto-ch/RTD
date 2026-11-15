@@ -1,0 +1,24 @@
+@import url('node_modules/@fontsource/gowun-batang/400.css');
+@import url('node_modules/@fontsource/gowun-batang/700.css');
+@import url('node_modules/@fontsource/gowun-dodum/400.css');
+:root {
+  --cream: #f6efdc; --card: #fbf7ec; --card2: #f3ead2; --line: #e3d6b6;
+  --sage: #7a9a5c; --sage-d: #56743f; --forest: #34502f; --forest2: #2a4226;
+  --ink: #4a3a28; --sub: #8c7b60; --wood: #b98552; --wood-d: #8a5c32; --gold: #d9a53a; --red: #c0503a; --blue: #4a78b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Gowun Dodum', sans-serif; color: var(--ink); background: var(--cream); }
+h1, h2, h3, .serif { font-family: 'Gowun Batang', serif; font-weight: 700; }
+.card { background: var(--card); border: 2px solid var(--line); border-radius: 22px; box-shadow: 0 6px 0 rgba(120, 95, 50, .12), 0 14px 30px rgba(60, 45, 20, .12); }
+.ttl { display: flex; align-items: center; gap: 10px; font-family: 'Gowun Batang', serif; font-weight: 700; font-size: 26px; color: var(--ink); }
+.ttl .more { margin-left: auto; font-family: 'Gowun Dodum'; font-weight: 400; font-size: 17px; color: var(--sub); }
+.leaf { width: 26px; height: 26px; flex: none; }
+.bar { height: 10px; background: #e6dcc0; border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(#94b26f, #6f8f52); border-radius: 99px; }
+.pill { border-radius: 99px; padding: 12px 26px; font-size: 20px; border: 2px solid var(--line); background: var(--card); color: var(--ink); display: inline-flex; align-items: center; gap: 8px; font-family: 'Gowun Dodum'; box-shadow: 0 4px 0 rgba(120, 95, 50, .14); }
+.pill.sage { background: var(--sage); border-color: var(--sage-d); color: #fffbea; box-shadow: 0 5px 0 var(--sage-d); }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 99px; background: var(--card2); font-size: 17px; color: var(--sub); }
+.pix { image-rendering: pixelated; }
+.slot { width: 74px; height: 74px; border-radius: 50%; background: var(--card2); border: 2px solid var(--line); display: grid; place-items: center; }
+.gem { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset -5px -6px 0 rgba(0,0,0,.18), inset 4px 4px 0 rgba(255,255,255,.45); }
+.num { font-family: 'Gowun Batang'; font-weight: 700; }
