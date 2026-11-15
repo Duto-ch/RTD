@@ -53,10 +53,11 @@ describe('명성 강화 트리 (인크리멘탈)', () => {
   });
 });
 
-describe('하드 난이도', () => {
-  it('300골드로 시작, 몬스터 체력은 노멀보다 높다', () => {
-    expect(BALANCE.hard.startGold).toBe(300);
-    expect(monsterStats('normal', 1, false, 1).hp).toBe(monsterStats('normal', 1).hp * BALANCE.hard.hpMult);
-    expect(monsterStats('normal', 1, false, 1).hp).toBeGreaterThan(monsterStats('normal', 1).hp);
+describe('최고 기록 (무한 웨이브)', () => {
+  it('도달 웨이브의 최댓값만 남는다', () => {
+    meta.reset();
+    meta.record(42);
+    meta.record(17);
+    expect(meta.data.best.normal).toBe(42);
   });
 });

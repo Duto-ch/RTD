@@ -203,7 +203,7 @@ export class UpgradeScene extends Phaser.Scene {
   redraw() {
     this.fameText.setText(`명성 ${meta.fame.toLocaleString()}`);
     const best = meta.data.best;
-    this.bestText.setText(`최고 기록 W${best.normal || 0}${meta.data.hardUnlocked ? ` · HARD W${best.hard || 0}` : ''}`);
+    this.bestText.setText(`최고 기록 W${best.normal || 0}`);
     const learnedCount = UPGRADES.filter((u) => meta.level(u.id) > 0).length;
     this.countText.setText(`배운 노드 ${learnedCount} / ${UPGRADES.length}`);
 
@@ -293,7 +293,7 @@ export class UpgradeScene extends Phaser.Scene {
       this.dNote.setText(`먼저 「${UPGRADE_BY_ID[u.parent].name}」을(를) 배워야 열립니다`).setColor(CSS.red);
       this.buyBtn.setLabel(`잠김 · 명성 ${cost}`).setEnabled(false);
     } else {
-      const hint = START_ONLY.has(u.id) ? '판을 시작할 때 적용 (전투 중이면 다음 판·하드부터)' : '강화 버튼을 누르면 1레벨 올라갑니다 · 즉시 적용';
+      const hint = START_ONLY.has(u.id) ? '판을 시작할 때 적용 (전투 중이면 다음 판부터)' : '강화 버튼을 누르면 1레벨 올라갑니다 · 즉시 적용';
       this.dNote.setText(status === 'poor' ? `명성이 ${cost - meta.fame} 부족합니다` : hint).setColor(status === 'poor' ? CSS.red : CSS.sub);
       this.buyBtn.setLabel(`강화 · 명성 ${cost}`).setEnabled(status === 'ok');
     }

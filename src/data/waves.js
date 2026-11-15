@@ -1,15 +1,20 @@
 import { BALANCE } from '../config.js';
 
 // 웨이브 규칙
-// - 총 100웨이브
+// - 무한 웨이브 (2026-11-15 사용자 결정: 100웨이브 목표·하드 난이도 폐지). 지거나 그만둘 때까지 계속
 // - 일반 몬스터 수: 1웨이브 50기 → 70웨이브 200기까지 선형 증가 → 이후 200기 고정
-// - 정예 웨이브: 5, 15, 25 … 95 (일반 몬스터 + 정예 10기)
-// - 보스 웨이브: 10, 20, 30 … 100 (일반 몬스터 + 보스 1기)
-// - 강화 보스 웨이브: 30, 60, 90 (일반 몬스터 + 정예 10기 + 강화 보스) — BALANCE.milestone
-// - 최종 보스 웨이브: 100 (일반 몬스터 + 최종 보스: 디버프 3개·분노·첫 사망 시 50% 부활+디버프 1개 추가) — BALANCE.final
+// - 정예 웨이브: 5, 15, 25 … (일반 몬스터 + 정예 10기)
+// - 보스 웨이브: 10, 20, 30 … (일반 몬스터 + 보스 1기)
+// - 강화 보스 웨이브: 30의 배수 (100의 배수 제외) (일반 몬스터 + 정예 10기 + 강화 보스) — BALANCE.milestone
+// - 최종 보스 웨이브: 100의 배수 (100, 200 …) (일반 몬스터 + 최종 보스: 디버프 3개·분노·첫 사망 시 50% 부활+디버프 1개 추가) — BALANCE.final
 // - 보스는 느리게 이동하며, 성벽을 한 바퀴 다 돌면 즉시 게임 오버
 // - 한 웨이브의 몬스터 속성은 최대 BALANCE.monster.attrsPerWave 종류
-export const TOTAL_WAVES = 100;
+/** 이 웨이브마다 최종 보스가 나오고, 몬스터·지역 디자인이 한 바퀴 돈다 */
+export const CYCLE_WAVES = 100;
+
+export function isFinalWave(w) {
+  return w > 0 && w % CYCLE_WAVES === 0;
+}
 
 export function isEliteWave(w) {
   return w % 10 === 5;
@@ -18,7 +23,7 @@ export function isBossWave(w) {
   return w % 10 === 0;
 }
 export function isMilestoneWave(w) {
-  return BALANCE.milestone.waves.includes(w);
+  return w % BALANCE.milestone.every === 0 && !isFinalWave(w);
 }
 
 export function normalCount(w) {
@@ -29,7 +34,7 @@ export function normalCount(w) {
 
 export function waveInfo(w) {
   const normal = normalCount(w);
-  if (w === TOTAL_WAVES) return { type: 'final', normal, elite: 0, boss: 1 };
+  if (isFinalWave(w)) return { type: 'final', normal, elite: 0, boss: 1 };
   if (isMilestoneWave(w)) return { type: 'milestone', normal, elite: BALANCE.milestone.extraElites, boss: 1 };
   if (isBossWave(w)) return { type: 'boss', normal, elite: 0, boss: 1 };
   if (isEliteWave(w)) return { type: 'elite', normal, elite: 10, boss: 0 };
@@ -47,16 +52,16 @@ export function spawnList(w) {
   return list;
 }
 
-/** 일반·정예 이동 속도 배율: 20웨이브마다 10%씩 (복리) */
+/** 일반·정예 이동 속도 배율: 20웨이브마다 10%씩 (복리), 상한 speedMaxMult */
 export function speedMultiplier(w) {
   const M = BALANCE.monster;
-  return Math.pow(M.speedStepMult, Math.floor(w / M.speedStepWaves));
+  return Math.min(M.speedMaxMult, Math.pow(M.speedStepMult, Math.floor(w / M.speedStepWaves)));
 }
 
 /** 몬스터 능력치 (수치는 config.js BALANCE.monster) */
-export function monsterStats(kind, w, milestone = false, difficulty = 0) {
+export function monsterStats(kind, w, milestone = false) {
   const M = BALANCE.monster;
-  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1)) * (difficulty ? BALANCE.hard.hpMult : 1);
+  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1)) * M.hpScale;
   switch (kind) {
     case 'boss':
       return { hp: hp * M.bossHpMult * (milestone ? BALANCE.milestone.hpMult : 1), speed: M.bossSpeed, gold: 150 + w * 5 };

@@ -3,7 +3,7 @@
 import { UPGRADE_BY_ID, upgradeCost, metaBonus } from '../data/upgrades.js';
 
 const KEY = 'rtd_meta_v1';
-const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0, hard: 0 }, hardUnlocked: false, tutorial: { seen: {}, off: false } });
+const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0 }, tutorial: { seen: {}, off: false } });
 
 export const meta = {
   data: fresh(),
@@ -83,10 +83,9 @@ export const meta = {
     this.save();
   },
 
-  record(difficulty, wave) {
-    const k = difficulty ? 'hard' : 'normal';
-    this.data.best[k] = Math.max(this.data.best[k] || 0, wave);
-    if (difficulty) this.data.hardUnlocked = true;
+  /** 최고 도달 웨이브 (무한 웨이브). 예전 저장의 하드 기록은 쓰지 않는다 */
+  record(wave) {
+    this.data.best = { ...this.data.best, normal: Math.max(this.data.best?.normal || 0, wave) };
     this.save();
   },
 

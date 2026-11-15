@@ -6,7 +6,8 @@ import { NORMAL_DESIGNS, ELITE_DESIGNS, BOSS_DESIGNS } from '../art/monsters.js'
 // 보스: 보스 웨이브(10, 20 … 100)마다 전용 디자인. 100웨이브는 최종 보스
 const clamp = (i, list) => list[Math.max(0, Math.min(list.length - 1, i))];
 
-export function monsterDesign(kind, w) {
+export function monsterDesign(kind, wave) {
+  const w = ((wave - 1) % 100) + 1; // 무한 웨이브: 100웨이브마다 디자인이 한 바퀴 돈다
   if (kind === 'boss') return clamp(Math.round(w / 10) - 1, BOSS_DESIGNS);
   if (kind === 'elite') return clamp(Math.floor((w - 5) / 10), ELITE_DESIGNS);
   return clamp(Math.floor((w - 1) / 5), NORMAL_DESIGNS);

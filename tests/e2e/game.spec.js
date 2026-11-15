@@ -107,22 +107,23 @@ test('최종 보스는 한 번 부활한다', async ({ page }) => {
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game'); const b = g.monsters.find((m) => m.isFinal); const before = b.abilities.length;
     g.damageMonster(b, 1e15, {}); const revived = b.alive && b.revived && b.abilities.length === before + 1;
-    g.damageMonster(b, 1e15, {}); return { revived, deadAfter2: !b.alive };
+    g.damageMonster(b, 1e15, {}); return { revived, deadAfter2: !b.alive, over: g.over };
   });
-  expect(r).toEqual({ revived: true, deadAfter2: true });
+  // 완전히 쓰러뜨리면 축하하고 게임은 계속된다 (무한 웨이브)
+  expect(r).toEqual({ revived: true, deadAfter2: true, over: false });
   expect(errors).toEqual([]);
 });
 
-test('승리·패배 화면', async ({ page }) => {
+test('패배 화면: 도달 웨이브·최고 기록 저장 → 다시 하기', async ({ page }) => {
   const errors = await startGame(page);
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.wave = 100; g.endGame(true); });
-  await page.waitForTimeout(800);
-  await page.screenshot({ path: SHOT('05-win') });
-  await page.mouse.click(272, 262 + 348); // 다시 하기
-  await page.waitForTimeout(500);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.wave = 10; g.spawnMonster('boss'); g.monsters.at(-1).dist = 1755; });
   await page.waitForFunction(() => window.game.scene.getScene('Game').over);
+  await page.waitForTimeout(400);
   await page.screenshot({ path: SHOT('06-lose') });
+  expect(await game(page, () => window.__rtd.meta.data.best.normal)).toBe(10);
+  await page.mouse.click(272, 262 + 348); // 다시 하기
+  await page.waitForFunction(() => { const g = window.game.scene.getScene('Game'); return !g.over && g.wave === 0; });
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.waveTypeText.text)).toContain('최고 W10');
   expect(errors).toEqual([]);
 });
 
@@ -290,23 +291,29 @@ test('판이 끝나면 버틴 웨이브만큼 명성 적립', async ({ page }) =
   expect(errors).toEqual([]);
 });
 
-test('노멀 100웨이브 클리어 → 하드 1웨이브 (용병·유물 초기화, 300골드)', async ({ page }) => {
+test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은 한 바퀴 돌아 초원, 체력은 계속 오른다', async ({ page }) => {
   const errors = await startGame(page);
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    g.gold = 999; g.hire(); g.hire(); g.addRelic('war_drum'); g.refreshRelics();
+    g.gold = 999; g.hire(); g.addRelic('war_drum'); g.refreshRelics();
     g.wave = 100; g.spawnQueue = [];
     for (const m of [...g.monsters]) m.destroy();
     g.monsters = [];
+    g.update(0, 16); // 예전에는 여기서 하드로 넘어갔다
+    g.waveTimer = 0;
     g.update(0, 16);
-    return { diff: g.difficulty, gold: g.gold, mercs: g.mercs.length, relics: g.ownedRelics.length, wave: g.wave, over: g.over, tab: g.hud.waveText.text };
+    g.refreshHud();
+    return { gold: g.gold >= 900, mercs: g.mercs.length, relics: g.ownedRelics.length, wave: g.wave, over: g.over, tab: g.hud.waveText.text, biome: g.biome.id };
   });
-  expect(s).toEqual({ diff: 1, gold: 300, mercs: 0, relics: 0, wave: 0, over: false, tab: 'HARD 0 / 100' });
+  expect(s).toEqual({ gold: true, mercs: 1, relics: 1, wave: 101, over: false, tab: 'WAVE 101', biome: 'grass' });
+  const hp = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    return g.monsters.at(-1).maxHp;
+  });
+  expect(hp).toBeCloseTo(40 * Math.pow(1.08, 100) * 0.7, 0);
   await page.waitForTimeout(600);
-  await page.screenshot({ path: SHOT('16-hard-start') });
-  // 하드 1웨이브 몬스터 체력은 노멀의 hpMult 배
-  const hp = await game(page, () => { const g = window.game.scene.getScene('Game'); g.startWave(1); g.spawnMonster(g.spawnQueue.shift()); return g.monsters.at(-1).maxHp; });
-  expect(hp).toBe(34 * 4);
+  await page.screenshot({ path: SHOT('16-endless') });
   expect(errors).toEqual([]);
 });
 

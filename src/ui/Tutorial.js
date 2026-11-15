@@ -66,11 +66,6 @@ export const TUTORIAL_STEPS = {
     title: '성탑 · 명성 강화',
     text: '웨이브를 버틸 때마다 명성이 쌓입니다.\n성탑을 누르면 판 도중에도 영구 강화를 찍을 수 있어요.',
     rect: (s) => (s.tower ? { x: s.tower.x - CELL / 2, y: s.tower.y - CELL, w: CELL, h: CELL } : null)
-  },
-  hard: {
-    title: '하드 난이도',
-    text: '용병과 유물이 초기화되고 1웨이브부터 다시 시작합니다.\n몬스터는 훨씬 단단하지만 명성을 더 많이 얻어요.',
-    rect: null
   }
 };
 

@@ -62,6 +62,8 @@ export const BALANCE = {
     hpBase: 40, // 체력 공식의 기준값 (2웨이브 = 40×1.08 …)
     firstWaveHp: 34, // 1웨이브만 예외 (2026-11-13 사용자 결정, 다른 웨이브는 공식 그대로)
     hpGrowth: 1.08,
+    // 전체 난이도 완화 (2026-11-15 사용자 결정: 무한 웨이브 전환과 함께 30% 완화) — 모든 몬스터 체력에 곱한다
+    hpScale: 0.7,
     eliteHpMult: 10,
     bossHpMult: 110, // 2026-11-12 사용자 결정
     // 이동 속도: 일반·정예 1.3배, 보스 1.5배 (2026-11-12)
@@ -71,6 +73,7 @@ export const BALANCE = {
     // 일반·정예 이동 속도는 speedStepWaves 웨이브마다 speedStepMult 배 (보스 제외)
     speedStepWaves: 20,
     speedStepMult: 1.1,
+    speedMaxMult: 2, // 무한 웨이브: 이동 속도 배율 상한 (약 150웨이브)
     firstWaveCount: 50, // 1웨이브 일반 몬스터 수 (70웨이브 maxCount 까지 선형 증가)
     maxCount: 200,
     maxCountWave: 70,
@@ -82,9 +85,9 @@ export const BALANCE = {
     targetsBase: 2, // 대상 수 = targetsBase + floor(웨이브 / targetsPerWaves)
     targetsPerWaves: 20
   },
-  // 강화 보스 웨이브 (30·60·90)
+  // 강화 보스 웨이브: 30웨이브마다 (100의 배수는 최종 보스)
   milestone: {
-    waves: [30, 60, 90],
+    every: 30,
     hpMult: 1.5, // 보스 체력 추가 배율
     abilityCount: 2, // 디버프 능력 개수 고정
     extraTargets: 2, // 디버프 대상 추가 인원
@@ -95,17 +98,11 @@ export const BALANCE = {
     shiftEvery: 8, // 속성 변환 주기(초)
     relicChoices: 3 // 처치 시 유물 선택지 수
   },
-  // 최종 보스 (100웨이브)
+  // 최종 보스 (100웨이브마다 — 무한 웨이브라 100·200·300 …에 다시 나온다)
   final: {
     abilityCount: 3, // 디버프 능력 3개
     reviveHp: 0.5, // 첫 사망 시 이 체력 비율로 부활
     reviveExtraAbilities: 1 // 부활 시 추가되는 디버프 능력 수
-  },
-  // 하드 난이도: 노멀 100웨이브 클리어 시 진입. 용병·유물 초기화, 300골드로 다시 1웨이브부터 (2026-11-13 사용자 결정)
-  hard: {
-    startGold: 300,
-    hpMult: 4, // ⚠️ 가정: 몬스터 체력 4배 (사용자 확인 필요)
-    fameMult: 3 // ⚠️ 가정: 명성 3배
   },
   maxAlive: 100, // 필드 위 몬스터가 이 수에 도달하면 게임 오버
   prepTime: 8, // 1웨이브 시작 전 준비 시간(초)

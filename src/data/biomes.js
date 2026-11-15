@@ -13,7 +13,7 @@ export const BIOMES = [
   { id: 'void', name: '공허의 끝', ground: ['#1a1030', '#120a24', '#24183e'], path: ['#3a2a5a', '#2c2046', '#4a3a6e', '#0c0618'], deco: 'stars', decoColors: ['#c48aff', '#ffffff', '#ff4dd2'] }
 ];
 
-/** 웨이브 → 지역 (1~10: 0번, 11~20: 1번 …) */
+/** 웨이브 → 지역 (1~10: 0번, 11~20: 1번 … 100웨이브마다 처음부터 다시) */
 export function biomeForWave(w) {
-  return BIOMES[Math.max(0, Math.min(BIOMES.length - 1, Math.floor((Math.max(1, w) - 1) / 10)))];
+  return BIOMES[Math.floor((Math.max(1, w) - 1) / 10) % BIOMES.length];
 }

@@ -11,7 +11,7 @@ import { ATTRS, ATTR_INFO, elementMultiplier } from '../data/elements.js';
 import { MERC_CLASS_IDS, HEROES } from '../data/heroes.js';
 import { skillOptions, isDamaging } from '../data/skills.js';
 import { RELICS, RELIC_BY_ID } from '../data/relics.js';
-import { TOTAL_WAVES, waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
+import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
 import { playOnce, playBase, setArt, setFacing } from '../systems/customArt.js';
@@ -37,7 +37,7 @@ export class GameScene extends Phaser.Scene {
     this.paused = false;
     this.over = false;
     this.bonus = meta.load().bonus(); // 명성 강화 효과 (판 시작 시 고정)
-    this.difficulty = 0; // 0 노멀, 1 하드
+    this.bestWave = meta.data.best.normal || 0; // 지금까지 최고 도달 웨이브 (무한 웨이브)
     this.fameEarned = 0; // 이번 판에서 얻은 명성 (판이 끝날 때 저장)
     this.fameCredited = false;
     this.gold = BALANCE.startGold + this.bonus.startGold;
@@ -119,7 +119,7 @@ export class GameScene extends Phaser.Scene {
     this.scene.pause();
   }
 
-  /** 강화 효과 다시 읽기 (시작 골드·징집령처럼 판 시작 때만 쓰는 효과는 다음 판/하드 진입부터) */
+  /** 강화 효과 다시 읽기 (시작 골드·징집령처럼 판 시작 때만 쓰는 효과는 다음 판부터) */
   applyBonus() {
     this.bonus = meta.bonus();
     this.refreshRelics();
@@ -127,7 +127,7 @@ export class GameScene extends Phaser.Scene {
     this.refreshInfo();
   }
 
-  /** 명성 강화 '징집령': 시작할 때 무료 용병 배치 (하드 진입 때도) */
+  /** 명성 강화 '징집령': 시작할 때 무료 용병 배치 */
   conscript() {
     for (let i = 0; i < this.bonus.conscripts; i++) this.hire({ free: true, minLevel: this.bonus.veteran ? 2 : 1 });
   }
@@ -166,19 +166,12 @@ export class GameScene extends Phaser.Scene {
     const boss = this.monsters.find((m) => m.isBoss && m.dist >= PATH_LENGTH);
     if (boss) this.endGame(false, '보스가 성벽을 한 바퀴 돌았습니다');
     else if (this.monsters.length >= this.maxAlive) this.endGame(false, `몬스터가 ${this.maxAlive}기 쌓였습니다`);
-    else if (this.wave >= TOTAL_WAVES && this.spawnQueue.length === 0 && this.monsters.length === 0) {
-      this.earnFame(FAME.perWave(TOTAL_WAVES));
-      if (this.difficulty === 0) this.enterHard();
-      else this.endGame(true);
-    }
   }
 
   // ───────────────────────── 웨이브 ─────────────────────────
   updateWaves(dt) {
-    if (this.wave < TOTAL_WAVES) {
-      this.waveTimer -= dt;
-      if (this.waveTimer <= 0) this.startWave(this.wave + 1);
-    }
+    this.waveTimer -= dt;
+    if (this.waveTimer <= 0) this.startWave(this.wave + 1);
     if (this.spawnQueue.length) {
       this.spawnTimer -= dt;
       while (this.spawnTimer <= 0 && this.spawnQueue.length) {
@@ -220,7 +213,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 바로 시작은 필드의 몬스터를 전부 처치했을 때만 (나올 몬스터도 남아 있지 않을 때) */
   get canCallNextWave() {
-    return !this.over && this.wave < TOTAL_WAVES && this.monsters.length === 0 && this.spawnQueue.length === 0;
+    return !this.over && this.monsters.length === 0 && this.spawnQueue.length === 0;
   }
 
   /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
@@ -253,7 +246,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnMonster(kind) {
-    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave), this.difficulty);
+    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
     this.monsters.push(m);
     if (m.isBoss) {
       audio.bossAppear();
@@ -517,6 +510,7 @@ export class GameScene extends Phaser.Scene {
       audio.bossKill();
       if (m.milestone) this.offerRelicChoice();
       else this.dropRelic(m.x, m.y);
+      if (m.isFinal) this.celebrateCycle();
     } else audio.kill();
     if (m.kind !== 'normal') this.floatText(m.x, m.y - 30, `+${gold}G`, '#f2c14e');
     m.destroy();
@@ -975,10 +969,10 @@ export class GameScene extends Phaser.Scene {
     return !!this.hud.menu;
   }
 
-  // ───────────────────────── 명성 · 하드 ─────────────────────────
-  /** 명성 적립 (하드는 배율) — 바로 저장해서 판 도중에도 성탑에서 쓸 수 있다 */
+  // ───────────────────────── 명성 ─────────────────────────
+  /** 명성 적립 — 바로 저장해서 판 도중에도 성탑에서 쓸 수 있다 */
   earnFame(n) {
-    const v = Math.round(n * (this.difficulty ? BALANCE.hard.fameMult : 1) * (1 + this.bonus.fameMult));
+    const v = Math.round(n * (1 + this.bonus.fameMult));
     this.fameEarned += v;
     meta.addFame(v);
   }
@@ -987,36 +981,16 @@ export class GameScene extends Phaser.Scene {
   creditFame() {
     if (this.fameCredited) return;
     this.fameCredited = true;
-    meta.record(this.difficulty, this.wave);
+    meta.record(this.wave);
   }
 
-  /** 노멀 100웨이브 클리어 → 하드 1웨이브: 용병·유물 초기화, 300골드로 다시 시작 */
-  enterHard() {
-    meta.record(0, TOTAL_WAVES);
-    this.difficulty = 1;
-    this.select(null);
-    this.hud.hideRelicTip();
-    for (const m of this.mercs) {
-      this.grid[m.row][m.col] = null;
-      m.destroy();
-    }
-    this.ownedRelics = [];
-    this.recomputeRelics();
-    this.refreshRelics();
-    this.gold = BALANCE.hard.startGold;
-    this.conscript();
-    this.wave = 0;
-    this.waveTimer = BALANCE.prepTime;
-    this.spawnQueue = [];
-    this.changeBiome(biomeForWave(1));
+  /** 최종 보스(100웨이브마다)를 완전히 쓰러뜨리면 축하하고 그대로 다음 웨이브로 이어진다 */
+  celebrateCycle() {
     audio.victory();
     this.time.delayedCall(1200, () => !this.over && audio.playMusic('battle'));
     for (let i = 0; i < 8; i++) this.time.delayedCall(i * 180, () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(160, 600)));
     this.cameras.main.flash(500, 255, 220, 120);
-    this.showBanner('HARD 난이도 시작!', `용병·유물 초기화 · ${BALANCE.hard.startGold}골드로 1웨이브부터 · 몬스터 체력 ${BALANCE.hard.hpMult}배`, '#ff4dd2');
-    this.tut.show('hard');
-    this.refreshHud();
-    this.refreshInfo();
+    this.showBanner(`${this.wave} 웨이브 돌파!`, '최종 보스 격파 — 웨이브는 계속됩니다', '#f2c14e');
   }
 
   quitToTitle() {
@@ -1035,6 +1009,7 @@ export class GameScene extends Phaser.Scene {
     else this.tweens.resumeAll();
   }
 
+  /** 패배 (무한 웨이브라 승리 종료는 없다. victory 는 디버그용으로만 남김) */
   endGame(victory, reason = '') {
     if (this.over) return;
     this.over = true;
@@ -1068,10 +1043,11 @@ export class GameScene extends Phaser.Scene {
       drawIcon(ico, 'cross', cx + 3, cy0 + 53, 56, 0x2b1810);
       drawIcon(ico, 'cross', cx, cy0 + 50, 56, 0x3a4fa8);
     }
-    const title = uiText(this, cx, cy0 + 100, victory ? (this.difficulty ? 'HARD 100 웨이브 클리어!' : '100 웨이브 클리어!') : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
+    const title = uiText(this, cx, cy0 + 100, victory ? '용병단 해산' : '게임 오버', 26, victory ? CSS.primary : CSS.red, '700')
       .setOrigin(0.5)
       .setDepth(top);
-    const sub = victory ? '축하합니다! 용병단이 성을 지켜냈어요' : reason;
+    const newBest = this.wave > this.bestWave;
+    const sub = victory ? '수고했어요! 용병단이 성을 지켜냈어요' : `${reason}${newBest ? ' · 최고 기록 갱신!' : ''}`;
     if (sub) uiText(this, cx, cy0 + 132, sub, 13, CSS.sub, '600').setOrigin(0.5).setDepth(top);
     if (victory) {
       this.tweens.add({ targets: title, scale: 1.06, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -1082,7 +1058,7 @@ export class GameScene extends Phaser.Scene {
     // 기록 줄 (거래 내역처럼)
     const heroes = this.mercs.filter((m) => m.isHero).length;
     const rows = [
-      ['도달 웨이브', `${this.difficulty ? 'HARD ' : ''}${this.wave} / ${TOTAL_WAVES}`],
+      ['도달 웨이브', `W${this.wave} (최고 W${Math.max(this.bestWave, this.wave)})`],
       ['처치한 몬스터', this.totalKills.toLocaleString()],
       ['영웅 · 유물', `${heroes}명 · ${this.ownedRelics.length}개`],
       ['획득 명성', `+${this.fameEarned} (보유 ${meta.fame})`]

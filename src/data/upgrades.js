@@ -75,7 +75,7 @@ export const UPGRADES = [
   N('veteran', 'conscript', 'defense', '노련한 신병', '노', 'veteran', 1, 1, [80, 1], 'flag', '무료 용병이 Lv2로 시작')
 ];
 
-// 판을 시작할 때만 쓰는 효과 — 판 도중(성탑)에 사면 다음 판(또는 하드 진입)부터 적용
+// 판을 시작할 때만 쓰는 효과 — 판 도중(성탑)에 사면 다음 판부터 적용
 export const START_ONLY = new Set(['funds', 'conscript', 'veteran']);
 
 export const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
@@ -108,7 +108,7 @@ export function formatEffect(u, lv) {
   }
 }
 
-/** 판 하나에서 얻는 명성: 클리어한 웨이브마다 1 + 웨이브/10, 보스 보너스, 하드는 배율 */
+/** 판 하나에서 얻는 명성: 클리어한 웨이브마다 1 + 웨이브/10, 보스 보너스 */
 export const FAME = {
   perWave: (w) => 1 + Math.floor(w / 10),
   boss: 5,

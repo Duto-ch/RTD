@@ -11,7 +11,7 @@ import { ATTR_INFO, strongAgainst, weakAgainst } from '../data/elements.js';
 import { HEROES } from '../data/heroes.js';
 import { skillOptions, describeSkill, ELEMENT_FLAVOR } from '../data/skills.js';
 import { RELIC_BY_ID } from '../data/relics.js';
-import { TOTAL_WAVES, waveInfo } from '../data/waves.js';
+import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
 import { setArt, playBase } from '../systems/customArt.js';
 import { audio } from '../systems/audio.js';
@@ -148,17 +148,13 @@ export class Hud {
   refresh() {
     const s = this.s;
     const nextWave = s.wave + 1;
-    this.waveText.setText(`${s.difficulty ? 'HARD' : 'WAVE'} ${s.wave} / ${TOTAL_WAVES}`);
-    if (s.wave < TOTAL_WAVES) {
-      const label = s.wave === 0 ? '시작' : '다음';
-      this.timerText.setText(`${label} ${Math.ceil(Math.max(0, s.waveTimer))}초`);
-      const ni = waveInfo(nextWave);
-      const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
-      this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra}`);
-    } else {
-      this.timerText.setText('최종 웨이브');
-      this.waveTypeText.setText(`${s.biome.name} · 모두 처치하세요`);
-    }
+    // 무한 웨이브: 목표 없이 계속 올라간다. 최고 기록을 함께 보여 준다
+    this.waveText.setText(`WAVE ${s.wave}`);
+    const label = s.wave === 0 ? '시작' : '다음';
+    this.timerText.setText(`${label} ${Math.ceil(Math.max(0, s.waveTimer))}초`);
+    const ni = waveInfo(nextWave);
+    const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
+    this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`);
     const boss = s.monsters.find((m) => m.isBoss && m.alive);
     this.bossText.setText(
       boss
