@@ -40,7 +40,7 @@
 - `src/systems/audio.js` — 16비트 풍 사운드 합성기 (배경음 4곡: title/battle/boss/final + 효과음, 볼륨 저장). 외부 오디오 파일 없음. 첫 입력 후 `audio.init()`
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
-- `src/ui/Hud.js` — 전투 화면 UI(상단 상태 창·유물 줄·툴팁, 하단 버튼·정보 창, 토스트·배너, 스킬 정보 팝업, ESC 메뉴). GameScene 이 `this.hud` 로 들고 있고, 게임 상태는 읽기만 한다. GameScene 의 `toast`/`showBanner`/`refreshHud`/`refreshRelics`/`refreshInfo` 는 hud 로 넘기는 짧은 통로. 새 HUD 요소는 GameScene 이 아니라 여기에 추가
+- `src/ui/Hud.js` — 전투 화면 UI(상단 상태 창·유물 줄·툴팁, 하단 버튼·정보 창, 토스트·배너, 스킬 정보 팝업, ESC 메뉴). GameScene 이 `this.hud` 로 들고 있고, 게임 상태는 읽기만 한다. GameScene 의 `toast`/`showBanner`/`refreshHud`/`refreshRelics`/`refreshInfo` 는 hud 로 넘기는 짧은 통로. 새 HUD 요소는 GameScene 이 아니라 여기에 추가. 배너·토스트는 필드·몬스터 길(y 232~728)을 가리지 않는 띠(`BANNER_Y`/`TOAST_Y`)에만 띄운다
 - `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
 - `src/data/upgrades.js` — 명성 강화 트리 45노드(부모·갈래·글자·비용·효과), 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`·Mercenary `getStats` 에서 사용, 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 방사형 강화 트리 화면(`layoutTree()` 배치, 드래그·확대). GameScene 은 `this.bonus`(강화 효과, 성탑 창을 닫으면 `applyBonus()` 로 다시 읽음)·`this.difficulty`(0 노멀/1 하드)를 쓴다. 필드 가운데 성탑 칸(`TOWER_CELL`)은 용병 금지 — 빈 칸 검사는 `isTowerCell()`, 용병 칸 수는 `fieldSlots`(24)
 - `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성

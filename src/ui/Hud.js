@@ -2,7 +2,7 @@
 // GameScene 은 게임 진행만 맡고, 화면 표시는 이 클래스에 맡긴다 (scene.hud).
 // 게임 상태는 읽기만 하고, 버튼을 누르면 scene 의 동작(hire, sell, callNextWave …)을 부른다.
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, FIELD_Y, FIELD_SIZE, DEPTH } from '../config.js';
+import { GAME_W, GAME_H, PX, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
 import { MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
@@ -14,6 +14,12 @@ import { TOTAL_WAVES, waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
 import { setArt, playBase } from '../systems/customArt.js';
 import { audio } from '../systems/audio.js';
+
+// 알림 띠 위치: 필드·몬스터 길 바깥의 빈 공간 가운데
+const TOP_BAND = [180, FIELD_Y - PATH_OFF - PATH_WIDTH / 2]; // 유물 줄 아래 ~ 위쪽 길 바깥 가장자리
+const BOTTOM_BAND = [FIELD_Y + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2, 776]; // 아래쪽 길 바깥 가장자리 ~ 하단 패널
+export const BANNER_Y = (TOP_BAND[0] + TOP_BAND[1]) / 2;
+export const TOAST_Y = (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2;
 
 export class Hud {
   /** @param {Phaser.Scene} scene GameScene */
@@ -29,13 +35,29 @@ export class Hud {
   }
 
   // ───────────────────────── 잠깐 뜨는 알림 ─────────────────────────
+  // 전장을 가리지 않도록 필드·몬스터 길 바깥의 빈 띠에만 띄운다.
+  //  배너(웨이브 시작·보스 등장·유물 획득 등): 유물 줄과 위쪽 몬스터 길 사이 (y 180~232)
+  //  토스트(고용·골드 부족 등 짧은 안내): 아래쪽 몬스터 길과 하단 패널 사이 (y 728~776)
+
+  /** 글자가 maxW 를 넘으면 뒤를 줄이고 … 를 붙인다 */
+  fitText(t, maxW) {
+    if (t.width <= maxW) return t;
+    let str = t.text;
+    while (str.length > 1 && t.width > maxW) {
+      str = str.slice(0, -1);
+      t.setText(`${str.trimEnd()}…`);
+    }
+    return t;
+  }
+
   toast(msg, color = '#ffffff') {
     const s = this.s;
     if (this.toastObj) this.toastObj.destroy();
-    const t = uiText(s, 0, 0, msg, 14, color === '#ffffff' ? CSS.white : color, 'bold').setOrigin(0.5);
-    const w = Math.min(GAME_W - 40, Math.ceil((t.width + 40) / PX) * PX);
-    const bg = panelImage(s, 0, 0, 'dark', w, 40);
-    const c = s.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE + 52, [bg, t]).setDepth(DEPTH.overlay - 1);
+    const t = uiText(s, 0, 0, msg, 13, color === '#ffffff' ? CSS.white : color, 'bold').setOrigin(0.5);
+    this.fitText(t, GAME_W - 64);
+    const w = Math.min(GAME_W - 32, Math.ceil((t.width + 32) / PX) * PX);
+    const bg = panelImage(s, 0, 0, 'dark', w, 36);
+    const c = s.add.container(GAME_W / 2, TOAST_Y, [bg, t]).setDepth(DEPTH.overlay - 1);
     this.toastObj = c;
     c.setAlpha(0);
     s.tweens.add({ targets: c, alpha: 1, duration: 120 });
@@ -45,16 +67,25 @@ export class Hud {
   showBanner(title, sub, color = '#ffffff') {
     const s = this.s;
     if (this.bannerObj) this.bannerObj.destroy();
-    const w = 456;
-    const h = 108;
+    const w = GAME_W - 24;
+    const h = 40; // 테두리 그림자 포함 48px → 띠(52px) 안에 들어간다
     const bg = panelImage(s, 0, 0, 'card', w, h);
-    const t1 = uiText(s, 0, -14, title, 26, onLight(color), 'bold').setOrigin(0.5);
-    const t2 = uiText(s, 0, 22, sub, 13, CSS.sub, 'bold', { align: 'center', wordWrap: { width: w - 48 } }).setOrigin(0.5);
-    const c = s.add.container(GAME_W / 2, FIELD_Y + FIELD_SIZE / 2, [bg, t1, t2]).setDepth(DEPTH.overlay - 2);
+    // 한 줄: [제목(색)]  [부제(회색)] — 가운데 정렬, 넘치면 부제 뒤를 줄인다
+    const t1 = this.fitText(uiText(s, 0, 2, title, 15, onLight(color), 'bold').setOrigin(0, 0.5), w - 32);
+    const items = [bg, t1];
+    let total = t1.width;
+    if (sub) {
+      const t2 = this.fitText(uiText(s, 0, 3, sub, 11, CSS.ink, 'bold').setOrigin(0, 0.5), w - 32 - t1.width - 12);
+      items.push(t2);
+      total += 12 + t2.width;
+      t2.x = Math.round(-total / 2 + t1.width + 12);
+    }
+    t1.x = Math.round(-total / 2);
+    const c = s.add.container(GAME_W / 2, BANNER_Y, items).setDepth(DEPTH.overlay - 2);
     this.bannerObj = c;
     c.setScale(1, 0);
-    s.tweens.add({ targets: c, scaleY: 1, duration: 140, ease: 'Stepped', easeParams: [4] });
-    s.tweens.add({ targets: c, alpha: 0, delay: 2000, duration: 300, onComplete: () => c.destroy() });
+    s.tweens.add({ targets: c, scaleY: 1, duration: 120, ease: 'Stepped', easeParams: [3] });
+    s.tweens.add({ targets: c, alpha: 0, delay: 2200, duration: 300, onComplete: () => c.destroy() });
   }
 
   /** 배너·토스트 즉시 지우기 (보상 선택 창·게임 종료 창이 뜰 때) */

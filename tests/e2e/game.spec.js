@@ -426,3 +426,28 @@ test('PixelLab 이펙트 2: 몬스터 사망·보스 저주·버프 오라·머�
   expect(await game(page, () => !window.game.scene.getScene('Game').mercs[0].auraFx)).toBe(true);
   expect(errors).toEqual([]);
 });
+
+test('배너·토스트는 필드와 몬스터 길(y 232~728)을 가리지 않는다', async ({ page }) => {
+  const errors = await startGame(page);
+  await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.showBanner('보스: 아주 긴 이름의 강화 보스', '공속 감소(공격 속도 -40% 8초) / 스킬 봉쇄(스킬 사용 불가 6초) / 쿨타임 증가(쿨타임 회복 -50% 10초)', '#d6a8ff');
+    g.toast('골드가 부족합니다 — 아주 긴 안내 문구가 들어와도 화면 밖으로 넘치지 않아야 합니다', '#ff9a7a');
+  });
+  await page.waitForTimeout(300);
+  const b = await game(page, () => {
+    const h = window.game.scene.getScene('Game').hud;
+    const r = (c) => { const k = c.getBounds(); return { top: k.top, bottom: k.bottom, left: k.left, right: k.right }; };
+    return { banner: r(h.bannerObj), toast: r(h.toastObj) };
+  });
+  expect(b.banner.bottom).toBeLessThanOrEqual(232);
+  expect(b.banner.top).toBeGreaterThanOrEqual(180);
+  expect(b.toast.top).toBeGreaterThanOrEqual(728);
+  expect(b.toast.bottom).toBeLessThanOrEqual(776);
+  for (const k of ['banner', 'toast']) {
+    expect(b[k].left).toBeGreaterThanOrEqual(0);
+    expect(b[k].right).toBeLessThanOrEqual(544);
+  }
+  await page.screenshot({ path: SHOT('21-notice-bands') });
+  expect(errors).toEqual([]);
+});
