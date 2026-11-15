@@ -15,6 +15,7 @@ export class BootScene extends Phaser.Scene {
   preload() {
     preloadManifest(this);
     preloadFx(this);
+    this.load.image('title_bg', 'assets/title/title.webp'); // 타이틀 일러스트
   }
 
   create() {

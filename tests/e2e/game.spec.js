@@ -229,7 +229,7 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   await page.goto('/');
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
-  await page.mouse.click(272, 724); // 명성 강화
+  await page.mouse.click(272, 960 - 92); // 명성 강화 (타이틀 아래 금색 버튼)
   await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
   await page.waitForTimeout(200);
   const at = (id) => game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id);
@@ -634,4 +634,21 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   // 메뉴의 '다시 보기' → 다시 켜진다
   expect(await game(page, () => { window.__rtd.meta.resetTutorial(); const g = window.game.scene.getScene('Game'); g.select(g.mercs[0]); return g.tut.open; })).toBe('select');
   expect(errors).toEqual([]);
+});
+
+test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누르면 시작', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  const t = await page.evaluate(() => { const s = window.game.scene.getScene('Title'); return { tap: s.tapText.text, bg: s.textures.exists('title_bg') }; });
+  expect(t).toEqual({ tap: 'TAP TO START', bg: true });
+  // 깜빡임: 시간에 따라 투명도가 바뀐다
+  const alphas = new Set();
+  for (let i = 0; i < 8; i++) {
+    alphas.add(await page.evaluate(() => window.game.scene.getScene('Title').tapText.alpha.toFixed(2)));
+    await page.waitForTimeout(150);
+  }
+  expect(alphas.size).toBeGreaterThan(1);
+  await page.screenshot({ path: SHOT('28-title') });
+  await page.mouse.click(120, 500); // 빈 곳
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
 });

@@ -70,7 +70,8 @@ export class Hud {
     if (this.bannerObj) this.bannerObj.destroy();
     const w = GAME_W - 24;
     const h = 40; // 테두리 그림자 포함 48px → 띠(52px) 안에 들어간다
-    const bg = panelImage(s, 0, 0, 'card', w, h);
+    // 얇은 테두리(strip): 두꺼운 card 테두리는 안쪽이 16px 뿐이라 글자가 테두리에 걸쳤다 (2026-11-15)
+    const bg = panelImage(s, 0, 0, 'strip', w, h);
     // 한 줄: [제목(색)]  [부제(회색)] — 가운데 정렬, 넘치면 부제 뒤를 줄인다
     const t1 = this.fitText(uiText(s, 0, 2, title, 15, onLight(color), 'bold').setOrigin(0, 0.5), w - 32);
     const items = [bg, t1];
