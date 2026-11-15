@@ -65,7 +65,7 @@ export class Vfx {
       this.s.cameras.main.shake(160, 0.004);
       return this.play('boss_death', m.x, m.y, { depth: DEPTH.fx + 1, optional: false });
     }
-    return this.play('death', m.x, m.y, { tint: m.attr, scale: m.kind === 'elite' ? FX_SCALE * 1.5 : FX_SCALE });
+    return this.play('death', m.x, m.y, { tint: m.attr });
   }
 
   /**
@@ -103,7 +103,7 @@ export class Vfx {
   /** 기본 공격 명중: 클래스별 시트 + 속성 색 */
   hitFx(kind, attr, x, y) {
     const key = HIT_FX[kind];
-    if (key) this.play(key, x, y, { tint: kind === 'ranger' ? 0xf2c14e : attr, scale: kind === 'warlord' ? FX_SCALE * 1.5 : FX_SCALE });
+    if (key) this.play(key, x, y, { tint: kind === 'ranger' ? 0xf2c14e : attr });
   }
 
   /** 속성 스킬 폭발 (레드 화염 · 블루 얼음 · 그린 가시). 반경 r(화면 px)에 맞춰 키운다 */
@@ -261,7 +261,7 @@ export class Vfx {
       case 'sniper':
         for (const t of targets.slice(0, 8)) {
           this.snipe(unit, t, attr);
-          s.time.delayedCall(120, () => this.play('hit_snipe', t.x, t.y, { scale: FX_SCALE * 1.5, optional: false }));
+          s.time.delayedCall(120, () => this.play('hit_snipe', t.x, t.y, { optional: false }));
         }
         break;
       case 'shaman':
@@ -271,7 +271,7 @@ export class Vfx {
       case 'rogue':
       case 'warlord':
         for (const t of targets.slice(0, 10)) {
-          if (!this.play('slash', t.x, t.y, { tint: attr, scale: kind === 'warlord' ? FX_SCALE * 2 : FX_SCALE * 1.5, angle: Phaser.Math.Between(-30, 30) }))
+          if (!this.play('slash', t.x, t.y, { tint: attr, scale: kind === 'warlord' ? 8 : undefined, angle: Phaser.Math.Between(-2, 2) * 90 }))
             this.slash(t.x, t.y, color, kind === 'warlord');
         }
         if (area.type === 'range' || area.type === 'circle') this.shockwave(cx, cy, r, color);
@@ -391,7 +391,7 @@ export class Vfx {
     const s = this.s;
     const c = ATTR_INFO[unit.attr].color;
     s.cameras.main.flash(180, (c >> 16) & 255, (c >> 8) & 255, c & 255, true);
-    this.play('ultimate', unit.x, unit.y + 24, { scale: FX_SCALE * 1.5, depth: DEPTH.fx + 2, optional: false });
+    this.play('ultimate', unit.x, unit.y + 28, { depth: DEPTH.fx + 2, optional: false });
     s.cameras.main.shake(220, 0.006);
     const t = s.add
       .text(GAME_W / 2, unit.y - 70, def.name, {

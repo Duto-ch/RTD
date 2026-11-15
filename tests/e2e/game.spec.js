@@ -464,3 +464,23 @@ test('배너·토스트는 필드와 몬스터 길(y 232~728)을 가리지 않�
   await page.screenshot({ path: SHOT('21-notice-bands') });
   expect(errors).toEqual([]);
 });
+
+test('필드 도트(플랫 스타일): 지역 10종 배경이 모두 그려지고 장식은 보이는 땅에만', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const ids = ['grass', 'desert', 'autumn', 'volcano', 'snow', 'swamp', 'crystal', 'graveyard', 'sky', 'void'];
+    const missing = ids.filter((id) => !g.textures.exists(`bg_${id}`));
+    // 잡티 대신 덩어리: 땅 한 줄에서 옆 픽셀과 색이 바뀌는 횟수가 적어야 한다 (예전 흩뿌림은 약 30%)
+    const src = g.textures.get('bg_grass').getSourceImage();
+    const ctx = src.getContext('2d');
+    const row = ctx.getImageData(0, 50, src.width, 1).data;
+    let changes = 0;
+    for (let x = 1; x < src.width; x++) if (row[x * 4] !== row[(x - 1) * 4] || row[x * 4 + 1] !== row[(x - 1) * 4 + 1]) changes++;
+    return { missing, changeRate: changes / src.width };
+  });
+  expect(r.missing).toEqual([]);
+  expect(r.changeRate).toBeLessThan(0.25);
+  await page.screenshot({ path: SHOT('22-field-flat') });
+  expect(errors).toEqual([]);
+});

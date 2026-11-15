@@ -11,18 +11,18 @@ export const FX_SCALE = 2;
 
 export const FX = {
   // 기본 공격 명중
-  hit_star: { file: 'hit_star.png', w: 30, h: 28, frames: 5, fps: 16, ox: 0.47, oy: 0.5, tint: true, effect: 'cb18c0a7-20dc-42ff-8042-d7b8aadc3180' },
-  hit_magic: { file: 'hit_magic.png', w: 31, h: 35, frames: 8, fps: 16, ox: 0.52, oy: 0.51, tint: true, effect: '06be3609-827c-40b3-9a28-282460506470' },
-  hit_snipe: { file: 'hit_snipe.png', w: 36, h: 39, frames: 8, fps: 16, ox: 0.53, oy: 0.44, tint: false, effect: '1278c012-1ec9-4c48-b906-7ac106902d41' },
+  hit_star: { file: 'hit_star.png', w: 16, h: 16, frames: 4, fps: 16, ox: 0.5, oy: 0.5, px: 4, tint: true, effect: 'cb18c0a7-20dc-42ff-8042-d7b8aadc3180' },
+  hit_magic: { file: 'hit_magic.png', w: 24, h: 24, frames: 5, fps: 16, ox: 0.5, oy: 0.5, px: 4, tint: true, effect: '06be3609-827c-40b3-9a28-282460506470' },
+  hit_snipe: { file: 'hit_snipe.png', w: 22, h: 24, frames: 5, fps: 18, ox: 0.45, oy: 0.42, px: 4, tint: false, effect: '1278c012-1ec9-4c48-b906-7ac106902d41' },
   // 스킬
-  slash: { file: 'slash.png', w: 33, h: 38, frames: 12, fps: 20, ox: 0.48, oy: 0.37, tint: true, effect: '66f75859-b0c6-45f7-a359-c02110cc8abc' },
+  slash: { file: 'slash.png', w: 24, h: 24, frames: 5, fps: 16, ox: 0.5, oy: 0.5, px: 4, tint: true, effect: '66f75859-b0c6-45f7-a359-c02110cc8abc' },
   skill_red: { file: 'skill_red.png', w: 32, h: 32, frames: 9, fps: 14, ox: 0.53, oy: 0.56, px: 4, tint: false, effect: 'f09e6591-b482-42a1-9c2e-60e498481dd3' },
-  skill_blue: { file: 'skill_blue.png', w: 48, h: 70, frames: 14, fps: 14, ox: 0.52, oy: 0.44, tint: false, effect: 'cc0f6545-87fd-4364-ae37-11e98d815f1c' },
-  skill_green: { file: 'skill_green.png', w: 65, h: 70, frames: 15, fps: 14, ox: 0.52, oy: 0.47, tint: false, effect: 'a8f92403-9fd5-4cd6-a735-bf6ba4104703' },
+  skill_blue: { file: 'skill_blue.png', w: 36, h: 28, frames: 10, fps: 14, ox: 0.5, oy: 0.64, px: 4, tint: false, effect: 'cc0f6545-87fd-4364-ae37-11e98d815f1c' },
+  skill_green: { file: 'skill_green.png', w: 36, h: 35, frames: 10, fps: 14, ox: 0.5, oy: 0.71, px: 4, tint: false, effect: 'a8f92403-9fd5-4cd6-a735-bf6ba4104703' },
   // 영웅 고유 스킬: 하늘에서 내리꽂는 금빛 기둥 (기준점 = 발밑)
-  ultimate: { file: 'ultimate.png', w: 58, h: 99, frames: 9, fps: 14, ox: 0.5, oy: 0.86, tint: false, effect: '8b051720-ec2a-4b85-ba9a-e51692484156' },
+  ultimate: { file: 'ultimate.png', w: 39, h: 65, frames: 8, fps: 14, ox: 0.51, oy: 0.86, px: 4, tint: false, effect: '8b051720-ec2a-4b85-ba9a-e51692484156' },
   // 몬스터 사망: 일반·정예는 속성 색 연기 + 별, 보스는 폭발 + 파편
-  death: { file: 'death.png', w: 38, h: 42, frames: 8, fps: 16, ox: 0.53, oy: 0.43, tint: true, effect: '957b2d04-341e-4949-bb82-7e608a349ecb' },
+  death: { file: 'death.png', w: 28, h: 23, frames: 6, fps: 16, ox: 0.54, oy: 0.52, px: 4, tint: true, effect: '957b2d04-341e-4949-bb82-7e608a349ecb' },
   boss_death: { file: 'boss_death.png', w: 44, h: 55, frames: 11, fps: 12, ox: 0.5, oy: 0.42, px: 4, tint: false, effect: '5727caee-3723-4690-9fc0-8ab491a68013' },
   // 상태 표시(반복): 효과가 남아 있는 동안 용병에 붙어 있다 (용병 컨테이너 안, 몸 뒤)
   // 버프: 발밑 금빛 고리 + 양옆으로 솟는 화살표 · 디버프: 보랏빛 웅덩이 + 머리 위 해골 + 양옆으로 가라앉는 화살표

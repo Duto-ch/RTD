@@ -35,13 +35,44 @@ function rng(seed) {
   };
 }
 
-/** 지역(biome)별 배경: 땅·길 색과 장식이 다르고 성벽은 공통 */
+/** 저주파 값 노이즈 (0~1): 땅·길의 큰 얼룩을 만든다. 한 칸에 하나씩 찍는 잡티 대신 덩어리로 묶는다 */
+function valueNoise(rand, W, H, cell) {
+  const gw = Math.ceil(W / cell) + 2;
+  const gh = Math.ceil(H / cell) + 2;
+  const g = Array.from({ length: gw * gh }, () => rand());
+  const at = (x, y) => g[y * gw + x];
+  const s = (t) => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const fx = x / cell;
+    const fy = y / cell;
+    const ix = Math.floor(fx);
+    const iy = Math.floor(fy);
+    const tx = s(fx - ix);
+    const ty = s(fy - iy);
+    const a = at(ix, iy) + (at(ix + 1, iy) - at(ix, iy)) * tx;
+    const b = at(ix, iy + 1) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * tx;
+    return a + (b - a) * ty;
+  };
+}
+
+/** 색 밝기 조절 (#rrggbb, k > 1 밝게) */
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v) => Math.max(0, Math.min(255, Math.round(v * k)));
+  return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => f(v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
+ * 지역(biome)별 배경 — 플랫 픽셀 스타일 (2026-11-15 개편)
+ * 땅·길은 한 픽셀씩 흩뿌린 잡티 대신 큰 얼룩(2~3톤) + 손으로 찍은 듯한 작은 무늬(풀 포기·돌멩이)로,
+ * 성벽은 벽돌마다 위 밝은 줄·아래 그림자, 바깥엔 성가퀴, 바닥은 모서리가 빛나는 석판 + 금 몇 줄.
+ */
 function paintBackground(scene, biome) {
   const W = GAME_W / PX;
   const H = GAME_H / PX;
   const tex = scene.textures.createCanvas(`bg_${biome.id}`, W, H);
   const ctx = tex.getContext();
-  const rand = rng(1234 + biome.id.length * 97);
+  const rand = rng(1234 + biome.id.length * 97 + biome.id.charCodeAt(0));
   const [g0, g1, g2] = biome.ground;
   const [p0, p1, p2, pEdge] = biome.path;
   const px = (x, y, c) => {
@@ -53,14 +84,23 @@ function paintBackground(scene, biome) {
     ctx.fillRect(x, y, w, h);
   };
 
-  // 땅
-  rect(0, 0, W, H, g0);
+  // ── 땅: 큰 얼룩 3톤 + 작은 무늬 ──
+  const n1 = valueNoise(rand, W, H, 14);
+  const n2 = valueNoise(rand, W, H, 5);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const r = rand();
-      if (r < 0.12) px(x, y, g1);
-      else if (r < 0.2) px(x, y, g2);
+      const v = n1(x, y) * 0.75 + n2(x, y) * 0.25;
+      px(x, y, v < 0.36 ? g1 : v > 0.64 ? g2 : g0);
     }
+  }
+  // 풀 포기·잔무늬: 어두운 V 자 + 밝은 끝 (땅 색만 써서 지역마다 자연스럽게)
+  for (let i = 0; i < 170; i++) {
+    const x = Math.floor(rand() * W);
+    const y = Math.floor(rand() * H);
+    px(x, y, g1);
+    px(x + 2, y, g1);
+    px(x + 1, y + 1, g1);
+    if (rand() < 0.5) px(x + 1, y - 1, g2);
   }
   paintDecorations(px, rect, rand, W, H, biome);
 
@@ -70,160 +110,296 @@ function paintBackground(scene, biome) {
   const off = PATH_OFF / PX;
   const half = PATH_WIDTH / PX / 2;
 
-  // 흙길 (사각 링)
+  // ── 흙길 (사각 링): 얼룩 2톤 + 자갈 + 바퀴 자국, 바깥 모서리는 둥글게 ──
   const ox = fx - off - half;
   const oy = fy - off - half;
   const os = fs + 2 * (off + half);
   const ix = fx - off + half;
   const iy = fy - off + half;
   const is = fs + 2 * (off - half);
+  const inPath = (x, y) => x >= ox && x < ox + os && y >= oy && y < oy + os && !(x >= ix && x < ix + is && y >= iy && y < iy + is);
+  const corner = (x, y) => (x === ox || x === ox + os - 1) && (y === oy || y === oy + os - 1);
+  const pn = valueNoise(rand, W, H, 6);
   for (let y = oy; y < oy + os; y++) {
     for (let x = ox; x < ox + os; x++) {
-      if (x >= ix && x < ix + is && y >= iy && y < iy + is) continue;
-      const r = rand();
-      px(x, y, r < 0.15 ? p1 : r < 0.22 ? p2 : p0);
+      if (!inPath(x, y) || corner(x, y)) continue;
+      const v = pn(x, y);
+      px(x, y, v < 0.3 ? p1 : v > 0.72 ? p2 : p0);
     }
   }
-  // 길 가장자리
-  ctx.strokeStyle = pEdge;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ox + 0.5, oy + 0.5, os - 1, os - 1);
-  ctx.strokeRect(ix - 0.5, iy - 0.5, is + 1, is + 1);
+  // 자갈: 2x1 어두운 돌 + 위 밝은 점
+  for (let i = 0; i < 90; i++) {
+    const x = ox + Math.floor(rand() * os);
+    const y = oy + Math.floor(rand() * os);
+    if (!inPath(x, y) || !inPath(x + 1, y) || !inPath(x, y - 1)) continue;
+    rect(x, y, 2, 1, pEdge);
+    px(x, y - 1, p2);
+  }
+  // 가장자리: 바깥은 진한 테두리 + 그 안쪽 한 줄 그림자, 바깥 테두리에 풀이 살짝 걸침
+  for (let t = 1; t < os - 1; t++) {
+    for (const [x, y] of [[ox + t, oy], [ox + t, oy + os - 1], [ox, oy + t], [ox + os - 1, oy + t]]) px(x, y, pEdge);
+  }
+  for (let t = 1; t < is + 1; t++) {
+    for (const [x, y] of [[ix - 1 + t, iy - 1], [ix - 1 + t, iy + is], [ix - 1, iy - 1 + t], [ix + is, iy - 1 + t]]) px(x, y, pEdge);
+  }
+  for (let t = 2; t < os - 2; t++) {
+    if (rand() < 0.18) px(ox + t, oy, g0);
+    if (rand() < 0.18) px(ox + t, oy + os - 1, g1);
+    if (rand() < 0.18) px(ox, oy + t, g0);
+    if (rand() < 0.18) px(ox + os - 1, oy + t, g1);
+  }
+  rect(ox + 1, oy + 1, os - 2, 1, p1); // 위쪽 안 그림자 (바깥 둑에서 드리움)
 
-  // 성벽
+  // ── 성벽 ──
   const w = WALL / PX;
   const wx = fx - w;
   const wy = fy - w;
   const ws = fs + 2 * w;
-  rect(wx - 1, wy - 1, ws + 2, ws + 2, '#2a2c33'); // 그림자/외곽
-  rect(wx, wy, ws, ws, '#8a8f99');
-  // 벽돌 패턴
-  for (let y = wy; y < wy + ws; y++) {
-    for (let x = wx; x < wx + ws; x++) {
-      const inner = x >= fx && x < fx + fs && y >= fy && y < fy + fs;
-      if (inner) continue;
-      const row = Math.floor((y - wy) / 3);
-      const mortarY = (y - wy) % 3 === 2;
-      const mortarX = (x - wx + (row % 2) * 3) % 6 === 5;
-      if (mortarY || mortarX) px(x, y, '#5b5f68');
-      else if (rand() < 0.15) px(x, y, '#9da2ab');
+  const STONE = ['#8a8f99', '#7f848e', '#949aa4'];
+  // 벽 그림자: 오른쪽·아래로 1px 길 위에 드리움
+  rect(wx + 1, wy + ws, ws, 1, shade(p1, 0.7));
+  rect(wx + ws, wy + 1, 1, ws, shade(p1, 0.7));
+  rect(wx - 1, wy - 1, ws + 2, ws + 2, '#2a2c33');
+  // 벽돌: 6x3 (줄마다 반 칸 어긋남) — 위 밝은 줄 / 가운데 / 아래 줄눈
+  for (let by = 0; by < ws; by += 3) {
+    const row = by / 3;
+    for (let bx = -3 * (row % 2); bx < ws; bx += 6) {
+      const c = STONE[Math.floor(rand() * STONE.length)];
+      for (let y = 0; y < 3; y++) {
+        for (let x = 0; x < 6; x++) {
+          const X = wx + bx + x;
+          const Y = wy + by + y;
+          if (X < wx || X >= wx + ws || Y >= wy + ws) continue;
+          if (X >= fx && X < fx + fs && Y >= fy && Y < fy + fs) continue;
+          const mortar = y === 2 || x === 5;
+          px(X, Y, mortar ? '#555963' : y === 0 ? shade(c, 1.12) : c);
+        }
+      }
     }
   }
-  // 성가퀴 (바깥 테두리 요철)
+  // 성가퀴: 바깥 테두리 2px 띠에 3칸 간격 요철 (위 밝음·옆 그림자)
   for (let i = 0; i < ws; i++) {
     const on = Math.floor(i / 3) % 2 === 0;
-    const c = on ? '#b4b9c2' : '#4a4d55';
-    px(wx + i, wy, c);
-    px(wx + i, wy + ws - 1, c);
-    px(wx, wy + i, c);
-    px(wx + ws - 1, wy + i, c);
+    const top = on ? '#c3c8d0' : '#44474f';
+    const sub = on ? '#a7acb5' : '#5b5f68';
+    px(wx + i, wy, top);
+    px(wx + i, wy + 1, sub);
+    px(wx + i, wy + ws - 1, on ? '#a7acb5' : '#3a3d45');
+    px(wx, wy + i, top);
+    px(wx + 1, wy + i, sub);
+    px(wx + ws - 1, wy + i, on ? '#a7acb5' : '#3a3d45');
   }
 
-  // 성벽 위 바닥 (5x5 석판)
+  // ── 성벽 위 바닥: 5x5 석판 (모서리 빛·그림자, 금 몇 줄, 이끼 약간) ──
   const cs = fs / GRID;
+  const tileRand = rng(77);
   for (let gy = 0; gy < GRID; gy++) {
     for (let gx = 0; gx < GRID; gx++) {
       const sx = fx + gx * cs;
       const sy = fy + gy * cs;
-      const base = (gx + gy) % 2 === 0 ? '#6e7380' : '#676c78';
+      const base = (gx + gy) % 2 === 0 ? '#6e7380' : '#696e7a';
       rect(sx, sy, cs, cs, base);
-      for (let y = 1; y < cs - 1; y++) {
-        for (let x = 1; x < cs - 1; x++) {
-          if (rand() < 0.08) px(sx + x, sy + y, '#5d626d');
+      // 석판 안 큰 얼룩 한두 개 (같은 계열 밝은/어두운 톤)
+      for (let k = 0; k < 2; k++) {
+        const bx = sx + 2 + Math.floor(tileRand() * (cs - 7));
+        const by = sy + 2 + Math.floor(tileRand() * (cs - 6));
+        const c = k ? '#737885' : '#656a76';
+        rect(bx, by, 3, 2, c);
+        rect(bx + 1, by + 2, 2, 1, c);
+      }
+      // 금: 짧은 대각선 3~4px
+      if (tileRand() < 0.55) {
+        let cx = sx + 3 + Math.floor(tileRand() * (cs - 8));
+        let cy = sy + 3 + Math.floor(tileRand() * (cs - 8));
+        const dir = tileRand() < 0.5 ? 1 : -1;
+        for (let k = 0; k < 4; k++) {
+          px(cx, cy, '#555a65');
+          cx += dir;
+          cy += k % 2;
         }
       }
-      rect(sx, sy, cs, 1, '#7f8592');
-      rect(sx, sy, 1, cs, '#7f8592');
-      rect(sx, sy + cs - 1, cs, 1, '#4b4f59');
-      rect(sx + cs - 1, sy, 1, cs, '#4b4f59');
+      // 모서리 빛(위·왼쪽) / 그림자(아래·오른쪽) / 줄눈
+      rect(sx + 1, sy + 1, cs - 2, 1, '#858b97');
+      rect(sx + 1, sy + 1, 1, cs - 2, '#7c8290');
+      rect(sx + 1, sy + cs - 2, cs - 2, 1, '#5b606b');
+      rect(sx + cs - 2, sy + 1, 1, cs - 2, '#5b606b');
+      rect(sx, sy, cs, 1, '#454953');
+      rect(sx, sy, 1, cs, '#454953');
+      // 귀퉁이 닳음
+      px(sx + 1, sy + 1, '#959ba6');
     }
   }
-  // 안쪽 테두리 그림자
-  ctx.strokeStyle = '#3a3d45';
-  ctx.strokeRect(fx - 0.5, fy - 0.5, fs + 1, fs + 1);
+  // 성벽이 바닥 위쪽·왼쪽에 드리우는 그림자 1px
+  rect(fx, fy, fs, 1, '#3a3d45');
+  rect(fx, fy, 1, fs, '#3a3d45');
+  rect(fx, fy + fs - 1, fs, 1, '#454953');
+  rect(fx + fs - 1, fy, 1, fs, '#454953');
 
   tex.refresh();
 }
 
-/** 지역별 땅 장식 (길·성벽은 그 위에 덮어 그린다) */
+/** 지역별 땅 장식 — 작은 픽셀 그림(그림자 포함). 길·성벽은 그 위에 덮어 그린다 */
 function paintDecorations(px, rect, rand, W, H, biome) {
   const [c1, c2, c3] = biome.decoColors;
+  const g1 = biome.ground[1];
+  const dark = shade(g1, 0.8);
+  // 보이는 땅에만 놓는다: 몬스터 길 바깥 + 상단 HUD(y 180)와 하단 패널(y 776) 사이. 길·HUD 에 가려질 자리는 건너뜀
+  const ox = (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / PX;
+  const oy = (FIELD_Y - PATH_OFF - PATH_WIDTH / 2) / PX;
+  const os = (FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH) / PX;
+  const top = 180 / PX;
+  const bottom = 776 / PX;
+  const visible = (x, y) => y - 2 >= top && y + 9 <= bottom && x >= 1 && x + 5 < W && !(x + 5 >= ox && x - 3 < ox + os && y + 9 >= oy && y - 2 < oy + os);
   const spots = (n, fn) => {
-    for (let i = 0; i < n; i++) fn(Math.floor(rand() * W), Math.floor(rand() * H), rand());
+    let placed = 0;
+    for (let tries = 0; placed < n && tries < n * 60; tries++) {
+      const x = Math.floor(rand() * W);
+      const y = Math.floor(rand() * H);
+      if (!visible(x, y)) continue;
+      fn(x, y, rand());
+      placed++;
+    }
+  };
+  const rock = (x, y) => {
+    rect(x, y + 2, 4, 1, dark); // 그림자
+    rect(x, y, 4, 2, '#8a8a84');
+    rect(x + 1, y - 1, 2, 1, '#8a8a84');
+    rect(x + 1, y - 1, 1, 1, '#b4b4ac');
+    px(x, y, '#b4b4ac');
+    px(x + 3, y + 1, '#6a6a64');
   };
   switch (biome.deco) {
     case 'flowers':
-      spots(160, (x, y, r) => px(x, y, r < 0.5 ? c1 : r < 0.8 ? c2 : c3));
+      // 꽃: 십자 꽃잎 + 가운데 노랑 + 줄기
+      spots(26, (x, y, r) => {
+        const pet = r < 0.45 ? c2 : r < 0.8 ? c3 : '#8ab4ff';
+        px(x, y + 2, dark);
+        px(x, y - 1, pet);
+        px(x - 1, y, pet);
+        px(x + 1, y, pet);
+        px(x, y + 1, pet);
+        px(x, y, c1);
+      });
+      spots(4, rock);
       break;
     case 'cactus':
-      spots(26, (x, y) => {
-        rect(x, y, 1, 4, c1);
-        px(x - 1, y + 1, c1);
-        px(x + 1, y + 2, c1);
-        px(x, y + 4, c2);
+      // 선인장: 2px 몸통 + 양팔 + 밝은 줄 + 그림자
+      spots(7, (x, y) => {
+        rect(x + 1, y + 6, 3, 1, dark);
+        rect(x, y, 2, 6, c1);
+        rect(x, y, 1, 6, shade(c1, 1.25));
+        rect(x - 2, y + 2, 2, 1, c1);
+        rect(x - 2, y + 1, 1, 1, c1);
+        rect(x + 2, y + 3, 2, 1, c2);
+        rect(x + 3, y + 2, 1, 1, c2);
       });
-      spots(60, (x, y) => px(x, y, c3));
+      spots(5, rock);
       break;
     case 'leaves':
-      spots(260, (x, y, r) => {
-        const c = r < 0.4 ? c1 : r < 0.75 ? c2 : c3;
-        px(x, y, c);
-        if (r < 0.5) px(x + 1, y, c);
+      // 낙엽 더미: 3~5장 겹친 덩어리
+      spots(24, (x, y, r) => {
+        const cs = [c1, c2, c3];
+        for (let k = 0; k < 4; k++) {
+          const c = cs[Math.floor(rand() * 3)];
+          const dx = Math.floor(rand() * 4) - 1;
+          const dy = Math.floor(rand() * 3) - 1;
+          rect(x + dx, y + dy, 2, 1, c);
+        }
+        if (r < 0.3) px(x + 1, y + 2, dark);
       });
       break;
     case 'lava':
-      spots(22, (x, y) => {
+      // 용암 균열: 어두운 테두리 안에 밝은 줄
+      spots(7, (x, y) => {
         let cx = x;
-        for (let i = 0; i < 6; i++) {
-          px(cx, y + i, i % 2 ? c1 : c3);
+        for (let i = 0; i < 7; i++) {
+          px(cx - 1, y + i, c3);
+          px(cx, y + i, i % 3 === 0 ? c2 : c1);
+          px(cx + 1, y + i, c3);
           cx += Math.floor(rand() * 3) - 1;
         }
       });
-      spots(90, (x, y) => px(x, y, c2));
+      spots(5, rock);
       break;
     case 'pines':
-      spots(18, (x, y) => {
-        px(x, y, c1);
+      // 소나무: 3단 삼각형 + 눈 덮인 끝 + 줄기 + 그림자
+      spots(7, (x, y) => {
+        rect(x - 1, y + 8, 5, 1, '#b9c6d6');
+        rect(x, y + 6, 1, 2, '#6a4a2a');
         rect(x - 1, y + 1, 3, 1, c1);
-        rect(x - 2, y + 2, 5, 1, c2);
-        px(x, y + 3, '#6a4a2a');
+        rect(x - 2, y + 3, 5, 1, c1);
+        rect(x - 3, y + 5, 7, 1, c2);
+        rect(x - 1, y + 2, 3, 1, c2);
+        rect(x - 2, y + 4, 5, 1, c2);
         px(x, y, c3);
+        px(x - 1, y + 1, c3);
+        px(x - 2, y + 3, c3);
+        px(x - 3, y + 5, c3);
       });
-      spots(120, (x, y) => px(x, y, '#d6e2ef'));
       break;
     case 'puddles':
-      spots(24, (x, y) => {
-        rect(x, y, 4, 2, c1);
-        px(x + 1, y, c2);
+      // 물웅덩이(타원 + 반사광) + 갈대
+      spots(7, (x, y) => {
+        rect(x + 1, y, 4, 1, c1);
+        rect(x, y + 1, 6, 1, c1);
+        rect(x + 1, y + 2, 4, 1, c1);
+        rect(x + 1, y + 1, 2, 1, c2);
       });
-      spots(80, (x, y) => px(x, y, c3));
+      spots(14, (x, y) => {
+        rect(x, y, 1, 3, c3);
+        px(x + 1, y + 1, c3);
+        px(x, y - 1, '#6a5a32');
+      });
       break;
     case 'crystals':
-      spots(30, (x, y, r) => {
+      // 수정: 왼쪽 밝은 면 / 오른쪽 어두운 면 + 꼭대기 반짝
+      spots(10, (x, y, r) => {
         const c = r < 0.5 ? c1 : c2;
-        rect(x, y, 1, 3, c);
-        px(x + 1, y + 1, c);
+        rect(x - 1, y + 5, 4, 1, dark);
+        rect(x, y + 1, 1, 4, shade(c, 1.15));
+        rect(x + 1, y + 1, 1, 4, shade(c, 0.75));
         px(x, y, c3);
+        rect(x + 2, y + 3, 1, 2, shade(c, 0.75));
       });
       break;
     case 'tombs':
-      spots(16, (x, y) => {
-        rect(x, y, 3, 4, c1);
-        rect(x, y + 3, 3, 1, c2);
-        px(x + 1, y + 1, c2);
+      // 묘비: 둥근 윗면 + 십자 새김 + 그림자
+      spots(7, (x, y) => {
+        rect(x, y + 5, 5, 1, dark);
+        rect(x + 1, y, 3, 1, c1);
+        rect(x, y + 1, 5, 4, c1);
+        rect(x + 4, y + 1, 1, 4, c2);
+        px(x + 2, y + 1, c2);
+        rect(x + 1, y + 2, 3, 1, c2);
+        px(x + 2, y + 3, c2);
       });
-      spots(50, (x, y) => px(x, y, c3));
+      spots(14, (x, y) => px(x, y, c3));
       break;
     case 'clouds':
-      spots(14, (x, y) => {
-        rect(x, y, 6, 2, c1);
-        rect(x + 1, y - 1, 3, 1, c1);
-        rect(x, y + 2, 6, 1, c2);
+      // 구름: 둥근 덩어리 + 아래 그림자 띠
+      spots(6, (x, y) => {
+        rect(x + 2, y - 1, 3, 1, c1);
+        rect(x + 1, y, 6, 1, c1);
+        rect(x, y + 1, 8, 1, c1);
+        rect(x, y + 2, 8, 1, c2);
+        rect(x + 1, y + 3, 6, 1, shade(c2, 0.9));
       });
-      spots(30, (x, y) => px(x, y, c3));
+      spots(16, (x, y) => {
+        px(x, y, c3);
+        px(x + 1, y + 1, c3);
+      });
       break;
     case 'stars':
-      spots(140, (x, y, r) => px(x, y, r < 0.5 ? c1 : r < 0.85 ? c2 : c3));
+      // 별: 큰 십자 별 + 작은 점별
+      spots(14, (x, y, r) => {
+        const c = r < 0.5 ? c1 : c3;
+        px(x, y, c2);
+        px(x - 1, y, c);
+        px(x + 1, y, c);
+        px(x, y - 1, c);
+        px(x, y + 1, c);
+      });
+      spots(60, (x, y, r) => px(x, y, r < 0.5 ? c1 : c2));
       break;
   }
 }

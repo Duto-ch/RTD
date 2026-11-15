@@ -36,14 +36,14 @@
 - `src/scenes/` — `BootScene`(텍스처 생성) → `TitleScene` → `GameScene`(게임 진행·전투·유물·명성. 화면 UI 는 `src/ui/Hud.js`)
 - `src/systems/path.js` — 몬스터 경로 / 셀 좌표 변환
 - `src/systems/vfx.js` — 이펙트 (클래스별 공격·스킬 연출, 속성 파티클, 영웅 궁극기, 보스 저주, 폭죽)
-- `src/data/fx.js` + `public/assets/fx/` — **PixelLab 으로 만든 스프라이트 시트 이펙트 13종**(명중 별·마법 폭발·저격 불꽃·베기, 속성 폭발 화염/얼음/가시, 영웅 금빛 기둥, 몬스터 사망 연기·보스 폭발, 버프·디버프 상태 표시(반복), 레벨 업). `px: 4` 시트는 게임 그림과 같은 픽셀 굵기의 플랫 스타일(화염 폭발·보스 폭발·버프·디버프·레벨 업). 용병에 붙는 이펙트는 `vfx.attach(merc, key)` 로 용병 컨테이너 안(몸 뒤)에 넣어 옮기면 따라가게 한다 — 버프·디버프는 `vfx.setStatus(merc, 'buff'|'debuff', on)` 를 `updateMercs` 가 매 프레임 불러 효과가 남아 있는 동안 붙어 있다. `vfx.play(key, x, y, {tint, scale})` 로 재생하고 끝나면 스스로 지운다. 흰색 시트(`tint: true`)는 속성 색을 입힌다. 화면 배율은 `FX_SCALE`(아트 1px = 화면 2px). 동시 48개 상한을 넘으면 명중 이펙트부터 생략. 시트가 없으면 기존 코드 이펙트만 나온다. 원본은 PixelLab My effects(`effect` id)에서 슬라이더로 고칠 수 있다 (`mcp__pixellab__vfx_workbench start --effect <id>` → export → PNG 교체)
+- `src/data/fx.js` + `public/assets/fx/` — **PixelLab 으로 만든 스프라이트 시트 이펙트 13종**(명중 별·마법 폭발·저격 불꽃·베기, 속성 폭발 화염/얼음/가시, 영웅 금빛 기둥, 몬스터 사망 연기·보스 폭발, 버프·디버프 상태 표시(반복), 레벨 업). **모든 시트가 `px: 4` 플랫 스타일**(게임 그림과 같은 픽셀 굵기, 3~4색, 질감·디더링 없음). 새 이펙트도 이 규칙으로 만든다 (vfx_workbench 레시피 `detail: 0`, `tones: 3~4`, 작은 캔버스). 용병에 붙는 이펙트는 `vfx.attach(merc, key)` 로 용병 컨테이너 안(몸 뒤)에 넣어 옮기면 따라가게 한다 — 버프·디버프는 `vfx.setStatus(merc, 'buff'|'debuff', on)` 를 `updateMercs` 가 매 프레임 불러 효과가 남아 있는 동안 붙어 있다. `vfx.play(key, x, y, {tint, scale})` 로 재생하고 끝나면 스스로 지운다. 흰색 시트(`tint: true`)는 속성 색을 입힌다. 화면 배율은 `FX_SCALE`(아트 1px = 화면 2px). 동시 48개 상한을 넘으면 명중 이펙트부터 생략. 시트가 없으면 기존 코드 이펙트만 나온다. 원본은 PixelLab My effects(`effect` id)에서 슬라이더로 고칠 수 있다 (`mcp__pixellab__vfx_workbench start --effect <id>` → export → PNG 교체)
 - `src/systems/audio.js` — 16비트 풍 사운드 합성기 (배경음 4곡: title/battle/boss/final + 효과음, 볼륨 저장). 외부 오디오 파일 없음. 첫 입력 후 `audio.init()`
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
 - `src/ui/Hud.js` — 전투 화면 UI(상단 상태 창·유물 줄·툴팁, 하단 버튼·정보 창, 토스트·배너, 스킬 정보 팝업, ESC 메뉴). GameScene 이 `this.hud` 로 들고 있고, 게임 상태는 읽기만 한다. GameScene 의 `toast`/`showBanner`/`refreshHud`/`refreshRelics`/`refreshInfo` 는 hud 로 넘기는 짧은 통로. 새 HUD 요소는 GameScene 이 아니라 여기에 추가. 배너·토스트는 필드·몬스터 길(y 232~728)을 가리지 않는 띠(`BANNER_Y`/`TOAST_Y`)에만 띄운다
 - `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
 - `src/data/upgrades.js` — 명성 강화 트리 45노드(부모·갈래·글자·비용·효과), 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`·Mercenary `getStats` 에서 사용, 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 방사형 강화 트리 화면(`layoutTree()` 배치, 드래그·확대). GameScene 은 `this.bonus`(강화 효과, 성탑 창을 닫으면 `applyBonus()` 로 다시 읽음)·`this.difficulty`(0 노멀/1 하드)를 쓴다. 필드 가운데 성탑 칸(`TOWER_CELL`)은 용병 금지 — 빈 칸 검사는 `isTowerCell()`, 용병 칸 수는 `fieldSlots`(24)
-- `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성
+- `src/data/biomes.js` — 지역 10종 (10웨이브마다 배경 교체), 배경은 `textures.js` paintBackground 가 지역별로 생성 — 플랫 스타일: 땅·길은 저주파 노이즈(`valueNoise`) 2~3톤 덩어리(한 픽셀씩 흩뿌린 잡티 금지), 장식은 그림자 있는 작은 픽셀 그림으로 보이는 땅(길 바깥·HUD 사이)에만 놓는다
 - `tests/unit/` — 단위 테스트 (Vitest), `tests/e2e/` — 브라우저 테스트 (Playwright), `playwright.config.js`
 
 ## 작업 규칙
