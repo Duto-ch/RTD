@@ -34,7 +34,7 @@
 - `src/data/` — `waves.js`(웨이브 규칙·출현 순서), `bossAbilities.js`(보스 디버프 5종), `heroes.js`(용병 15·영웅 9·이름), `skills.js`(스킬 템플릿·설명 자동 생성), `relics.js`, `elements.js`
 - `src/objects/` — `Monster.js`(감속/기절/취약/지속피해), `Mercenary.js`(용병+영웅 공용 유닛, 버프·유물 반영 `getStats`)
 - 스킬 실행 엔진: `GameScene.castSkill` — 스킬은 데이터(area/fx/buff/gold)로만 정의, 새 효과 타입은 여기에 추가
-- `src/scenes/` — `BootScene`(텍스처 생성) → `TitleScene` → `GameScene`(게임 진행·전투·유물·명성. 화면 UI 는 `src/ui/Hud.js`)
+- `src/scenes/` — `BootScene`(텍스처 생성·타이틀 일러스트 `title_bg` 로드) → `TitleScene`(일러스트 + TAP TO START, 빈 곳 탭 = 시작) → `GameScene`(게임 진행·전투·유물·명성. 화면 UI 는 `src/ui/Hud.js`)
 - `src/systems/path.js` — 몬스터 경로 / 셀 좌표 변환
 - `src/systems/vfx.js` — 이펙트 (클래스별 공격·스킬 연출, 속성 파티클, 영웅 궁극기, 보스 저주, 폭죽)
 - `src/data/fx.js` + `public/assets/fx/` — **PixelLab 으로 만든 스프라이트 시트 이펙트 13종 + 궁수 화살 4종 + 처치 동전**(동전 `coin_drop` 은 pixelfx 로 만든 시트 — 원본 `docs/drafts/coin-drop/`, `vfx.coinDrop(x, y)` 가 몬스터 아래(`DEPTH.coin`)에 재생, 동시 12개 상한. 화살 `arrow_<red|blue|green|gold>` 은 `vfx.arrow(color, x, y, rot, size)` 로 만드는 반복 투사체, 기준점 = 화살촉, `px: 3`. 명중 별·마법 폭발·저격 불꽃·베기, 속성 폭발 화염/얼음/가시, 영웅 금빛 기둥, 몬스터 사망 연기·보스 폭발, 버프·디버프 상태 표시(반복), 레벨 업). **모든 시트가 `px: 4` 플랫 스타일**(게임 그림과 같은 픽셀 굵기, 3~4색, 질감·디더링 없음). 새 이펙트도 이 규칙으로 만든다 (vfx_workbench 레시피 `detail: 0`, `tones: 3~4`, 작은 캔버스). 용병에 붙는 이펙트는 `vfx.attach(merc, key)` 로 용병 컨테이너 안(몸 뒤)에 넣어 옮기면 따라가게 한다 — 버프·디버프는 `vfx.setStatus(merc, 'buff'|'debuff', on)` 를 `updateMercs` 가 매 프레임 불러 효과가 남아 있는 동안 붙어 있다. `vfx.play(key, x, y, {tint, scale})` 로 재생하고 끝나면 스스로 지운다. 흰색 시트(`tint: true`)는 속성 색을 입힌다. 화면 배율은 `FX_SCALE`(아트 1px = 화면 2px). 동시 48개 상한을 넘으면 명중 이펙트부터 생략. 시트가 없으면 기존 코드 이펙트만 나온다. 원본은 PixelLab My effects(`effect` id)에서 슬라이더로 고칠 수 있다 (`mcp__pixellab__vfx_workbench start --effect <id>` → export → PNG 교체)
