@@ -4,7 +4,11 @@ import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
 import { GAME_W, GAME_H, PX, UI_PX, HUD_RECTS, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
 
 // 배경은 UI_PX(3) 해상도로 그린다. 화면 좌표 → 배경 아트 좌표 (가장 가까운 픽셀 경계로 맞춤)
-const BP = UI_PX;
+// 배경 픽셀 밀도: 기본 아트 1px = 화면 UI_PX(3)px. 시안(2026-11-15): ?density=hi 면 2px (같은 넓이에 픽셀 2.25배 → 더 촘촘한 디테일)
+const DENSE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('density') === 'hi';
+const BP = DENSE ? 2 : UI_PX;
+export const BG_PX = BP;
+const D = UI_PX / BP; // 밀도 배율 (무늬 크기·개수를 화면에서 비슷하게 유지)
 const toArt = (v) => Math.round(v / BP);
 import { RELICS } from '../data/relics.js';
 import { HEROES } from '../data/heroes.js';
@@ -112,8 +116,8 @@ function paintBackground(scene, biome) {
   };
 
   // ── 땅: 큰 얼룩 3톤 + 작은 무늬 ──
-  const n1 = valueNoise(rand, W, H, 19);
-  const n2 = valueNoise(rand, W, H, 7);
+  const n1 = valueNoise(rand, W, H, Math.round(19 * D));
+  const n2 = valueNoise(rand, W, H, Math.round(7 * D));
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const v = n1(x, y) * 0.75 + n2(x, y) * 0.25;
@@ -121,13 +125,29 @@ function paintBackground(scene, biome) {
     }
   }
   // 풀 포기·잔무늬: 어두운 V 자 + 밝은 끝 (땅 색만 써서 지역마다 자연스럽게)
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 300 * D * D; i++) {
     const x = Math.floor(rand() * W);
     const y = Math.floor(rand() * H);
     px(x, y, g1);
     px(x + 2, y, g1);
     px(x + 1, y + 1, g1);
     if (rand() < 0.5) px(x + 1, y - 1, g2);
+  }
+  if (DENSE) {
+    // 촘촘한 풀잎: 2px 세로 잎 + 밝은 끝, 군데군데 두 갈래
+    for (let i = 0; i < 1400; i++) {
+      const x = Math.floor(rand() * W);
+      const y = Math.floor(rand() * H);
+      px(x, y, g1);
+      px(x, y - 1, shade(g2, 1.06));
+      if (rand() < 0.4) { px(x + 1, y, g1); px(x + 2, y - 1, g2); }
+    }
+    // 땅 얼룩 경계에 밝은 테두리 한 픽셀 (덩어리가 입체적으로)
+    for (let y = 1; y < H; y++) for (let x = 0; x < W; x++) {
+      const a = n1(x, y) * 0.75 + n2(x, y) * 0.25;
+      const b = n1(x, y - 1) * 0.75 + n2(x, y - 1) * 0.25;
+      if (a > 0.64 && b <= 0.64 && rand() < 0.7) px(x, y, shade(g2, 1.08));
+    }
   }
   paintDecorations(px, rect, rand, W, H, biome);
 
@@ -144,7 +164,7 @@ function paintBackground(scene, biome) {
   const is = toArt(FIELD_X + FIELD_SIZE + PATH_OFF - PATH_WIDTH / 2) - ix;
   const inPath = (x, y) => x >= ox && x < ox + os && y >= oy && y < oy + os && !(x >= ix && x < ix + is && y >= iy && y < iy + is);
   const corner = (x, y) => (x === ox || x === ox + os - 1) && (y === oy || y === oy + os - 1);
-  const pn = valueNoise(rand, W, H, 8);
+  const pn = valueNoise(rand, W, H, Math.round(8 * D));
   for (let y = oy; y < oy + os; y++) {
     for (let x = ox; x < ox + os; x++) {
       if (!inPath(x, y) || corner(x, y)) continue;
@@ -153,12 +173,21 @@ function paintBackground(scene, biome) {
     }
   }
   // 자갈: 2x1 어두운 돌 + 위 밝은 점
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 150 * D * D; i++) {
     const x = ox + Math.floor(rand() * os);
     const y = oy + Math.floor(rand() * os);
     if (!inPath(x, y) || !inPath(x + 1, y) || !inPath(x, y - 1)) continue;
     rect(x, y, 2, 1, pEdge);
     px(x, y - 1, p2);
+    if (DENSE && rand() < 0.5) { px(x + 1, y - 1, shade(p2, 1.08)); px(x + 2, y, shade(pEdge, 1.15)); }
+  }
+  if (DENSE) {
+    // 흙길 바퀴 자국 느낌의 옅은 줄 + 모래 알갱이
+    for (let i = 0; i < 1600; i++) {
+      const x = ox + Math.floor(rand() * os);
+      const y = oy + Math.floor(rand() * os);
+      if (inPath(x, y)) px(x, y, rand() < 0.5 ? shade(p0, 0.93) : shade(p2, 1.04));
+    }
   }
   // 가장자리: 바깥은 진한 테두리 + 그 안쪽 한 줄 그림자, 바깥 테두리에 풀이 살짝 걸침
   for (let t = 1; t < os - 1; t++) {
@@ -202,7 +231,7 @@ function paintBackground(scene, biome) {
           if (X < wx || X >= wx + ws || Y >= wy + ws) continue;
           if (X >= fx && X < fx + fs && Y >= fy && Y < fy + fs) continue;
           const mortar = y === 2 || x === 5;
-          px(X, Y, mortar ? MORTAR : y === 0 ? shade(c, 1.12) : c);
+          px(X, Y, mortar ? MORTAR : y === 0 ? shade(c, 1.12) : DENSE && x === 0 && y === 1 ? shade(c, 1.05) : DENSE && x === 4 && y === 1 && (bx + row) % 3 === 0 ? shade(c, 0.88) : c);
         }
       }
     }
@@ -243,8 +272,10 @@ function paintBackground(scene, biome) {
       }
       // 나무 판자 바닥: 7px 마다 판자 이음선 + 엇갈린 끝선
       if (T.planks) {
-        for (let k = 7; k < cs - 2; k += 7) rect(sx + 1, sy + k, cs - 2, 1, T.crack);
-        for (let k = 0; k * 7 < cs; k++) px(sx + 4 + ((k * 9) % (cs - 8)), sy + k * 7 + 3, T.crack);
+        const pl = DENSE ? 8 : 7; // 판자 폭
+        for (let k = pl; k < cs - 2; k += pl) rect(sx + 1, sy + k, cs - 2, 1, T.crack);
+        for (let k = 0; k * pl < cs; k++) px(sx + 4 + ((k * 9) % (cs - 8)), sy + k * pl + 3, T.crack);
+        if (DENSE) for (let k = 0; k * pl < cs; k++) { px(sx + 6 + ((k * 13) % (cs - 10)), sy + k * pl + 4, T.sh); px(sx + 2, sy + k * pl + 2, T.hi); }
       }
       // 금: 짧은 대각선 3~4px
       else if (tileRand() < 0.55) {
@@ -256,6 +287,18 @@ function paintBackground(scene, biome) {
           cx += dir;
           cy += k % 2;
         }
+      }
+      if (DENSE) {
+        // 촘촘한 표면: 작은 얼룩·알갱이 더, 2px 두께 모서리 빛/그림자
+        for (let k = 0; k < 10; k++) {
+          const bx = sx + 3 + Math.floor(tileRand() * (cs - 6));
+          const by = sy + 3 + Math.floor(tileRand() * (cs - 6));
+          px(bx, by, T.spot[k % 2]);
+          if (k % 3 === 0) px(bx + 1, by, T.spot[k % 2]);
+        }
+        rect(sx + 2, sy + 2, cs - 4, 1, T.hi2);
+        rect(sx + 2, sy + cs - 3, cs - 4, 1, T.spot[0]);
+        rect(sx + cs - 3, sy + 2, 1, cs - 4, T.spot[0]);
       }
       // 모서리 빛(위·왼쪽) / 그림자(아래·오른쪽) / 줄눈
       rect(sx + 1, sy + 1, cs - 2, 1, T.hi);
