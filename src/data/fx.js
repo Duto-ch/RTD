@@ -29,6 +29,12 @@ export const FX = {
   buff: { file: 'buff.png', w: 27, h: 31, frames: 12, fps: 10, ox: 0.48, oy: 0.81, px: 4, tint: false, loop: true, effect: '163291e6-2eea-4a51-a37c-2721ad11bb56' },
   debuff: { file: 'debuff.png', w: 27, h: 37, frames: 12, fps: 10, ox: 0.48, oy: 0.78, px: 4, tint: false, loop: true, effect: '7baea9af-a227-4fd7-bc79-e4e785df220e' },
   // 레벨 업 (0.44초): 짧은 빛기둥 + 고리 + 위 화살표. 용병 컨테이너에 붙어 옮겨도 따라간다
+  // 궁수 화살(반복): 날아가는 동안 꼬리 빛이 흐른다. 기준점 = 화살촉 끝. 아트 1px = 화면 3px (캐릭터와 같은 격자)
+  arrow_red: { file: 'arrow_red.png', w: 28, h: 16, frames: 4, fps: 12, ox: 0.93, oy: 0.5, px: 3, loop: true, effect: 'b43efce7-33dc-41de-8932-3d48737d5ed5' },
+  arrow_blue: { file: 'arrow_blue.png', w: 28, h: 16, frames: 4, fps: 12, ox: 0.93, oy: 0.5, px: 3, loop: true, effect: '7569d5c6-3b5b-4639-afb6-3971fafc8865' },
+  arrow_green: { file: 'arrow_green.png', w: 28, h: 16, frames: 4, fps: 12, ox: 0.93, oy: 0.5, px: 3, loop: true, effect: 'dfcbf61b-be7f-4c71-916a-15cb1bdb8732' },
+  // 레인저(영웅) 금빛 화살
+  arrow_gold: { file: 'arrow_gold.png', w: 28, h: 16, frames: 4, fps: 12, ox: 0.93, oy: 0.5, px: 3, loop: true, effect: '80acaea6-0b74-47f7-9c5d-86f3b97f9106' },
   levelup: { file: 'levelup.png', w: 34, h: 42, frames: 7, fps: 16, ox: 0.5, oy: 0.81, px: 4, tint: false, effect: '55032163-225f-4e45-83ab-b6d7375d4f91' }
 };
 

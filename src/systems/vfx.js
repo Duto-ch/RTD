@@ -145,8 +145,7 @@ export class Vfx {
     switch (kind) {
       case 'archer':
       case 'ranger': {
-        const key = kind === 'ranger' ? 'arrow_gold' : `arrow_${attr}`;
-        const a = s.add.image(sx, sy, key).setScale(PX * 0.75).setRotation(ang).setDepth(DEPTH.projectile);
+        const a = this.arrow(kind === 'ranger' ? 'gold' : attr, sx, sy, ang, 1);
         s.tweens.add({ targets: a, x: tx, y: ty, duration: 110, onComplete: () => { a.destroy(); hit(kind === 'ranger' ? 3 : 2); } });
         break;
       }
@@ -283,13 +282,22 @@ export class Vfx {
     if (big) this.ultimate(unit, def);
   }
 
+  /**
+   * 화살 하나를 만든다 (PixelLab 시트 arrow_<색>, 기준점 = 화살촉). 시트가 없으면 코드 그림 화살.
+   * color: red/blue/green/gold · size: 기본 배율(px 3)에 곱하는 값
+   */
+  arrow(color, x, y, rot, size = 1) {
+    const s = this.s;
+    const key = `arrow_${color}`;
+    const d = FX[key];
+    if (d && s.anims.exists(fxAnim(key))) {
+      return s.add.sprite(x, y, fxTexture(key), 0).setOrigin(d.ox, d.oy).setScale(d.px * size).setRotation(rot).setDepth(DEPTH.projectile).play(fxAnim(key));
+    }
+    return s.add.image(x, y, key).setScale(PX * 0.75 * size).setRotation(rot).setDepth(DEPTH.projectile);
+  }
+
   bigShot(unit, t, key, attr) {
-    const a = this.s.add
-      .image(unit.x, unit.y - 8, key)
-      .setScale(PX * 1.6)
-      .setRotation(Phaser.Math.Angle.Between(unit.x, unit.y, t.x, t.y))
-      .setDepth(DEPTH.projectile)
-      .setBlendMode('ADD');
+    const a = this.arrow(key.replace('arrow_', ''), unit.x, unit.y - 8, Phaser.Math.Angle.Between(unit.x, unit.y, t.x, t.y), 4 / 3);
     this.s.tweens.add({ targets: a, x: t.x, y: t.y, duration: 130, onComplete: () => { a.destroy(); this.burst(attr, t.x, t.y, 6); } });
   }
 
@@ -297,7 +305,7 @@ export class Vfx {
     const key = gold ? 'arrow_gold' : `arrow_${attr}`;
     for (const t of targets.slice(0, 10)) {
       const ox = Phaser.Math.Between(-10, 10);
-      const a = this.s.add.image(t.x + ox, t.y - 160, key).setScale(PX * 0.9).setRotation(Math.PI / 2).setDepth(DEPTH.projectile);
+      const a = this.arrow(key.replace('arrow_', ''), t.x + ox, t.y - 160, Math.PI / 2, 1);
       this.s.tweens.add({
         targets: a, y: t.y, duration: 180, delay: Phaser.Math.Between(0, 120),
         onComplete: () => { a.destroy(); this.burst(attr, t.x, t.y, 2); }

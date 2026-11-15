@@ -499,3 +499,29 @@ test('PixelLab 시범 캐릭터: 브리짓(레드 마법사) 3픽셀 사양 대�
   expect(s).toEqual({ key: 'merc_mage_red', w: 84, h: 72, frames: 18, anims: true });
   expect(errors).toEqual([]);
 });
+
+test('PixelLab 화살: 궁수 속성별·레인저 금빛 화살이 시트 애니메이션으로 날아간다', async ({ page }) => {
+  const errors = await startGame(page);
+  const colors = ['red', 'blue', 'green', 'gold'];
+  expect(await game(page, (cs) => cs.filter((c) => !window.game.scene.getScene('Game').anims.exists(`fx_arrow_${c}_play`)), colors)).toEqual([]);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.scene.pause();
+    const t = { x: 272, y: 300 };
+    const shots = [];
+    ['red', 'blue', 'green'].forEach((attr, i) => {
+      g.vfx.attack({ x: 120 + i * 150, y: 600, attr }, t, 'archer');
+    });
+    g.vfx.attack({ x: 420, y: 450, attr: 'red' }, t, 'ranger');
+    g.vfx.arrowRain([{ x: 150, y: 400 }, { x: 400, y: 420 }], 'blue', false);
+    for (const o of g.children.list) if (o.texture?.key?.startsWith('fx_arrow_')) shots.push({ key: o.texture.key, playing: !!o.anims?.isPlaying, scale: o.scaleX });
+    return shots;
+  });
+  expect(r.map((s) => s.key).sort()).toEqual(['fx_arrow_blue', 'fx_arrow_blue', 'fx_arrow_blue', 'fx_arrow_gold', 'fx_arrow_green', 'fx_arrow_red']);
+  expect(r.every((s) => s.playing && s.scale === 3)).toBe(true);
+  await page.screenshot({ path: SHOT('23-arrows') });
+  // 명중하면 사라진다
+  await game(page, () => window.game.scene.getScene('Game').scene.resume());
+  await page.waitForFunction(() => !window.game.scene.getScene('Game').children.list.some((o) => o.texture?.key?.startsWith('fx_arrow_')), null, { timeout: 5000 });
+  expect(errors).toEqual([]);
+});
