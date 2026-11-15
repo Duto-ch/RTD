@@ -6,7 +6,7 @@
 ## 기술 스택
 - Phaser 3 (`phaser@^3.90`) + Vite 8, JavaScript (ES Modules, top-level await 사용 → build target es2022)
 - 물리 엔진 미사용 (이동·충돌 직접 계산)
-- 해상도 544x960, `pixelArt: true`, `Scale.FIT`
+- 해상도 544x960(게임 좌표), `pixelArt: true`, `Scale.FIT`. **실제 캔버스는 ×`RES`(2) — 각 장면 `create()` 첫 줄 `hiRes(this)` 가 카메라를 zoom 2 로 맞춘다.** 포인터는 화면 좌표 `p.x` 가 아니라 `p.worldX/worldY` 를 쓴다. 모든 `add.text` 는 `main.js` 가 해상도 RES·글자 크기 `crispFontSize()`(Galmuri11 격자) 로 맞춘다
 - **그래픽은 기본적으로 코드로 생성** (`src/art/sprites.js` 문자열 맵 → `textures.js` 가 캔버스 텍스처로 변환)
 - **직접 그린 이미지·애니메이션으로 교체 가능**: `public/assets/custom/manifest.json` 에 적힌 PNG(스프라이트 시트)가 같은 키의 코드 그림을 대체 (`src/systems/customArt.js`). 애니메이션 이름: 용병·영웅 `idle`/`attack`, 몬스터 `walk`. 촘촘하게 그린 그림은 manifest `scale`(예: 32×32 → 0.5)로 크기를 맞추고, 유닛 그림을 바꿀 때는 `setArt(obj, key, 기본배율)` 을 쓴다. manifest `faceTarget`+`pivotX` 가 있는 그림은 `setFacing(sprite, left)` 로 공격 방향을 바라본다. 사용법·키 목록은 `docs/CUSTOM_ART.md`
 - 폰트: 픽셀 폰트 Galmuri11 (OFL) — UI·게임 월드 공통. `public/assets/fonts/`
@@ -26,6 +26,7 @@
 - Claude Code: `/graphify .` — 코드베이스 지식 그래프 생성(`graphify-out/`, 커밋 안 함). 스킬은 `.claude/skills/graphify/` (없으면 스킬이 `pip install graphifyy` 를 스스로 실행)
 - **PixelLab MCP** (`.mcp.json`, 픽셀아트 생성): 토큰은 저장소에 넣지 않는다 — `Bearer proxy-injected` 자리에 클라우드 환경의 네트워크 비밀값이 자동으로 들어간다. 새 세션부터 도구가 보인다
 - Claude Code: `/verify` — 작업 루프(검사 → 실패 시 수정 반복 → 화면 확인)를 한 번에 수행
+- 단축키: Space 바로 시작, S 선택 용병 판매, ESC 메뉴
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio·setArt·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 
 ## 구조

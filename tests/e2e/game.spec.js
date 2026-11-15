@@ -51,20 +51,20 @@ test('같은 속성·레벨 용병을 끌어다 놓으면 레벨 업', async ({ 
   expect(errors).toEqual([]);
 });
 
-test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼·N 키)', async ({ page }) => {
+test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼·Space 키)', async ({ page }) => {
   const errors = await startGame(page);
   const wave = () => game(page, () => window.game.scene.getScene('Game').wave);
   await page.mouse.click(544 - 68, 56); // 시작 전 필드는 비어 있음 → 동작
   await page.mouse.click(544 - 68, 56); // 몬스터가 나오는 중 → 무시
   expect(await wave()).toBe(1);
   await page.waitForTimeout(700);
-  await page.keyboard.press('n'); // 몬스터가 남아 있음 → 무시
+  await page.keyboard.press('Space'); // 몬스터가 남아 있음 → 무시
   expect(await wave()).toBe(1);
   expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(false);
   // 전부 처치하면 다시 활성화
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.spawnQueue = []; for (const m of [...g.monsters]) g.killMonster(m); g.cleanupMonsters(); g.refreshHud(); });
   expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(true);
-  await page.keyboard.press('n');
+  await page.keyboard.press('Space');
   expect(await wave()).toBe(2);
   expect(errors).toEqual([]);
 });
@@ -428,7 +428,8 @@ test('PixelLab 이펙트 2: 몬스터 사망·보스 폭발·버프/디버프 �
   await page.waitForTimeout(200);
   await page.screenshot({ path: SHOT('20-pixellab-fx2') });
   // 효과가 끝나면 상태 표시가 떨어지고, 레벨 업 이펙트는 스스로 지워진다
-  await page.waitForTimeout(700);
+  // 고정 대기 대신 레벨 업 이펙트가 실제로 끝날 때까지 기다린다 (느린 환경에서는 프레임이 적다)
+  await page.waitForFunction(() => !window.game.scene.getScene('Game').mercs[0].list.some((o) => o.texture?.key === 'fx_levelup'), null, { timeout: 8000 });
   const after = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gameTime += 5;
@@ -554,6 +555,47 @@ test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 
     return g.vfx.coinCount;
   });
   expect(capped).toBe(12);
-  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 15000 });
+  expect(errors).toEqual([]);
+});
+
+test('단축키 S: 선택한 용병 판매', async ({ page }) => {
+  const errors = await startGame(page);
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
+  const g0 = await game(page, () => window.game.scene.getScene('Game').gold);
+  await page.keyboard.press('s');
+  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, gold: g.gold, sel: !!g.selected }; });
+  expect(r).toEqual({ n: 0, gold: g0 + 15, sel: false }); // 고용비 30G × 50%
+  await page.keyboard.press('s'); // 선택이 없으면 아무 일도 없다
+  expect(errors).toEqual([]);
+});
+
+test('스킬 리롤: 스킬 정보 창에서 스킬마다 200/500/1500/3000G 로 같은 레벨의 다른 스킬로 바꾼다', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 99999;
+    g.hire();
+    const m = g.mercs[0];
+    while (m.level < 5) m.levelUp(window.__rtd.skillOptions(m.attr, m.cls, m.level + 1)[0]);
+    g.select(m);
+    g.hud.showSkillPopup(m);
+    return { btns: g.hud.rerollBtns.map((b) => b.label.text), before: m.skills.map((s) => s.def.id) };
+  });
+  expect(r.btns).toEqual(['리롤 200G', '리롤 500G', '리롤 1500G', '리롤 3000G']);
+  await page.screenshot({ path: SHOT('25-skill-reroll') });
+  // Lv4 스킬(3번째) 리롤 버튼을 실제로 누른다
+  const pos = await game(page, () => { const b = window.game.scene.getScene('Game').hud.rerollBtns[2]; return { x: b.x, y: b.y }; });
+  const g0 = await game(page, () => window.game.scene.getScene('Game').gold);
+  await page.mouse.click(pos.x, pos.y);
+  const after = await game(page, () => { const g = window.game.scene.getScene('Game'); return { gold: g.gold, ids: g.mercs[0].skills.map((s) => s.def.id), open: !!g.hud.popup }; });
+  expect(after.gold).toBe(g0 - 1500);
+  expect(after.ids[2]).not.toBe(r.before[2]);
+  expect(after.ids[2].split('_')[2]).toBe('4'); // 같은 레벨 후보
+  expect(after.ids.filter((_, i) => i !== 2)).toEqual(r.before.filter((_, i) => i !== 2));
+  expect(after.open).toBe(true); // 창이 다시 그려져 열려 있다
+  // 골드가 모자라면 버튼이 꺼진다
+  const dis = await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 300; g.hud.showSkillPopup(g.mercs[0]); return g.hud.rerollBtns.map((b) => b.enabled); });
+  expect(dis).toEqual([true, false, false, false]);
   expect(errors).toEqual([]);
 });

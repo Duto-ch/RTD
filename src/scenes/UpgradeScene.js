@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
@@ -73,6 +74,7 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   create() {
+    hiRes(this);
     meta.load();
     if (!this.fromGame) audio.playMusic('title');
     this.pos = layoutTree();
@@ -173,13 +175,13 @@ export class UpgradeScene extends Phaser.Scene {
   setupPan() {
     this.input.on('pointerdown', (p) => {
       this.moved = false;
-      if (p.y < VIEW.top || p.y > VIEW.bottom) return;
-      this.drag = { x: p.x, y: p.y, tx: this.tree.x, ty: this.tree.y };
+      if (p.worldY < VIEW.top || p.worldY > VIEW.bottom) return;
+      this.drag = { x: p.worldX, y: p.worldY, tx: this.tree.x, ty: this.tree.y };
     });
     this.input.on('pointermove', (p) => {
       if (!this.drag || !p.isDown) return;
-      const dx = p.x - this.drag.x;
-      const dy = p.y - this.drag.y;
+      const dx = p.worldX - this.drag.x;
+      const dy = p.worldY - this.drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 8) this.moved = true;
       if (!this.moved) return;
       this.tree.setPosition(this.drag.tx + dx, this.drag.ty + dy);

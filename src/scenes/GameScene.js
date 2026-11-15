@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
@@ -29,6 +30,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    hiRes(this);
     this.gameTime = 0;
     this.speed = 1;
     this.paused = false;
@@ -701,6 +703,31 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+  /** 스킬 리롤 비용 (영웅 고유 스킬 등 표에 없는 레벨은 null = 리롤 불가) */
+  rerollCost(def) {
+    return BALANCE.skillReroll[def.level] ?? null;
+  }
+
+  /** 용병의 i번째 스킬을 같은 레벨의 다른 후보로 바꾼다 (골드 소비, 판매 환급에는 넣지 않음) */
+  rerollSkill(merc, i) {
+    const sk = merc.skills[i];
+    const cost = sk && this.rerollCost(sk.def);
+    if (!cost || this.over || !merc.active) return false;
+    if (this.gold < cost) {
+      this.toast(`골드 부족 (스킬 리롤 ${cost}G 필요)`);
+      return false;
+    }
+    const [attr, cls] = sk.def.id.split('_'); // id = attr_cls_level_i (영웅이 되어도 원래 병과 스킬 후보에서 고른다)
+    const pool = skillOptions(attr, cls, sk.def.level).filter((o) => o.id !== sk.def.id);
+    const def = Phaser.Utils.Array.GetRandom(pool);
+    this.gold -= cost;
+    merc.skills[i] = { def, cd: def.cd * 0.5 };
+    audio.levelUp();
+    this.toast(`${merc.heroName} — 「${sk.def.name}」 → 「${def.name}」`, '#f2c14e');
+    this.refreshHud();
+    return def;
+  }
+
   merge(src, dst) {
     const promoting = dst.level >= MAX_LEVEL;
     const cost = this.mergeCostFor(dst.level);
@@ -764,7 +791,13 @@ export class GameScene extends Phaser.Scene {
   setupInput() {
     this.input.dragDistanceThreshold = 6;
     this.input.keyboard?.on('keydown-ESC', () => this.hud.toggleMenu());
-    this.input.keyboard?.on('keydown-N', () => this.callNextWave()); // N: 다음 웨이브 바로 시작
+    // Space: 다음 웨이브 바로 시작 · S: 선택한 용병 판매
+    this.input.keyboard?.addCapture('SPACE');
+    this.input.keyboard?.on('keydown-SPACE', () => this.callNextWave());
+    this.input.keyboard?.on('keydown-S', () => {
+      if (this.over || this.menuOpen || this.relicChoice || this.hud.popup) return;
+      if (this.selected?.active) this.sell(this.selected);
+    });
     this.input.on('gameobjectdown', (_p, obj) => {
       if (obj instanceof Mercenary) this.select(obj);
     });

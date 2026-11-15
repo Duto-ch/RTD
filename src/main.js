@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, FONT, BALANCE } from './config.js';
+import { GAME_W, GAME_H, FONT, BALANCE, RES, crispFontSize } from './config.js';
 import { skillOptions } from './data/skills.js';
 import { setArt } from './systems/customArt.js';
 import { audio } from './systems/audio.js';
@@ -28,11 +28,20 @@ await loadFonts();
 // 브라우저 정책: 첫 터치/클릭 후에만 소리를 낼 수 있다
 window.addEventListener('pointerdown', () => audio.init());
 
+// 모든 글자: 크기를 픽셀 글꼴 격자에 맞추고 RES 배 해상도로 그린다 (흐림·뭉개짐 없이 선명하게)
+const addText = Phaser.GameObjects.GameObjectFactory.prototype.text;
+Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style = {}) {
+  const st = { ...style, resolution: RES };
+  const px = parseFloat(st.fontSize);
+  if (px) st.fontSize = `${crispFontSize(px)}px`;
+  return addText.call(this, x, y, text, st);
+};
+
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  width: GAME_W,
-  height: GAME_H,
+  width: GAME_W * RES, // 실제 캔버스 해상도. 각 장면 카메라가 zoom RES 로 게임 좌표(GAME_W x GAME_H)를 채운다
+  height: GAME_H * RES,
   backgroundColor: '#2b1810',
   pixelArt: true,
   roundPixels: true,

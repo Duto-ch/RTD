@@ -16,6 +16,15 @@ export const PATH_OFF = 60; // 필드 가장자리 → 몬스터 이동 경로 �
 export const PATH_WIDTH = 56;
 
 export const FONT = 'Galmuri11';
+// 고화질 렌더링: 캔버스 실제 해상도 = 게임 좌표 × RES (카메라 zoom RES). 글자도 RES 배 해상도로 그려 선명하게.
+// 게임 좌표(544x960)·레이아웃은 그대로다
+export const RES = 2;
+/** Galmuri11 은 11px 격자로 디자인된 픽셀 글꼴 — 화면 크기가 11의 배수(px)일 때 획이 정확히 맞아 깔끔하다.
+ *  요청 크기를 가장 가까운 '11 × 정수 / RES' 로 맞춘다 (RES 2: 11, 16.5, 22, 27.5 …) */
+export function crispFontSize(size) {
+  const step = 11 / RES;
+  return Math.max(11, Math.round(size / step) * step);
+}
 
 export const DEPTH = {
   bg: 0,
@@ -36,6 +45,8 @@ export const BALANCE = {
   hireCost: 30,
   hireLv2Chance: 0.05, // 고용 시 2레벨 용병이 나올 확률
   maxActiveRelics: 4, // 동시에 활성화할 수 있는 유물 수
+  // 스킬 리롤 비용 (스킬 정보 창, 습득 레벨별): 같은 레벨 후보 3종 중 지금 것을 뺀 2종에서 랜덤으로 바뀐다. 영웅 고유 스킬은 리롤 불가
+  skillReroll: { 2: 200, 3: 500, 4: 1500, 5: 3000 },
   sellRefund: 0.5, // 투자 골드 대비 판매 환급 비율
   mergeCost: { 2: 20, 3: 100, 4: 240, 5: 600 }, // 해당 레벨로 올릴 때 비용 (Lv3부터 2배, 2026-11-12)
   promoteCost: 1800, // Lv5 + Lv5 → 영웅 승급 비용 (2026-11-12 3배)

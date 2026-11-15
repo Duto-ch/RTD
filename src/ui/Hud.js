@@ -373,12 +373,25 @@ export class Hud {
     add(`${m.heroName} · ${m.isHero ? `영웅 ${m.roleName}` : `Lv.${m.level} ${m.roleName}`}`, 20, m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr], '700', 4);
     add(`${ELEMENT_FLAVOR[m.attr].desc} (피해 스킬에 추가 적용)`, 13, CSS.sub, '600', 12);
     if (!m.skills.length) add('아직 스킬이 없습니다.', 14, CSS.ink);
-    for (const sk of m.skills) {
+    this.rerollBtns = [];
+    m.skills.forEach((sk, i) => {
       const d = sk.def;
       const tag = d.level > MAX_LEVEL ? '영웅 고유' : `Lv${d.level}`;
-      add(`${tag}  ${d.name}  ·  쿨타임 ${d.cd}초`, 15, d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
+      const cost = s.rerollCost(d);
+      const rowY = cy;
+      const title = add(`${tag}  ${d.name}  ·  쿨타임 ${d.cd}초`, 15, d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
+      if (cost) {
+        // 스킬마다 리롤 버튼 (오른쪽 끝). 누르면 골드를 쓰고 창을 다시 그린다
+        title.setWordWrapWidth(w - 48 - 104);
+        const btn = new Button(s, x + w - 72, rowY + 9, 96, 26, `리롤 ${cost}G`, () => {
+          if (s.rerollSkill(m, i)) this.showSkillPopup(m);
+        }, { variant: 'gold', fontSize: 11 });
+        btn.setEnabled(s.gold >= cost);
+        c.add(btn);
+        this.rerollBtns.push(btn);
+      }
       add(describeSkill(d), 13, CSS.ink, '600', 10);
-    }
+    });
     if (!m.isHero && m.level < MAX_LEVEL) {
       cy += 4;
       add(`다음 레벨(Lv${m.level + 1}) 후보 — 이 중 1개 랜덤 습득`, 13, CSS.sub, '700', 4);

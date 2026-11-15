@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, PX, UI_PX } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { audio } from '../systems/audio.js';
@@ -14,6 +15,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    hiRes(this);
     const cx = GAME_W / 2;
     audio.playMusic('title');
     this.add.image(0, 0, 'bg_grass').setOrigin(0).setScale(UI_PX);

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hiRes } from '../systems/hires.js';
 import { generateTextures } from '../art/textures.js';
 import { preloadManifest, loadCustomArt } from '../systems/customArt.js';
 import { preloadFx, createFxAnims } from '../data/fx.js';
@@ -17,6 +18,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    hiRes(this);
     generateTextures(this);
     createFxAnims(this);
     loadCustomArt(this, () => this.scene.start('Title'));
