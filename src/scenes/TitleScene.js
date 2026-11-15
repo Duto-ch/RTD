@@ -20,9 +20,9 @@ export class TitleScene extends Phaser.Scene {
     audio.playMusic('title');
     meta.load();
 
-    // 일러스트: 화면을 꽉 채우게(비율이 거의 같아 위아래 몇 px 만 잘림). 픽셀 격자가 아닌 그림이라 부드럽게 확대
+    // 일러스트: 화면을 꽉 채우게(비율이 거의 같아 위아래 몇 px 만 잘림). perfectPixel 로 진짜 픽셀 격자(312x553)로 정리한 그림이라
+    // 다른 그림처럼 픽셀을 그대로(NEAREST) 확대한다
     const bg = this.add.image(cx, GAME_H / 2, 'title_bg');
-    this.textures.get('title_bg').setFilter(Phaser.Textures.FilterMode.LINEAR);
     bg.setScale(Math.max(GAME_W / bg.width, GAME_H / bg.height));
 
     // 제목 그림 아래: 깜빡이는 TAP TO START
