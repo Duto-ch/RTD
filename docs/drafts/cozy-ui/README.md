@@ -45,3 +45,8 @@ UI 는 B-2 원안 그대로, 초원 필드(땅·흙길·성벽·바닥)의 색·
 | 포근한 초원 | `field-warm.png` | 밝은 연두 | 크림 모래 | 베이지 석벽 | 모래색·크림 체크 |
 | 정원 잔디 | `field-garden.png` | 짙은 세이지 | 회베이지 자갈 | 생울타리(초록 벽돌) | 줄무늬 잔디 |
 | 숲속 나무 데크 | `field-deck.png` | 깊은 숲 | 붉은 흙 | 통나무 | 나무 판자 |
+
+## 필드 도트 고밀도 시안 (2026-11-15) — `field-hd-*.png`
+배경 픽셀 밀도를 아트 1px = 화면 3px → **2px** 로 올림(같은 넓이에 픽셀 2.25배). 벽돌이 더 작고 촘촘, 풀잎·모래 알갱이·자갈 하이라이트, 석판/판자 2px 모서리 빛. 코드: `preview/field-style` 의 `?density=hi`
+- `field-hd-base.png` 지금 색 · `field-hd-warm.png` 포근한 초원 · `field-hd-garden.png` 정원 잔디 · `field-hd-deck.png` 숲속 나무 데크
+- `field-hd-compare-warm.png` 왼쪽 3px / 오른쪽 2px 비교, `field-hd-zoom-deck.png` 확대
