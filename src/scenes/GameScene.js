@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { GAME_W, GAME_H, WIDE, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
@@ -188,7 +188,7 @@ export class GameScene extends Phaser.Scene {
     const income = b.waveGold + Math.min(Math.floor(this.gold * b.interest), w * 20);
     if (income > 0) {
       this.gold += income;
-      this.floatText(GAME_W - 120, 100, `+${income}G`, '#f2c14e');
+      this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 128 : 100, `+${income}G`, '#f2c14e');
     }
     this.wave = w;
     const info = waveInfo(w);
@@ -599,10 +599,10 @@ export class GameScene extends Phaser.Scene {
   offerRelicChoice() {
     const options = Phaser.Utils.Array.Shuffle([...RELICS]).slice(0, BALANCE.milestone.relicChoices);
     this.hud.clearNotices();
-    const px = 36;
-    const py = 250;
-    const pw = GAME_W - 72;
+    const pw = WIDE ? 472 : GAME_W - 72;
+    const px = (GAME_W - pw) / 2;
     const ph = 470;
+    const py = WIDE ? (GAME_H - ph) / 2 : 250;
     const c = this.hud.modal(DEPTH.overlay - 0.5, px, py, pw, ph, null, '보상 선택'); // 배너·토스트보다 위
     this.relicChoice = { options, container: c };
     c.add(uiText(this, GAME_W / 2, py + 40, '강화 보스 처치!', 24, CSS.primary, '700').setOrigin(0.5));
@@ -1029,7 +1029,7 @@ export class GameScene extends Phaser.Scene {
     const cw = 440;
     const ch = 510; // X·별 아이콘이 제목 탭에서 떨어지도록 위 여백 확보 (2026-11-15)
     const cx = GAME_W / 2;
-    const cy0 = 248;
+    const cy0 = WIDE ? (GAME_H - ch) / 2 : 248;
     panel(this, cx - cw / 2, cy0, cw, ch, 'card').setDepth(top);
     for (const o of titleTab(this, cx, cy0, victory ? 'WIN!' : 'TRY AGAIN', 200)) o.setDepth(top);
     // 승리: 별 3개 (가운데 큰 별) / 패배: 큰 X

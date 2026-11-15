@@ -1,7 +1,7 @@
 import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES, BUILDING_SPRITES } from './sprites.js';
 import { BOSS_EXTRA_PALETTE } from './monsters.js';
 import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
-import { GAME_W, GAME_H, PX, UI_PX, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, HUD_RECTS, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
 
 // 배경은 UI_PX(3) 해상도로 그린다. 화면 좌표 → 배경 아트 좌표 (가장 가까운 픽셀 경계로 맞춤)
 const BP = UI_PX;
@@ -249,15 +249,16 @@ function paintDecorations(px, rect, rand, W, H, biome) {
   const [c1, c2, c3] = biome.decoColors;
   const g1 = biome.ground[1];
   const dark = shade(g1, 0.8);
-  // 보이는 땅에만 놓는다: 몬스터 길 바깥 + 상단 HUD(y 180)와 하단 패널(y 776) 사이. 길·HUD 에 가려질 자리는 건너뜀
+  // 보이는 땅에만 놓는다: 몬스터 길 바깥 + HUD 가 덮지 않는 곳. 길·HUD 에 가려질 자리는 건너뜀
   const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
   const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
   const os = toArt(FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH);
-  const top = toArt(180);
-  const bottom = toArt(776);
-  const visible = (x, y) => y - 2 >= top && y + 9 <= bottom && x >= 1 && x + 5 < W && !(x + 5 >= ox && x - 3 < ox + os && y + 9 >= oy && y - 2 < oy + os);
+  // HUD 가 덮는 칸 (config HUD_RECTS: 세로는 위·아래 띠, 가로는 양옆 칸)
+  const huds = HUD_RECTS.map((r) => ({ x0: toArt(r.x), y0: toArt(r.y), x1: toArt(r.x + r.w), y1: toArt(r.y + r.h) }));
+  const underHud = (x, y) => huds.some((r) => x + 5 >= r.x0 && x - 3 < r.x1 && y + 9 >= r.y0 && y - 2 < r.y1);
+  const visible = (x, y) => y >= 2 && y + 9 < H && x >= 1 && x + 5 < W && !underHud(x, y) && !(x + 5 >= ox && x - 3 < ox + os && y + 9 >= oy && y - 2 < oy + os);
   const spots = (n0, fn) => {
-    const n = Math.round(n0 * 1.5); // 3px 밀도: 같은 땅에 픽셀이 1.8배 → 장식을 조금 더 촘촘히
+    const n = Math.round(n0 * 1.5 * ((W * H) / (182 * 320))); // 3px 밀도로 1.5배, 화면 넓이(가로 배치)에 비례
     let placed = 0;
     for (let tries = 0; placed < n && tries < n * 60; tries++) {
       const x = Math.floor(rand() * W);

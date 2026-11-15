@@ -1,7 +1,17 @@
 // 화면 / 레이아웃 상수. 모든 배치는 4배 픽셀(아트 1px = 화면 4px) 격자에 맞춘다.
 export const PX = 4;
-export const GAME_W = 544; // 136 아트 px
-export const GAME_H = 960; // 240 아트 px
+// 화면 방향 (2026-11-15): 창이 가로로 넓으면(16:9 모니터) 가로 배치 1280x720, 아니면 세로 배치 544x960 (모바일).
+// 게임을 띄울 때 한 번 정한다. 주소에 ?layout=wide / ?layout=tall 을 붙이면 강제로 고를 수 있다
+function pickLayout() {
+  if (typeof window === 'undefined') return 'tall';
+  const q = new URLSearchParams(window.location?.search || '').get('layout');
+  if (q === 'wide' || q === 'tall') return q;
+  return window.innerWidth > window.innerHeight * 1.15 ? 'wide' : 'tall';
+}
+export const LAYOUT = pickLayout();
+export const WIDE = LAYOUT === 'wide';
+export const GAME_W = WIDE ? 1280 : 544; // 세로: 136 아트 px
+export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 
 export const GRID = 5;
 export const TOWER_CELL = { col: 2, row: 2 }; // 필드 가운데 성탑 칸 (용병을 놓을 수 없다)
@@ -9,16 +19,27 @@ export const TOWER_CELL = { col: 2, row: 2 }; // 필드 가운데 성탑 칸 (�
 export const UI_PX = 3;
 export const CELL = 64; // 16 아트 px
 export const FIELD_SIZE = GRID * CELL; // 320
-export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 112
-export const FIELD_Y = 320;
+export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 세로 112 · 가로 480 (가운데)
+export const FIELD_Y = WIDE ? (GAME_H - FIELD_SIZE) / 2 : 320; // 가로는 위아래 가운데 (200)
 export const WALL = 24; // 성벽 두께
 export const PATH_OFF = 60; // 필드 가장자리 → 몬스터 이동 경로 중심선 거리
 export const PATH_WIDTH = 56;
 
 export const FONT = 'Galmuri11';
+// 지역 장식을 놓지 않을 HUD 영역 (배경 그림이 가려지는 곳) — 세로: 위·아래 띠, 가로: 양옆 HUD 칸
+export const HUD_RECTS = WIDE
+  ? [
+      { x: 0, y: 0, w: 392, h: 232 },
+      { x: 888, y: 0, w: 392, h: 232 },
+      { x: 888, y: 448, w: 392, h: 272 }
+    ]
+  : [
+      { x: 0, y: 0, w: 544, h: 180 },
+      { x: 0, y: 776, w: 544, h: 184 }
+    ];
 // 고화질 렌더링: 캔버스 실제 해상도 = 게임 좌표 × RES (카메라 zoom RES). 글자도 RES 배 해상도로 그려 선명하게.
 // 게임 좌표(544x960)·레이아웃은 그대로다
-export const RES = 2;
+export const RES = 2; // 가로 배치도 2배 (1280x720 → 2560x1440). 1.5배면 픽셀 글꼴 크기 격자가 달라져 작은 글자가 커진다
 /** Galmuri11 은 11px 격자로 디자인된 픽셀 글꼴 — 화면 크기가 11의 배수(px)일 때 획이 정확히 맞아 깔끔하다.
  *  요청 크기를 가장 가까운 '11 × 정수 / RES' 로 맞춘다 (RES 2: 11, 16.5, 22, 27.5 …) */
 export function crispFontSize(size) {

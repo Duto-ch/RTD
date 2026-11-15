@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H } from '../config.js';
+import { GAME_W, GAME_H, WIDE } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
@@ -15,8 +15,10 @@ const ARMS = ['attack', 'economy', 'tactics', 'defense']; // 시계 방향 (위 
 const RADIUS = [0, 76, 138, 196, 248]; // 깊이별 거리
 const STAGGER = 30; // 형제가 많을 때 엇갈려 놓는 거리
 const HEX = 17; // 노드 육각형 반지름
-const VIEW = { top: 108, bottom: 676 }; // 트리가 보이는 영역
-const CENTER = { x: GAME_W / 2, y: (VIEW.top + VIEW.bottom) / 2 };
+// 세로: 위 머리 창 · 가운데 트리 · 아래 정보 창 / 가로(2026-11-15): 왼쪽 트리 · 오른쪽 칸에 머리 창·정보 창·버튼
+const VIEW = WIDE ? { top: 24, bottom: GAME_H - 24, right: 872 } : { top: 108, bottom: 676, right: GAME_W }; // 트리가 보이는 영역
+const CENTER = { x: WIDE ? 436 : GAME_W / 2, y: (VIEW.top + VIEW.bottom) / 2 };
+const SIDE = WIDE ? { x: 888, w: 380 } : { x: 12, w: GAME_W - 24 }; // 머리 창·정보 창이 놓이는 칸
 
 /**
  * 방사형 배치: 4갈래가 위·오른쪽·아래·왼쪽을 향하고 각 갈래는 같은 90° 구역(양옆 여백 제외)을 쓴다.
@@ -110,39 +112,48 @@ export class UpgradeScene extends Phaser.Scene {
   // ───────────── 머리 창 ─────────────
   createHeader() {
     const D = 10;
-    panel(this, 12, 12, GAME_W - 24, 84, 'card').setDepth(D);
+    const X = SIDE.x;
+    const R = SIDE.x + SIDE.w;
+    panel(this, X, 12, SIDE.w, 84, 'card').setDepth(D);
     const g = this.add.graphics().setDepth(D);
-    drawIcon(g, 'crown', 40, 44, 21, 0xa8700c);
-    this.fameText = uiText(this, 60, 44, '', 22, CSS.gold, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.bestText = uiText(this, GAME_W - 32, 38, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
-    this.countText = uiText(this, GAME_W - 32, 58, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
-    uiText(this, 32, 74, '웨이브를 버틸 때마다 명성 · 강화는 영구 유지', 11, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    drawIcon(g, 'crown', X + 28, 44, 21, 0xa8700c);
+    this.fameText = uiText(this, X + 48, 44, '', 22, CSS.gold, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.bestText = uiText(this, R - 20, 38, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
+    this.countText = uiText(this, R - 20, 58, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
+    uiText(this, X + 20, 74, '웨이브를 버틸 때마다 명성 · 강화는 영구 유지', 11, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
   }
 
   // ───────────── 아래 정보 창 ─────────────
   createDetail() {
     const D = 10;
-    const y = 688;
-    panel(this, 12, y, GAME_W - 24, 176, 'card').setDepth(D);
-    this.dBranch = uiText(this, 32, y + 22, '', 13, CSS.sub, 'bold').setDepth(D);
-    this.dName = uiText(this, 32, y + 42, '', 20, CSS.ink, 'bold').setDepth(D);
-    this.dLevel = uiText(this, GAME_W - 32, y + 24, '', 14, CSS.sub, 'bold').setOrigin(1, 0).setDepth(D);
-    this.dEffect = uiText(this, 32, y + 80, '', 15, CSS.ink, 'bold').setDepth(D);
-    this.dNote = uiText(this, 32, y + 108, '', 13, CSS.sub, 'bold').setDepth(D);
-    this.buyBtn = new Button(this, GAME_W - 122, y + 132, 168, 44, '강화', () => this.buySelected(), { variant: 'primary', fontSize: 16 }).setDepth(D);
+    const y = WIDE ? 108 : 688;
+    const X = SIDE.x;
+    const R = SIDE.x + SIDE.w;
+    const wrap = { wordWrap: { width: SIDE.w - 40 } };
+    panel(this, X, y, SIDE.w, WIDE ? 232 : 176, 'card').setDepth(D);
+    this.dBranch = uiText(this, X + 20, y + 22, '', 13, CSS.sub, 'bold').setDepth(D);
+    this.dName = uiText(this, X + 20, y + 42, '', 20, CSS.ink, 'bold').setDepth(D);
+    this.dLevel = uiText(this, R - 20, y + 24, '', 14, CSS.sub, 'bold').setOrigin(1, 0).setDepth(D);
+    this.dEffect = uiText(this, X + 20, y + 80, '', 15, CSS.ink, 'bold', wrap).setDepth(D);
+    this.dNote = uiText(this, X + 20, y + (WIDE ? 130 : 108), '', 13, CSS.sub, 'bold', wrap).setDepth(D);
+    this.buyBtn = new Button(this, R - 110, y + (WIDE ? 188 : 132), 168, 44, '강화', () => this.buySelected(), { variant: 'primary', fontSize: 16 }).setDepth(D);
   }
 
   createControls() {
     const D = 10;
+    const bx = WIDE ? SIDE.x + SIDE.w / 2 : GAME_W / 2;
     if (this.fromGame) {
-      new Button(this, GAME_W / 2, 916, GAME_W - 48, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      new Button(this, bx, WIDE ? GAME_H - 54 : 916, WIDE ? SIDE.w : GAME_W - 48, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
       this.input.keyboard?.on('keydown-ESC', () => this.close());
+    } else if (WIDE) {
+      new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      new Button(this, bx, GAME_H - 52, SIDE.w, 48, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(D);
     } else {
       new Button(this, GAME_W / 2 - 92, 916, 236, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
       new Button(this, GAME_W / 2 + 140, 916, 200, 60, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(D);
     }
     // 확대·축소·가운데로
-    const zx = GAME_W - 36;
+    const zx = VIEW.right - 36;
     new Button(this, zx, VIEW.top + 24, 40, 40, '+', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
     new Button(this, zx, VIEW.top + 70, 40, 40, '-', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
     new Button(this, zx, VIEW.top + 116, 40, 40, '◎', () => this.recenter(), { variant: 'outline', fontSize: 16 }).setDepth(D);
@@ -175,7 +186,7 @@ export class UpgradeScene extends Phaser.Scene {
   setupPan() {
     this.input.on('pointerdown', (p) => {
       this.moved = false;
-      if (p.worldY < VIEW.top || p.worldY > VIEW.bottom) return;
+      if (p.worldY < VIEW.top || p.worldY > VIEW.bottom || p.worldX > VIEW.right) return;
       this.drag = { x: p.worldX, y: p.worldY, tx: this.tree.x, ty: this.tree.y };
     });
     this.input.on('pointermove', (p) => {

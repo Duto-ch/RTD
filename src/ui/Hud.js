@@ -2,7 +2,7 @@
 // GameScene 은 게임 진행만 맡고, 화면 표시는 이 클래스에 맡긴다 (scene.hud).
 // 게임 상태는 읽기만 하고, 버튼을 누르면 scene 의 동작(hire, sell, callNextWave …)을 부른다.
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, UI_PX, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, WIDE, FIELD_X, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
 import { MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
@@ -16,11 +16,43 @@ import { PATH_LENGTH } from '../systems/path.js';
 import { setArt, playBase } from '../systems/customArt.js';
 import { audio } from '../systems/audio.js';
 
+// 몬스터 길 바깥 가장자리 (필드를 둘러싼 사각형)
+const RING = { x0: FIELD_X - PATH_OFF - PATH_WIDTH / 2, y0: FIELD_Y - PATH_OFF - PATH_WIDTH / 2, x1: FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2, y1: FIELD_Y + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2 };
 // 알림 띠 위치: 필드·몬스터 길 바깥의 빈 공간 가운데
-const TOP_BAND = [180, FIELD_Y - PATH_OFF - PATH_WIDTH / 2]; // 유물 줄 아래 ~ 위쪽 길 바깥 가장자리
-const BOTTOM_BAND = [FIELD_Y + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2, 776]; // 아래쪽 길 바깥 가장자리 ~ 하단 패널
+//  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
+const TOP_BAND = WIDE ? [0, RING.y0] : [180, RING.y0];
+const BOTTOM_BAND = WIDE ? [RING.y1, GAME_H] : [RING.y1, 776];
 export const BANNER_Y = (TOP_BAND[0] + TOP_BAND[1]) / 2;
 export const TOAST_Y = (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2;
+/** 배너·토스트 최대 너비: 세로는 화면 폭, 가로는 몬스터 길 사각형 폭 */
+const NOTICE_W = WIDE ? RING.x1 - RING.x0 + 24 : GAME_W - 24;
+
+/** HUD 배치 (2026-11-15 가로 16:9 배치 추가). 세로 = 위 상태 창·유물 줄 + 아래 버튼·정보 창, 가로 = 왼쪽 상태 창·유물 줄 + 오른쪽 정보 창·버튼 */
+export const HUD = WIDE
+  ? {
+      top: { x: 16, y: 24, w: 360, h: 148 }, // 상태 창
+      line1: 64, line2: 95, line3: 128, // 안내 줄 · 타이머/바로 시작 · 골드/몬스터 수
+      timer: { x: 36, w: 124 }, next: { x: 314, w: 84 },
+      gauge: { x: 36, y: 146, w: 320 },
+      relic: { x: 16, y: 184, w: 360 }, // 유물 줄
+      dark: { x: 896, y: 448, w: 376, h: 264 }, // 버튼 받침
+      hire: { x: 1084, y: 528, w: 344, h: 96 },
+      small: { y: 644, xs: [972, 1084, 1196], w: 96, h: 64 },
+      info: { x: 896, y: 24, w: 376, h: 160 } // 정보 창
+    }
+  : {
+      top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
+      line1: 56, line2: 56, line3: 88,
+      timer: { x: GAME_W - 236, w: 108 }, next: { x: GAME_W - 72, w: 84 },
+      gauge: { x: 32, y: 104, w: GAME_W - 64 },
+      relic: { x: 12, y: 142, w: GAME_W - 24 },
+      dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
+      hire: { x: 100, y: 824, w: 168, h: 80 },
+      small: { y: 906, xs: [40, 100, 160], w: 52, h: 64 },
+      info: { x: 196, y: 788, w: GAME_W - 196 - 16, h: 160 }
+    };
+/** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
+export const MODAL_W = WIDE ? 520 : GAME_W;
 
 export class Hud {
   /** @param {Phaser.Scene} scene GameScene */
@@ -55,8 +87,8 @@ export class Hud {
     const s = this.s;
     if (this.toastObj) this.toastObj.destroy();
     const t = uiText(s, 0, 0, msg, 13, color === '#ffffff' ? CSS.white : color, 'bold').setOrigin(0.5);
-    this.fitText(t, GAME_W - 64);
-    const w = Math.min(GAME_W - 32, Math.ceil((t.width + 32) / UI_PX) * UI_PX);
+    this.fitText(t, NOTICE_W - 32);
+    const w = Math.min(NOTICE_W, Math.ceil((t.width + 32) / UI_PX) * UI_PX);
     const bg = panelImage(s, 0, 0, 'dark', w, 36);
     const c = s.add.container(GAME_W / 2, TOAST_Y, [bg, t]).setDepth(DEPTH.overlay - 1);
     this.toastObj = c;
@@ -68,7 +100,7 @@ export class Hud {
   showBanner(title, sub, color = '#ffffff') {
     const s = this.s;
     if (this.bannerObj) this.bannerObj.destroy();
-    const w = GAME_W - 24;
+    const w = NOTICE_W;
     const h = 40; // 테두리 그림자 포함 48px → 띠(52px) 안에 들어간다
     // 얇은 테두리(strip): 두꺼운 card 테두리는 안쪽이 16px 뿐이라 글자가 테두리에 걸쳤다 (2026-11-15)
     const bg = panelImage(s, 0, 0, 'strip', w, h);
@@ -111,38 +143,42 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     // 상태 창 (높이 120) + 초록 제목 탭(웨이브)
-    panel(s, 12, 16, GAME_W - 24, 120, 'card').setDepth(D - 1);
-    const [tabImg, tabText] = titleTab(s, GAME_W / 2, 16, 'WAVE 0 / 100', 220);
+    const T = HUD.top;
+    const R = T.x + T.w; // 상태 창 오른쪽 끝
+    panel(s, T.x, T.y, T.w, T.h, 'card').setDepth(D - 1);
+    const [tabImg, tabText] = titleTab(s, T.x + T.w / 2, T.y, 'WAVE 0', 220);
     tabImg.setDepth(D);
     this.waveText = tabText.setDepth(D);
-    this.waveTypeText = uiText(s, 32, 56, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.waveTypeText = uiText(s, T.x + 20, HUD.line1, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
 
     // 타이머 슬롯 + 바로 시작 버튼
     // 타이머 칸과 버튼 사이 14px 띄움 (2026-11-15 간격 확보)
-    panel(s, GAME_W - 236, 43, 108, 26, 'soft').setDepth(D);
+    panel(s, HUD.timer.x, HUD.line2 - 13, HUD.timer.w, 26, 'soft').setDepth(D);
     const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', GAME_W - 220, 56, 12, C.ink);
-    this.timerText = uiText(s, GAME_W - 208, 56, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, GAME_W - 72, 56, 84, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
+    drawIcon(clock, 'clock', HUD.timer.x + 16, HUD.line2, 12, C.ink);
+    this.timerText = uiText(s, HUD.timer.x + 28, HUD.line2, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
 
     // 골드 / 몬스터 수
     const coin = s.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', 42, 88, 18, 0x6a4a10);
-    this.goldText = uiText(s, 58, 88, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', T.x + 30, HUD.line3, 18, 0x6a4a10);
+    this.goldText = uiText(s, T.x + 46, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', GAME_W - 152, 89, 18, C.ink);
-    this.countText = uiText(s, GAME_W - 32, 88, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(skull, 'monster', R - 140, HUD.line3 + 1, 18, C.ink);
+    this.countText = uiText(s, R - 20, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
     // 진행 막대: 창 아래 테두리와 띄우고 조금 얇게 (위 숫자와도 간격)
-    panel(s, 32, 104, GAME_W - 64, 15, 'soft').setDepth(D);
+    panel(s, HUD.gauge.x, HUD.gauge.y, HUD.gauge.w, 15, 'soft').setDepth(D);
     this.countBar = s.add.graphics().setDepth(D);
 
     // 유물 줄 (높이 36)
-    panel(s, 12, 142, GAME_W - 24, 40, 'strip').setDepth(D - 1); // 얇은 테두리 → 아이콘 위아래 여백 (2026-11-15)
-    this.relicLabel = uiText(s, 30, 162, '유물', 13, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    const RL = HUD.relic;
+    panel(s, RL.x, RL.y, RL.w, 40, 'strip').setDepth(D - 1); // 얇은 테두리 → 아이콘 위아래 여백 (2026-11-15)
+    this.relicLabel = uiText(s, RL.x + 18, RL.y + 20, '유물', 13, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.relicRow = s.add.container(0, 0).setDepth(D);
-    this.noRelicText = uiText(s, 96, 162, `보스를 처치하면 유물을 얻어요 (최대 ${s.maxRelics}개 활성)`, 12, CSS.sub, 'bold')
+    this.noRelicText = uiText(s, RL.x + 84, RL.y + 20, `보스를 처치하면 유물을 얻어요 (최대 ${s.maxRelics}개 활성)`, 12, CSS.sub, 'bold')
       .setOrigin(0, 0.5)
       .setDepth(D);
+    this.fitText(this.noRelicText, RL.w - 84 - 16);
   }
 
   /** 상단·하단 숫자와 버튼 상태를 게임 상태에 맞춘다 (0.1초마다 + 상태가 바뀔 때) */
@@ -165,7 +201,7 @@ export class Hud {
     } else {
       this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
     }
-    this.fitText(this.waveTypeText, GAME_W - 236 - 48);
+    this.fitText(this.waveTypeText, WIDE ? HUD.top.w - 40 : GAME_W - 236 - 48);
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
 
     const n = s.monsters.length;
@@ -173,15 +209,16 @@ export class Hud {
     this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? CSS.red : CSS.ink);
     // 막대: 4px 단위 칸 채우기
     const g = this.countBar;
-    const bx = 40;
-    const bw = GAME_W - 80;
+    const bx = HUD.gauge.x + 8;
+    const bw = HUD.gauge.w - 16;
+    const by = HUD.gauge.y + 4;
     g.clear();
     const pct = Math.min(1, n / max);
     const fill = Math.round((bw * pct) / UI_PX) * UI_PX;
     if (fill > 0) {
       const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
-      g.fillStyle(col, 1).fillRect(bx, 108, fill, 7);
-      g.fillStyle(0xffffff, 0.35).fillRect(bx, 108, fill, 3);
+      g.fillStyle(col, 1).fillRect(bx, by, fill, 7);
+      g.fillStyle(0xffffff, 0.35).fillRect(bx, by, fill, 3);
     }
 
     this.nextWaveBtn.setEnabled(s.canCallNextWave);
@@ -197,8 +234,8 @@ export class Hud {
     this.relicLabel.setText(s.ownedRelics.length ? `유물 ${s.activeRelicCount}/${s.maxRelics}` : '유물');
     s.ownedRelics.forEach((r, i) => {
       // 칸 27px, 칸 사이 9px (예전 32px 칸이 4px 간격으로 붙고 띠 테두리에 닿았다)
-      const x = 124 + i * 36;
-      const y = 161;
+      const x = HUD.relic.x + 112 + i * 36;
+      const y = HUD.relic.y + 19;
       const slot = panelImage(s, x, y, r.active ? 'gold' : 'soft', 27, 27);
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => s.toggleRelic(i));
@@ -248,21 +285,20 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     // 하단 나무 받침 (높이 176)
-    panel(s, 4, 776, GAME_W - 8, 176, 'dark').setDepth(D - 2);
-    this.hireBtn = new Button(s, 100, 824, 168, 80, '', () => s.hire(), { variant: 'primary', fontSize: 18 });
-    this.speedBtn = new Button(s, 40, 906, 52, 64, 'x1', () => {
+    const K = HUD.dark;
+    panel(s, K.x, K.y, K.w, K.h, 'dark').setDepth(D - 2);
+    this.hireBtn = new Button(s, HUD.hire.x, HUD.hire.y, HUD.hire.w, HUD.hire.h, '', () => s.hire(), { variant: 'primary', fontSize: 18 });
+    const SM = HUD.small;
+    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => {
       s.speed = s.speed >= 3 ? 1 : s.speed + 1;
       this.speedBtn.setLabel(`x${s.speed}`);
       s.tweens.timeScale = s.speed;
     }, { variant: 'card', icon: 'speed', fontSize: 12 });
-    this.pauseBtn = new Button(s, 100, 906, 52, 64, '정지', () => s.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
-    this.menuBtn = new Button(s, 160, 906, 52, 64, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
+    this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
+    this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
 
     // 정보 창
-    const px = 196;
-    const py = 788;
-    const pw = GAME_W - px - 16;
-    const ph = 160;
+    const { x: px, y: py, w: pw, h: ph } = HUD.info;
     panel(s, px, py, pw, ph, 'card').setDepth(D - 1);
     this.infoAvatar = panelImage(s, px + 44, py + 42, 'soft', 48, 48).setDepth(D).setVisible(false);
     this.infoPortrait = s.add.sprite(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
@@ -351,9 +387,9 @@ export class Hud {
   showSkillPopup(m) {
     const s = this.s;
     this.popup?.destroy();
-    const x = 20;
-    const y = 240;
-    const w = GAME_W - 40;
+    const w = Math.min(GAME_W, MODAL_W) - 40;
+    const x = (GAME_W - w) / 2;
+    const y = WIDE ? 60 : 240;
     // 카드 높이는 내용에 맞춘다: 먼저 글자를 놓고, 마지막에 카드를 뒤에 끼운다
     const c = s.add.container(0, 0).setDepth(DEPTH.overlay - 5);
     const close = () => {
@@ -423,9 +459,9 @@ export class Hud {
     this.popup?.destroy();
     this.popup = null;
     if (!s.paused) s.tweens.pauseAll();
-    const px = 52;
-    const py = 236;
-    const pw = GAME_W - 104;
+    const pw = WIDE ? 440 : GAME_W - 104;
+    const px = (GAME_W - pw) / 2;
+    const py = WIDE ? 80 : 236;
     const ph = 560;
     const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
     this.menu = c;
