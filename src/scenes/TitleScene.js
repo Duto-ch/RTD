@@ -27,7 +27,9 @@ export class TitleScene extends Phaser.Scene {
 
     // 제목 그림 아래: 깜빡이는 TAP TO START
     this.tapText = uiText(this, cx, 352, 'TAP TO START', 27.5, '#ffffff', 'bold', { stroke: '#1d2c5a', strokeThickness: 6 }).setOrigin(0.5);
-    this.tweens.add({ targets: this.tapText, alpha: 0.15, duration: 520, yoyo: true, repeat: -1, ease: 'Stepped', easeParams: [2] });
+    // 부드러운 숨쉬기: 서서히 흐려졌다 밝아지며 아주 살짝 커졌다 작아진다 (2026-11-15, 이전 뚝뚝 끊기는 깜빡임)
+    this.tweens.add({ targets: this.tapText, alpha: { from: 1, to: 0.25 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: this.tapText, scale: { from: 1, to: 1.05 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // 명성 강화 · 최고 기록 (아래쪽)
     const best = meta.data.best?.normal || 0;
