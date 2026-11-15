@@ -525,3 +525,35 @@ test('PixelLab 화살: 궁수 속성별·레인저 금빛 화살이 시트 애�
   await page.waitForFunction(() => !window.game.scene.getScene('Game').children.list.some((o) => o.texture?.key?.startsWith('fx_arrow_')), null, { timeout: 5000 });
   expect(errors).toEqual([]);
 });
+
+test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 끝나면 사라진다 (동시 12개 상한)', async ({ page }) => {
+  const errors = await startGame(page);
+  expect(await game(page, () => window.game.scene.getScene('Game').anims.exists('fx_coin_drop_play'))).toBe(true);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.startWave(1);
+    const before = g.gold;
+    // 필드에 나온 몬스터 하나를 바로 처치
+    return new Promise((res) => {
+      const tick = () => {
+        const m = g.monsters.find((x) => x.active);
+        if (!m) return setTimeout(tick, 50);
+        g.damageMonster(m, 1e9);
+        setTimeout(() => res({ gold: g.gold - before, coins: g.children.list.filter((o) => o.texture?.key === 'fx_coin_drop').length }), 120);
+      };
+      tick();
+    });
+  });
+  expect(r.gold).toBeGreaterThan(0);
+  expect(r.coins).toBeGreaterThanOrEqual(1);
+  await page.screenshot({ path: SHOT('24-coin-drop') });
+  // 상한: 한꺼번에 많이 불러도 12개까지만
+  const capped = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (let i = 0; i < 30; i++) g.vfx.coinDrop(100 + i * 10, 260);
+    return g.vfx.coinCount;
+  });
+  expect(capped).toBe(12);
+  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 6000 });
+  expect(errors).toEqual([]);
+});

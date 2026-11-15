@@ -12,7 +12,7 @@ export const meta = {
   loop: false,
   fps: 24,
   bg: "ground",
-  options: { palette: GOLD, coins: 6, seed: 7 },
+  options: { palette: GOLD, coins: 6, spread: 1, seed: 7 },
 };
 
 export function create(o) {
@@ -20,7 +20,7 @@ export function create(o) {
   const ps = new Particles({ rng: R, ground: () => 0, sparks: [WHITE, C[6], C[5], C[3]] });
   const coins = [];
   for (let i = 0; i < o.coins; i++) {
-    const a = (i / o.coins) * TAU + R.range(-0.3, 0.3), sp = R.range(42, 62);
+    const a = (i / o.coins) * TAU + R.range(-0.3, 0.3), sp = R.range(42, 62) * o.spread;
     coins.push({ gx: 0, gy: 0, z: 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.55, vz: R.range(130, 175), ph: R.range(0, TAU), w: R.range(12, 18) * R.sign(), out: 1.3 + i * 0.07, gl: R.range(0, 0.5) });
   }
   for (let i = 0; i < 7; i++) {

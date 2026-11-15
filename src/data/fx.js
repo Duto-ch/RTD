@@ -35,6 +35,9 @@ export const FX = {
   arrow_green: { file: 'arrow_green.png', w: 28, h: 16, frames: 4, fps: 12, ox: 0.93, oy: 0.5, px: 3, loop: true, effect: 'dfcbf61b-be7f-4c71-916a-15cb1bdb8732' },
   // 레인저(영웅) 금빛 화살
   arrow_gold: { file: 'arrow_gold.png', w: 28, h: 16, frames: 4, fps: 12, ox: 0.93, oy: 0.5, px: 3, loop: true, effect: '80acaea6-0b74-47f7-9c5d-86f3b97f9106' },
+  // 몬스터 처치 골드: 동전 5개가 사방으로 튀었다 바닥에 멈춰 반짝이고 하나씩 사라짐 (pixelfx 시안 2번, docs/drafts/coin-drop/)
+  // 기준점 = 몬스터 발밑. 아트 1px = 화면 3px. pixelfx 로 만든 시트라 PixelLab effect id 는 없다
+  coin_drop: { file: 'coin_drop.png', w: 44, h: 50, frames: 46, fps: 24, ox: 0.5, oy: 0.66, px: 3, source: 'pixelfx spawn/rtd-coin-scatter {coins:5, spread:0.5}' },
   levelup: { file: 'levelup.png', w: 34, h: 42, frames: 7, fps: 16, ox: 0.5, oy: 0.81, px: 4, tint: false, effect: '55032163-225f-4e45-83ab-b6d7375d4f91' }
 };
 

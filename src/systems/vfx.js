@@ -3,7 +3,8 @@ import { PX, DEPTH, GAME_W, GAME_H } from '../config.js';
 import { ATTR_INFO } from '../data/elements.js';
 import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim } from '../data/fx.js';
 
-const MAX_SHEET_FX = 48; // 동시에 재생하는 시트 이펙트 상한 (넘으면 명중 이펙트부터 생략)
+const MAX_SHEET_FX = 48;
+const MAX_COIN_FX = 12; // 동전 연출 동시 상한 (몬스터가 몰려 죽어도 필드를 덮지 않게) // 동시에 재생하는 시트 이펙트 상한 (넘으면 명중 이펙트부터 생략)
 
 // 시각 효과 모음 — 클래스마다 다른 공격 모양, 속성마다 다른 파티클, 스킬은 클래스별 고유 연출
 // 클래스 키: 용병 cls(archer/mage/sniper/shaman/rogue) 또는 영웅 arch(warlord/archmage/ranger)
@@ -12,6 +13,7 @@ export class Vfx {
     this.s = scene;
     this.em = {};
     this.sheetCount = 0;
+    this.coinCount = 0;
     const mk = (key, tex, cfg) => {
       this.em[key] = scene.add.particles(0, 0, tex, { emitting: false, ...cfg }).setDepth(DEPTH.fx);
     };
@@ -66,6 +68,20 @@ export class Vfx {
       return this.play('boss_death', m.x, m.y, { depth: DEPTH.fx + 1, optional: false });
     }
     return this.play('death', m.x, m.y, { tint: m.attr });
+  }
+
+  /** 몬스터 처치 골드 동전 (동시 MAX_COIN_FX 개까지, 넘으면 생략). 몬스터·용병보다 아래(바닥)에 깔린다 */
+  coinDrop(x, y) {
+    if (this.coinCount >= MAX_COIN_FX) return false;
+    const d = FX.coin_drop;
+    const s = this.s;
+    if (!d || !s.anims.exists(fxAnim('coin_drop'))) return false;
+    const spr = s.add.sprite(x, y + 8, fxTexture('coin_drop'), 0).setOrigin(d.ox, d.oy).setScale(d.px).setDepth(DEPTH.coin);
+    this.coinCount++;
+    spr.once('animationcomplete', () => spr.destroy());
+    spr.once('destroy', () => this.coinCount--);
+    spr.play(fxAnim('coin_drop'));
+    return true;
   }
 
   /**

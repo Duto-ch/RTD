@@ -19,6 +19,7 @@ export const FONT = 'Galmuri11';
 
 export const DEPTH = {
   bg: 0,
+  coin: 9, // 바닥에 떨어진 동전 (몬스터 아래)
   monster: 10,
   merc: 20,
   projectile: 30,

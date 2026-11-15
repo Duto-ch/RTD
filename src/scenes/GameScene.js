@@ -504,6 +504,7 @@ export class GameScene extends Phaser.Scene {
     if (source && source.active) source.kills += 1;
     this.gold += gold;
     this.deathFx(m);
+    this.vfx.coinDrop(m.x, m.y);
     if (m.isBoss) {
       this.earnFame((m.isFinal ? FAME.finalBoss : m.milestone ? FAME.milestoneBoss : FAME.boss) + this.bonus.bossFame);
       audio.bossKill();
