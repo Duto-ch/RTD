@@ -42,9 +42,10 @@ export const HUD = WIDE
     }
   : {
       top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
-      line1: 56, line2: 56, line3: 88,
+      // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
+      line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 74 : 88, subY: 120,
       timer: { x: GAME_W - 236, w: 108 }, next: { x: GAME_W - 72, w: 84 },
-      gauge: { x: 32, y: 104, w: GAME_W - 64 },
+      gauge: { x: 32, y: COZY ? 92 : 104, w: GAME_W - 64 },
       relic: { x: 12, y: 142, w: GAME_W - 24 },
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       hire: { x: 100, y: 824, w: 168, h: 80 },
@@ -147,10 +148,16 @@ export class Hud {
     const T = HUD.top;
     const R = T.x + T.w; // 상태 창 오른쪽 끝
     panel(s, T.x, T.y, T.w, T.h, 'card').setDepth(D - 1);
-    const [tabImg, tabText] = titleTab(s, T.x + T.w / 2, T.y, 'WAVE 0', 220);
-    tabImg.setDepth(D);
-    this.waveText = tabText.setDepth(D);
-    this.waveTypeText = uiText(s, T.x + 20, HUD.line1, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    if (COZY) {
+      // 포근한 카드형: 제목 탭 대신 창 안 왼쪽 위에 큰 WAVE 글자, 안내 줄은 맨 아래
+      this.waveText = uiText(s, T.x + 20, HUD.line1, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
+      this.waveTypeText = uiText(s, T.x + 20, HUD.subY, '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
+    } else {
+      const [tabImg, tabText] = titleTab(s, T.x + T.w / 2, T.y, 'WAVE 0', 220);
+      tabImg.setDepth(D);
+      this.waveText = tabText.setDepth(D);
+      this.waveTypeText = uiText(s, T.x + 20, HUD.line1, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    }
 
     // 타이머 슬롯 + 바로 시작 버튼
     // 타이머 칸과 버튼 사이 14px 띄움 (2026-11-15 간격 확보)
@@ -237,7 +244,7 @@ export class Hud {
     } else {
       this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
     }
-    this.fitText(this.waveTypeText, WIDE ? 250 : GAME_W - 236 - 48);
+    this.fitText(this.waveTypeText, WIDE ? 250 : COZY ? GAME_W - 64 : GAME_W - 236 - 48);
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
 
     const n = s.monsters.length;
@@ -323,7 +330,7 @@ export class Hud {
     const D = DEPTH.ui;
     // 하단 나무 받침 (높이 176)
     const K = HUD.dark;
-    panel(s, K.x, K.y, K.w, K.h, 'dark').setDepth(D - 2);
+    panel(s, K.x, K.y, K.w, K.h, COZY ? 'card' : 'dark').setDepth(D - 2); // 포근한 카드형: 둥근 크림 시트
     this.hireBtn = new Button(s, HUD.hire.x, HUD.hire.y, HUD.hire.w, HUD.hire.h, '', () => s.hire(), { variant: 'primary', fontSize: 18 });
     const SM = HUD.small;
     this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => {
@@ -336,7 +343,7 @@ export class Hud {
 
     // 정보 창
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
-    panel(s, px, py, pw, ph, 'card').setDepth(D - 1);
+    panel(s, px, py, pw, ph, COZY ? 'soft' : 'card').setDepth(D - 1);
     this.infoAvatar = panelImage(s, px + 44, py + 42, 'soft', 48, 48).setDepth(D).setVisible(false);
     this.infoPortrait = s.add.sprite(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
     this.infoTitle = uiText(s, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
