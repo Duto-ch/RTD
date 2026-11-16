@@ -16,9 +16,9 @@ async function loadFonts() {
     new FontFace(FONT, 'url(assets/fonts/Galmuri11.woff2)'),
     new FontFace(FONT, 'url(assets/fonts/Galmuri11-Bold.woff2)', { weight: 'bold' }),
     // 포근한 카드형 UI 글꼴 (OFL, 게임에 쓰는 글자만 남긴 부분 글꼴)
-    new FontFace(COZY_FONT, 'url(assets/fonts/GowunDodum-Regular.woff2)'),
-    new FontFace(COZY_HEAD, 'url(assets/fonts/GowunBatang-Regular.woff2)'),
-    new FontFace(COZY_HEAD, 'url(assets/fonts/GowunBatang-Bold.woff2)', { weight: 'bold' }),
+    new FontFace('Gowun Dodum', 'url(assets/fonts/GowunDodum-Regular.woff2)'),
+    new FontFace('Gowun Batang', 'url(assets/fonts/GowunBatang-Regular.woff2)'),
+    new FontFace('Gowun Batang', 'url(assets/fonts/GowunBatang-Bold.woff2)', { weight: 'bold' }),
   ];
   try {
     for (const f of await Promise.all(faces.map((f) => f.load()))) document.fonts.add(f);

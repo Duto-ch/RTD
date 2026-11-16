@@ -12,8 +12,8 @@ export const LAYOUT = pickLayout();
 export const WIDE = LAYOUT === 'wide';
 // 포근한 카드형 UI (B-2 시안, 2026-11-15): 가로 배치에서 사용 — 크림색 둥근 카드·세이지 키 컬러·고운바탕/고운돋움 글꼴
 export const COZY = true; // 2026-11-16 세로도 B-2 포근한 카드형
-export const COZY_FONT = 'Gowun Dodum';
-export const COZY_HEAD = 'Gowun Batang';
+export const COZY_FONT = globalThis.__rtdFont?.body || 'Gowun Dodum'; // 시안용: __rtdFont 로 바꿔 볼 수 있다
+export const COZY_HEAD = globalThis.__rtdFont?.head || 'Gowun Batang';
 export const GAME_W = WIDE ? 1280 : 544; // 세로: 136 아트 px
 export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 
