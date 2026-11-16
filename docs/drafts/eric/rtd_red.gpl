@@ -1,0 +1,16 @@
+GIMP Palette
+Name: RTD red
+Columns: 6
+#
+ 27  27  38	outline
+122  31  31	red dark
+192  54  44	red mid
+255 106  85	red light
+255 176 160	red highlight
+138  52  32	hair dark
+208  96  58	hair light
+106  74  42	leather dark
+168 116  58	leather light
+201 143 106	skin shade
+242 200 160	skin
+255 208  96	gold accent
