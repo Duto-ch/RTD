@@ -669,7 +669,7 @@ test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을
     const ring = { x0: 392, y0: 112, x1: 888, y1: 608 }; // 필드 + 몬스터 길
     const boxes = [g.hud.hireBtn, g.hud.nextWaveBtn, g.hud.skillBtn, g.hud.sellBtn, g.hud.menuBtn].map((b) => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h / 2, y1: b.y + b.h / 2 }));
     const hit = boxes.filter((b) => b.x0 < ring.x1 && b.x1 > ring.x0 && b.y0 < ring.y1 && b.y1 > ring.y0);
-    return { hit: hit.length, banner: g.hud.bannerObj?.y, field: [g.mercs[0].x > ring.x0, g.mercs[0].x < ring.x1], hire: g.hud.hireBtn.label.text, dock: [g.hud.hireBtn.y > 608, g.hud.nextWaveBtn.y < 112] };
+    return { hit: hit.length, banner: g.hud.bannerObj?.y, field: [g.mercs[0].x > ring.x0, g.mercs[0].x < ring.x1], hire: g.hud.hireBtn.label.text, bg: g.bgImage.texture.key, dock: [g.hud.hireBtn.y > 608, g.hud.nextWaveBtn.y < 112] };
   });
   expect(r.hit).toBe(0);
   expect(r.banner).toBeLessThan(112); // 배너는 필드 위 빈 띠
@@ -677,6 +677,8 @@ test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을
   // B-2 포근한 카드형: 위 알약 바(바로 시작) + 아래 독(한 줄 고용 버튼)
   expect(r.hire).toMatch(/^\+ 용병 고용 · \d+ G$/);
   expect(r.dock).toEqual([true, true]);
+  // tools/import-art.py 로 넣은 초원 필드 그림 (manifest backgrounds.bg_grass@wide)
+  expect(r.bg).toBe('custombg_grass');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('30-wide-battle') });
   expect(errors).toEqual([]);

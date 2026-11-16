@@ -70,6 +70,16 @@
 - `fps` 는 초당 프레임 수, `loop: true` 는 반복입니다.
 - 이름이 `_` 로 시작하는 항목은 무시됩니다 (메모용).
 
+## 3-1. 배경(필드) 그림 — `tools/import-art.py`
+
+```bash
+python3 tools/import-art.py bg 그림.png --biome grass --layout wide --erase 1220,622,52,52
+```
+
+- 필드(5x5 바닥·성벽)와 몬스터 길이 그려진 한 장짜리 그림. 길 바깥 테두리를 자동으로 찾아 게임의 길(가로 x 392~888, y 112~608 / 세로 x 24~520, y 232~728)에 맞춘다
+- AI 픽셀풍이면 perfectPixel 로 격자를 정리하고(아트 1px ≈ 화면 3px), `--erase` 로 워터마크를 지운다
+- manifest `backgrounds` 에 `"bg_<지역>@<wide|tall>": { "file", "x", "y", "scale" }` 로 등록된다. 가로·세로 배치는 필드 위치가 달라 그림을 따로 넣는다
+
 ## 4. 올리는 방법
 
 **GitHub 웹사이트에서 (프로그램 설치 필요 없음)**

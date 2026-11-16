@@ -14,7 +14,7 @@ import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
-import { playOnce, playBase, setArt, setFacing } from '../systems/customArt.js';
+import { playOnce, playBase, setArt, setFacing, addBackground } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
@@ -59,7 +59,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
 
     this.biome = biomeForWave(1);
-    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setScale(UI_PX).setDepth(DEPTH.bg);
+    this.bgImage = addBackground(this, this.biome.id).setDepth(DEPTH.bg);
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hintGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hpGfx = this.add.graphics().setDepth(DEPTH.hpbar);
@@ -232,7 +232,7 @@ export class GameScene extends Phaser.Scene {
     if (biome.id === this.biome.id) return;
     this.biome = biome;
     const old = this.bgImage;
-    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setScale(UI_PX).setDepth(DEPTH.bg + 0.5).setAlpha(0);
+    this.bgImage = addBackground(this, biome.id).setDepth(DEPTH.bg + 0.5).setAlpha(0);
     this.tweens.add({
       targets: this.bgImage,
       alpha: 1,

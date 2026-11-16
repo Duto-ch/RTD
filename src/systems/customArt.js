@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { LAYOUT, UI_PX } from '../config.js';
 
 // 직접 그린 이미지·애니메이션으로 코드 그림을 바꾸는 장치
 // public/assets/custom/manifest.json 에 적힌 이미지만 교체하고, 나머지는 코드 그림을 그대로 쓴다.
@@ -22,7 +23,21 @@ export function loadCustomArt(scene, onDone) {
   const manifest = scene.cache.json.get(MANIFEST_KEY);
   const sprites = manifest?.sprites || {};
   const entries = Object.entries(sprites).filter(([key]) => !key.startsWith('_'));
-  if (!entries.length) return onDone();
+  // 배경(필드) 그림: "bg_<지역>@<wide|tall>" — 지금 화면 배치에 맞는 것만 불러온다 (tools/import-art.py 로 등록)
+  const bgs = Object.entries(manifest?.backgrounds || {}).filter(([key]) => key.endsWith(`@${LAYOUT}`));
+  for (const [key, def] of bgs) scene.load.image(customBgKey(key.slice(3, key.indexOf('@'))), BASE + def.file);
+  scene.load.once('complete', () => {
+    for (const [key, def] of bgs) {
+      const k = customBgKey(key.slice(3, key.indexOf('@')));
+      if (scene.textures.exists(k)) Object.assign(scene.textures.get(k).customData, { x: def.x ?? 0, y: def.y ?? 0, scale: def.scale ?? UI_PX });
+    }
+  });
+  if (!entries.length) {
+    if (!bgs.length) return onDone();
+    scene.load.once('complete', () => onDone());
+    scene.load.start();
+    return;
+  }
 
   for (const [key, def] of entries) {
     const url = BASE + def.file;
@@ -130,4 +145,19 @@ export function playOnce(sprite, name, back, maxMs) {
     playBase(sprite, back);
   });
   return true;
+}
+
+/** 직접 넣은 배경 그림의 텍스처 키 */
+export function customBgKey(biomeId) {
+  return `custombg_${biomeId}`;
+}
+
+/** 지역 배경 이미지: 직접 넣은 그림(manifest backgrounds)이 있으면 그것을, 없으면 코드로 그린 배경 */
+export function addBackground(scene, biomeId) {
+  const k = customBgKey(biomeId);
+  if (scene.textures.exists(k)) {
+    const d = scene.textures.get(k).customData;
+    return scene.add.image(d.x, d.y, k).setOrigin(0).setScale(d.scale);
+  }
+  return scene.add.image(0, 0, `bg_${biomeId}`).setOrigin(0).setScale(UI_PX);
 }
