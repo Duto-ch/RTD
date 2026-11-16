@@ -1,10 +1,18 @@
 import Phaser from 'phaser';
-import { DEPTH, UI_PX as PX } from '../config.js';
-import { panelKey, uiText, drawIcon, CSS, C } from './theme.js';
+import { DEPTH, UI_PX as PX, COZY } from '../config.js';
+import { panelKey, panelScale, uiText, drawIcon, CSS, C } from './theme.js';
 
 // 버튼 종류: primary(초록) / danger(빨강) / gold(금) / outline·card(양피지) / soft(오목 슬롯)
 const STYLE = { card: 'outline' };
-const TEXT = {
+const TEXT = COZY ? {
+  // 포근한 카드형: 테두리 없는 크림 글자
+  primary: { color: '#fffbea' },
+  danger: { color: '#fffbea' },
+  gold: { color: '#3a2a10' },
+  outline: { color: CSS.ink },
+  card: { color: CSS.ink },
+  soft: { color: CSS.ink }
+} : {
   primary: { color: CSS.white, stroke: '#3a1606' },
   danger: { color: CSS.white, stroke: '#3a1210' },
   gold: { color: CSS.white, stroke: '#3a2608' },
@@ -12,7 +20,7 @@ const TEXT = {
   card: { color: CSS.ink },
   soft: { color: CSS.ink }
 };
-const ICON_COLOR = { primary: 0xffffff, danger: 0xffffff, gold: 0xffffff };
+const ICON_COLOR = COZY ? { primary: 0xfffbea, danger: 0xfffbea, gold: 0x3a2a10, outline: 0x56743f, card: 0x56743f } : { primary: 0xffffff, danger: 0xffffff, gold: 0xffffff };
 
 // 예전 color 옵션 → variant (호환용)
 const FROM_COLOR = { 0x2f7d4a: 'primary', 0x8c2b25: 'danger' };
@@ -25,7 +33,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.h = h;
     this.variant = variant || FROM_COLOR[color] || 'outline';
     this.enabled = true;
-    this.bg = scene.add.image(0, PX / 2, panelKey(scene, STYLE[this.variant] || this.variant, w, h)).setScale(PX);
+    this.bg = scene.add.image(0, COZY ? 0 : PX / 2, panelKey(scene, STYLE[this.variant] || this.variant, w, h)).setScale(panelScale());
     const t = TEXT[this.variant] || TEXT.outline;
     this.iconColor = ICON_COLOR[this.variant] ?? C.ink;
     this.icon = null;
@@ -42,7 +50,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.pressed = false;
     // 누르면 1픽셀 내려앉는다
     const down = (v) => {
-      this.bg.setY(PX / 2 + (v ? PX : 0));
+      this.bg.setY((COZY ? 0 : PX / 2) + (v ? PX : 0));
       this.label.setY((icon ? h * 0.22 : 0) + (v ? PX : 0));
       if (this.icon) this.icon.setY(v ? PX : 0);
     };

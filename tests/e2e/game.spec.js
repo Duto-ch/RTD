@@ -652,3 +652,33 @@ test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누�
   await page.mouse.click(120, 500); // 빈 곳
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
 });
+
+test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을 가리지 않는다', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([2560, 1440]);
+  await page.screenshot({ path: SHOT('29-wide-title') });
+  await page.mouse.click(640, 420); // 빈 곳 = 시작
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  const r = await page.evaluate(() => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 999; g.hire(); g.select(g.mercs[0]); g.startWave(1);
+    const ring = { x0: 392, y0: 112, x1: 888, y1: 608 }; // 필드 + 몬스터 길
+    const boxes = [g.hud.hireBtn, g.hud.nextWaveBtn, g.hud.skillBtn, g.hud.sellBtn, g.hud.menuBtn].map((b) => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h / 2, y1: b.y + b.h / 2 }));
+    const hit = boxes.filter((b) => b.x0 < ring.x1 && b.x1 > ring.x0 && b.y0 < ring.y1 && b.y1 > ring.y0);
+    return { hit: hit.length, banner: g.hud.bannerObj?.y, field: [g.mercs[0].x > ring.x0, g.mercs[0].x < ring.x1], hire: g.hud.hireBtn.label.text, dock: [g.hud.hireBtn.y > 608, g.hud.nextWaveBtn.y < 112] };
+  });
+  expect(r.hit).toBe(0);
+  expect(r.banner).toBeLessThan(112); // 배너는 필드 위 빈 띠
+  expect(r.field).toEqual([true, true]);
+  // B-2 포근한 카드형: 위 알약 바(바로 시작) + 아래 독(한 줄 고용 버튼)
+  expect(r.hire).toMatch(/^\+ 용병 고용 · \d+ G$/);
+  expect(r.dock).toEqual([true, true]);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('30-wide-battle') });
+  expect(errors).toEqual([]);
+  await page.close();
+});

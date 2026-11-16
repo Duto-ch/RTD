@@ -1,7 +1,8 @@
 // 기능별 최초 1회 튜토리얼 — 기능을 처음 만나는 순간 전투를 멈추고, 해당 위치를 밝게 비추며 말풍선으로 설명한다.
 // 본 단계는 meta(localStorage)에 저장되어 다시 뜨지 않는다. "튜토리얼 끄기"로 전부 끄고, ESC 메뉴에서 다시 켤 수 있다.
 // 자동화 브라우저(테스트·밸런스 봇)에서는 꺼져 있다 — 테스트는 localStorage 'rtd_tutorial_test' 로 켠다.
-import { GAME_W, GAME_H, DEPTH, CELL, FIELD_X, FIELD_Y } from '../config.js';
+import { GAME_W, GAME_H, WIDE, DEPTH, CELL, FIELD_X, FIELD_Y } from '../config.js';
+import { HUD } from './Hud.js';
 import { meta } from '../systems/meta.js';
 import { panel, uiText, CSS } from './theme.js';
 import { Button } from './Button.js';
@@ -16,7 +17,7 @@ export const TUTORIAL_STEPS = {
   wave: {
     title: '웨이브 시작',
     text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n필드에 100기가 쌓이거나 보스가 한 바퀴를 돌면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
-    rect: () => ({ x: 8, y: 4, w: GAME_W - 16, h: 150 })
+    rect: () => (WIDE ? { x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 } : { x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
   },
   select: {
     title: '용병 정보',
@@ -52,7 +53,7 @@ export const TUTORIAL_STEPS = {
   relic: {
     title: '유물',
     text: '보스를 처치하면 유물을 얻어요. 최대 4개까지 효과가 켜지고,\n아이콘을 눌러 언제든 바꿀 수 있습니다.',
-    rect: () => ({ x: 8, y: 142, w: GAME_W - 16, h: 40 })
+    rect: () => (WIDE ? { x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
   },
   hero: {
     title: '영웅 승급',
@@ -137,14 +138,18 @@ export class Tutorial {
     // 아래 화면을 누르지 못하게 막는 투명 판
     c.add(s.add.zone(0, 0, GAME_W, GAME_H).setOrigin(0).setInteractive());
 
-    // 말풍선: 비춘 영역의 위·아래 중 넓은 쪽
-    const w = GAME_W - 48;
+    // 말풍선: 세로 화면은 비춘 영역의 위·아래 중 넓은 쪽, 가로 화면은 양옆 HUD 를 비추면 그 옆(가운데 쪽)
+    const w = WIDE ? 480 : GAME_W - 48;
     const title = uiText(s, 0, 0, step.title, 22, CSS.primary, 'bold');
     const body = uiText(s, 0, 0, step.text, 16.5, CSS.ink, '600', { wordWrap: { width: w - 40 }, lineSpacing: 6 });
     const h = 24 + title.height + 10 + body.height + 24 + 44 + 18;
     let y = GAME_H / 2 - h / 2;
-    if (r) y = r.y + r.h / 2 > GAME_H / 2 ? Math.max(12, r.y - h - 14) : Math.min(GAME_H - h - 12, r.y + r.h + 14);
-    const x = 24;
+    let x = (GAME_W - w) / 2;
+    const cx = r ? r.x + r.w / 2 : GAME_W / 2;
+    if (r && WIDE && (cx < GAME_W / 3 || cx > (GAME_W * 2) / 3)) {
+      x = cx < GAME_W / 3 ? r.x + r.w + 16 : r.x - w - 16;
+      y = Math.max(12, Math.min(GAME_H - h - 12, r.y + r.h / 2 - h / 2));
+    } else if (r) y = r.y + r.h / 2 > GAME_H / 2 ? Math.max(12, r.y - h - 14) : Math.min(GAME_H - h - 12, r.y + r.h + 14);
     c.add(panel(s, x, y, w, h, 'card'));
     title.setPosition(x + 20, y + 22);
     body.setPosition(x + 20, y + 22 + title.height + 10);

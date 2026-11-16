@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, FONT, BALANCE, RES, crispFontSize } from './config.js';
+import { GAME_W, GAME_H, FONT, BALANCE, RES, crispFontSize, COZY_FONT, COZY_HEAD } from './config.js';
 import { skillOptions } from './data/skills.js';
 import { setArt } from './systems/customArt.js';
 import { audio } from './systems/audio.js';
@@ -15,6 +15,10 @@ async function loadFonts() {
     // 픽셀 글꼴 (UI·게임 월드 공통)
     new FontFace(FONT, 'url(assets/fonts/Galmuri11.woff2)'),
     new FontFace(FONT, 'url(assets/fonts/Galmuri11-Bold.woff2)', { weight: 'bold' }),
+    // 포근한 카드형 UI 글꼴 (OFL, 게임에 쓰는 글자만 남긴 부분 글꼴)
+    new FontFace(COZY_FONT, 'url(assets/fonts/GowunDodum-Regular.woff2)'),
+    new FontFace(COZY_HEAD, 'url(assets/fonts/GowunBatang-Regular.woff2)'),
+    new FontFace(COZY_HEAD, 'url(assets/fonts/GowunBatang-Bold.woff2)', { weight: 'bold' }),
   ];
   try {
     for (const f of await Promise.all(faces.map((f) => f.load()))) document.fonts.add(f);
@@ -33,7 +37,8 @@ const addText = Phaser.GameObjects.GameObjectFactory.prototype.text;
 Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style = {}) {
   const st = { ...style, resolution: RES };
   const px = parseFloat(st.fontSize);
-  if (px) st.fontSize = `${crispFontSize(px)}px`;
+  // 픽셀 글꼴(Galmuri11)만 격자 크기로 맞춘다 (고운 글꼴은 어떤 크기든 매끈하다)
+  if (px && (!st.fontFamily || st.fontFamily === FONT)) st.fontSize = `${crispFontSize(px)}px`;
   return addText.call(this, x, y, text, st);
 };
 
