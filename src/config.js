@@ -10,10 +10,12 @@ function pickLayout() {
 }
 export const LAYOUT = pickLayout();
 export const WIDE = LAYOUT === 'wide';
-// 포근한 카드형 UI (B-2 시안, 2026-11-15): 가로 배치에서 사용 — 크림색 둥근 카드·세이지 키 컬러·고운바탕/고운돋움 글꼴
-export const COZY = true; // 2026-11-16 세로도 B-2 포근한 카드형
-export const COZY_FONT = 'Gowun Dodum';
-export const COZY_HEAD = 'Gowun Batang';
+// 포근한 카드형 UI (B-2 시안): 크림색 둥근 카드·세이지 키 컬러 — 2026-11-16 가로·세로 모두
+export const COZY = true;
+// UI 글꼴 (2026-11-16 글꼴 시안 G): 썬플라워 — 본문 Medium, 굵은 글자(제목·숫자·버튼) Bold.
+// 썬플라워에 없는 기호(· — … → 등)는 고운돋움으로 채운다
+export const COZY_FONT = 'Sunflower, Gowun Dodum';
+export const COZY_HEAD = COZY_FONT;
 export const GAME_W = WIDE ? 1280 : 544; // 세로: 136 아트 px
 export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 

@@ -2,7 +2,7 @@
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
 import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
 
-export const UI_FONT = COZY ? COZY_FONT : FONT; // 세로: Galmuri11 (픽셀 글꼴) · 가로(포근한 카드형): 고운돋움
+export const UI_FONT = COZY ? COZY_FONT : FONT; // 포근한 카드형: 썬플라워 · 픽셀 UI: Galmuri11
 
 export const C = {
   primary: COZY ? 0x7a9a5c : 0xd0661a, // 주황 버튼·탭 (포근한 카드형: 세이지)
@@ -225,7 +225,7 @@ export function backdropKey(scene, w, h) {
 export function uiText(scene, x, y, str, size = 16, color = CSS.ink, weight = '600', extra = {}) {
   const bold = weight === '700' || weight === 'bold';
   return scene.add.text(x, y, str, {
-    fontFamily: COZY && bold ? COZY_HEAD : UI_FONT, // 포근한 카드형: 굵은 글자는 고운바탕(제목·숫자)
+    fontFamily: COZY && bold ? COZY_HEAD : UI_FONT, // 포근한 카드형: 굵은 글자도 같은 글꼴의 Bold
     fontSize: `${size}px`,
     fontStyle: bold ? 'bold' : 'normal',
     color,
