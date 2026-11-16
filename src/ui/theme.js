@@ -1,27 +1,27 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
-import { UI_PX as PX, FONT } from '../config.js';
+import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
 
-export const UI_FONT = FONT; // Galmuri11 (픽셀 글꼴)
+export const UI_FONT = COZY ? COZY_FONT : FONT; // 세로: Galmuri11 (픽셀 글꼴) · 가로(포근한 카드형): 고운돋움
 
 export const C = {
-  primary: 0xd0661a, // 주황 버튼·탭
-  primaryDeep: 0xa84a10,
+  primary: COZY ? 0x7a9a5c : 0xd0661a, // 주황 버튼·탭 (포근한 카드형: 세이지)
+  primaryDeep: COZY ? 0x56743f : 0xa84a10,
   bg: 0x2b1810,
-  soft: 0xeedcb0, // 슬롯(오목한 칸)
-  card: 0xfff4d9, // 크림
-  ink: 0x4a2a14, // 본문 글자 (진갈색)
-  sub: 0x8a6a48,
-  line: 0xc9a96a,
+  soft: COZY ? 0xf3ead2 : 0xeedcb0, // 슬롯(오목한 칸)
+  card: COZY ? 0xfbf7ec : 0xfff4d9, // 크림
+  ink: COZY ? 0x4a3a28 : 0x4a2a14, // 본문 글자 (진갈색)
+  sub: COZY ? 0x8c7b60 : 0x8a6a48,
+  line: COZY ? 0xe3d6b6 : 0xc9a96a,
   green: 0x3f9a52,
   red: 0xc2453a,
   gold: 0xe0a32a
 };
 
 export const CSS = {
-  primary: '#b4500f',
-  ink: '#4a2a14',
-  sub: '#8a6a48',
+  primary: COZY ? '#56743f' : '#b4500f',
+  ink: COZY ? '#4a3a28' : '#4a2a14',
+  sub: COZY ? '#8c7b60' : '#8a6a48',
   white: '#ffffff',
   onPrimary: '#ffffff',
   green: '#2f7a3e',
@@ -57,6 +57,7 @@ export const SHADOW_PAD = PX; // 그림자 1 아트픽셀
 
 /** 픽셀 패널 텍스처 (아트 해상도, 그림자 1px 포함). 화면에는 PX 배로 확대해서 쓴다 */
 export function panelKey(scene, style, w, h) {
+  if (COZY) return cozyKey(scene, style, w, h);
   const aw = Math.max(3, Math.round(w / PX));
   const ah = Math.max(3, Math.round(h / PX));
   const key = `pui_${style}_${aw}x${ah}`;
@@ -127,17 +128,70 @@ export function panelKey(scene, style, w, h) {
 
 /** 패널 이미지 (x, y 는 패널 왼쪽 위) */
 export function panel(scene, x, y, w, h, style = 'card') {
-  return scene.add.image(x - SHADOW_PAD, y - SHADOW_PAD, panelKey(scene, style, w, h)).setOrigin(0).setScale(PX);
+  return scene.add.image(x - SHADOW_PAD, y - SHADOW_PAD, panelKey(scene, style, w, h)).setOrigin(0).setScale(panelScale());
+}
+
+/** panelKey 텍스처를 화면에 놓을 배율 — 픽셀 패널은 아트 해상도 ×PX, 포근한 카드형은 캔버스 해상도 ×1/RES */
+export function panelScale() {
+  return COZY ? 1 / RES : PX;
+}
+
+// ── 포근한 카드형 패널 (B-2): 둥근 모서리 · 얇은 테두리 · 부드러운 그림자, 캔버스 해상도(RES 배)로 매끈하게 ──
+const COZY_STYLES = {
+  card: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 22 },
+  header: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 22 },
+  strip: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 99 },
+  dark: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 99 },
+  primary: { fill: '#7a9a5c', line: '#56743f', lip: '#56743f', r: 18 },
+  danger: { fill: '#c8644f', line: '#9a4636', lip: '#9a4636', r: 18 },
+  gold: { fill: '#e2b54a', line: '#a8801c', lip: '#a8801c', r: 18 },
+  outline: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.16)', r: 18 },
+  soft: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
+  ghost: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 }
+};
+
+function cozyKey(scene, style, w, h) {
+  const key = `cozy_${style}_${Math.round(w)}x${Math.round(h)}`;
+  if (scene.textures.exists(key)) return key;
+  const S = COZY_STYLES[style] || COZY_STYLES.card;
+  const pad = SHADOW_PAD; // 픽셀 패널과 같은 여백 (그림자 자리)
+  const tex = scene.textures.createCanvas(key, Math.round((w + pad * 2) * RES), Math.round((h + pad * 2) * RES));
+  const ctx = tex.getContext();
+  ctx.scale(RES, RES);
+  const r = Math.min(S.r, h / 2, w / 2);
+  const shape = (x, y, ww, hh) => {
+    ctx.beginPath();
+    ctx.roundRect(x, y, ww, hh, r);
+  };
+  // 아래로 깔리는 그림자(입술) + 은은한 바깥 그림자
+  ctx.shadowColor = 'rgba(60,45,20,0.18)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+  if (S.lip) {
+    ctx.fillStyle = S.lip;
+    shape(pad, pad + 3, w, h);
+    ctx.fill();
+  }
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = S.fill;
+  shape(pad, pad, w, h);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = S.line;
+  shape(pad + 1, pad + 1, w - 2, h - 2);
+  ctx.stroke();
+  tex.refresh();
+  return key;
 }
 
 /** 패널 이미지 (가운데 기준) */
 export function panelImage(scene, x, y, style, w, h) {
-  return scene.add.image(x, y + PX / 2, panelKey(scene, style, w, h)).setScale(PX);
+  return scene.add.image(x, y + (COZY ? 0 : PX / 2), panelKey(scene, style, w, h)).setScale(panelScale());
 }
 
 /** 초록 제목 탭 (패널 위쪽 가장자리에 걸친다). [이미지, 글자] 반환 */
 export function titleTab(scene, cx, cy, label, minW = 160) {
-  const t = uiText(scene, cx, cy, label, 16, CSS.white, 'bold', { stroke: '#3a1606', strokeThickness: 4 }).setOrigin(0.5);
+  const t = (COZY ? uiText(scene, cx, cy, label, 16.5, '#fffbea', 'bold') : uiText(scene, cx, cy, label, 16, CSS.white, 'bold', { stroke: '#3a1606', strokeThickness: 4 })).setOrigin(0.5);
   const w = Math.max(minW, Math.ceil((t.width + 40) / PX) * PX);
   const img = panelImage(scene, cx, cy, 'primary', w, 36);
   scene.children.bringToTop(t); // 글자를 탭 이미지 위로
@@ -147,7 +201,7 @@ export function titleTab(scene, cx, cy, label, minW = 160) {
 /** X 닫기 버튼 (픽셀) */
 export function closeButton(scene, x, y, onClick) {
   const c = scene.add.container(x, y);
-  const bg = scene.add.image(0, PX / 2, panelKey(scene, 'danger', 28, 28)).setScale(PX);
+  const bg = scene.add.image(0, COZY ? 0 : PX / 2, panelKey(scene, 'danger', 28, 28)).setScale(panelScale());
   const g = scene.add.graphics();
   g.fillStyle(0xffffff, 1);
   for (let i = -2; i <= 2; i++) {
@@ -171,7 +225,7 @@ export function backdropKey(scene, w, h) {
 export function uiText(scene, x, y, str, size = 16, color = CSS.ink, weight = '600', extra = {}) {
   const bold = weight === '700' || weight === 'bold';
   return scene.add.text(x, y, str, {
-    fontFamily: UI_FONT,
+    fontFamily: COZY && bold ? COZY_HEAD : UI_FONT, // 포근한 카드형: 굵은 글자는 고운바탕(제목·숫자)
     fontSize: `${size}px`,
     fontStyle: bold ? 'bold' : 'normal',
     color,

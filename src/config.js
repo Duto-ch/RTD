@@ -10,6 +10,10 @@ function pickLayout() {
 }
 export const LAYOUT = pickLayout();
 export const WIDE = LAYOUT === 'wide';
+// 포근한 카드형 UI (B-2 시안, 2026-11-15): 가로 배치에서 사용 — 크림색 둥근 카드·세이지 키 컬러·고운바탕/고운돋움 글꼴
+export const COZY = WIDE;
+export const COZY_FONT = 'Gowun Dodum';
+export const COZY_HEAD = 'Gowun Batang';
 export const GAME_W = WIDE ? 1280 : 544; // 세로: 136 아트 px
 export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 
@@ -29,9 +33,9 @@ export const FONT = 'Galmuri11';
 // 지역 장식을 놓지 않을 HUD 영역 (배경 그림이 가려지는 곳) — 세로: 위·아래 띠, 가로: 양옆 HUD 칸
 export const HUD_RECTS = WIDE
   ? [
-      { x: 0, y: 0, w: 392, h: 232 },
-      { x: 888, y: 0, w: 392, h: 232 },
-      { x: 888, y: 448, w: 392, h: 272 }
+      // B-2: 위 알약 바 · 아래 독
+      { x: 144, y: 10, w: 992, h: 64 },
+      { x: 284, y: 638, w: 712, h: 80 }
     ]
   : [
       { x: 0, y: 0, w: 544, h: 180 },

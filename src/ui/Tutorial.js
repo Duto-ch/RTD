@@ -17,7 +17,7 @@ export const TUTORIAL_STEPS = {
   wave: {
     title: '웨이브 시작',
     text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n필드에 100기가 쌓이거나 보스가 한 바퀴를 돌면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
-    rect: () => ({ x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
+    rect: () => (WIDE ? { x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 } : { x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
   },
   select: {
     title: '용병 정보',
@@ -53,7 +53,7 @@ export const TUTORIAL_STEPS = {
   relic: {
     title: '유물',
     text: '보스를 처치하면 유물을 얻어요. 최대 4개까지 효과가 켜지고,\n아이콘을 눌러 언제든 바꿀 수 있습니다.',
-    rect: () => ({ x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
+    rect: () => (WIDE ? { x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
   },
   hero: {
     title: '영웅 승급',
