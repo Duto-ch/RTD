@@ -172,7 +172,7 @@ export class Hud {
     drawIcon(coin, 'coin', T.x + 30, HUD.line3, 18, 0x6a4a10);
     this.goldText = uiText(s, T.x + 46, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', R - 140, HUD.line3 + 1, 18, C.ink);
+    drawIcon(skull, 'heart', R - 140, HUD.line3 + 1, 18, 0xc2453a);
     this.countText = uiText(s, R - 20, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
     // 진행 막대: 창 아래 테두리와 띄우고 조금 얇게 (위 숫자와도 간격)
     panel(s, HUD.gauge.x, HUD.gauge.y, HUD.gauge.w, 15, 'soft').setDepth(D);
@@ -208,7 +208,7 @@ export class Hud {
     drawIcon(coin, 'coin', T.x + 634, cy, 16, 0x6a4a10);
     this.goldText = uiText(s, T.x + 648, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', T.x + 752, cy + 1, 16, C.ink);
+    drawIcon(skull, 'heart', T.x + 752, cy + 1, 16, 0xc2453a);
     this.countText = uiText(s, T.x + 830, cy, '', 16.5, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
     this.relicLabel = null;
     this.relicRow = s.add.container(0, 0).setDepth(D);
@@ -242,14 +242,15 @@ export class Hud {
         .setText(`${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${debuffs}`)
         .setColor(CSS.red);
     } else {
-      this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
+      this.waveTypeText.setText(`${s.biome.name} · 필드 ${s.monsters.length}기 · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
     }
     this.fitText(this.waveTypeText, WIDE ? 250 : COZY ? GAME_W - 64 : GAME_W - 236 - 48);
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
 
-    const n = s.monsters.length;
-    const max = s.maxAlive;
-    this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? CSS.red : CSS.ink);
+    // 성벽 체력 (2026-11-17: 몬스터 수 한도 대신). 실드가 있으면 +n 으로 덧붙인다. 30% 이하면 빨강
+    const n = Math.ceil(s.wallHp);
+    const max = s.wallMax;
+    this.countText.setText(`${n}${s.wallShield > 0 ? `+${Math.ceil(s.wallShield)}` : ''} / ${max}`).setColor(n <= max * 0.3 ? CSS.red : CSS.ink);
     this.nextWaveBtn.setEnabled(s.canCallNextWave);
     this.hireBtn.setLabel(WIDE ? `+ 용병 고용 · ${s.hireCost} G` : `용병 고용\n${s.hireCost} G${s.relics.contract ? ' (-20%)' : ''}`);
     this.hireBtn.setEnabled(s.gold >= s.hireCost);
@@ -261,10 +262,10 @@ export class Hud {
     const bw = HUD.gauge.w - 16;
     const by = HUD.gauge.y + 4;
     g.clear();
-    const pct = Math.min(1, n / max);
+    const pct = Math.max(0, Math.min(1, n / max));
     const fill = Math.round((bw * pct) / UI_PX) * UI_PX;
     if (fill > 0) {
-      const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
+      const col = pct > 0.5 ? 0x3f9a52 : pct > 0.3 ? 0xe0a32a : 0xc2453a; // 성벽 체력: 많을수록 초록
       g.fillStyle(col, 1).fillRect(bx, by, fill, 7);
       g.fillStyle(0xffffff, 0.35).fillRect(bx, by, fill, 3);
     }
@@ -453,7 +454,7 @@ export class Hud {
             '· 같은 속성·레벨끼리 겹치면 레벨 업',
             '· Lv5 + Lv5 = 영웅 승급',
             '· 상성: 블루>레드>그린>블루',
-            '· 패배: 몬스터 100기·보스 1바퀴'
+            '· 패배: 성벽 체력 0 (몬스터가 한 바퀴 돌 때마다 깎임)'
           ].join('\n')
         );
       return;

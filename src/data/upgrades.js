@@ -65,7 +65,9 @@ export const UPGRADES = [
   N('roguePow', 'drill', 'tactics', '암살술', '암', 'cls_rogue', 0.1, 20, [6, 1.2], 'pct', '도적 공격력'),
 
   // 방어 (왼쪽)
-  N('wall', 'origin', 'defense', '성벽 보강', '벽', 'maxAlive', 3, 10, [6, 1.3], 'count', '몬스터 한도'),
+  N('wall', 'origin', 'defense', '성벽 보강', '벽', 'wallHp', 5, 12, [6, 1.3], 'count', '성벽 체력'),
+  N('bulwark', 'wall', 'defense', '방패벽', '방', 'wallShield', 5, 8, [10, 1.3], 'count', '시작 시 성벽 실드'),
+  N('mason', 'bulwark', 'defense', '성벽 수리', '수', 'wallRegen', 1, 5, [20, 1.6], 'count', '웨이브마다 성벽 회복'),
   N('frost', 'wall', 'defense', '서릿길', '서', 'monsterSlow', 0.02, 10, [8, 1.25], 'pctMinus', '일반·정예 이동 속도'),
   N('mire', 'frost', 'defense', '늪지 함정', '늪', 'eliteSlow', 0.03, 10, [10, 1.25], 'pctMinus', '정예 이동 속도'),
   N('shackle', 'frost', 'defense', '족쇄', '족', 'bossSlow', 0.03, 10, [14, 1.28], 'pctMinus', '보스 이동 속도'),

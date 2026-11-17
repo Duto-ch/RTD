@@ -24,7 +24,11 @@ export class Monster extends Phaser.GameObjects.Sprite {
     this.hp = s.hp;
     this.baseSpeed = s.speed;
     this.gold = s.gold;
-    this.dist = 0; // 출발점부터 이동한 거리 (보스는 PATH_LENGTH 도달 시 게임 오버)
+    this.dist = 0; // 출발점부터 이동한 거리 (PATH_LENGTH 를 넘을 때마다 성벽을 때린다)
+    this.lapHits = 0; // 성벽을 때린 바퀴 수 (넉백으로 되돌아가도 같은 바퀴는 다시 세지 않는다)
+    // 물량: 일반 몬스터는 길 폭 전체에 퍼져 걷는다 (정예는 조금만, 보스는 가운데)
+    const H = BALANCE.horde;
+    this.lane = kind === 'boss' ? 0 : (Math.random() * 2 - 1) * (kind === 'elite' ? H.laneSpread * 0.4 : H.laneSpread);
     this.phase = Math.random() * 2;
     this.slowPct = 0;
     this.slowUntil = 0;
@@ -43,7 +47,7 @@ export class Monster extends Phaser.GameObjects.Sprite {
         .map((def) => ({ def, cd: def.cd * 0.5 }));
     }
 
-    this.baseScale = kind === 'boss' ? PX + 1 : PX;
+    this.baseScale = kind === 'boss' ? PX + 1 : kind === 'elite' ? PX : H.normalScale;
     setArt(this, this.texture.key, this.baseScale);
     this.setDepth(DEPTH.monster + (kind === 'boss' ? 2 : kind === 'elite' ? 1 : 0));
     scene.add.existing(this);
@@ -83,11 +87,11 @@ export class Monster extends Phaser.GameObjects.Sprite {
   }
 
   place() {
-    const p = pathPoint(this.dist);
+    const p = pathPoint(this.dist, this.lane);
     // 2프레임 깡충 애니메이션 (픽셀 격자 유지). 기절 중엔 멈춤
     const stunned = this.scene.gameTime < this.stunUntil;
     const animated = this.anims.isPlaying;
-    const hop = animated || stunned || Math.floor(this.scene.gameTime * 4 + this.phase) % 2 === 0 ? 0 : -PX;
+    const hop = animated || stunned || Math.floor(this.scene.gameTime * 4 + this.phase) % 2 === 0 ? 0 : -Math.min(PX, this.baseScale);
     this.setPosition(Math.round(p.x), Math.round(p.y) + hop);
     if (p.dir === 'left') this.setFlipX(true);
     else if (p.dir === 'right') this.setFlipX(false);

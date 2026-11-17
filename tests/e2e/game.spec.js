@@ -116,12 +116,23 @@ test('최종 보스는 한 번 부활한다', async ({ page }) => {
 
 test('패배 화면: 도달 웨이브·최고 기록 저장 → 다시 하기', async ({ page }) => {
   const errors = await startGame(page);
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.wave = 10; g.spawnMonster('boss'); g.monsters.at(-1).dist = 1755; });
+  // 성벽 체력 (2026-11-17): 보스가 한 바퀴 돌면 -30 → 아직 패배 아님. 체력이 0 이 되면 패배
+  const wall = await game(page, () => { const g = window.game.scene.getScene('Game'); g.wave = 10; g.waveTimer = 999; g.spawnMonster('boss'); g.monsters.at(-1).dist = 1755; return [g.wallHp, g.wallMax]; });
+  expect(wall).toEqual([80, 80]);
+  await page.waitForFunction(() => window.game.scene.getScene('Game').wallHp === 50);
+  expect(await game(page, () => window.game.scene.getScene('Game').over)).toBe(false);
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.wallHp = 0.2; g.spawnMonster('normal'); g.monsters.at(-1).dist = 1755; });
   await page.waitForFunction(() => window.game.scene.getScene('Game').over);
   await page.waitForTimeout(400);
   await page.screenshot({ path: SHOT('06-lose') });
   expect(await game(page, () => window.__rtd.meta.data.best.normal)).toBe(10);
-  await page.mouse.click(272, 248 + 376); // 다시 하기
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.countText.text)).toBe('0 / 80');
+  // 다시 하기 — 결과 창 버튼이 준비되기 전에 누르면 무시되므로, 다시 시작될 때까지 몇 번 눌러 본다
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.click(272, 248 + 376);
+    const ok = await page.waitForFunction(() => { const g = window.game.scene.getScene('Game'); return !g.over && g.wave === 0; }, null, { timeout: 4000 }).catch(() => null);
+    if (ok) break;
+  }
   await page.waitForFunction(() => { const g = window.game.scene.getScene('Game'); return !g.over && g.wave === 0; });
   expect(await game(page, () => window.game.scene.getScene('Game').hud.waveTypeText.text)).toContain('최고 W10');
   expect(errors).toEqual([]);
@@ -258,21 +269,21 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   expect(errors).toEqual([]);
 });
 
-test('강화 효과: 징집령(무료 용병)·군량 보급·몬스터 한도', async ({ page }) => {
+test('강화 효과: 징집령(무료 용병)·군량 보급·성벽 체력·실드', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
-  await game(page, () => { const m = window.__rtd.meta; m.reset(); Object.assign(m.data.levels, { origin: 1, wall: 2, conscript: 2, veteran: 1, funds: 1, bounty: 1, stipend: 2 }); m.save(); });
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); Object.assign(m.data.levels, { origin: 1, wall: 2, bulwark: 1, conscript: 2, veteran: 1, funds: 1, bounty: 1, stipend: 2 }); m.save(); });
   await page.mouse.click(272, 652);
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     const gold0 = g.gold;
     g.startWave(1);
-    return { mercs: g.mercs.length, lv: g.mercs.map((m) => m.level), gold0, waveGold: g.gold - gold0, maxAlive: g.maxAlive };
+    return { mercs: g.mercs.length, lv: g.mercs.map((m) => m.level), gold0, waveGold: g.gold - gold0, wall: [g.wallHp, g.wallMax, g.wallShield] };
   });
-  expect(s).toEqual({ mercs: 2, lv: [2, 2], gold0: 140, waveGold: 10, maxAlive: 106 });
+  expect(s).toEqual({ mercs: 2, lv: [2, 2], gold0: 140, waveGold: 10, wall: [90, 90, 5] });
   expect(errors).toEqual([]);
 });
 
@@ -311,7 +322,7 @@ test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은
     while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
     return g.monsters.at(-1).maxHp;
   });
-  expect(hp).toBeCloseTo(40 * Math.pow(1.08, 100) * 0.7, 0);
+  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 0.7) / 5, 0); // 물량 ×5: 마리당 체력 1/5
   await page.waitForTimeout(600);
   await page.screenshot({ path: SHOT('16-endless') });
   expect(errors).toEqual([]);
@@ -544,9 +555,9 @@ test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 
     // 필드에 나온 몬스터 하나를 바로 처치
     return new Promise((res) => {
       const tick = () => {
-        const m = g.monsters.find((x) => x.active);
-        if (!m) return setTimeout(tick, 50);
-        g.damageMonster(m, 1e9);
+        const ms = g.monsters.filter((x) => x.active);
+        if (ms.length < 5) return setTimeout(tick, 50);
+        for (const m of ms.slice(0, 5)) g.damageMonster(m, 1e9); // 물량: 마리당 0.4골드 → 5마리 = 2골드
         setTimeout(() => res({ gold: g.gold - before, coins: g.children.list.filter((o) => o.texture?.key === 'fx_coin_drop').length }), 120);
       };
       tick();
@@ -651,6 +662,36 @@ test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누�
   await page.screenshot({ path: SHOT('28-title') });
   await page.mouse.click(120, 500); // 빈 곳
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
+});
+
+test('물량: 1웨이브 250기가 길 폭에 퍼져 나오고, 남는 피해는 옆 몬스터로 넘어간다 (관통)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 999; g.hire();
+    g.startWave(1);
+    const queued = g.spawnQueue.length;
+    while (g.spawnQueue.length > 200) g.spawnMonster(g.spawnQueue.shift());
+    const ms = g.monsters;
+    for (const [i, m] of ms.entries()) { m.dist = 300 + i * 2; m.place(); } // 한 줄로 촘촘히
+    const lanes = new Set(ms.map((m) => Math.round(m.lane)));
+    const before = ms.filter((m) => m.alive).length;
+    const merc = g.mercs[0];
+    // 마리당 체력의 6.5배 피해 한 방 → 6마리 처치 + 7번째는 다침
+    const st = { ...merc.getStats(g.relics, g.gameTime), damage: ms[0].hp * 6.5 };
+    const elem = ms[0].attr; merc.attr = elem; // 상성 배율 1
+    g.hit(merc, st, ms[0], 1);
+    const dead = before - ms.filter((m) => m.alive).length;
+    return { queued, scale: ms[0].scaleX, lanes: lanes.size, dead, hurt: ms.filter((m) => m.alive && m.hp < m.maxHp).length };
+  });
+  expect(r.queued).toBe(250);
+  expect(r.scale).toBe(2); // 일반 몬스터는 작게
+  expect(r.lanes).toBeGreaterThan(8); // 길 폭 전체에 퍼진다
+  expect(r.dead).toBe(6);
+  expect(r.hurt).toBe(1);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31-horde') });
+  expect(errors).toEqual([]);
 });
 
 test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을 가리지 않는다', async ({ browser }) => {

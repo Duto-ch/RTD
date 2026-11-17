@@ -41,6 +41,11 @@ export class GameScene extends Phaser.Scene {
     this.fameEarned = 0; // 이번 판에서 얻은 명성 (판이 끝날 때 저장)
     this.fameCredited = false;
     this.gold = BALANCE.startGold + this.bonus.startGold;
+    this.goldFrac = 0; // 물량: 일반 몬스터 골드는 소수라 모아서 정수로 지급
+    // 성벽 체력: 몬스터가 한 바퀴 돌 때마다 깎이고 0이면 패배. 실드는 판 시작 때만 주어지고 먼저 깎인다
+    this.wallHp = this.wallMax;
+    this.wallShield = this.bonus.wallShield || 0;
+    this.wallFxAt = 0;
     this.wave = 0;
     this.waveTimer = BALANCE.prepTime;
     this.spawnQueue = [];
@@ -121,7 +126,9 @@ export class GameScene extends Phaser.Scene {
 
   /** 강화 효과 다시 읽기 (시작 골드·징집령처럼 판 시작 때만 쓰는 효과는 다음 판부터) */
   applyBonus() {
+    const before = this.wallMax;
     this.bonus = meta.bonus();
+    this.wallHp += this.wallMax - before; // 성벽 보강을 판 도중에 찍으면 늘어난 만큼 바로 더한다
     this.refreshRelics();
     this.refreshHud();
     this.refreshInfo();
@@ -149,6 +156,7 @@ export class GameScene extends Phaser.Scene {
         boss: Math.max(0.4, 1 - relicSlow - b.bossSlow)
       };
       for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, mul[m.kind] ?? mul.normal);
+      this.checkLaps();
       this.updateBosses(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
@@ -163,9 +171,43 @@ export class GameScene extends Phaser.Scene {
       this.refreshHud();
     }
 
-    const boss = this.monsters.find((m) => m.isBoss && m.dist >= PATH_LENGTH);
-    if (boss) this.endGame(false, '보스가 성벽을 한 바퀴 돌았습니다');
-    else if (this.monsters.length >= this.maxAlive) this.endGame(false, `몬스터가 ${this.maxAlive}기 쌓였습니다`);
+    if (this.wallHp <= 0) {
+      this.refreshHud(); // 성벽 체력 0 을 화면에 반영하고 끝낸다
+      this.endGame(false, '성벽이 무너졌습니다');
+    }
+  }
+
+  /** 한 바퀴를 돈 몬스터가 성벽을 때린다 (몬스터는 계속 돈다) */
+  checkLaps() {
+    for (const m of this.monsters) {
+      if (!m.alive) continue;
+      const laps = Math.floor(m.dist / PATH_LENGTH);
+      if (laps > m.lapHits) {
+        m.lapHits = laps;
+        this.hitWall(m);
+      }
+    }
+  }
+
+  hitWall(m) {
+    const D = BALANCE.wall.dmg;
+    let dmg = m.isBoss ? (m.isFinal ? D.final : m.milestone ? D.milestone : D.boss) : D[m.kind] ?? D.normal;
+    if (this.wallShield > 0) {
+      const used = Math.min(this.wallShield, dmg);
+      this.wallShield -= used;
+      dmg -= used;
+    }
+    this.wallHp = Math.max(0, this.wallHp - dmg);
+    // 연출: 출발점(성문)에서 붉은 번쩍임 — 물량이 많으니 0.15초에 한 번만. 정예·보스는 숫자와 흔들림
+    if (m.kind !== 'normal') {
+      this.floatText(m.x, m.y - 30, `성벽 -${Math.round(dmg)}`, '#ff6a55', 20, true);
+      this.cameras.main.shake(m.isBoss ? 300 : 120, m.isBoss ? 0.01 : 0.004);
+    }
+    if (this.gameTime - this.wallFxAt > 0.15) {
+      this.wallFxAt = this.gameTime;
+      this.circleFx(m.x, m.y, 26, 0xff5040);
+      audio.debuff?.();
+    }
   }
 
   // ───────────────────────── 웨이브 ─────────────────────────
@@ -174,7 +216,9 @@ export class GameScene extends Phaser.Scene {
     if (this.waveTimer <= 0) this.startWave(this.wave + 1);
     if (this.spawnQueue.length) {
       this.spawnTimer -= dt;
-      while (this.spawnTimer <= 0 && this.spawnQueue.length) {
+      // 성능 보호: 필드가 꽉 차면 출현을 잠시 멈춘다 (패배 조건 아님)
+      if (this.monsters.length >= BALANCE.horde.maxAlive) this.spawnTimer = Math.max(this.spawnTimer, 0);
+      while (this.spawnTimer <= 0 && this.spawnQueue.length && this.monsters.length < BALANCE.horde.maxAlive) {
         this.spawnMonster(this.spawnQueue.shift());
         this.spawnTimer += this.spawnInterval;
       }
@@ -190,6 +234,8 @@ export class GameScene extends Phaser.Scene {
       this.gold += income;
       this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 128 : 100, `+${income}G`, '#f2c14e');
     }
+    // 명성 강화 '성벽 수리': 웨이브마다 성벽 회복
+    if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
     this.wave = w;
     const info = waveInfo(w);
     const list = spawnList(w);
@@ -203,7 +249,7 @@ export class GameScene extends Phaser.Scene {
     const sub =
       info.type === 'final' ? `최종 보스 출현! 쓰러뜨려도 한 번 되살아납니다` :
       info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노·속성 변환 주의` :
-      info.type === 'boss' ? `보스 등장! 한 바퀴 돌기 전에 처치하세요` :
+      info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
     const attrNames = this.waveAttrs.map((a) => ATTR_INFO[a].name).join('·');
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
@@ -360,14 +406,42 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  hit(merc, st, target, mult, crit = false) {
+  hit(merc, st, target, mult, crit = false, carry = true) {
     const b = this.bonus;
     // 보스·정예: 기본 피해 배율 + 거인 사냥꾼, 그리고 왕/정예 사냥꾼
     const giant = target.kind === 'normal' ? 1 : (BALANCE.bossDamageMult + b.bossDmg) * (1 + (target.isBoss ? b.bossOnly : b.eliteOnly));
     let elem = elementMultiplier(merc.attr, target.attr);
     if (elem > 1) elem += b.advantage; // 속성 공명: 상성 우위 피해
     const dmg = st.damage * mult * giant * elem;
+    const need = carry && target.kind === 'normal' ? target.hp / target.damageTakenMult(this.gameTime) : Infinity;
     this.damageMonster(target, dmg, { source: merc, crit });
+    if (dmg > need) this.carryDamage(merc, target, dmg - need);
+  }
+
+  /** 물량 관통: 일반 몬스터를 죽이고 남은 피해가 가까운 다음 일반 몬스터로 넘어간다 (피해 총량이 낭비되지 않게) */
+  carryDamage(merc, from, left) {
+    const H = BALANCE.horde;
+    const r2 = H.carryRadius * H.carryRadius;
+    let x = from.x;
+    let y = from.y;
+    for (let hop = 0; hop < H.carryHops && left > 0.01; hop++) {
+      let best = null;
+      let bd = r2;
+      for (const o of this.monsters) {
+        if (!o.alive || o.kind !== 'normal') continue;
+        const dd = (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y);
+        if (dd < bd) {
+          bd = dd;
+          best = o;
+        }
+      }
+      if (!best) break;
+      const need = best.hp / best.damageTakenMult(this.gameTime);
+      x = best.x;
+      y = best.y;
+      this.damageMonster(best, left, { source: merc });
+      left -= need;
+    }
   }
 
   /** 연출·사운드용 유닛 종류: 용병 클래스 또는 영웅 원형 */
@@ -384,14 +458,14 @@ export class GameScene extends Phaser.Scene {
     this.hit(merc, st, target, crit ? st.critMult : 1, crit);
     if (st.splash) {
       for (const o of this.monsters) {
-        if (o.alive && o !== target && d2(o, pos) <= st.splash ** 2) this.hit(merc, st, o, 1);
+        if (o.alive && o !== target && d2(o, pos) <= st.splash ** 2) this.hit(merc, st, o, 1, false, false);
       }
       this.circleFx(pos.x, pos.y, st.splash, ATTR_INFO[merc.attr].color);
     }
     if (st.chain) {
       const chain = this.chainFrom(target, st.chain + 1);
       this.vfx.chain(chain, ATTR_INFO[merc.attr].color);
-      for (const o of chain.slice(1)) this.hit(merc, st, o, 0.6);
+      for (const o of chain.slice(1)) this.hit(merc, st, o, 0.6, false, false);
     }
   }
 
@@ -463,7 +537,7 @@ export class GameScene extends Phaser.Scene {
         mult = t.isBoss ? fx.execute[1] : 1;
       }
       if (fx.bossMult && t.isBoss) mult *= fx.bossMult;
-      if (mult) this.hit(merc, st, t, mult * flavorMul);
+      if (mult) this.hit(merc, st, t, mult * flavorMul, false, targets.length <= 3); // 범위 스킬은 관통 없음 (이미 여럿을 때린다)
     }
 
     if (def.buff) {
@@ -500,7 +574,10 @@ export class GameScene extends Phaser.Scene {
     if (m.isFinal && !m.revived) return this.reviveFinalBoss(m);
     m.alive = false;
     this.totalKills += 1;
-    const gold = Math.round(m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty));
+    // 물량: 일반 몬스터 골드는 소수 → 모았다가 정수가 될 때마다 지급
+    this.goldFrac += m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty);
+    const gold = Math.floor(this.goldFrac + 1e-9);
+    this.goldFrac -= gold;
     if (source && source.active) source.kills += 1;
     this.gold += gold;
     this.deathFx(m);
@@ -548,9 +625,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ───────────────────────── 유물 ─────────────────────────
-  /** 몬스터 한도 (명성 강화 '성벽 보강') */
-  get maxAlive() {
-    return BALANCE.maxAlive + this.bonus.maxAlive;
+  /** 성벽 최대 체력 (명성 강화 '성벽 보강') */
+  get wallMax() {
+    return BALANCE.wall.hp + (this.bonus.wallHp || 0);
   }
 
   /** 판매 환급 비율 (명성 강화 '깔끔한 정산') */
@@ -872,7 +949,8 @@ export class GameScene extends Phaser.Scene {
     const g = this.hpGfx;
     g.clear();
     for (const m of this.monsters) {
-      if (!m.alive || (m.hp >= m.maxHp && !m.isBoss)) continue;
+      // 물량: 일반 몬스터는 체력 막대 없음 (정예·보스만)
+      if (!m.alive || m.kind === 'normal' || (m.hp >= m.maxHp && !m.isBoss)) continue;
       const w = m.isBoss ? 72 : m.kind === 'elite' ? 48 : 36;
       const h = m.isBoss ? 8 : 4;
       const x = Math.round(m.x - w / 2);
@@ -893,6 +971,7 @@ export class GameScene extends Phaser.Scene {
 
   deathFx(m) {
     if (this.vfx.death(m) && !m.isBoss) return; // PixelLab 시트 (보스는 파편도 함께)
+    if (m.kind === 'normal') return; // 물량: 시트가 꽉 찼으면 일반 몬스터는 연출 생략 (파편을 수백 개 만들지 않는다)
     const color = ATTR_INFO[m.attr].color;
     const n = m.isBoss ? 16 : 5;
     for (let i = 0; i < n; i++) {

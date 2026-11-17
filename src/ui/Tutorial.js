@@ -16,7 +16,7 @@ export const TUTORIAL_STEPS = {
   },
   wave: {
     title: '웨이브 시작',
-    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n필드에 100기가 쌓이거나 보스가 한 바퀴를 돌면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
+    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n몬스터가 한 바퀴 돌 때마다 성벽 체력이 깎이고, 0이 되면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
     rect: () => (WIDE ? { x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 } : { x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
   },
   select: {
@@ -44,7 +44,7 @@ export const TUTORIAL_STEPS = {
   },
   boss: {
     title: '보스 등장',
-    text: '보스는 용병에게 디버프를 걸어요.\n한 바퀴를 돌기 전에 쓰러뜨리지 못하면 패배합니다!',
+    text: '보스는 용병에게 디버프를 걸어요.\n한 바퀴를 돌 때마다 성벽 체력이 크게 깎입니다!',
     rect: (s) => {
       const b = s.monsters?.find((m) => m.isBoss && m.active);
       return b ? { x: b.x - 44, y: b.y - 52, w: 88, h: 88 } : null;
