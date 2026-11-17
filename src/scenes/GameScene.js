@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { GAME_W, GAME_H, WIDE, PX, UI_PX, BG_PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { TILE_KEYS } from '../art/textures.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
@@ -65,7 +66,8 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
 
     this.biome = biomeForWave(1);
-    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setScale(UI_PX).setDepth(DEPTH.bg);
+    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setDisplaySize(GAME_W, GAME_H).setDepth(DEPTH.bg);
+    this.createFieldLayers();
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hintGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hpGfx = this.add.graphics().setDepth(DEPTH.hpbar);
@@ -274,12 +276,34 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+  /**
+   * 필드 레이어 (2026-11-17): 지역 배경(bg_<지역>) 위에 석판 25칸 → 성벽 링을 따로 쌓는다.
+   * 각 레이어는 텍스처 키라 manifest 로 스킨을 씌우면 그대로 바뀐다 (크기는 화면 크기에 맞춰 늘림 — 스킨 해상도 자유).
+   * 석판 변형(_b, _c)은 기본 키에만 스킨이 있으면 기본 키 하나로 통일한다.
+   */
+  createFieldLayers() {
+    const skinned = (key) => this.textures.get(key).customData?.artScale !== undefined;
+    this.fieldTiles = [];
+    for (let gy = 0; gy < GRID; gy++) {
+      for (let gx = 0; gx < GRID; gx++) {
+        const keys = TILE_KEYS[(gx + gy) % 2 === 0 ? 'light' : 'dark'];
+        const key = skinned(keys[0]) ? keys[0] : keys[(gx * 7 + gy * 3) % keys.length];
+        this.fieldTiles.push(this.add.image(FIELD_X + gx * CELL, FIELD_Y + gy * CELL, key).setOrigin(0).setDisplaySize(CELL, CELL).setDepth(DEPTH.bg + 1));
+      }
+    }
+    // 성벽: 텍스처 (0,0) = 성벽 바깥 테두리에서 아트 1px 바깥
+    const wall = this.textures.get('field_wall').getSourceImage();
+    const size = FIELD_SIZE + 2 * WALL + 3 * BG_PX;
+    this.fieldWall = this.add.image(FIELD_X - WALL - BG_PX, FIELD_Y - WALL - BG_PX, 'field_wall').setOrigin(0).setDisplaySize(size, size).setDepth(DEPTH.bg + 2);
+    if (!wall) console.warn('field_wall 텍스처 없음');
+  }
+
   /** 지역(배경) 전환: 새 배경이 서서히 덮인다 */
   changeBiome(biome) {
     if (biome.id === this.biome.id) return;
     this.biome = biome;
     const old = this.bgImage;
-    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setScale(UI_PX).setDepth(DEPTH.bg + 0.5).setAlpha(0);
+    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setDisplaySize(GAME_W, GAME_H).setDepth(DEPTH.bg + 0.5).setAlpha(0);
     this.tweens.add({
       targets: this.bgImage,
       alpha: 1,
