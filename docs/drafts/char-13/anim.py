@@ -90,7 +90,22 @@ SHIELD = Wp.paint([
     "...O..."], {'O': '#2b1d2f', 'C': '#e0393e', 'c': '#a8232f', 'G': '#f5c542'})
 
 
-def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, extra_after=None, smear=None, behind=False, ch=None, sdy=0):
+def hand_img(pal):
+    return Wp.paint([".OO.", "OSSO", "OSsO", ".OO."], {'O': '#2b1d2f', 'S': pal.get('S', '#ffe2c8'), 's': '#f2c4a4'})
+
+
+def noarms(img):
+    """팔(19~20줄 양옆) 지우기 — 몸통 x8~14 만 남긴다"""
+    im = img.copy()
+    for y in (19, 20):
+        for x in (7, 15):
+            im.putpixel((x, y), (0, 0, 0, 0))
+        for x in (8, 14):
+            im.putpixel((x, y), rgba('#2b1d2f'))
+    return im
+
+
+def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, extra_after=None, smear=None, behind=False, ch=None, sdy=0, hands=None):
     """ch['mirror']: 몸을 뒤집어 그린 뒤 전체를 다시 뒤집는다 → 몸은 그대로, 무기·효과만 캐릭터 왼쪽으로"""
     mirror = bool(ch and ch.get('mirror'))
     if mirror:
@@ -105,16 +120,43 @@ def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, e
     if extra_before:
         extra_before(c, hx, hy)
     wl = weapon_img(weapon, deg) if weapon else None
+    hl = hands(hx, hy) if (hands and ch and ch.get('armless')) else []
+    himg = hand_img(ch['pal']) if hl else None
+    put = lambda layer: [c.alpha_composite(himg, (x - 2, y - 2)) for x, y, l in hl if l == layer]
     if wl and behind:
         c.alpha_composite(wl[0], (hx - wl[1][0], hy - wl[1][1]))
+    put('back')
     c.alpha_composite(body, (OX + bdx, OY))
     if wl and not behind:
         c.alpha_composite(wl[0], (hx - wl[1][0], hy - wl[1][1]))
+    put('under')
     if ch and ch.get('shield'):  # 왼손(뒤집힌 상태 기준) 방패 — 최종 그림에서는 캐릭터 오른쪽
         c.alpha_composite(SHIELD.transpose(Image.FLIP_LEFT_RIGHT) if mirror else SHIELD, (OX + 1 + bdx, OY + 17 + sdy))
+    put('top')
     if extra_after:
         extra_after(c, hx, hy)
     return c.transpose(Image.FLIP_LEFT_RIGHT) if mirror else c
+
+
+def along(weapon, deg, x, y, d):
+    """무기 축을 따라 쥐는 점에서 d 픽셀 (끝 쪽 +)"""
+    a = math.radians(deg)
+    return (x + round(math.sin(a) * d), y - round(math.cos(a) * d))
+
+
+def hands_for(ch, weapon, deg, behind=False, free=(0, 0), raise_free=0, bdx=0, sdy=0):
+    """쥐는 손 + 다른 손. free: 다른 손의 흔들림, raise_free: 시전 때 다른 손 들어 올리기"""
+    def f(hx, hy):
+        main = 'back' if behind else 'top'
+        out = [(hx, hy, main)]
+        if weapon == 'spear':
+            out.append(along(weapon, deg, hx, hy, ch.get('spear_off', 4)) + ('top',))
+        elif ch.get('shield'):
+            out.append((OX + 8 + bdx, OY + 20 + sdy, 'under'))
+        elif weapon != 'bow':
+            out.append((OX + 5 + bdx + free[0], OY + 20 + free[1] - raise_free, 'top'))
+        return out
+    return f
 
 
 # ---------- 대기 ----------
@@ -131,7 +173,10 @@ def idle(ch, weapon, hand, deg=0, hat_rows=0, blink_at=6, extra=None):
         b = pose(b, 0, IDLE_HEAD[i], IDLE_HAT[i] if hat_rows else 0, hat_rows)
         hd = (hand[0], hand[1] + IDLE_WPN[i])
         ex = (lambda c, hx, hy, i=i: extra(c, hx, hy, i)) if extra else None
-        out.append((compose(b, weapon, deg, hd, extra_after=ex, ch=ch, sdy=IDLE_WPN[i]), IDLE_MS[i]))
+        hf = hands_for(ch, weapon, deg, free=(0, 1 - IDLE_WPN[i]), sdy=IDLE_WPN[i])
+        if weapon == 'bow':
+            hf = lambda hx, hy, i=i: [(hx, hy, 'top'), (OX + 18, OY + 20 + (1 - IDLE_WPN[i]), 'top')]
+        out.append((compose(b, weapon, deg, hd, extra_after=ex, ch=ch, sdy=IDLE_WPN[i], hands=hf), IDLE_MS[i]))
     return out
 
 
@@ -158,7 +203,7 @@ def swing(ch, weapon, hand=(19, 20)):
             if sp:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0] + bdx, OY + hd[1]))
                 spark(c, tx, ty, sp)
-        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, bdx, extra_after=after, smear=sm, behind=deg < -30, ch=ch, sdy=-1 if deg < -30 else 0), ms))
+        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, bdx, extra_after=after, smear=sm, behind=deg < -30, ch=ch, sdy=-1 if deg < -30 else 0, hands=hands_for(ch, weapon, deg, deg < -30, free=(-hdx, hdy), bdx=bdx, sdy=-1 if deg < -30 else 0)), ms))
     return out
 
 
@@ -178,7 +223,7 @@ def thrust(ch, weapon='spear', hand=(19, 20)):
             if fx >= 1:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0], OY + hd[1]))
                 spark(c, tx + 1, ty, 3 if fx == 3 else 1)
-        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch), ms))
+        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch, hands=hands_for({**ch, 'spear_off': -5}, weapon, deg)), ms))
     return out
 
 
@@ -212,7 +257,7 @@ def cast(ch, hand=(19, 22)):
                     a = k * 2.1 + emb
                     r = 3 + emb * 2
                     g.point([(ox + round(math.cos(a) * r), oy + round(math.sin(a) * r) - emb)], fill=(255, 214, 102, 255))
-        out.append((compose(pose(b, 0, hdy), 'staff', deg, hd, extra_after=after, ch=ch), ms))
+        out.append((compose(pose(b, 0, hdy), 'staff', deg, hd, extra_after=after, ch=ch, hands=hands_for(ch, 'staff', deg, raise_free=max(0, -wdy) + (2 if ring else 0))), ms))
     return out
 
 
@@ -242,13 +287,17 @@ def shoot(ch, hand=(1, 18)):
                 for k, yy in enumerate((y - 1, y + 1)):
                     g.line([(axp + 11, yy), (axp + 16 + ax * 3, yy)], fill=SMEAR)
                 c.alpha_composite(arrow, (axp, y - 2))
-        out.append((compose(pose(b, hdx, hdy), 'bow', 0, hand, bdx, extra_after=after, ch=ch), ms))
+        out.append((compose(pose(b, hdx, hdy), 'bow', 0, hand, bdx, extra_after=after, ch=ch, hands=lambda hx, hy, pull=pull, ax=ax: [(hx, hy, 'top'), ((hx + 3 + pull, hy, 'top') if ax == -1 else (hx + 8 - min(ax, 1) * 2, hy - 2 + min(ax, 1), 'top'))]), ms))
     return out
+
+
+ARMLESS = False
 
 
 def char(cid, strip, keep_top=0, mirror=True, shield=False):
     ch = next(c for c in D.CHARS if c['id'] == cid)
-    return {'img': Wp.body(cid, strip, keep_top), 'pal': {**D.COMMON, **ch['pal']}, 'mirror': mirror, 'shield': shield}
+    img = Wp.body(cid, strip, keep_top)
+    return {'img': noarms(img) if ARMLESS else img, 'pal': {**D.COMMON, **ch['pal']}, 'mirror': mirror, 'shield': shield, 'armless': ARMLESS}
 
 
 def build_all():
@@ -278,12 +327,14 @@ def strip(frames):
 
 
 if __name__ == '__main__':
-    anims = build_all()
-    data = {'W': W, 'H': H, 'anims': [
+    pack = lambda anims: [
         {'key': a['key'], 'title': a['title'], 'sub': a['sub'],
          'idle': {'src': strip(a['idle']), 'ms': [m for _, m in a['idle']]},
-         'attack': {'src': strip(a['attack']), 'ms': [m for _, m in a['attack']]}} for a in anims]}
-    json.dump(data, open(os.path.join(OUT, 'anim.json'), 'w'))
+         'attack': {'src': strip(a['attack']), 'ms': [m for _, m in a['attack']]}} for a in anims]
+    arms = build_all()
+    ARMLESS = True
+    anims = build_all()  # 팔 없음 + 떠 있는 둥근 손 (GIF 도 이 버전)
+    json.dump({'W': W, 'H': H, 'anims': pack(anims), 'arms': pack(arms)}, open(os.path.join(OUT, 'anim.json'), 'w'))
     # GIF: 대기 2번 → 공격 → 대기 (4명 나란히)
     Z = 6
     seqs = [a['idle'] * 2 + a['attack'] + a['idle'] for a in anims]
