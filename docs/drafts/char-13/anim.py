@@ -421,7 +421,7 @@ def rot_pt(dx, dy, deg, x, y):
 
 def build_all():
     kaira = char('red_sword', (17, 24), shield=True)
-    verona = char('red_mage', (17, 24), 13, custom={'file': 'edit/verona_body_v2.png', 'split': 19, 'eyes': [(9, 15), (13, 15)]}, free_x=2)
+    verona = char('red_mage', (17, 24), 13, custom={'file': 'edit/verona_body_v2.png', 'split': 19, 'eyes': [(9, 15), (13, 15)]}, free_x=4)
     elin = char('green_archer', (0, 5), mirror=False)
     adel = char('blue_knight', (0, 5))
     return [
