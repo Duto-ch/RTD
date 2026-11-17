@@ -1,4 +1,4 @@
-"""무기 분리 레이어 시안 (2026-11-17)
+"""무기 분리 레이어 시안 (2026-11-17, v2 데포르메 — 이전 판은 weapons-v1.gif · weapons-parts-v1.png)
 몸(무기 없는 13x13 캐릭터)과 무기 그림을 따로 두고, 무기를 손 위치(쥐는 점)에 얹어 돌리거나 옮겨 애니메이션을 만든다.
 회전은 픽셀이 깨지지 않게 RotSprite 방식(8배 확대 → 회전 → 다시 축소)으로 미리 굽는다.
 실행: python3 docs/drafts/char-13/weapons.py  →  weapons.gif · weapons-frames.png
@@ -9,75 +9,98 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import draw as D
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-PAL = {**D.COMMON, 'M': '#c9d3e0', 'N': '#8a97ad'}
+PAL = {**D.COMMON, 'M': '#a9b8cc', 'N': '#8a97ad', 'g': '#c98f2a', 'r': '#d8501e'}
 
 # 무기 그림 + 쥐는 점(pivot) — 위쪽이 날·끝
-WEAPONS = {
+WEAPONS = {  # v2 (2026-11-17): 데포르메 — 날·머리·구슬을 크게, 손잡이는 짧게
     'sword': ([
-        "..O..",
-        ".OLO.",
-        ".OLO.",
-        ".OLO.",
-        ".OLO.",
-        ".OLO.",
-        ".OLO.",
-        "OGGGO",
-        ".OtO.",
-        ".OGO.",
-        "..O.."], (2, 8)),
+        "....O....",
+        "...OLO...",
+        "..OLLMO..",
+        "..OLLMO..",
+        "..OLLMO..",
+        "..OLLMO..",
+        "..OLLMO..",
+        "..OLLMO..",
+        "..OLLMO..",
+        "..OLLMO..",
+        "OOGGGGGOO",
+        "OGGgGgGGO",
+        "OOOOtOOOO",
+        "...OtO...",
+        "..OGGGO..",
+        "...OOO..."], (4, 13)),
     'axe': ([
-        ".OO.O.",
-        "OMMOTO",
-        "OMMMTO",
-        "OMMOTO",
-        ".OOOTO",
-        "...OTO",
-        "...OTO",
-        "...OTO",
-        "...OTO",
-        "...OOO"], (4, 7)),
+        ".......OOO.",
+        ".OLLMO.OTO.",
+        "OLLLMMOOTO.",
+        "OLLMMMGOTO.",
+        "OLLMMMGOTO.",
+        "OLLLMMOOTO.",
+        ".OLLMO.OTO.",
+        "..OOO..OTO.",
+        ".......OTO.",
+        ".......OTO.",
+        ".......OTO.",
+        ".......OTO.",
+        ".......OTO.",
+        ".......OGO.",
+        ".......OOO."], (8, 11)),
     'spear': ([
-        ".O.",
-        "OLO",
-        "OMO",
-        "OMO",
-        "OGO",
-        "OTO",
-        "OTO",
-        "OTO",
-        "OTO",
-        "OTO",
-        "OTO",
-        "OTO",
-        "OTO",
-        ".O."], (1, 10)),
+        "...O...",
+        "..OLO..",
+        ".OLLMO.",
+        "OLLLMMO",
+        "OLLLMMO",
+        ".OLLMO.",
+        "..OLO..",
+        ".OGGGO.",
+        "..OTO..",
+        "..OTO..",
+        "..OTO..",
+        "..OTO..",
+        "..OTO..",
+        "..OTO..",
+        "..OTO..",
+        "..OTO..",
+        "..OGO..",
+        "..OOO.."], (3, 13)),
     'staff': ([
-        "..O..",
-        ".OFO.",
-        "OFYFO",
-        ".OFO.",
-        ".OTO.",
-        ".OTO.",
-        ".OTO.",
-        ".OTO.",
-        ".OTO.",
-        ".OTO.",
-        ".OTO.",
-        ".OOO."], (2, 9)),
+        "...OOO...",
+        "..OFFFO..",
+        ".OFYYFFO.",
+        ".OFYWFFO.",
+        ".OFFFFrO.",
+        "..OrrrO..",
+        ".OGO.OGO.",
+        "..OGGGO..",
+        "...OTO...",
+        "...OTO...",
+        "...OTO...",
+        "...OTO...",
+        "...OTO...",
+        "...OTO...",
+        "...OTO...",
+        "...OOO..."], (4, 12)),
     'bow': ([
-        "..OO.",
-        ".OTO.",
-        "OTO..",
-        "OTO..",
-        "OTO..",
-        "OTO..",
-        "OTO..",
-        "OTO..",
-        "OTO..",
-        ".OTO.",
-        "..OO."], (1, 5)),
+        "...OO..",
+        "..OGO..",
+        ".OTO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        "OTtO...",
+        ".OTO...",
+        "..OGO..",
+        "...OO.."], (1, 8)),
 }
-ARROW = ["OOOOOOO", "LTTTTGO", "OOOOOOO"]  # 왼쪽이 화살촉 쪽 (아래에서 뒤집음)
+ARROW = [".OO.....OO", "OLLOOOOOGO", "OLLTTTTTGO", "OLLOOOOOGO", ".OO.....OO"]  # 왼쪽이 화살촉 쪽 (아래에서 뒤집음)
 
 
 def paint(rows, pal):
@@ -119,8 +142,8 @@ def place(canvas, wimg, wpivot, at):
     canvas.alpha_composite(wimg, (at[0] - wpivot[0], at[1] - wpivot[1]))
 
 
-W, H = 36, 26
-OX, OY = 6, 2  # 24x24 캐릭터를 놓는 위치
+W, H = 42, 30
+OX, OY = 9, 5  # 24x24 캐릭터를 놓는 위치
 
 
 def frame(body_img, weapon=None, deg=0, hand=(15, 20), dy=0, front=True, extra=None):
@@ -149,10 +172,10 @@ def staff_anim(b):
     for i, (d, lift) in enumerate([(0, 0), (0, 0), (0, 1), (0, 1), (-10, -1), (-20, -2), (-20, -2), (-20, -2), (-10, -1), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]):
         glow = None
         if 5 <= i <= 7:
-            r = [2, 3, 4][i - 5]
+            r = [4, 6, 8][i - 5]
             def glow(c, r=r, lift=lift):
                 g = ImageDraw.Draw(c)
-                cx, cy = OX + 19, OY + 22 + lift - 7
+                cx, cy = OX + 19, OY + 22 + lift - 9
                 g.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(255, 154, 60, 255))
         out.append(frame(b, 'staff', d, (19, 22 + lift), 0, True, glow))
     return out
@@ -160,20 +183,20 @@ def staff_anim(b):
 
 def bow_anim(b):
     out = []
-    arrow = paint(ARROW, PAL).transpose(Image.FLIP_LEFT_RIGHT)  # 화살촉이 왼쪽
+    arrow = paint(ARROW, PAL)  # 화살촉이 왼쪽
     for i in range(14):
         def extra(c, i=i):
             g = ImageDraw.Draw(c)
             bx, by = OX + 1, OY + 18  # 활 쥐는 점
-            top, bot = (bx + 3, by - 4), (bx + 3, by + 4)
-            pull = [0, 0, 0, 0, 1, 2, 3, 3, 3, 0, 0, 0, 0, 0][i]
+            top, bot = (bx + 3, by - 7), (bx + 3, by + 6)
+            pull = [0, 0, 0, 0, 1, 3, 5, 5, 5, 0, 0, 0, 0, 0][i]
             mid = (bx + 3 + pull, by)
             col = (238, 246, 255, 255)
             g.line([top, mid], fill=col); g.line([mid, bot], fill=col)
             if 3 <= i <= 8:
-                c.alpha_composite(arrow, (mid[0] - 6, by - 1))
+                c.alpha_composite(arrow, (mid[0] - 9, by - 2))
             elif 9 <= i <= 12:
-                c.alpha_composite(arrow, (mid[0] - 6 - (i - 8) * 6, by - 1))
+                c.alpha_composite(arrow, (mid[0] - 9 - (i - 8) * 4, by - 2))
         out.append(frame(b, 'bow', 0, (1, 18), 0, True, extra))
     return out
 
@@ -217,11 +240,11 @@ if __name__ == '__main__':
         strip.paste(f.resize((W * 4, H * 4), Image.NEAREST), (i * W * 4, 0), f.resize((W * 4, H * 4), Image.NEAREST))
     strip.save(os.path.join(OUT, 'weapons-frames.png'))
     # 무기 원본
-    parts = Image.new('RGB', (len(WEAPONS) * 10 * 8, 16 * 8), '#f6f1e4')
+    parts = Image.new('RGB', (len(WEAPONS) * 13 * 8, 20 * 8), '#f6f1e4')
     for i, (k, (r, pv)) in enumerate(WEAPONS.items()):
         p = paint(r, PAL)
-        parts.paste(p.resize((p.width * 8, p.height * 8), Image.NEAREST), (i * 80 + 8, 8), p.resize((p.width * 8, p.height * 8), Image.NEAREST))
+        parts.paste(p.resize((p.width * 8, p.height * 8), Image.NEAREST), (i * 104 + 8, 8), p.resize((p.width * 8, p.height * 8), Image.NEAREST))
         dd = ImageDraw.Draw(parts)
-        dd.rectangle([i * 80 + 8 + pv[0] * 8, 8 + pv[1] * 8, i * 80 + 15 + pv[0] * 8, 15 + pv[1] * 8], outline='#d02020', width=2)
+        dd.rectangle([i * 104 + 8 + pv[0] * 8, 8 + pv[1] * 8, i * 104 + 15 + pv[0] * 8, 15 + pv[1] * 8], outline='#d02020', width=2)
     parts.save(os.path.join(OUT, 'weapons-parts.png'))
     print('ok', n)
