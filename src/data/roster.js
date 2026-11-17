@@ -395,11 +395,15 @@ export function skillLevels(c) {
 }
 
 /** ChatGPT 그림 프롬프트 — 모든 캐릭터에 공통으로 붙는 스타일 */
+// 공통 규칙 (2026-11-17 사용자 결정): 모든 캐릭터 2등신 + 얼굴(머리) 크기 동일
 export const STYLE_PROMPT =
-  'Tiny 16x16 pixel art game sprite, scaled up with nearest neighbor so every pixel is a big visible square block. ' +
-  'The whole character is only 16 pixels tall: extremely low resolution, very few details, like a tiny NES or Game Boy Color overworld sprite. ' +
-  'Chibi proportions (head about half the height), JRPG fantasy style, 3/4 front view facing right, 1-pixel dark outline, flat colors, max 10 colors, ' +
-  'no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, full body, no text';
+  'Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height ' +
+  '(head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: ' +
+  'the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. ' +
+  'Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. ' +
+  'Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, ' +
+  'very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, ' +
+  'plain flat pure white background, single character centered, no text';
 const ATTR_COLOR = { red: 'crimson red and warm orange', blue: 'ice blue and navy', green: 'leaf green and earthy brown' };
 const GRADE_DETAIL = { 1: 'simple outfit', 2: 'slightly detailed outfit', 3: 'ornate outfit with a glowing accent', 4: 'legendary ornate outfit with golden trim and a magical glow' };
 
