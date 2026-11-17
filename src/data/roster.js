@@ -446,3 +446,20 @@ export function rollHire(deckIds, bonus = {}, rand = Math.random) {
   }
   return null;
 }
+
+/**
+ * 기준 그림(art-ref/mannequin.png — 2등신 회색 마네킹)과 함께 쓰는 프롬프트 (2026-11-17).
+ * 모자·왕관이 있으면 모델이 머리를 줄이는 문제 때문에, 두상 크기·눈높이·발 위치·도트 크기를 기준 그림에 고정한다
+ */
+export function artPromptRef(c) {
+  return (
+    'The attached gray mannequin is ONLY a proportion and size guide for a pixel art sprite series - ignore its gray color, its plain shape and its lack of details. ' +
+    'Draw the character described below over it: keep EXACTLY the same canvas framing, the same chunky pixel size (16-pixel blocks on this canvas), ' +
+    'the same 2-head-tall chibi proportions, the same head size (forehead to chin) and face area, the same eye height and the same feet ground line. ' +
+    'Hair may add a little volume around the head. Any hat, hood, crown or helmet sits ON TOP of that same-size head and extends higher above it; ' +
+    'never shrink the head or face to make room for headwear. Weapons are held at the side. ' +
+    'Give the character its own unique hairstyle, face and outfit. 3/4 view facing right, JRPG fantasy style, 1-pixel dark outline, flat colors, max 10 colors, ' +
+    'no anti-aliasing, no gradients, plain flat pure white background, no text. ' +
+    `Character: ${c.look}. Main colors: ${ATTR_COLOR[c.attr]}. ${GRADE_DETAIL[c.grade]}.`
+  );
+}
