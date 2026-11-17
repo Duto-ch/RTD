@@ -395,7 +395,7 @@ function paintWall(scene) {
   tex.refresh();
 }
 
-/** 석판 레이어: 밝은/어두운 석판 한 칸씩 (CELL / BG_PX = 32 아트 px). 변형 _b·_c 는 얼룩·금 위치만 다르다 */
+/** 석판 레이어: 밝은/어두운 석판 한 칸씩 (CELL / BG_PX = 24 아트 px). 변형 _b·_c 는 얼룩·금 위치만 다르다 */
 export const TILE_KEYS = { light: ['field_tile_light', 'field_tile_light_b', 'field_tile_light_c'], dark: ['field_tile_dark', 'field_tile_dark_b', 'field_tile_dark_c'] };
 function paintTiles(scene) {
   const cs = Math.round(CELL / BP);

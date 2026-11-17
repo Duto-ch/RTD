@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PX, CELL, DEPTH, BALANCE } from '../config.js';
+import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES, skillLevels } from '../data/roster.js';
 import { ATTR_INFO } from '../data/elements.js';
 import { cellCenter } from '../systems/path.js';
@@ -66,7 +66,8 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.kills = 0;
     this.learnUpTo(1);
 
-    this.sprite = setArt(scene.add.sprite(0, -PX, this.textureKey), this.textureKey, PX);
+    // 몸통이 칸 가운데에 오도록 (그림의 몸 중심 = manifest pivotX/pivotY, 없으면 그림 가운데)
+    this.sprite = setArt(scene.add.sprite(0, 0, this.textureKey), this.textureKey, UNIT_PX);
     scene.sys.updateList.add(this.sprite); // 컨테이너 안 스프라이트도 애니메이션이 돌도록
     playBase(this.sprite, 'idle');
     this.pips = scene.add.graphics();
@@ -154,7 +155,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.defs = skillDefs(char);
     this.skills = [];
     this.learnUpTo(this.level);
-    setArt(this.sprite, this.textureKey, PX);
+    setArt(this.sprite, this.textureKey, UNIT_PX);
     playBase(this.sprite, 'idle');
     this.drawPips();
     return this;

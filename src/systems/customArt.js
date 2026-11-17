@@ -45,7 +45,9 @@ export function loadCustomArt(scene, onDone) {
       // faceTarget: 공격 대상이 왼쪽이면 좌우 반전. pivotX: 몸 중심(프레임 기준 아트 px) — 반전해도 몸이 제자리
       cd.faceTarget = !!def.faceTarget;
       cd.pivotX = def.pivotX;
+      cd.pivotY = def.pivotY; // 몸 중심 y (프레임 기준 아트 px) — 칸 가운데에 몸통을 맞춘다
       cd.frameWidth = def.frameWidth;
+      cd.frameHeight = def.frameHeight;
       applied++;
       for (const [name, a] of Object.entries(def.animations || {})) {
         const animKey = `${key}:${name}`;
@@ -93,7 +95,8 @@ export function setFacing(sprite, left) {
   sprite.setFlipX(flip);
   const fw = cd.frameWidth;
   const pv = cd.pivotX;
-  sprite.setOrigin(fw && pv != null ? (flip ? fw - pv : pv) / fw : 0.5, 0.5);
+  const fh = cd.frameHeight;
+  sprite.setOrigin(fw && pv != null ? (flip ? fw - pv : pv) / fw : 0.5, fh && cd.pivotY != null ? cd.pivotY / fh : 0.5);
   return sprite;
 }
 

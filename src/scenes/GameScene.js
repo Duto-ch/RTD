@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, PX, UI_PX, BG_PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { GAME_W, GAME_H, WIDE, PX, UNIT_PX, UI_PX, BG_PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { TILE_KEYS } from '../art/textures.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
@@ -90,7 +90,7 @@ export class GameScene extends Phaser.Scene {
   /** 필드 가운데 성탑: 누르면 전투를 멈추고 강화 트리를 연다. 살 수 있는 노드가 있으면 "!" 표시 */
   createTower() {
     const c = cellCenter(TOWER_CELL.col, TOWER_CELL.row);
-    this.tower = setArt(this.add.sprite(c.x, c.y + CELL / 2 - PX, 'bld_tower'), 'bld_tower', PX).setOrigin(0.5, 1).setDepth(DEPTH.merc - 0.5);
+    this.tower = setArt(this.add.sprite(c.x, c.y + CELL / 2 - UNIT_PX, 'bld_tower'), 'bld_tower', UNIT_PX).setOrigin(0.5, 1).setDepth(DEPTH.merc - 0.5);
     playBase(this.tower, 'idle');
     this.tower.setInteractive({ useHandCursor: true });
     this.tower.on('pointerover', () => this.tower.setTint(0xfff1c0));
@@ -786,7 +786,7 @@ export class GameScene extends Phaser.Scene {
     merc.invested = cost;
     this.grid[r][c] = merc;
     merc.sprite.setY(-40).setAlpha(0);
-    this.tweens.add({ targets: merc.sprite, y: -PX, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
+    this.tweens.add({ targets: merc.sprite, y: 0, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
     // 낮은 확률로 2·3레벨 용병 (그 레벨까지 열리는 확정 스킬을 익힌다). 명성 강화로 확률 증가
     const roll = Math.random();
     const lucky = roll < this.bonus.lv3Chance ? 3 : roll < this.bonus.lv3Chance + BALANCE.hireLv2Chance + this.bonus.lv2Chance ? 2 : 1;

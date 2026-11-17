@@ -45,7 +45,7 @@
 - `src/systems/audio.js` — 16비트 풍 사운드 합성기 (배경음 4곡: title/battle/boss/final + 효과음, 볼륨 저장). 외부 오디오 파일 없음. 첫 입력 후 `audio.init()`
 - `src/art/monsters.js` — 몬스터 디자인 40종 (일반 20·정예 10·보스 10), `src/data/monsters.js` — 웨이브 → 디자인 선택
 - `src/ui/theme.js` — 픽셀 UI: 양피지·나무 패널 텍스처, 초록 탭, 닫기 버튼, 픽셀 아이콘, 글자 헬퍼
-- `src/ui/Hud.js` — 전투 화면 UI(상단 상태 창·유물 줄·툴팁, 하단 버튼·정보 창, 토스트·배너, 스킬 정보 팝업, ESC 메뉴). GameScene 이 `this.hud` 로 들고 있고, 게임 상태는 읽기만 한다. GameScene 의 `toast`/`showBanner`/`refreshHud`/`refreshRelics`/`refreshInfo` 는 hud 로 넘기는 짧은 통로. 새 HUD 요소는 GameScene 이 아니라 여기에 추가. 배너·토스트는 필드·몬스터 길(y 232~728)을 가리지 않는 띠(`BANNER_Y`/`TOAST_Y`)에만 띄운다
+- `src/ui/Hud.js` — 전투 화면 UI(상단 상태 창·유물 줄·툴팁, 하단 버튼·정보 창, 토스트·배너, 스킬 정보 팝업, ESC 메뉴). GameScene 이 `this.hud` 로 들고 있고, 게임 상태는 읽기만 한다. GameScene 의 `toast`/`showBanner`/`refreshHud`/`refreshRelics`/`refreshInfo` 는 hud 로 넘기는 짧은 통로. 새 HUD 요소는 GameScene 이 아니라 여기에 추가. 배너·토스트는 필드·몬스터 길(세로 y 272~688)을 가리지 않는 띠(`BANNER_Y`/`TOAST_Y`)에만 띄운다
 - `src/ui/Tutorial.js` — 기능별 최초 1회 튜토리얼. 단계는 `TUTORIAL_STEPS`(제목·본문·비출 영역), GameScene 이 `this.tut.show(id)` 로 띄운다(본 단계·끄기는 `meta.tutorial`). 떠 있는 동안 `tut.open` 이라 전투 dt 0·키 입력 무시. 자동화 브라우저에서는 꺼짐 — e2e 는 localStorage `rtd_tutorial_test` 로 켠다. 새 기능을 넣으면 단계도 하나 추가
 - `src/ui/Button.js` — 픽셀 버튼 (variant 별 스타일, 아이콘 타일, 누르면 1px 내려앉음)
 - `src/data/upgrades.js` — 명성 강화 트리 45노드(부모·갈래·글자·비용·효과), 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`·Mercenary `getStats` 에서 사용, 명성 획득 규칙 `FAME`. `src/systems/meta.js` — 판을 넘어 유지되는 저장(명성·강화 레벨·최고 기록, localStorage). `src/scenes/UpgradeScene.js` — 방사형 강화 트리 화면(`layoutTree()` 배치, 드래그·확대). GameScene 은 `this.bonus`(강화 효과, 성탑 창을 닫으면 `applyBonus()` 로 다시 읽음)·`this.bestWave`(지난 최고 기록)를 쓴다. 웨이브는 무한(`waves.js` `isFinalWave`·`CYCLE_WAVES` 100마다 최종 보스, 지역·디자인 순환). 필드 가운데 성탑 칸(`TOWER_CELL`)은 용병 금지 — 빈 칸 검사는 `isTowerCell()`, 용병 칸 수는 `fieldSlots`(24)
@@ -55,7 +55,8 @@
 ## 작업 규칙
 - 이 프로젝트 폴더 밖의 파일(다른 프로젝트)은 수정하지 않는다.
 - Phaser **3** API만 사용한다 (Phaser 4 문법 금지).
-- 픽셀 격자: **필드 배경(땅·길·성벽·석판)은 아트 1px = 화면 2px(`BG_PX`, 칸 64px = 32 아트 px)** — `textures.js` 는 3px 시절 무늬 크기를 `K`(=1.5)배로 맞춘다. 필드는 레이어(`bg_<지역>` → `field_tile_*` → `field_wall`)로 나뉘어 `GameScene.createFieldLayers()` 가 쌓고, 각 키는 manifest 스킨으로 교체된다(크기는 `setDisplaySize` 로 맞춤). **UI 는 아트 1px = 화면 3px(`UI_PX`)**, 직접 그린 캐릭터도 3px(28x24 × manifest scale 0.75). 아직 코드로 그린 유닛·몬스터·성탑·유물 아이콘·이펙트는 4px(`PX`) — 캐릭터 교체가 끝나면 함께 3px 로 옮길 예정. 화면 칸(64px)은 3으로 나누어떨어지지 않으므로 배경은 `toArt()` 로 가장 가까운 픽셀 경계에 맞춘다
+- **칸 48px (`CELL`, 2026-11-17, 이전 64)**: 필드 240px, 성벽 18, 길 폭 64(1.5배)·길 중심선 56, 몬스터 퍼짐 `laneSpread` 24. 코드로 그린 임시 유닛·성탑은 `UNIT_PX`(=3)배. 유닛은 몸 중심이 칸 가운데 — 직접 그린 그림은 manifest `pivotX`·`pivotY` 로 몸 중심을 적는다
+- 픽셀 격자: **필드 배경(땅·길·성벽·석판)은 아트 1px = 화면 2px(`BG_PX`, 칸 48px = 24 아트 px)** — `textures.js` 는 3px 시절 무늬 크기를 `K`(=1.5)배로 맞춘다. 필드는 레이어(`bg_<지역>` → `field_tile_*` → `field_wall`)로 나뉘어 `GameScene.createFieldLayers()` 가 쌓고, 각 키는 manifest 스킨으로 교체된다(크기는 `setDisplaySize` 로 맞춤). **UI 는 아트 1px = 화면 3px(`UI_PX`)**, 직접 그린 캐릭터도 3px(28x24 × manifest scale 0.75). 아직 코드로 그린 유닛·몬스터·성탑·유물 아이콘·이펙트는 4px(`PX`) — 캐릭터 교체가 끝나면 함께 3px 로 옮길 예정. 배경 좌표는 `toArt()` 로 가장 가까운 픽셀 경계에 맞춘다
 - 밸런스 수치는 코드에 흩지 말고 `config.js`의 BALANCE 또는 `data/` 에 둔다.
 - GameObject 하위 클래스에 `name`, `type`, `state` 같은 Phaser 예약 속성명 getter 금지 (예: 용병 이름은 `heroName`).
 - 유닛·몬스터 그림은 Sprite(애니메이션 가능). 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')` 로 기본 애니메이션을 다시 맞춘다. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영

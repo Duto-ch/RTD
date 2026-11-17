@@ -463,7 +463,7 @@ test('PixelLab 이펙트 2: 몬스터 사망·보스 폭발·버프/디버프 �
   expect(errors).toEqual([]);
 });
 
-test('배너·토스트는 필드와 몬스터 길(y 232~728)을 가리지 않는다', async ({ page }) => {
+test('배너·토스트는 필드와 몬스터 길(칸 48px: y 272~688)을 가리지 않는다', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -476,9 +476,9 @@ test('배너·토스트는 필드와 몬스터 길(y 232~728)을 가리지 않�
     const r = (c) => { const k = c.getBounds(); return { top: k.top, bottom: k.bottom, left: k.left, right: k.right }; };
     return { banner: r(h.bannerObj), toast: r(h.toastObj) };
   });
-  expect(b.banner.bottom).toBeLessThanOrEqual(232);
+  expect(b.banner.bottom).toBeLessThanOrEqual(272);
   expect(b.banner.top).toBeGreaterThanOrEqual(180);
-  expect(b.toast.top).toBeGreaterThanOrEqual(728);
+  expect(b.toast.top).toBeGreaterThanOrEqual(688);
   expect(b.toast.bottom).toBeLessThanOrEqual(776);
   for (const k of ['banner', 'toast']) {
     expect(b[k].left).toBeGreaterThanOrEqual(0);

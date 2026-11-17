@@ -25,13 +25,16 @@ export const TOWER_CELL = { col: 2, row: 2 }; // 필드 가운데 성탑 칸 (�
 export const UI_PX = 3;
 // 필드 배경(땅·길·성벽·석판) 도트 굵기 — 아트 1px = 화면 2px (2026-11-17 시안). 칸 64px = 32 아트 px 로 나누어떨어진다
 export const BG_PX = 2;
-export const CELL = 64; // 16 아트 px
-export const FIELD_SIZE = GRID * CELL; // 320
-export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 세로 112 · 가로 480 (가운데)
-export const FIELD_Y = WIDE ? (GAME_H - FIELD_SIZE) / 2 : 320; // 가로는 위아래 가운데 (200)
-export const WALL = 24; // 성벽 두께
-export const PATH_OFF = 60; // 필드 가장자리 → 몬스터 이동 경로 중심선 거리
-export const PATH_WIDTH = 56;
+// 칸 48px (2026-11-17 사용자 결정, 이전 64) = 캐릭터 캔버스 24 아트 px × 2px. 길·성벽도 같은 비율로 줄이고 길 폭만 1.5배
+export const CELL = 48;
+// 코드로 그린 임시 유닛·성탑 그림 배율 (16x16 → 칸 크기에 맞춤, 칸 64 일 때 PX 4)
+export const UNIT_PX = (PX * CELL) / 64;
+export const FIELD_SIZE = GRID * CELL; // 240
+export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 세로 152 · 가로 520 (가운데)
+export const FIELD_Y = WIDE ? (GAME_H - FIELD_SIZE) / 2 : 360; // 세로는 필드 가운데가 y 480 (칸 64 시절과 같은 자리), 가로는 위아래 가운데 (240)
+export const WALL = 18; // 성벽 두께 (칸 64 시절 24 × 0.75)
+export const PATH_OFF = 56; // 필드 가장자리 → 몬스터 이동 경로 중심선 거리 (성벽 18 + 틈 6 + 길 반폭 32)
+export const PATH_WIDTH = 64; // 칸 48 비율(42)의 1.5배 — 몬스터가 더 넓게 퍼져 걷는다 (사용자 결정)
 
 export const FONT = 'Galmuri11';
 // 지역 장식을 놓지 않을 HUD 영역 (배경 그림이 가려지는 곳) — 세로: 위·아래 띠, 가로: 양옆 HUD 칸
@@ -138,7 +141,7 @@ export const BALANCE = {
   horde: {
     mult: 5,
     normalScale: 2, // 일반 몬스터 그림 배율 (정예 4·보스 5) — 작은 몬스터가 길 폭 전체에 퍼져 걷는다
-    laneSpread: 18, // 길 가운데에서 좌우로 퍼지는 최대 거리(px)
+    laneSpread: 24, // 길 가운데에서 좌우로 퍼지는 최대 거리(px) — 길 폭 64 에 맞춰 넓힘 (이전 18)
     carryRadius: 52, // 관통: 일반 몬스터를 죽이고 남은 피해가 이 거리 안의 다음 일반 몬스터로 넘어간다
     carryHops: 10, // 한 번의 타격이 넘어갈 수 있는 최대 횟수
     maxAlive: 900 // 성능 보호: 필드 위 몬스터가 이 수면 출현을 잠시 멈춘다 (패배 조건 아님)
