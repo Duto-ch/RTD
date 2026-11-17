@@ -12,20 +12,75 @@ import { BIOMES } from '../data/biomes.js';
 
 const ATTRS = ['red', 'blue', 'green'];
 
-function paintMap(scene, key, rows, palette) {
-  const h = rows.length;
-  const w = rows[0].length;
+/**
+ * 문자열 맵 → 캔버스 텍스처. up 2·3 이면 픽셀아트 확대(Scale2x·Scale3x)로 해상도를 올려 같은 크기에서 도트만 가늘게 한다
+ * (2026-11-17 도트 굵기 2px 통일: 16x16 그림을 32x32 로 다듬고 artScale 로 화면 크기는 그대로). artScale: setArt 기본 배율에 곱하는 값
+ */
+function paintMap(scene, key, rows, palette, up = 1, artScale) {
+  let grid = rows.map((r) => [...r].map((ch) => palette[ch] || null));
+  if (up === 2) grid = scale2x(grid);
+  else if (up === 3) grid = scale3x(grid);
+  const h = grid.length;
+  const w = grid[0].length;
   const tex = scene.textures.createCanvas(key, w, h);
   const ctx = tex.getContext();
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const c = palette[rows[y][x]];
+      const c = grid[y][x];
       if (!c) continue;
       ctx.fillStyle = c;
       ctx.fillRect(x, y, 1, 1);
     }
   }
   tex.refresh();
+  if (artScale) tex.customData.artScale = artScale;
+}
+
+// ── 픽셀아트 확대 (AdvMAME Scale2x / Scale3x): 계단을 매끈하게 다듬으며 2·3배로 ──
+const at = (g, x, y) => (y < 0 || y >= g.length || x < 0 || x >= g[0].length ? g[Math.max(0, Math.min(g.length - 1, y))][Math.max(0, Math.min(g[0].length - 1, x))] : g[y][x]);
+export function scale2x(g) {
+  const H = g.length;
+  const W = g[0].length;
+  const out = Array.from({ length: H * 2 }, () => Array(W * 2).fill(null));
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const P = g[y][x], A = at(g, x, y - 1), B = at(g, x + 1, y), C = at(g, x - 1, y), D = at(g, x, y + 1);
+      let e0 = P, e1 = P, e2 = P, e3 = P;
+      if (A !== D && C !== B) {
+        if (C === A) e0 = A;
+        if (A === B) e1 = B;
+        if (D === C) e2 = C;
+        if (B === D) e3 = D;
+      }
+      out[y * 2][x * 2] = e0;
+      out[y * 2][x * 2 + 1] = e1;
+      out[y * 2 + 1][x * 2] = e2;
+      out[y * 2 + 1][x * 2 + 1] = e3;
+    }
+  return out;
+}
+export function scale3x(g) {
+  const H = g.length;
+  const W = g[0].length;
+  const out = Array.from({ length: H * 3 }, () => Array(W * 3).fill(null));
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const E = g[y][x];
+      const A = at(g, x - 1, y - 1), B = at(g, x, y - 1), C = at(g, x + 1, y - 1), D = at(g, x - 1, y), F = at(g, x + 1, y), G = at(g, x - 1, y + 1), Hh = at(g, x, y + 1), I = at(g, x + 1, y + 1);
+      const e = Array(9).fill(E);
+      if (B !== Hh && D !== F) {
+        e[0] = D === B ? D : E;
+        e[1] = (D === B && E !== C) || (B === F && E !== A) ? B : E;
+        e[2] = B === F ? F : E;
+        e[3] = (D === B && E !== G) || (D === Hh && E !== A) ? D : E;
+        e[5] = (B === F && E !== I) || (Hh === F && E !== C) ? F : E;
+        e[6] = D === Hh ? D : E;
+        e[7] = (D === Hh && E !== I) || (Hh === F && E !== G) ? Hh : E;
+        e[8] = Hh === F ? F : E;
+      }
+      for (let k = 0; k < 9; k++) out[y * 3 + Math.floor(k / 3)][x * 3 + (k % 3)] = e[k];
+    }
+  return out;
 }
 
 // 재현 가능한 의사난수 (배경이 매번 같게)
@@ -416,23 +471,25 @@ export function generateTextures(scene) {
   // 용병: 15명 개별 디자인 (속성색 + 용병 전용 색)
   for (const [key, spr] of Object.entries(MERC_SPRITES)) {
     const attr = key.split('_')[1];
-    paintMap(scene, `merc_${key}`, spr.rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr], ...spr.palette });
+    paintMap(scene, `merc_${key}`, spr.rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr], ...spr.palette }, 2, 0.5); // 32x32 · 2px
   }
   // 영웅: 9명 개별 디자인 (속성색 + 영웅 전용 색)
   for (const [attr, list] of Object.entries(HEROES)) {
     for (const h of list) {
       const spr = HERO_SPRITES[h.id];
-      paintMap(scene, `hero_${h.id}`, spr.rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr], ...spr.palette });
+      paintMap(scene, `hero_${h.id}`, spr.rows, { ...BASE_PALETTE, ...ATTR_PALETTES[attr], ...spr.palette }, 2, 0.5);
     }
   }
   // 몬스터: 종류 × 속성
   // 몬스터: 디자인 40종 × 속성
   for (const d of ALL_MONSTER_DESIGNS) {
     for (const attr of ATTRS) {
-      paintMap(scene, `mon_${d.id}_${attr}`, d.rows, { ...BASE_PALETTE, ...BOSS_EXTRA_PALETTE, ...ATTR_PALETTES[attr] });
+      // 도트 2px: 일반 16x16 그대로(배율 2 → 32px) · 정예 Scale2x 32x32(→ 64px) · 보스 Scale3x 48x48(→ 96px)
+      const up = d.id.startsWith('b_') ? 3 : d.id.startsWith('e_') ? 2 : 1;
+      paintMap(scene, `mon_${d.id}_${attr}`, d.rows, { ...BASE_PALETTE, ...BOSS_EXTRA_PALETTE, ...ATTR_PALETTES[attr] }, up, up === 3 ? 0.4 : up === 2 ? 0.5 : undefined);
     }
   }
-  paintMap(scene, 'bld_tower', BUILDING_SPRITES.tower.rows, { ...BASE_PALETTE, ...BUILDING_SPRITES.tower.palette });
+  paintMap(scene, 'bld_tower', BUILDING_SPRITES.tower.rows, { ...BASE_PALETTE, ...BUILDING_SPRITES.tower.palette }, 2, 0.5);
   paintMap(scene, 'icon_coin', ICON_SPRITES.coin, BASE_PALETTE);
   paintMap(scene, 'icon_skull', ICON_SPRITES.skull, BASE_PALETTE);
   for (const relic of RELICS) {
@@ -442,26 +499,26 @@ export function generateTextures(scene) {
   // 투사체 (속성별 3x3)
   for (const attr of ATTRS) {
     const p = ATTR_PALETTES[attr];
-    paintMap(scene, `proj_${attr}`, ['.L.', 'LwL', '.L.'], { w: '#ffffff', L: p.L });
+    paintMap(scene, `proj_${attr}`, ['.L.', 'LwL', '.L.'], { w: '#ffffff', L: p.L }, 2);
   }
   // 1px 흰색 (파티클/틴트용)
   paintMap(scene, 'pixel', ['w'], { w: '#ffffff' });
 
   // ── 이펙트용 텍스처 ──
   const W = { w: '#ffffff' };
-  paintMap(scene, 'p_spark', ['.w.', 'www', '.w.'], W);
-  paintMap(scene, 'p_ember', ['w', 'w'], W);
-  paintMap(scene, 'p_shard', ['.w.', 'www', 'www', '.w.'], W);
-  paintMap(scene, 'p_leaf', ['.ww', 'www', 'ww.'], W);
-  paintMap(scene, 'p_star', ['..w..', '..w..', 'wwwww', '..w..', '..w..'], W);
+  paintMap(scene, 'p_spark', ['.w.', 'www', '.w.'], W, 2);
+  paintMap(scene, 'p_ember', ['w', 'w'], W, 2);
+  paintMap(scene, 'p_shard', ['.w.', 'www', 'www', '.w.'], W, 2);
+  paintMap(scene, 'p_leaf', ['.ww', 'www', 'ww.'], W, 2);
+  paintMap(scene, 'p_star', ['..w..', '..w..', 'wwwww', '..w..', '..w..'], W, 2);
   for (const attr of ATTRS) {
     const pal = { ...BASE_PALETTE, ...ATTR_PALETTES[attr] };
-    paintMap(scene, `arrow_${attr}`, ['L......k.', '.Lbbbbbwk', 'L......k.'], pal);
-    paintMap(scene, `orb_${attr}`, ['.LL.', 'LwwL', 'LwwL', '.LL.'], pal);
-    paintMap(scene, `dagger_${attr}`, ['.....', 'bAwww', '.....'], pal);
-    paintMap(scene, `rune_${attr}`, ['..LLL..', '.L...L.', 'L..w..L', 'L.www.L', 'L..w..L', '.L...L.', '..LLL..'], pal);
+    paintMap(scene, `arrow_${attr}`, ['L......k.', '.Lbbbbbwk', 'L......k.'], pal, 2);
+    paintMap(scene, `orb_${attr}`, ['.LL.', 'LwwL', 'LwwL', '.LL.'], pal, 2);
+    paintMap(scene, `dagger_${attr}`, ['.....', 'bAwww', '.....'], pal, 2);
+    paintMap(scene, `rune_${attr}`, ['..LLL..', '.L...L.', 'L..w..L', 'L.www.L', 'L..w..L', '.L...L.', '..LLL..'], pal, 2);
   }
-  paintMap(scene, 'arrow_gold', ['y......k.', '.ybbbbbwk', 'y......k.'], BASE_PALETTE);
+  paintMap(scene, 'arrow_gold', ['y......k.', '.ybbbbbwk', 'y......k.'], BASE_PALETTE, 2);
 
   for (const b of BIOMES) paintBackground(scene, b);
 }

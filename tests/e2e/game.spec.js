@@ -219,8 +219,8 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
     g.select(m);
     return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anim: m.sprite.anims.currentAnim?.key };
   });
-  // 28x24 프레임 × 0.75 배율(아트 1px = 화면 3px) → 화면 84x72, 18프레임 = 대기 9 + 공격 9
-  expect(s).toEqual({ key: 'merc_archer_blue', w: 84, h: 72, frames: 18, anim: 'merc_archer_blue:idle' });
+  // 28x24 프레임 × 0.5 배율(2026-11-17 도트 2px 통일: 아트 1px = 화면 2px) → 화면 56x48, 18프레임 = 대기 9 + 공격 9
+  expect(s).toEqual({ key: 'merc_archer_blue', w: 56, h: 48, frames: 18, anim: 'merc_archer_blue:idle' });
   await page.waitForTimeout(2600);
   await page.screenshot({ path: SHOT('11-custom-sigrid') });
 
@@ -519,7 +519,7 @@ test('PixelLab 시범 캐릭터: 브리짓(레드 마법사) 3픽셀 사양 대�
     m.sprite.play('merc_mage_red:idle');
     return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anims: ['idle', 'attack'].every((a) => g.anims.exists(`merc_mage_red:${a}`)) };
   });
-  expect(s).toEqual({ key: 'merc_mage_red', w: 84, h: 72, frames: 18, anims: true });
+  expect(s).toEqual({ key: 'merc_mage_red', w: 56, h: 48, frames: 18, anims: true });
   expect(errors).toEqual([]);
 });
 
@@ -541,7 +541,7 @@ test('PixelLab 화살: 궁수 속성별·레인저 금빛 화살이 시트 애�
     return shots;
   });
   expect(r.map((s) => s.key).sort()).toEqual(['fx_arrow_blue', 'fx_arrow_blue', 'fx_arrow_blue', 'fx_arrow_gold', 'fx_arrow_green', 'fx_arrow_red']);
-  expect(r.every((s) => s.playing && s.scale === 3)).toBe(true);
+  expect(r.every((s) => s.playing && s.scale === 2)).toBe(true); // 도트 2px 통일 (2026-11-17)
   await page.screenshot({ path: SHOT('23-arrows') });
   // 명중하면 사라진다
   await game(page, () => window.game.scene.getScene('Game').scene.resume());

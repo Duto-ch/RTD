@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { PX, DEPTH, GAME_W, GAME_H } from '../config.js';
+import { DOT, DEPTH, GAME_W, GAME_H } from '../config.js';
+// 도트 2px 통일 (2026-11-17): 투사체·파티클 텍스처는 Scale2x 로 2배 해상도 → 배율 DOT 로 예전과 같은 크기
 import { ATTR_INFO } from '../data/elements.js';
 import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim } from '../data/fx.js';
 
@@ -20,25 +21,25 @@ export class Vfx {
     // 레드: 불티가 위로 솟음 / 블루: 얼음 조각이 튐 / 그린: 잎사귀가 흩날림
     mk('red', 'p_ember', {
       speed: { min: 30, max: 120 }, angle: { min: 200, max: 340 }, gravityY: -80,
-      lifespan: { min: 300, max: 650 }, scale: { start: PX, end: 0 }, tint: [0xffe066, 0xff8a3d, 0xff3b3b], blendMode: 'ADD'
+      lifespan: { min: 300, max: 650 }, scale: { start: DOT, end: 0 }, tint: [0xffe066, 0xff8a3d, 0xff3b3b], blendMode: 'ADD'
     });
     mk('blue', 'p_shard', {
       speed: { min: 60, max: 170 }, lifespan: { min: 250, max: 500 }, rotate: { min: 0, max: 360 },
-      scale: { start: PX * 0.9, end: PX * 0.2 }, alpha: { start: 1, end: 0 }, tint: [0xffffff, 0xbff4ff, 0x5aa2ff]
+      scale: { start: DOT * 0.9, end: DOT * 0.2 }, alpha: { start: 1, end: 0 }, tint: [0xffffff, 0xbff4ff, 0x5aa2ff]
     });
     mk('green', 'p_leaf', {
       speed: { min: 30, max: 110 }, gravityY: 90, rotate: { start: 0, end: 360 },
-      lifespan: { min: 400, max: 750 }, scale: { start: PX, end: PX * 0.4 }, alpha: { start: 1, end: 0 }, tint: [0xa6e88a, 0x4caf50, 0xf2e14e]
+      lifespan: { min: 400, max: 750 }, scale: { start: DOT, end: DOT * 0.4 }, alpha: { start: 1, end: 0 }, tint: [0xa6e88a, 0x4caf50, 0xf2e14e]
     });
     mk('gold', 'p_star', {
-      speed: { min: 40, max: 200 }, lifespan: { min: 300, max: 700 }, scale: { start: PX * 0.8, end: 0 }, tint: [0xffffff, 0xf2c14e], blendMode: 'ADD'
+      speed: { min: 40, max: 200 }, lifespan: { min: 300, max: 700 }, scale: { start: DOT * 0.8, end: 0 }, tint: [0xffffff, 0xf2c14e], blendMode: 'ADD'
     });
     mk('rise', 'p_spark', {
       speedY: { min: -140, max: -60 }, speedX: { min: -20, max: 20 }, lifespan: { min: 400, max: 800 },
-      scale: { start: PX * 0.7, end: 0 }, alpha: { start: 1, end: 0 }, tint: [0xffffff, 0xfff2a0], blendMode: 'ADD'
+      scale: { start: DOT * 0.7, end: 0 }, alpha: { start: 1, end: 0 }, tint: [0xffffff, 0xfff2a0], blendMode: 'ADD'
     });
     mk('curse', 'p_spark', {
-      speed: { min: 20, max: 90 }, lifespan: { min: 300, max: 600 }, scale: { start: PX * 0.7, end: 0 }, tint: [0xb47cff, 0x6a3fb8], blendMode: 'ADD'
+      speed: { min: 20, max: 90 }, lifespan: { min: 300, max: 600 }, scale: { start: DOT * 0.7, end: 0 }, tint: [0xb47cff, 0x6a3fb8], blendMode: 'ADD'
     });
   }
 
@@ -166,8 +167,8 @@ export class Vfx {
         break;
       }
       case 'mage': {
-        const o = s.add.image(sx, sy, `orb_${attr}`).setScale(PX).setDepth(DEPTH.projectile).setBlendMode('ADD');
-        s.tweens.add({ targets: o, x: tx, y: ty, scale: PX * 1.4, duration: 150, onComplete: () => { o.destroy(); hit(4); } });
+        const o = s.add.image(sx, sy, `orb_${attr}`).setScale(DOT).setDepth(DEPTH.projectile).setBlendMode('ADD');
+        s.tweens.add({ targets: o, x: tx, y: ty, scale: DOT * 1.4, duration: 150, onComplete: () => { o.destroy(); hit(4); } });
         break;
       }
       case 'sniper': {
@@ -181,12 +182,12 @@ export class Vfx {
         break;
       }
       case 'shaman': {
-        const r = s.add.image(sx, sy, `rune_${attr}`).setScale(PX * 0.6).setDepth(DEPTH.projectile).setBlendMode('ADD');
+        const r = s.add.image(sx, sy, `rune_${attr}`).setScale(DOT * 0.6).setDepth(DEPTH.projectile).setBlendMode('ADD');
         s.tweens.add({ targets: r, x: tx, y: ty, angle: 360, duration: 200, onComplete: () => { r.destroy(); hit(2); } });
         break;
       }
       case 'rogue': {
-        const d = s.add.image(sx, sy, `dagger_${attr}`).setScale(PX * 0.7).setDepth(DEPTH.projectile);
+        const d = s.add.image(sx, sy, `dagger_${attr}`).setScale(DOT * 0.7).setDepth(DEPTH.projectile);
         s.tweens.add({ targets: d, x: tx, y: ty, angle: 720, duration: 90, onComplete: () => { d.destroy(); hit(1); } });
         break;
       }
@@ -202,7 +203,7 @@ export class Vfx {
         break;
       }
       default: {
-        const p = s.add.image(sx, sy, `proj_${attr}`).setScale(PX).setDepth(DEPTH.projectile);
+        const p = s.add.image(sx, sy, `proj_${attr}`).setScale(DOT).setDepth(DEPTH.projectile);
         s.tweens.add({ targets: p, x: tx, y: ty, duration: 90, onComplete: () => p.destroy() });
       }
     }
@@ -286,7 +287,7 @@ export class Vfx {
       case 'rogue':
       case 'warlord':
         for (const t of targets.slice(0, 10)) {
-          if (!this.play('slash', t.x, t.y, { tint: attr, scale: kind === 'warlord' ? 8 : undefined, angle: Phaser.Math.Between(-2, 2) * 90 }))
+          if (!this.play('slash', t.x, t.y, { tint: attr, scale: kind === 'warlord' ? 4 : undefined, angle: Phaser.Math.Between(-2, 2) * 90 }))
             this.slash(t.x, t.y, color, kind === 'warlord');
         }
         if (area.type === 'range' || area.type === 'circle') this.shockwave(cx, cy, r, color);
@@ -309,7 +310,7 @@ export class Vfx {
     if (d && s.anims.exists(fxAnim(key))) {
       return s.add.sprite(x, y, fxTexture(key), 0).setOrigin(d.ox, d.oy).setScale(d.px * size).setRotation(rot).setDepth(DEPTH.projectile).play(fxAnim(key));
     }
-    return s.add.image(x, y, key).setScale(PX * 0.75 * size).setRotation(rot).setDepth(DEPTH.projectile);
+    return s.add.image(x, y, key).setScale(DOT * 0.75 * size).setRotation(rot).setDepth(DEPTH.projectile);
   }
 
   bigShot(unit, t, key, attr) {
@@ -376,7 +377,7 @@ export class Vfx {
     g.setScale(0.6);
     this.s.tweens.add({ targets: g, scale: 1, angle: -45, duration: 300 });
     this.s.tweens.add({ targets: g, alpha: 0, delay: 300, duration: 300, onComplete: () => g.destroy() });
-    const rune = this.s.add.image(x, y, `rune_${attr}`).setScale(PX * 1.5).setDepth(DEPTH.fx).setBlendMode('ADD');
+    const rune = this.s.add.image(x, y, `rune_${attr}`).setScale(DOT * 1.5).setDepth(DEPTH.fx).setBlendMode('ADD');
     this.s.tweens.add({ targets: rune, y: y - 40, alpha: 0, angle: 180, duration: 600, onComplete: () => rune.destroy() });
     this.burst('rise', x, y, 8);
   }
@@ -443,7 +444,7 @@ export class Vfx {
     const s = this.s;
     const colors = [0xff6a55, 0x5aa2ff, 0x6fd36a, 0xf2c14e, 0xff6f91, 0xbff4ff];
     const color = Phaser.Utils.Array.GetRandom(colors);
-    const rocket = s.add.image(x, GAME_H + 10, 'p_spark').setScale(PX).setTint(color).setDepth(DEPTH.overlay + 2);
+    const rocket = s.add.image(x, GAME_H + 10, 'p_spark').setScale(DOT).setTint(color).setDepth(DEPTH.overlay + 2);
     s.tweens.add({
       targets: rocket, y, duration: Phaser.Math.Between(500, 800), ease: 'Cubic.easeOut',
       onUpdate: () => { if (Math.random() < 0.5) this.trail(rocket.x, rocket.y, color); },
@@ -453,7 +454,7 @@ export class Vfx {
         for (let i = 0; i < n; i++) {
           const a = (i / n) * Math.PI * 2;
           const sp = i % 2 ? Phaser.Math.Between(120, 210) : Phaser.Math.Between(60, 110);
-          const p = s.add.image(x, y, 'p_star').setScale(PX * 1.1).setTint(i % 3 ? color : 0xffffff).setDepth(DEPTH.overlay + 2).setBlendMode('ADD');
+          const p = s.add.image(x, y, 'p_star').setScale(DOT * 1.1).setTint(i % 3 ? color : 0xffffff).setDepth(DEPTH.overlay + 2).setBlendMode('ADD');
           s.tweens.add({
             targets: p, x: x + Math.cos(a) * sp, y: y + Math.sin(a) * sp + 40, alpha: 0, scale: 0,
             duration: Phaser.Math.Between(900, 1300), ease: 'Quad.easeOut', onComplete: () => p.destroy()
@@ -467,7 +468,7 @@ export class Vfx {
   }
 
   trail(x, y, color) {
-    const p = this.s.add.image(x, y, 'pixel').setScale(PX).setTint(color).setDepth(DEPTH.overlay + 2);
+    const p = this.s.add.image(x, y, 'pixel').setScale(DOT).setTint(color).setDepth(DEPTH.overlay + 2);
     this.fade(p, 300);
   }
 }

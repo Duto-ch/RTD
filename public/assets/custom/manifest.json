@@ -5,7 +5,7 @@
       "file": "mercs/sigrid.png",
       "frameWidth": 28,
       "frameHeight": 24,
-      "scale": 0.75,
+      "scale": 0.5,
       "faceTarget": true,
       "pivotX": 12,
       "animations": {
@@ -44,7 +44,7 @@
       "file": "mercs/bridget.png",
       "frameWidth": 28,
       "frameHeight": 24,
-      "scale": 0.75,
+      "scale": 0.5,
       "faceTarget": true,
       "pivotX": 13,
       "animations": {

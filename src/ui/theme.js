@@ -1,6 +1,6 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
-import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
+import { UI_PX as PX, DOT, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
 
 export const UI_FONT = COZY ? COZY_FONT : FONT; // 포근한 카드형: 썬플라워 · 픽셀 UI: Galmuri11
 
@@ -259,7 +259,7 @@ export function drawIcon(g, type, x, y, s, color) {
   const map = ICONS[type];
   if (!map) return;
   // 아이콘 1칸 = UI 픽셀 배수. 7칸 × 3px = 21px 보다 작게 써야 하는 아이콘(시계 등)은 2px 칸으로
-  const b = s >= 18 ? Math.max(1, Math.round(s / 7 / PX)) * PX : 2;
+  const b = DOT; // 도트 2px 통일 (2026-11-17): 아이콘 1칸 = 2px (7칸 = 14px)
   const ox = Math.round(x - (7 * b) / 2);
   const oy = Math.round(y - (7 * b) / 2);
   map.forEach((row, j) =>

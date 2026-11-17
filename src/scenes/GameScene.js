@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, PX, UI_PX, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
+import { GAME_W, GAME_H, WIDE, PX, UI_PX, DOT, GRID, CELL, FIELD_X, FIELD_Y, FONT, DEPTH, BALANCE, TOWER_CELL } from '../config.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
@@ -622,7 +622,7 @@ export class GameScene extends Phaser.Scene {
   dropRelic(x, y) {
     const relic = Phaser.Utils.Array.GetRandom(RELICS);
     const active = this.addRelic(relic.id);
-    const icon = this.add.image(x, y, `relic_${relic.id}`).setScale(PX).setDepth(DEPTH.fx);
+    const icon = this.add.image(x, y, `relic_${relic.id}`).setScale(DOT).setDepth(DEPTH.fx);
     this.tweens.add({
       targets: icon,
       x: 108,
@@ -703,7 +703,7 @@ export class GameScene extends Phaser.Scene {
       const row = this.add.container(GAME_W / 2, y);
       const bg = panelImage(this, 0, 0, 'outline', pw - 40, 80);
       const circle = panelImage(this, -pw / 2 + 64, 0, 'soft', 56, 56);
-      const icon = this.add.image(-pw / 2 + 64, 0, `relic_${r.id}`).setScale(PX);
+      const icon = this.add.image(-pw / 2 + 64, 0, `relic_${r.id}`).setScale(DOT);
       const name = uiText(this, -pw / 2 + 104, -14, r.name, 17, CSS.ink, '700').setOrigin(0, 0.5);
       const desc = uiText(this, -pw / 2 + 104, 12, r.desc, 13, CSS.sub, '600').setOrigin(0, 0.5);
       const pick = uiText(this, pw / 2 - 40, 0, '선택', 14, CSS.primary, '700').setOrigin(1, 0.5);
@@ -964,7 +964,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < n; i++) {
       const a = (Math.PI * 2 * i) / n + Math.random() * 0.5;
       const d = (m.isBoss ? 60 : 24) + Math.random() * 12;
-      const p = this.add.image(m.x, m.y, 'pixel').setScale(PX).setTint(color).setDepth(DEPTH.fx);
+      const p = this.add.image(m.x, m.y, 'pixel').setScale(DOT).setTint(color).setDepth(DEPTH.fx);
       this.tweens.add({
         targets: p,
         x: m.x + Math.cos(a) * d,
