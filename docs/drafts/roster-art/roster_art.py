@@ -404,6 +404,22 @@ if __name__ == '__main__':
         sh.save(os.path.join(HERE, 'sheets', f"{c['id']}.png"))
         out.append({**c, 'weapon': r['weapon'], 'variant': r['variant'], 'shield': r['shield'], 'idle': {'n': len(r['idle']), 'ms': [m for _, m in r['idle']]},
                     'attack': {'n': len(r['attack']), 'ms': [m for _, m in r['attack']]}, 'src': uri(sh)})
+    # ── 시안 8종 (2026-11-17 테스트로 만든 캐릭터, docs/drafts/char-13/anim.py) — 도감에 함께 싣는다 (게임 로스터에는 아직 없음) ──
+    A.geo_weapon = A.geo_weapon_orig          # 시안 그대로의 무기 (v2 모양·재질 없이)
+    A.GEO_LEN.clear(); A.GEO_LEN.update(BASE_LEN)
+    TEST = {'sword': ('t_kaira', '카이라', 'red', '불꽃 검사', 'sword', True), 'staff': ('t_verona', '베로나', 'red', '화염 마법사', 'staff', False),
+            'bow': ('t_elin', '엘린', 'green', '숲 궁수', 'bow', False), 'knight': ('t_adel', '아델', 'blue', '푸른 기사', 'spear', False),
+            'axe': ('t_bran', '브란', 'red', '뿔 투구 도끼 전사', 'axe', False), 'leaf': ('t_thorn', '토른', 'green', '숲의 드루이드', 'staff_leaf', False),
+            'ice': ('t_serena', '세레나', 'blue', '얼음 사제', 'staff_ice', False), 'dagger': ('t_nix', '닉스', 'blue', '두건 도적', 'dagger', False)}
+    for a in A.build_all():
+        cid, name, attr, title, w, shield = TEST[a['key']]
+        frames = a['idle'] + a['attack']
+        sh = sheet(frames)
+        sh.save(os.path.join(HERE, 'sheets', f"{cid}.png"))
+        out.append({'id': cid, 'name': name, 'attr': attr, 'grade': 0, 'style': '', 'title': title, 'look': 'test draft', 'weapon': w, 'variant': '',
+                    'shield': shield, 'idle': {'n': len(a['idle']), 'ms': [m for _, m in a['idle']]},
+                    'attack': {'n': len(a['attack']), 'ms': [m for _, m in a['attack']]}, 'src': uri(sh)})
+    A.geo_weapon = W2.geo
     json.dump({'W': A.W, 'H': A.H, 'OX': A.OX, 'OY': A.OY, 'chars': out}, open(os.path.join(HERE, 'roster-art.json'), 'w'))
     # 한눈에 보기: 대기 첫 프레임 96명 (속성별 줄)
     z = 4
