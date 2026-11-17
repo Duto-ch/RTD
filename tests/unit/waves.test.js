@@ -4,7 +4,7 @@ import { biomeForWave, BIOMES } from '../../src/data/biomes.js';
 import { monsterDesign } from '../../src/data/monsters.js';
 import { BALANCE } from '../../src/config.js';
 
-// 사용자가 확정한 웨이브 규칙 (CLAUDE.md "확정된 결정")
+// 사용자가 확정한 웨이브 규칙 (CLAUDE.md "확정 규칙 — 전투")
 describe('웨이브 규칙', () => {
   it('1웨이브 50기 → 70웨이브 200기 → 이후 200기 고정', () => {
     // 물량 ×5 (2026-11-17): 기준 수(50→200)에 BALANCE.horde.mult 를 곱한다
