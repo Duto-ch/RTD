@@ -234,7 +234,7 @@ def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, e
         c.alpha_composite(wl[0], (hx - wl[1][0], hy - wl[1][1]))
     put('under')
     if ch and ch.get('shield'):  # 왼손(뒤집힌 상태 기준) 방패 — 최종 그림에서는 캐릭터 오른쪽
-        c.alpha_composite(SHIELD.transpose(Image.FLIP_LEFT_RIGHT) if mirror else SHIELD, (OX + 1 + bdx, OY + 17 + sdy))
+        c.alpha_composite(SHIELD.transpose(Image.FLIP_LEFT_RIGHT) if mirror else SHIELD, (OX + 4 + bdx, OY + 17 + sdy))  # 몸통과 겹치게
     put('top')
     if extra_after:
         extra_after(c, hx, hy)
@@ -255,7 +255,7 @@ def hands_for(ch, weapon, deg, behind=False, free=(0, 0), raise_free=0, bdx=0, s
         if weapon == 'spear':
             out.append(along(weapon, deg, hx, hy, ch.get('spear_off', 4)) + ('top',))
         elif ch.get('shield'):
-            out.append((OX + 8 + bdx, OY + 20 + sdy, 'under'))
+            out.append((OX + 7 + bdx, OY + 21 + sdy, 'under'))  # 방패 가운데 뒤 — 보이지 않음
         elif weapon != 'bow':
             out.append((OX + ch.get('free_x', 5) + bdx + free[0], OY + 20 + free[1] - raise_free, 'top'))
         return out
@@ -278,7 +278,7 @@ def idle(ch, weapon, hand, deg=0, hat_rows=0, blink_at=6, extra=None):
         ex = (lambda c, hx, hy, i=i: extra(c, hx, hy, i)) if extra else None
         hf = hands_for(ch, weapon, deg, free=(0, 1 - IDLE_WPN[i]), sdy=IDLE_WPN[i])
         if weapon == 'bow':
-            hf = lambda hx, hy, i=i: [(hx, hy, 'top'), (OX + 18, OY + 20 + (1 - IDLE_WPN[i]), 'top')]
+            hf = lambda hx, hy, i=i: [(hx, hy, 'top'), (OX + ELIN_FREE_X, OY + 20 + (1 - IDLE_WPN[i]), 'top')]
         out.append((compose(b, weapon, deg, hd, extra_after=ex, ch=ch, sdy=IDLE_WPN[i], hands=hf), IDLE_MS[i]))
     return out
 
@@ -327,7 +327,7 @@ def thrust(ch, weapon='spear', hand=(19, 20)):
             if fx >= 1:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0], OY + hd[1]))
                 spark(c, tx + 1, ty, 3 if fx == 3 else 1)
-        out.append((compose(pose(b, -hdx if ch.get('mirror') else hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch, hands=hands_for({**ch, 'spear_off': -5}, weapon, deg)), ms))
+        out.append((compose(pose(b, -hdx if ch.get('mirror') else hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch, hands=hands_for({**ch, 'spear_off': 4 if deg == IDLE_TILT['spear'] else -5}, weapon, deg)), ms))
     return out
 
 
@@ -390,14 +390,14 @@ def shoot(ch, hand=(1, 18)):
                 for k, yy in enumerate((y - 1, y + 1)):
                     g.line([(axp + 11, yy), (axp + 16 + ax * 3, yy)], fill=SMEAR)
                 c.alpha_composite(arrow, (axp, y - 2))
-        out.append((compose(pose(b, hdx, hdy), 'bow', 0, hand, bdx, extra_after=after, ch=ch, hands=lambda hx, hy, pull=pull, ax=ax: [(hx, hy, 'top'), ((hx + 3 + pull, hy, 'top') if ax == -1 else (hx + 8 - min(ax, 1) * 2, hy - 2 + min(ax, 1), 'top'))]), ms))
+        out.append((compose(pose(b, hdx, hdy), 'bow', 0, hand, bdx, extra_after=after, ch=ch, hands=lambda hx, hy, pull=pull, ax=ax: [(hx, hy, 'top'), ((hx + 3 + pull, hy, 'top') if ax == -1 else ((OX + ELIN_FREE_X + bdx, OY + 21, 'top') if ax == -2 else (hx + 8 - min(ax, 1) * 2, hy - 2 + min(ax, 1), 'top')))]), ms))
     return out
 
 
 ARMLESS = False
 
 
-def char(cid, strip, keep_top=0, mirror=True, shield=False, custom=None, free_x=5):
+def char(cid, strip, keep_top=0, mirror=True, shield=False, custom=None, free_x=6):
     """custom: 사용자가 고친 몸 그림 {'file', 'split'(머리/몸 나누는 줄), 'eyes'[(x, 눈 윗줄 y)…]} — 팔 없는 버전에만 쓴다"""
     ch = next(c for c in D.CHARS if c['id'] == cid)
     if custom and ARMLESS:
@@ -411,6 +411,7 @@ def char(cid, strip, keep_top=0, mirror=True, shield=False, custom=None, free_x=
 
 # 무기 쥐는 손 위치 (몸 기준 좌표, 아델·베로나는 뒤집혀 그려짐) — 몸통 쪽으로 붙여 무기가 몸을 조금 가리게
 HAND = {'staff': (16, 22), 'bow': (5, 19), 'spear': (16, 20)}
+ELIN_FREE_X = 15  # 엘린 빈손 (몸 기준 x) — 손이 몸통과 조금 겹쳐도 된다 (사용자 결정)
 IDLE_TILT = {'bow': -30, 'spear': 45, 'staff': 25}  # 대기 때 대각선으로 기울여 잡기 (시계 방향 +, 아델은 뒤집혀 그려져 최종 그림에서 바깥쪽으로)
 
 
@@ -421,7 +422,7 @@ def rot_pt(dx, dy, deg, x, y):
 
 def build_all():
     kaira = char('red_sword', (17, 24), shield=True)
-    verona = char('red_mage', (17, 24), 13, custom={'file': 'edit/verona_body_v2.png', 'split': 19, 'eyes': [(9, 15), (13, 15)]}, free_x=4)
+    verona = char('red_mage', (17, 24), 13, custom={'file': 'edit/verona_body_v2.png', 'split': 19, 'eyes': [(9, 15), (13, 15)]}, free_x=6)
     elin = char('green_archer', (0, 5), mirror=False)
     adel = char('blue_knight', (0, 5))
     return [
