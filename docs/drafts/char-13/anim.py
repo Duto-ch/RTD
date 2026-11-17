@@ -24,25 +24,31 @@ def rgba(h):
 
 
 def blink(img, pal):
+    """눈 감기: 눈 윗줄은 피부색, 아랫줄은 감은 눈 선. 사용자 그림은 img.info['eyes'] 의 눈 위치를 쓴다"""
     im = img.copy()
-    for x in (8, 9, 13, 14):
-        im.putpixel((x, 15), rgba(pal.get('S', '#ffe2c8')))
-        im.putpixel((x, 16), rgba('#2b1d2f'))
+    im.info = dict(img.info)
+    eyes = img.info.get('eyes') or [(x, 15) for x in (8, 9, 13, 14)]
+    for x, y in eyes:
+        im.putpixel((x, y), rgba(pal.get('S', '#ffe2c8')))
+        im.putpixel((x, y + 1), rgba('#2b1d2f'))
     return im
 
 
 def pose(img, head_dx=0, head_dy=0, hat_dx=0, hat_rows=0):
-    """머리(0~17줄)를 몸에 대해 옮긴다. hat_rows: 위에서 몇 줄을 모자 끝으로 보고 더 흔들지"""
+    """머리(0~split-1줄)를 몸에 대해 옮긴다 (split 기본 18, 사용자 그림은 img.info['split']).
+    hat_rows: 위에서 몇 줄을 모자 끝으로 보고 더 흔들지"""
+    sp = img.info.get('split', 18)
     out = Image.new('RGBA', img.size, (0, 0, 0, 0))
-    bottom = img.crop((0, 18, 24, 24))
-    top = img.crop((0, 0, 24, 18))
-    out.alpha_composite(bottom, (0, 18))
+    out.info = dict(img.info)
+    bottom = img.crop((0, sp, 24, 24))
+    top = img.crop((0, 0, 24, sp))
+    out.alpha_composite(bottom, (0, sp))
     if head_dy < 0:  # 늘어남: 비는 목 줄을 몸 첫 줄로 채움
-        out.alpha_composite(img.crop((0, 18, 24, 19)), (0, 17))
+        out.alpha_composite(img.crop((0, sp, 24, sp + 1)), (0, sp - 1))
     if hat_rows and hat_dx:
         tip = top.crop((0, 0, 24, hat_rows))
-        rest = top.crop((0, hat_rows, 24, 18))
-        top = Image.new('RGBA', (24, 18), (0, 0, 0, 0))
+        rest = top.crop((0, hat_rows, 24, sp))
+        top = Image.new('RGBA', (24, sp), (0, 0, 0, 0))
         top.alpha_composite(rest, (0, hat_rows))
         top.alpha_composite(tip, (hat_dx, 0))
     out.alpha_composite(top, (head_dx, head_dy))
@@ -251,7 +257,7 @@ def hands_for(ch, weapon, deg, behind=False, free=(0, 0), raise_free=0, bdx=0, s
         elif ch.get('shield'):
             out.append((OX + 8 + bdx, OY + 20 + sdy, 'under'))
         elif weapon != 'bow':
-            out.append((OX + 5 + bdx + free[0], OY + 20 + free[1] - raise_free, 'top'))
+            out.append((OX + ch.get('free_x', 5) + bdx + free[0], OY + 20 + free[1] - raise_free, 'top'))
         return out
     return f
 
@@ -391,10 +397,16 @@ def shoot(ch, hand=(1, 18)):
 ARMLESS = False
 
 
-def char(cid, strip, keep_top=0, mirror=True, shield=False):
+def char(cid, strip, keep_top=0, mirror=True, shield=False, custom=None, free_x=5):
+    """custom: 사용자가 고친 몸 그림 {'file', 'split'(머리/몸 나누는 줄), 'eyes'[(x, 눈 윗줄 y)…]} — 팔 없는 버전에만 쓴다"""
     ch = next(c for c in D.CHARS if c['id'] == cid)
-    img = Wp.body(cid, strip, keep_top)
-    return {'img': noarms(img) if ARMLESS else img, 'pal': {**D.COMMON, **ch['pal']}, 'mirror': mirror, 'shield': shield, 'armless': ARMLESS}
+    if custom and ARMLESS:
+        img = Image.open(os.path.join(OUT, custom['file'])).convert('RGBA')
+        img.info = {'split': custom['split'], 'eyes': custom['eyes']}
+    else:
+        img = Wp.body(cid, strip, keep_top)
+        img = noarms(img) if ARMLESS else img
+    return {'img': img, 'pal': {**D.COMMON, **ch['pal']}, 'mirror': mirror, 'shield': shield, 'armless': ARMLESS, 'free_x': free_x}
 
 
 # 무기 쥐는 손 위치 (몸 기준 좌표, 아델·베로나는 뒤집혀 그려짐) — 몸통 쪽으로 붙여 무기가 몸을 조금 가리게
@@ -409,7 +421,7 @@ def rot_pt(dx, dy, deg, x, y):
 
 def build_all():
     kaira = char('red_sword', (17, 24), shield=True)
-    verona = char('red_mage', (17, 24), 13)
+    verona = char('red_mage', (17, 24), 13, custom={'file': 'edit/verona_body_v2.png', 'split': 19, 'eyes': [(9, 15), (13, 15)]}, free_x=2)
     elin = char('green_archer', (0, 5), mirror=False)
     adel = char('blue_knight', (0, 5))
     return [
