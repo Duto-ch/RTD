@@ -34,7 +34,7 @@
 ## 구조
 - `src/config.js` — 레이아웃 상수, **BALANCE** (골드·비용·시간·상성 배율)
 - `src/data/` — `waves.js`(웨이브 규칙·출현 순서), `bossAbilities.js`(보스 디버프 5종), `heroes.js`(용병 15·영웅 9·이름), `skills.js`(스킬 템플릿·설명 자동 생성), `relics.js`, `elements.js`
-- `src/data/roster.js` — **캐릭터 96명**(2026-11-17, 병과 폐지): `ROSTER`(속성·등급·공격 스타일 `STYLES`·고유 특성 `trait`·확정 스킬 4개·그림 프롬프트 `look`), `GRADES`(포인트·배율·고용 확률), `DEFAULT_DECK`·`deckPoints`·`deckValid`(40포인트)·`rollHire`(등급 굴리기). 고친 뒤 `node tools/gen-roster-doc.mjs` → `docs/ROSTER.md`·`docs/ROSTER_PROMPTS.md`. 예전 `data/heroes.js`·`skillOptions` 는 그림·문서용으로만 남음
+- `src/data/roster.js` — **캐릭터 104명**(2026-11-17, 병과 폐지 — 기본 96 + 시안 출신 8명 `ORIGINALS`·`original: true`): `ROSTER`(속성·등급·공격 스타일 `STYLES`·고유 특성 `trait`·확정 스킬 4개·그림 프롬프트 `look`), `GRADES`(포인트·배율·고용 확률), `DEFAULT_DECK`·`deckPoints`·`deckValid`(40포인트)·`rollHire`(등급 굴리기). 고친 뒤 `node tools/gen-roster-doc.mjs` → `docs/ROSTER.md`·`docs/ROSTER_PROMPTS.md`. 예전 `data/heroes.js`·`skillOptions` 는 그림·문서용으로만 남음
 - `src/objects/` — `Monster.js`(감속/기절/취약/지속피해), `Mercenary.js`(캐릭터 1명 = 필드 유닛: `char`·`grade`·`level`·확정 스킬 `defs`, `canMergeWith`(같은 속성·등급·레벨), 특성·오라 반영 `getStats`, 그림은 `charTexture()` — manifest `char_<id>` 가 있으면 그것, 없으면 임시 그림. 테스트용 `setChar()`)
 - 스킬 실행 엔진: `GameScene.castSkill` — 스킬은 데이터(area/fx/buff/gold)로만 정의, 새 효과 타입은 여기에 추가
 - `src/scenes/LobbyScene.js` — 영지(로비): 건물 이름표 = 메뉴(성탑 Upgrade · 병영 Deck · 천막/대장간 준비 중 · 성문/출전 Game), 출전 덱 줄. `DeckScene.js` — 병영: 96명 카드 격자(속성·등급 필터, 휠·드래그 스크롤), 정보 창(특성·스킬·넣기/빼기), 40포인트 검사 후 `meta.setDeck`

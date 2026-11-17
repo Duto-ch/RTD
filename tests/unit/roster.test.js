@@ -2,13 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { ROSTER, GRADES, DECK_POINTS, DEFAULT_DECK, deckPoints, deckValid, rollHire, skillLevels } from '../../src/data/roster.js';
 
 // 2026-11-17 사용자 결정: 캐릭터 96명(속성 3 × 커먼 13·언커먼 9·레어 6·유니크 4), 병과 폐지, 덱 40포인트, 유니크 고용 1%
-describe('캐릭터 96명 · 등급 · 덱', () => {
-  it('속성마다 커먼 13 · 언커먼 9 · 레어 6 · 유니크 4 = 96명, id·이름 중복 없음, 스킬 4개씩', () => {
-    expect(ROSTER).toHaveLength(96);
+// + 시안 출신 8명(original) 을 게임에서도 쓰도록 추가 → 104명 (사용자 요청 2026-11-17)
+describe('캐릭터 104명(기본 96 + 시안 8) · 등급 · 덱', () => {
+  it('기본 96명은 속성마다 커먼 13 · 언커먼 9 · 레어 6 · 유니크 4, 시안 출신 8명 추가, id·이름 중복 없음, 스킬 4개씩', () => {
+    expect(ROSTER).toHaveLength(104);
+    const base = ROSTER.filter((c) => !c.original);
+    expect(base).toHaveLength(96);
     for (const a of ['red', 'blue', 'green'])
-      expect([1, 2, 3, 4].map((g) => ROSTER.filter((c) => c.attr === a && c.grade === g).length)).toEqual([13, 9, 6, 4]);
-    expect(new Set(ROSTER.map((c) => c.id)).size).toBe(96);
-    expect(new Set(ROSTER.map((c) => c.name)).size).toBe(96);
+      expect([1, 2, 3, 4].map((g) => base.filter((c) => c.attr === a && c.grade === g).length)).toEqual([13, 9, 6, 4]);
+    expect(ROSTER.filter((c) => c.original).map((c) => c.id)).toEqual(['kaira', 'verona', 'brock', 'elin', 'thorn', 'adel', 'serena', 'nix']);
+    expect(new Set(ROSTER.map((c) => c.id)).size).toBe(104);
+    expect(new Set(ROSTER.map((c) => c.name)).size).toBe(104);
     for (const c of ROSTER) expect(c.skills).toHaveLength(4);
   });
 
@@ -18,7 +22,7 @@ describe('캐릭터 96명 · 등급 · 덱', () => {
     expect([1, 2, 3, 4].map((g) => GRADES[g].hire)).toEqual([60, 28, 11, 1]);
     expect(deckValid(DEFAULT_DECK)).toBe(true);
     expect(deckPoints(DEFAULT_DECK)).toBeLessThanOrEqual(40);
-    expect(deckValid([...ROSTER.filter((c) => c.grade === 4).map((c) => c.id)])).toBe(false); // 12명 × 4 = 48 > 40
+    expect(deckValid([...ROSTER.filter((c) => c.grade === 4).map((c) => c.id)])).toBe(false); // 13명 × 4 = 52 > 40
     expect(deckValid([])).toBe(false);
   });
 

@@ -208,6 +208,24 @@ Pixel art game sprite of a chibi character with exactly 2-head-tall proportions:
 Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: valkyrie warrior maiden with winged helm, spear and flaming wings. Main colors: crimson red and warm orange. legendary ornate outfit with golden trim and a magical glow.
 ```
 
+### kaira · 카이라 (언커먼)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: brave swordswoman with a red headband, flaming sword and round red shield. Main colors: crimson red and warm orange. slightly detailed outfit.
+```
+
+### verona · 베로나 (레어)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: blonde fire witch girl with a bent red pointed hat and a flame orb staff. Main colors: crimson red and warm orange. ornate outfit with a glowing accent.
+```
+
+### brock · 브록 (커먼)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: stocky horned-helmet axe warrior with a bushy orange beard. Main colors: crimson red and warm orange. simple outfit.
+```
+
 ## 블루
 
 ### finn · 핀 (커먼)
@@ -402,6 +420,24 @@ Pixel art game sprite of a chibi character with exactly 2-head-tall proportions:
 Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: ethereal lady of the lake with water gown and floating sword. Main colors: ice blue and navy. legendary ornate outfit with golden trim and a magical glow.
 ```
 
+### adel · 아델 (레어)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: young knight in a silver helmet with a blue crest and a long spear. Main colors: ice blue and navy. ornate outfit with a glowing accent.
+```
+
+### serena · 세레나 (유니크)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: serene ice priestess with long pale-blue hair, an ice crystal crown and crystal staff. Main colors: ice blue and navy. legendary ornate outfit with golden trim and a magical glow.
+```
+
+### nix · 닉스 (언커먼)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: quiet hooded rogue with a pointed navy hood, a face scarf and a dagger. Main colors: ice blue and navy. slightly detailed outfit.
+```
+
 ## 그린
 
 ### robin · 로빈 (커먼)
@@ -594,4 +630,16 @@ Pixel art game sprite of a chibi character with exactly 2-head-tall proportions:
 
 ```
 Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: fairy king with butterfly wings, vine crown and glowing scepter. Main colors: leaf green and earthy brown. legendary ornate outfit with golden trim and a magical glow.
+```
+
+### elin · 엘린 (언커먼)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: cheerful ponytail forest archer girl with a leaf hairpin and a wooden bow. Main colors: leaf green and earthy brown. slightly detailed outfit.
+```
+
+### thorn · 토른 (레어)
+
+```
+Pixel art game sprite of a chibi character with exactly 2-head-tall proportions: the head is exactly half of the total height (head top to chin = chin to feet). Every character in this series uses the SAME head size and the same frame: the head is a large rounded shape about 50% of the sprite height, eyes at the middle of the head, short stubby body and legs. Hats, crowns and hair may sit on top of the head but stay small; weapons are held at the side and do not stretch the height. Full body standing pose, 3/4 front view facing right, JRPG fantasy style, big visible square pixels scaled up with nearest neighbor, very low resolution with few details, 1-pixel dark outline, flat colors, max 10 colors, no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, no text. Character: antlered forest druid with green hair and a living leaf orb staff. Main colors: leaf green and earthy brown. ornate outfit with a glowing accent.
 ```

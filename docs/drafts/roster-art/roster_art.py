@@ -155,12 +155,10 @@ def headgear(G, c, pal, female):
     gold = 'G'
     hat_rows = 0
     if has(L, 'wizard hat', 'tall blue hat', 'oversized red hat', 'witch') and not has(L, 'sea witch', 'fire witch'):
-        pal['P'], pal['p'] = pal['C'], pal['c']
-        for y, line in {1: "..............OO........", 2: ".............OPO........", 3: "............OPPO........", 4: "...........OPPPO........",
-                        5: "..........OPpPPO........", 6: "..........OPpPPPO.......", 7: ".........OPPpPPPO.......", 8: ".........OPPPPPPO.......",
-                        9: "........OGGGGGGGGO......", 10: "........OPPPPPPPPO......", 11: "......OPPPPPPPPPPO......",
-                        12: "...OOOpppppppppppOOO...."}.items():
-            G.row(y, 0, line)
+        # 마녀 고깔모자 = 베로나(사용자 그림 v2)의 모자 모양 그대로, 색만 옷 색으로 (2026-11-17 사용자 결정)
+        pal['P'], pal['p'], pal['J'] = pal['C'], pal['c'], '#c98f2a'
+        for (x, y), k in VERONA_HAT.items():
+            G.put(x, y, k)
         return 9
     if has(L, 'hood', 'veil', 'habit', 'shawl', 'scarf', 'sand scarf'):
         pal['P'], pal['p'] = (pal['C'], pal['c']) if not has(L, 'white fur') else ('#f2f2f2', '#c4c8d0')
@@ -243,6 +241,28 @@ def headgear(G, c, pal, female):
     return hat_rows
 
 
+def _verona_hat():
+    """베로나 v2 그림(edit/verona_body_v2.png)의 2~13줄에서 모자만 뽑아 기호로 바꾼다 (머리카락은 H)"""
+    im = Image.open(os.path.join(HERE, '..', 'char-13', 'edit', 'verona_body_v2.png')).convert('RGBA')
+    key = {(43, 29, 47): 'O', (216, 52, 60): 'P', (156, 34, 48): 'p', (245, 197, 66): 'G', (224, 168, 58): 'J'}
+    out = {}
+    for y in range(2, 14):
+        for x in range(24):
+            r, g, b, a = im.getpixel((x, y))
+            if not a:
+                continue
+            k = key.get((r, g, b))
+            if k is None:
+                continue
+            if y == 13 and k == 'J':  # 13줄의 노란 갈색은 머리카락
+                k = 'H'
+            out[(x, y)] = k
+    return out
+
+
+VERONA_HAT = _verona_hat()
+
+
 def D_shade(hexc, k=0.7):
     hc = hexc.lstrip('#')
     return '#%02x%02x%02x' % tuple(int(int(hc[i:i + 2], 16) * k) for i in (0, 2, 4))
@@ -294,8 +314,8 @@ def body(c):
     pal['Q'] = {'red': '#ff4a5a', 'blue': '#4ab0ff', 'green': '#5ae07a'}[attr]
     over = G.over()
     pal.setdefault('P', pal['C']), pal.setdefault('p', pal['c'])
-    for k in ('K', 'k', 'R', 'Z', 'N', 'W', 'Y'):
-        pal.setdefault(k, {'K': '#f3e6c8', 'k': '#c9b48a', 'R': '#e0393e', 'Q': '#6ab0ff', 'Z': '#ffffff', 'N': '#5a6070', 'W': '#ffffff', 'Y': '#ffe066'}[k])
+    for k in ('K', 'k', 'R', 'Z', 'N', 'W', 'Y', 'J'):
+        pal.setdefault(k, {'K': '#f3e6c8', 'k': '#c9b48a', 'R': '#e0393e', 'Q': '#6ab0ff', 'Z': '#ffffff', 'N': '#5a6070', 'W': '#ffffff', 'Y': '#ffe066', 'J': '#c98f2a'}[k])
     pal.pop('K2', None)
     img = A.noarms(D.build({'id': i, 'pal': pal, 'over': over}))   # 팔 없음 (둥근 손이 따로)
     return img, {**D.COMMON, **pal}, hat_rows, female, style
@@ -397,6 +417,8 @@ if __name__ == '__main__':
     os.makedirs(os.path.join(HERE, 'bodies'), exist_ok=True)
     out = []
     for c in ROSTER:
+        if c.get('original'):
+            continue   # 시안 출신 8명은 아래에서 시안 그림 그대로
         r = animate(c)
         r['body'].save(os.path.join(HERE, 'bodies', f"{c['id']}.png"))
         frames = r['idle'] + r['attack']
@@ -407,16 +429,16 @@ if __name__ == '__main__':
     # ── 시안 8종 (2026-11-17 테스트로 만든 캐릭터, docs/drafts/char-13/anim.py) — 도감에 함께 싣는다 (게임 로스터에는 아직 없음) ──
     A.geo_weapon = A.geo_weapon_orig          # 시안 그대로의 무기 (v2 모양·재질 없이)
     A.GEO_LEN.clear(); A.GEO_LEN.update(BASE_LEN)
-    TEST = {'sword': ('t_kaira', '카이라', 'red', '불꽃 검사', 'sword', True), 'staff': ('t_verona', '베로나', 'red', '화염 마법사', 'staff', False),
-            'bow': ('t_elin', '엘린', 'green', '숲 궁수', 'bow', False), 'knight': ('t_adel', '아델', 'blue', '푸른 기사', 'spear', False),
-            'axe': ('t_bran', '브란', 'red', '뿔 투구 도끼 전사', 'axe', False), 'leaf': ('t_thorn', '토른', 'green', '숲의 드루이드', 'staff_leaf', False),
-            'ice': ('t_serena', '세레나', 'blue', '얼음 사제', 'staff_ice', False), 'dagger': ('t_nix', '닉스', 'blue', '두건 도적', 'dagger', False)}
+    TEST = {'sword': ('kaira', 'sword', True), 'staff': ('verona', 'staff', False), 'bow': ('elin', 'bow', False), 'knight': ('adel', 'spear', False),
+            'axe': ('brock', 'axe', False), 'leaf': ('thorn', 'staff_leaf', False), 'ice': ('serena', 'staff_ice', False), 'dagger': ('nix', 'dagger', False)}
+    BY_ID = {c['id']: c for c in ROSTER}
     for a in A.build_all():
-        cid, name, attr, title, w, shield = TEST[a['key']]
+        cid, w, shield = TEST[a['key']]
+        rc = BY_ID[cid]
         frames = a['idle'] + a['attack']
         sh = sheet(frames)
         sh.save(os.path.join(HERE, 'sheets', f"{cid}.png"))
-        out.append({'id': cid, 'name': name, 'attr': attr, 'grade': 0, 'style': '', 'title': title, 'look': 'test draft', 'weapon': w, 'variant': '',
+        out.append({**rc, 'weapon': w, 'variant': '',
                     'shield': shield, 'idle': {'n': len(a['idle']), 'ms': [m for _, m in a['idle']]},
                     'attack': {'n': len(a['attack']), 'ms': [m for _, m in a['attack']]}, 'src': uri(sh)})
     A.geo_weapon = W2.geo

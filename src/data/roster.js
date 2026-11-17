@@ -1,5 +1,5 @@
-// ── 캐릭터 96명 (2026-11-17 사용자 결정: 병과 폐지·속성만 유지·등급 4단계) ──────────
-// 속성 3 × (커먼 13 · 언커먼 9 · 레어 6 · 유니크 4) = 96명.
+// ── 캐릭터 104명 (2026-11-17 사용자 결정: 병과 폐지·속성만 유지·등급 4단계) ──────────
+// 기본: 속성 3 × (커먼 13 · 언커먼 9 · 레어 6 · 유니크 4) = 96명 + 시안 출신 8명(ORIGINALS, 맨 아래).
 // 캐릭터 = 기본 공격(스타일 + 고유 특성) + 레벨마다 하나씩 열리는 확정 스킬 4개.
 //   커먼·언커먼·레어: Lv2·3·4·5 에 하나씩 / 유니크: 고용으로만 나와 합성이 드물어 Lv1·2·3·4 (Lv1 = 대표 스킬)
 // 스킬 형식은 data/skills.js 와 같다 (area·fx·buff·gold). 새 효과(특성)는 아래 TRAITS 설명 참고.
@@ -386,7 +386,38 @@ const GREEN = [
     S('한여름 밤의 꿈', 18, { buff: { scope: 'all', rate: 0.3, dmg: 0.2, dur: 8 } }), S('요정 왕국', 26, { area: all, fx: { dmg: 9, dot: [1.5, 4] } })])
 ];
 
-export const ROSTER = [...RED, ...BLUE, ...GREEN];
+// ══════════════════════════════ 시안 출신 8명 (2026-11-17) ══════════════════════════════
+// 그림 규칙을 정하며 먼저 만든 8명(docs/drafts/char-13). 사용자 요청으로 게임에서도 쓰도록 설계 — 등급·특성·스킬은 Claude 가안.
+// 기본 96명 표(속성마다 13·9·6·4)와 따로 센다: original = true
+const O = (...a) => ({ ...C(...a), original: true });
+const ORIGINALS = [
+  O('red', 2, 'kaira', '카이라', 'brawl', '불꽃 검사', 'brave swordswoman with a red headband, flaming sword and round red shield', { splash: 16, dot: [0.4, 2] }, [
+    S('불꽃 베기', 6, { area: ring(55), fx: { dmg: 2.5, dot: [0.6, 3] } }), S('방패 밀치기', 8, { area: one, fx: { dmg: 2, push: 40, stun: 0.5 } }),
+    S('전투의 함성', 14, { buff: { scope: 'adjacent', dmg: 0.18, dur: 6 } }), S('화염 회전 베기', 16, { area: ring(95), fx: { dmg: 4, dot: [0.8, 4] } })]),
+  O('red', 3, 'verona', '베로나', 'blast', '화염 마법사', 'blonde fire witch girl with a bent red pointed hat and a flame orb staff', { splash: 24, dot: [0.5, 3] }, [
+    S('불덩이', 6, { area: ring(60), fx: { dmg: 3, dot: [0.6, 3] } }), S('화염 고리', 9, { area: ring(90), ...hit(3.2) }),
+    S('마력 집중', 14, { buff: { scope: 'self', dmg: 0.4, rate: 0.2, dur: 6 } }), S('메테오', 20, { area: all, fx: { dmg: 5, dot: [1, 4] } })]),
+  O('red', 1, 'brock', '브록', 'brawl', '뿔 투구 도끼 전사', 'stocky horned-helmet axe warrior with a bushy orange beard', { dmgMul: 1.2, splash: 12 }, [
+    S('도끼 내려찍기', 6, { area: ring(45), ...hit(3) }), S('수염 박치기', 8, { area: one, fx: { dmg: 2.5, stun: 0.6 } }),
+    S('전사의 분노', 14, { buff: { scope: 'self', dmg: 0.45, dur: 6 } }), S('대지 가르기', 16, { area: ring(90), fx: { dmg: 3.5, push: 30 } })]),
+  O('green', 2, 'elin', '엘린', 'bow', '숲 궁수', 'cheerful ponytail forest archer girl with a leaf hairpin and a wooden bow', { targets: 2, crit: 0.1 }, [
+    S('겨냥 사격', 6, { pick: 'strongest', area: one, ...hit(4) }), S('잎사귀 화살비', 9, { area: ring(70), ...hit(2.2) }),
+    S('바람 읽기', 12, { buff: { scope: 'self', rate: 0.5, crit: 0.2, dur: 5 } }), S('숲의 일제 사격', 15, { area: many(9), ...hit(2.6) })]),
+  O('green', 3, 'thorn', '토른', 'hex', '숲의 드루이드', 'antlered forest druid with green hair and a living leaf orb staff', { dot: [0.6, 4], slow: [0.2, 2] }, [
+    S('가시 덩굴', 6, { area: ring(65), fx: { slow: [0.4, 3], dot: [0.6, 3] } }), S('포자 구름', 9, { area: ring(85), fx: { dot: [1, 4] } }),
+    S('숲의 가호', 15, { buff: { scope: 'adjacent', dmg: 0.2, rate: 0.1, dur: 7 } }), S('대지의 분노', 20, { area: all, fx: { dmg: 3, slow: [0.5, 3], dot: [1, 4] } })]),
+  O('blue', 3, 'adel', '아델', 'brawl', '푸른 기사', 'young knight in a silver helmet with a blue crest and a long spear', { push: 18, stun: [0.08, 0.6], rangeMul: 1.25 }, [
+    S('창 찌르기', 6, { area: many(3), ...hit(3) }), S('돌진', 9, { area: one, fx: { dmg: 4, push: 60, stun: 0.6 } }),
+    S('기사의 맹세', 14, { buff: { scope: 'adjacent', dmg: 0.15, range: 0.15, dur: 7 } }), S('창의 벽', 18, { area: all, fx: { dmg: 2.5, push: 50 } })]),
+  O('blue', 4, 'serena', '세레나', 'aid', '얼음 사제', 'serene ice priestess with long pale-blue hair, an ice crystal crown and crystal staff', { aura: { dmg: 0.12, rate: 0.1 }, slow: [0.25, 2] }, [
+    S('얼음 성역', 16, { area: all, fx: { dmg: 3, slow: [0.5, 4] }, buff: { scope: 'all', dmg: 0.2, dur: 6 } }), S('서리 축복', 12, { buff: { scope: 'adjacent', rate: 0.3, dur: 6 } }),
+    S('빙결의 기도', 14, { area: ring(90), fx: { dmg: 4, stun: 1 } }), S('영원한 겨울', 22, { area: all, fx: { dmg: 6, slow: [0.6, 5] }, buff: { scope: 'all', rate: 0.25, dur: 8 } })]),
+  O('blue', 2, 'nix', '닉스', 'rapid', '두건 도적', 'quiet hooded rogue with a pointed navy hood, a face scarf and a dagger', { crit: 0.25, execute: 0.08 }, [
+    S('그림자 찌르기', 5, { area: one, ...hit(3.5) }), S('연막', 9, { area: ring(60), fx: { slow: [0.5, 2], vuln: [0.2, 3] } }),
+    S('암살자의 집중', 12, { buff: { scope: 'self', rate: 0.6, crit: 0.25, dur: 5 } }), S('처형', 16, { pick: 'strongest', area: one, ...hit(9) })])
+];
+
+export const ROSTER = [...RED, ...BLUE, ...GREEN, ...ORIGINALS];
 export const ROSTER_BY_ID = Object.fromEntries(ROSTER.map((c) => [c.id, c]));
 
 /** 이 캐릭터의 스킬이 열리는 레벨 (유니크는 1레벨부터) */

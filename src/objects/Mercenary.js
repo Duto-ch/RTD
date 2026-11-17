@@ -7,7 +7,7 @@ import { playBase, setArt, artScale } from '../systems/customArt.js';
 
 export const MAX_LEVEL = 5; // 최고 레벨 (2026-11-17: 영웅 승급 폐지 — 유니크는 고용으로만)
 
-/** 필드 위 유닛 = 캐릭터 96명(data/roster.js) 중 하나. 등급·속성·레벨·고유 특성·확정 스킬 */
+/** 필드 위 유닛 = 캐릭터 104명(data/roster.js) 중 하나. 등급·속성·레벨·고유 특성·확정 스킬 */
 const NO_BONUS = {};
 
 // 픽셀 별 모양 (5x5)
@@ -19,7 +19,8 @@ const OLD_SPRITE = {
   sigrid: 'merc_archer_blue', olaf: 'merc_mage_blue', edmund: 'merc_sniper_blue', ingrid: 'merc_shaman_blue', finn: 'merc_rogue_blue',
   robin: 'merc_archer_green', freya: 'merc_mage_green', torvald: 'merc_sniper_green', astrid: 'merc_shaman_green', leif: 'merc_rogue_green',
   ragnar: 'hero_ragnar', isolde: 'hero_isolde', bjorn: 'hero_bjorn', arthur: 'hero_arthur', solveig: 'hero_solveig', william: 'hero_william',
-  halvard: 'hero_halvard', freydis: 'hero_freydis', richard: 'hero_richard', brynhild: 'hero_ragnar', vivian: 'hero_solveig', oberon: 'hero_freydis'
+  halvard: 'hero_halvard', freydis: 'hero_freydis', richard: 'hero_richard', brynhild: 'hero_ragnar', vivian: 'hero_solveig', oberon: 'hero_freydis',
+  verona: 'merc_mage_red', elin: 'merc_archer_green', thorn: 'merc_shaman_green', serena: 'hero_solveig', nix: 'merc_rogue_blue'
 };
 const STYLE_SPRITE = { bow: 'archer', rapid: 'rogue', heavy: 'sniper', blast: 'mage', hex: 'shaman', aid: 'shaman', brawl: 'rogue' };
 /** 연출·효과음용 종류 (예전 병과 이름을 그대로 쓴다) */
