@@ -1,0 +1,39 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css">
+<style>
+  body { width: 1280px; height: 720px; }
+  .top { position: absolute; left: 20px; right: 20px; top: 14px; display: flex; align-items: center; gap: 10px; }
+  .me { display: flex; align-items: center; gap: 10px; padding: 5px 18px 5px 5px; }
+  .me .crest { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(#ffe88f, #f2b530); border: 2px solid #b47a12; display: grid; place-items: center; font-size: 24px; color: #6b4505; }
+  .me b { font-size: 18px; display: block; line-height: 1.2; } .me small { font-size: 12px; color: var(--mint); }
+  .sp { flex: 1; }
+  .round { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; }
+  .title { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); font-size: 34px; z-index: 2; }
+  .deck { position: absolute; left: 20px; bottom: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .deck h4 { font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--mint2); } .deck h4 span { margin-left: auto; font-size: 12px; color: var(--mint); font-weight: 400; }
+  .deck .row { display: flex; gap: 7px; } .deck .slot { width: 46px; height: 46px; border-radius: 12px; } .deck .slot img { width: 36px; height: 36px; }
+  .go { position: absolute; right: 22px; bottom: 20px; width: 300px; height: 84px; font-size: 34px; border-radius: 26px; flex-direction: column; gap: 0; line-height: 1.1; }
+  .go small { font-size: 14px; font-weight: 400; opacity: .8; }
+  .side { position: absolute; right: 22px; bottom: 122px; display: flex; gap: 10px; }
+</style></head><body>
+<div class="scene" id="s"></div>
+<div class="top">
+  <div class="me dk pill"><div class="crest"><i class="ic" data-i="shield"></i></div><div><b>두토 용병단</b><small>최고 기록 WAVE 32</small></div></div>
+  <span class="sp"></span>
+  <div class="cur dk pill"><span class="coin c-fame"><i class="ic" data-i="crown"></i></span>1,240<span class="plus">+</span></div>
+  <div class="cur dk pill"><span class="coin c-tick"><i class="ic" data-i="ticket"></i></span>12<span class="plus">+</span></div>
+  <div class="cur dk pill"><span class="coin c-gem"><i class="ic" data-i="gem"></i></span>86<span class="plus">+</span></div>
+  <div class="round dk"><i class="ic" data-i="gear"></i></div>
+</div>
+<div class="title"><span class="gt" data-t="용병단 영지">용병단 영지</span><span class="spark" style="left:-26px;top:4px">✦</span><span class="spark" style="right:-24px;top:22px;font-size:13px">✦</span></div>
+<div id="tags"></div>
+<div class="deck dk"><h4><i class="ic" data-i="people"></i>출전 덱<span>병영에서 편성</span></h4>
+  <div class="row" id="deck"></div></div>
+<div class="side"><div class="round lt"><i class="ic" data-i="book"></i></div><div class="round lt"><i class="ic" data-i="mail"></i></div></div>
+<button class="btn gold go"><span><i class="ic" data-i="sword" style="font-size:30px;vertical-align:-4px"></i> 출 전</span><small>성문 밖 전장으로 · WAVE 1부터</small></button>
+<script src="scene.js"></script><script src="layouts.js"></script><script src="icons.js"></script><script src="common.js"></script>
+<script>
+  document.getElementById('s').innerHTML = LobbyScene.scene(LAYOUT_WIDE);
+  makeTags(LAYOUT_WIDE, document.getElementById('tags'));
+  makeDeck(document.getElementById('deck'));
+  icons();
+</script></body></html>

@@ -1,0 +1,5 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css">
+<style>body { width: 1280px; height: 720px; } .field { position: absolute; left: 392px; top: 109px; width: 496px; height: 499px; image-rendering: pixelated; border-radius: 6px; box-shadow: 0 8px 0 rgba(3,26,30,.35); }</style></head><body>
+<div class="scene" id="s"></div><img class="field" src="field.png">
+<script src="scene.js"></script><script src="layouts.js"></script><script src="icons.js"></script><script src="hud.js"></script>
+<script>document.getElementById('s').innerHTML = LobbyScene.scene(LAYOUT_BATTLE); battleHud(document.body); icons();</script></body></html>

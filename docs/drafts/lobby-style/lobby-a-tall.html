@@ -1,0 +1,23 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css">
+<style>
+  body { width: 544px; height: 960px; }
+  .top { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: center; gap: 8px; }
+  .me { display: flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; } .me .crest { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(#ffe88f, #f2b530); border: 2px solid #b47a12; display: grid; place-items: center; font-size: 20px; color: #6b4505; }
+  .me b { font-size: 15px; display: block; line-height: 1.2; } .me small { font-size: 11px; color: var(--mint); }
+  .sp { flex: 1; } .round { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; }
+  .curs { position: absolute; left: 12px; right: 12px; top: 62px; display: flex; gap: 8px; } .curs .cur { flex: 1; height: 36px; font-size: 15px; padding-right: 8px; } .curs .cur .plus { margin-left: auto; } .cur .coin { width: 26px; height: 26px; font-size: 15px; }
+  .title { position: absolute; left: 50%; top: 104px; transform: translateX(-50%); font-size: 26px; white-space: nowrap; z-index: 2; }
+  .tag { padding: 4px 11px 4px 4px; } .tag .ico { width: 28px; height: 28px; font-size: 16px; } .tag b { font-size: 14px; } .tag small { font-size: 10.5px; }
+  .deck { position: absolute; left: 12px; right: 12px; bottom: 104px; padding: 9px 12px; } .deck h4 { font-size: 13px; color: var(--mint2); display: flex; margin-bottom: 6px; } .deck h4 span { margin-left: auto; color: var(--mint); font-weight: 400; }
+  .deck .row { display: flex; justify-content: space-between; } .deck .slot { width: 54px; height: 54px; } .deck .slot img { width: 42px; height: 42px; }
+  .go { position: absolute; left: 12px; right: 12px; bottom: 16px; height: 76px; font-size: 32px; border-radius: 24px; flex-direction: column; gap: 0; line-height: 1.1; } .go small { font-size: 13px; font-weight: 400; opacity: .8; }
+</style></head><body>
+<div class="scene" id="s"></div>
+<div class="top"><div class="me dk pill"><div class="crest"><i class="ic" data-i="shield"></i></div><div><b>두토 용병단</b><small>최고 기록 WAVE 32</small></div></div><span class="sp"></span><div class="round lt"><i class="ic" data-i="mail"></i></div><div class="round dk"><i class="ic" data-i="gear"></i></div></div>
+<div class="curs"><div class="cur dk pill"><span class="coin c-fame"><i class="ic" data-i="crown"></i></span>1,240<span class="plus">+</span></div><div class="cur dk pill"><span class="coin c-tick"><i class="ic" data-i="ticket"></i></span>12<span class="plus">+</span></div><div class="cur dk pill"><span class="coin c-gem"><i class="ic" data-i="gem"></i></span>86<span class="plus">+</span></div></div>
+<div class="title"><span class="gt" data-t="용병단 영지">용병단 영지</span></div>
+<div id="tags"></div>
+<div class="deck dk"><h4>출전 덱<span>병영에서 편성</span></h4><div class="row" id="deck"></div></div>
+<button class="btn gold go"><span><i class="ic" data-i="sword" style="font-size:28px;vertical-align:-4px"></i> 출 전</span><small>성문 밖 전장으로 · WAVE 1부터</small></button>
+<script src="scene.js"></script><script src="layouts.js"></script><script src="icons.js"></script><script src="common.js"></script>
+<script>document.getElementById('s').innerHTML = LobbyScene.scene(LAYOUT_TALL); makeTags(LAYOUT_TALL, document.getElementById('tags')); makeDeck(document.getElementById('deck')); icons();</script></body></html>

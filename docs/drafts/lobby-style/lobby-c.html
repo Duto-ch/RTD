@@ -1,0 +1,46 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="ui.css">
+<style>
+  body { width: 1280px; height: 720px; background: radial-gradient(circle at 30% 30%, #14605a, #0a3336 75%); }
+  .art { position: absolute; left: 24px; top: 24px; width: 600px; height: 672px; border-radius: 30px; overflow: hidden; border: 3px solid #2f8a7c; box-shadow: 0 6px 0 #082c2e, 0 12px 30px rgba(2, 20, 22, .6); }
+  .art svg { position: absolute; left: -318px; top: -48px; width: 1280px; height: 720px; }
+  .ban { position: absolute; left: -40px; right: -40px; bottom: -70px; height: 190px; border-radius: 50% 50% 0 0 / 60% 60% 0 0; background: linear-gradient(#fbf6e6, #f0e4c0); box-shadow: 0 -6px 0 #2f8a7c; text-align: center; padding-top: 22px; }
+  .ban .gt { font-size: 46px; } .ban p { font-size: 15px; color: #5a7f74; margin-top: 2px; }
+  .right { position: absolute; left: 652px; right: 24px; top: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .top { display: flex; gap: 8px; align-items: center; } .sp { flex: 1; } .round { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; }
+  .cur { height: 38px; font-size: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1; }
+  .card { position: relative; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-radius: 22px; }
+  .card .pic { width: 118px; height: 118px; border-radius: 22px; background: radial-gradient(circle at 50% 60%, #a9dc93, #6fbf7a); border: 2px solid #4ea672; flex: none; overflow: hidden; }
+  .card .pic svg { width: 100%; height: 100%; }
+  .card b { font-size: 22px; display: block; } .card small { font-size: 13px; color: #5a7f74; display: block; margin-top: 2px; line-height: 1.35; }
+  .card .cost { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 2px 10px 2px 3px; border-radius: 99px; background: #e9dfbd; font-size: 13px; font-weight: 700; }
+  .card .cost .coin { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; }
+  .card .dot { position: absolute; right: -6px; top: -6px; min-width: 26px; height: 26px; border-radius: 13px; background: var(--red); border: 2px solid #fff3dc; color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+  .bottom { display: flex; gap: 14px; align-items: stretch; }
+  .deck { flex: 1; padding: 10px 14px; } .deck h4 { font-size: 13px; color: var(--mint2); display: flex; margin-bottom: 7px; } .deck h4 span { margin-left: auto; color: var(--mint); font-weight: 400; }
+  .deck .row { display: flex; gap: 6px; } .deck .slot { width: 40px; height: 40px; border-radius: 11px; border-width: 2px; } .deck .slot img { width: 32px; height: 32px; }
+  .go { width: 190px; font-size: 30px; border-radius: 24px; flex-direction: column; gap: 0; line-height: 1.1; } .go small { font-size: 12px; font-weight: 400; opacity: .8; }
+</style></head><body>
+<div class="art"><div id="s"></div><div class="ban"><span class="gt" data-t="용병단 영지">용병단 영지</span><p>두토 용병단 · 최고 기록 WAVE 32</p></div></div>
+<div class="right">
+  <div class="top"><span class="sp"></span>
+    <div class="cur dk pill"><span class="coin c-fame"><i class="ic" data-i="crown"></i></span>1,240<span class="plus">+</span></div>
+    <div class="cur dk pill"><span class="coin c-tick"><i class="ic" data-i="ticket"></i></span>12<span class="plus">+</span></div>
+    <div class="cur dk pill"><span class="coin c-gem"><i class="ic" data-i="gem"></i></span>86<span class="plus">+</span></div>
+    <div class="round dk"><i class="ic" data-i="gear"></i></div></div>
+  <div class="grid">
+    <div class="card lt"><div class="pic" id="p-tower"></div><div><b>성탑</b><small>스킬 노드로<br>용병단을 영구 강화</small><span class="cost"><span class="coin c-fame"><i class="ic" data-i="crown"></i></span>명성</span></div><span class="dot">3</span></div>
+    <div class="card lt"><div class="pic" id="p-tent"></div><div><b>모집 천막</b><small>소환권으로<br>새 용병을 모집</small><span class="cost"><span class="coin c-tick"><i class="ic" data-i="ticket"></i></span>소환권</span></div><span class="dot">1</span></div>
+    <div class="card lt"><div class="pic" id="p-barracks"></div><div><b>병영</b><small>출전 덱 편성<br>속성별 장비 장착</small><span class="cost" style="background:#d9efe2">보유 31 / 96명</span></div></div>
+    <div class="card lt"><div class="pic" id="p-forge"></div><div><b>대장간</b><small>강화석으로<br>장비 강화 · 분해</small><span class="cost"><span class="coin c-gem"><i class="ic" data-i="gem"></i></span>강화석</span></div><span class="dot">2</span></div>
+  </div>
+  <div class="bottom"><div class="deck dk"><h4>출전 덱<span>병영에서 편성</span></h4><div class="row" id="deck"></div></div>
+    <button class="btn gold go"><span><i class="ic" data-i="sword" style="font-size:26px;vertical-align:-3px"></i> 출 전</span><small>WAVE 1부터</small></button></div>
+</div>
+<script src="scene.js"></script><script src="layouts.js"></script><script src="icons.js"></script><script src="common.js"></script>
+<script>
+  document.getElementById('s').innerHTML = LobbyScene.scene({ ...LAYOUT_WIDE, fg: false });
+  const mini = (id, fn, x, y, u) => { document.getElementById(id).innerHTML = `<svg viewBox="0 0 120 120"><defs><radialGradient id="gGlow"><stop offset="0" stop-color="#b9fff6" stop-opacity=".85"/><stop offset="1" stop-color="#35c9bf" stop-opacity="0"/></radialGradient></defs>${LobbyScene[fn](x, y, u)}</svg>`; };
+  mini('p-tower', 'tower', 60, 82, 13); mini('p-tent', 'tent', 58, 52, 17); mini('p-barracks', 'barracks', 50, 48, 16); mini('p-forge', 'forge', 62, 48, 18);
+  makeDeck(document.getElementById('deck')); icons();
+</script></body></html>
