@@ -49,7 +49,34 @@ def pose(img, head_dx=0, head_dy=0, hat_dx=0, hat_rows=0):
     return out
 
 
+def spear_diag():
+    """45° 로 직접 찍은 창 (돌려서 만들면 작은 창날 도트가 깨지므로) — 창끝이 오른쪽 위"""
+    filled = {}
+    for t in range(-1, 9):  # 창대 (t = -1 은 금색 물미)
+        filled[(2 + t, 13 - t)] = 'G' if t in (-1, 8) else 'T'
+    for t, r in zip(range(9, 15), [1, 1, 2, 1, 1, 0]):  # 잎 모양 창날 = 마름모를 이어 붙임
+        cx, cy = 2 + t, 13 - t
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                if abs(dx) + abs(dy) <= r:
+                    x, y = cx + dx, cy + dy
+                    filled[(x, y)] = 'L' if x + y < 15 else 'M'
+    img = Image.new('RGBA', (22, 22), (0, 0, 0, 0))
+    for (x, y), k in filled.items():
+        img.putpixel((x + 3, y + 3), rgba(Wp.PAL[k]))
+    for (x, y) in list(filled):
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if (nx, ny) not in filled:
+                img.putpixel((nx + 3, ny + 3), rgba('#2b1d2f'))
+    return img, (2 + 3 + 3, 13 - 3 + 3)  # 쥐는 점: 창대 t=3
+
+
+SPEAR_DIAG = spear_diag()
+
+
 def weapon_img(name, deg, silhouette=None):
+    if name == 'spear_diag':
+        return SPEAR_DIAG
     rows, pv = Wp.WEAPONS[name]
     img = Wp.paint(rows, Wp.PAL)
     if silhouette:
@@ -149,8 +176,8 @@ def hands_for(ch, weapon, deg, behind=False, free=(0, 0), raise_free=0, bdx=0, s
     def f(hx, hy):
         main = 'back' if behind else 'top'
         out = [(hx, hy, main)]
-        if weapon == 'spear':
-            out.append(along(weapon, deg, hx, hy, ch.get('spear_off', 4)) + ('top',))
+        if weapon in ('spear', 'spear_diag'):
+            out.append(along(weapon, 45 if weapon == 'spear_diag' else deg, hx, hy, ch.get('spear_off', 4)) + ('top',))
         elif ch.get('shield'):
             out.append((OX + 8 + bdx, OY + 20 + sdy, 'under'))
         elif weapon != 'bow':
@@ -203,7 +230,7 @@ def swing(ch, weapon, hand=(19, 20)):
             if sp:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0] + bdx, OY + hd[1]))
                 spark(c, tx, ty, sp)
-        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, bdx, extra_after=after, smear=sm, behind=deg < -30, ch=ch, sdy=-1 if deg < -30 else 0, hands=hands_for(ch, weapon, deg, deg < -30, free=(-hdx, hdy), bdx=bdx, sdy=-1 if deg < -30 else 0)), ms))
+        out.append((compose(pose(b, -hdx if ch.get('mirror') else hdx, hdy), weapon, deg, hd, bdx, extra_after=after, smear=sm, behind=deg < -30, ch=ch, sdy=-1 if deg < -30 else 0, hands=hands_for(ch, weapon, deg, deg < -30, free=(-hdx, hdy), bdx=bdx, sdy=-1 if deg < -30 else 0)), ms))
     return out
 
 
@@ -223,7 +250,7 @@ def thrust(ch, weapon='spear', hand=(19, 20)):
             if fx >= 1:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0], OY + hd[1]))
                 spark(c, tx + 1, ty, 3 if fx == 3 else 1)
-        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch, hands=hands_for({**ch, 'spear_off': -5}, weapon, deg)), ms))
+        out.append((compose(pose(b, -hdx if ch.get('mirror') else hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch, hands=hands_for({**ch, 'spear_off': -5}, weapon, deg)), ms))
     return out
 
 
@@ -302,7 +329,7 @@ def char(cid, strip, keep_top=0, mirror=True, shield=False):
 
 # 무기 쥐는 손 위치 (몸 기준 좌표, 아델·베로나는 뒤집혀 그려짐) — 몸통 쪽으로 붙여 무기가 몸을 조금 가리게
 HAND = {'staff': (16, 22), 'bow': (5, 19), 'spear': (16, 20)}
-IDLE_TILT = {'bow': -30, 'spear': 35}  # 대기 때 대각선으로 기울여 잡기 (시계 방향 +, 아델은 뒤집혀 그려져 최종 그림에서 바깥쪽으로)
+IDLE_TILT = {'bow': -30, 'spear': 45, 'staff': 25}  # 대기 때 대각선으로 기울여 잡기 (시계 방향 +, 아델은 뒤집혀 그려져 최종 그림에서 바깥쪽으로)
 
 
 def rot_pt(dx, dy, deg, x, y):
@@ -319,11 +346,11 @@ def build_all():
         {'key': 'sword', 'title': '카이라 · 검과 방패', 'sub': '젖힘 → 잔상 내려치기 → 타격 멈춤 → 회복',
          'idle': idle(kaira, 'sword', (19, 20)), 'attack': swing(kaira, 'sword')},
         {'key': 'staff', 'title': '베로나 · 지팡이', 'sub': '웅크림 → 번쩍 들어 올림 → 섬광·고리·불티',
-         'idle': idle(verona, 'staff', HAND['staff'], hat_rows=9), 'attack': cast(verona, HAND['staff'])},
+         'idle': idle(verona, 'staff', HAND['staff'], deg=IDLE_TILT['staff'], hat_rows=9), 'attack': cast(verona, HAND['staff'])},
         {'key': 'bow', 'title': '엘린 · 활', 'sub': '당기며 기댐 → 멈춤 → 시위 튕김·반동·화살',
          'idle': idle(elin, 'bow', HAND['bow'], deg=IDLE_TILT['bow'], extra=lambda c, x, y, i: ImageDraw.Draw(c).line([rot_pt(3, -7, IDLE_TILT['bow'], x, y), rot_pt(3, 6, IDLE_TILT['bow'], x, y)], fill=(238, 246, 255, 255))), 'attack': shoot(elin, HAND['bow'])},
         {'key': 'knight', 'title': '아델 · 창', 'sub': '뒤로 당김 → 쭉 찌르기(속도선) → 멈춤 → 회복',
-         'idle': idle(adel, 'spear', HAND['spear'], deg=IDLE_TILT['spear']), 'attack': thrust(adel, 'spear', HAND['spear'])},
+         'idle': idle(adel, 'spear_diag', HAND['spear']), 'attack': thrust(adel, 'spear', HAND['spear'])},
     ]
 
 
