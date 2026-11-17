@@ -60,7 +60,7 @@ def pose(img, head_dx=0, head_dy=0, hat_dx=0, hat_rows=0):
 # ---------- 각도마다 새로 찍는 무기 (창·지팡이·활) ----------
 # 그림을 돌리면 작은 도트가 뭉개지므로, 무기 축(쥐는 점 → 끝)을 따라 각도마다 픽셀을 새로 찍고
 # 마지막에 바깥 4방향 외곽선을 두른다. 각도는 시계 방향 +, 0 = 위.
-GEO_LEN = {'spear': 14, 'staff': 9, 'staff_ice': 9, 'staff_leaf': 9, 'bow': 0, 'sword': 12, 'axe': 9, 'dagger': 7}
+GEO_LEN = {'spear': 14, 'staff': 9, 'staff_ice': 9, 'staff_leaf': 9, 'bow': 0, 'sword': 12, 'axe': 9, 'dagger': 7, 'gun': 12, 'crossbow': 9, 'hammer': 9}
 ORB = {  # 지팡이 머리 색 (밝음, 중간, 그늘)
     'staff': ('#ffe066', '#ff8a2a', '#d8501e'), 'staff_leaf': ('#c8f08a', '#6fcf5a', '#3f9a3a'), 'staff_ice': ('#ffffff', '#bfe6ff', '#6aa8e8')}
 OUTLINE = '#2b1d2f'
@@ -158,6 +158,34 @@ def geo_weapon(name, deg, silhouette=None):
         band(1, 1, -3 if long else -1.5, 3 if long else 1.5, lambda t, k: Wp.PAL['G'])  # 손잡이 막이
         band(2, tip - 1, -0.5, 0.5, lambda t, k: Wp.PAL['L'] if k < 0 else Wp.PAL['M'])  # 날 2px (밝은 면·그늘 면)
         f[P(tip)] = Wp.PAL['L']
+    elif name in ('gun', 'crossbow', 'hammer'):
+        def band(t0, t1, k0, k1, col):
+            t = t0
+            while t <= t1 + 1e-6:
+                k = k0
+                while k <= k1 + 1e-6:
+                    f[P(t, k)] = col
+                    k += 0.5
+                t += 0.5
+        if name == 'gun':      # 긴 총: 나무 개머리 + 금속 총열 + 총구
+            band(-4, 1, -1, 0.5, Wp.PAL['T'])
+            f[P(-4, -1)] = Wp.PAL['G']
+            band(1.5, 11.5, 0, 0, '#5a6070')
+            band(2, 9, -0.5, -0.5, Wp.PAL['M'])
+            f[P(12)] = Wp.PAL['G']
+        elif name == 'crossbow':  # 석궁: 나무 몸통 + 끝의 가로 활대 + 화살촉
+            band(-3, 7, -0.5, 0.5, Wp.PAL['T'])
+            band(7, 7.5, -4, 4, Wp.PAL['t'])
+            f[P(7, -4)] = Wp.PAL['G']
+            f[P(7, 4)] = Wp.PAL['G']
+            band(8, 9, 0, 0, Wp.PAL['M'])
+        else:                  # 망치: 자루 + 큰 사각 머리
+            for q in _line(*P(-3), *P(7)):
+                f[q] = Wp.PAL['T']
+            f[P(-3)] = Wp.PAL['G']
+            band(7, 10, -3, 3, Wp.PAL['M'])
+            band(10, 10, -3, 3, Wp.PAL['L'])
+            band(7, 7, -3, 3, '#7d8aa0')
     elif name == 'axe':
         for q in _line(*P(-3), *P(9)):
             f[q] = Wp.PAL['T']
@@ -274,7 +302,8 @@ def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, e
         c.alpha_composite(wl[0], (hx - wl[1][0], hy - wl[1][1]))
     put('under')
     if ch and ch.get('shield'):  # 왼손(뒤집힌 상태 기준) 방패 — 최종 그림에서는 캐릭터 오른쪽
-        c.alpha_composite(SHIELD.transpose(Image.FLIP_LEFT_RIGHT) if mirror else SHIELD, (OX + 4 + bdx, OY + 17 + sdy))  # 몸통과 겹치게
+        sh = ch.get('shield_img', SHIELD)
+        c.alpha_composite(sh.transpose(Image.FLIP_LEFT_RIGHT) if mirror else sh, (OX + 4 + bdx, OY + 17 + sdy))  # 몸통과 겹치게
     put('top')
     if extra_after:
         extra_after(c, hx, hy)
