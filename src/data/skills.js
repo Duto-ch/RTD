@@ -187,6 +187,7 @@ export function describeSkill(s) {
     if (b.dmg) parts.push(`공격력 +${pct(b.dmg)}`);
     if (b.rate) parts.push(`공격 속도 +${pct(b.rate)}`);
     if (b.range) parts.push(`사거리 +${pct(b.range)}`);
+    if (b.crit) parts.push(`치명타 +${pct(b.crit)}`);
     out.push(`${who} ${parts.join(', ')} (${b.dur}초)`);
   }
   if (s.gold) out.push(`골드 +${s.gold}${s.goldPerWave ? ` (+웨이브×${s.goldPerWave})` : ''}`);

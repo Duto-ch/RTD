@@ -1,0 +1,76 @@
+<title>용병단 캐릭터 도감</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sunflower:wght@500;700&display=swap">
+<style>
+/* 레이아웃: 위 도감 머리(규칙·필터) → 속성×등급 묶음으로 카드 격자. 카드는 접힌 상태(이름·특성)에서 펼치면 스킬 4개와 그림 프롬프트 */
+:root {
+  --bg: #f4efdf; --panel: #fffaf0; --panel2: #efe6cc; --ink: #17322f; --sub: #5f7670; --line: #ddd0aa;
+  --forest: #14504f; --forest2: #0f3f3f; --gold: #d89a1c; --gold-bg: #fff1c6;
+  --red: #c8503a; --blue: #2f74c4; --green: #3f9a5a;
+  --g1: #8f9b98; --g2: #3f9a5a; --g3: #2f74c4; --g4: #d89a1c;
+  --font: 'Sunflower', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c2524; --panel: #12302f; --panel2: #183b39; --ink: #ecf2e6; --sub: #9fb8b0; --line: #2a4f4c;
+  --forest: #1b6763; --forest2: #0a2423; --gold: #f0bd4b; --gold-bg: #3a3214;
+  --red: #ec7a62; --blue: #6aa8ef; --green: #6cc387; --g1: #9fadaa; --g2: #6cc387; --g3: #6aa8ef; --g4: #f0bd4b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0c2524; --panel: #12302f; --panel2: #183b39; --ink: #ecf2e6; --sub: #9fb8b0; --line: #2a4f4c;
+  --forest: #1b6763; --forest2: #0a2423; --gold: #f0bd4b; --gold-bg: #3a3214;
+  --red: #ec7a62; --blue: #6aa8ef; --green: #6cc387; --g1: #9fadaa; --g2: #6cc387; --g3: #6aa8ef; --g4: #f0bd4b; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.55; margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 56px; }
+header.top { background: linear-gradient(180deg, var(--forest), var(--forest2)); color: #f6f0dc; }
+header.top .wrap { padding-block: 30px 26px; display: grid; gap: 14px; }
+h1 { margin: 0; font-size: clamp(28px, 4.4vw, 40px); letter-spacing: .5px; text-wrap: balance; }
+h1 small { display: block; font-size: 15px; font-weight: 500; color: #bfe1d4; letter-spacing: 0; margin-top: 4px; }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.rule { background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .14); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; color: #dcebe3; min-width: 0; }
+.rule b { display: block; color: #ffe08a; font-size: 12px; letter-spacing: 1px; margin-bottom: 2px; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar .wrap { padding-block: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 14px; font-weight: 700; padding: 5px 12px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color: #f6f0dc; }
+.chip:focus-visible, .card summary:focus-visible, .copy:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sep { width: 1px; height: 24px; background: var(--line); }
+#q { font: inherit; padding: 6px 12px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); min-width: 0; flex: 1 1 160px; max-width: 260px; }
+.count { margin-left: auto; color: var(--sub); font-size: 13px; font-variant-numeric: tabular-nums; }
+section.group { margin-top: 26px; }
+section.group h2 { margin: 0 0 10px; font-size: 20px; display: flex; align-items: baseline; gap: 10px; }
+section.group h2 .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; align-self: center; }
+section.group h2 small { font-size: 13px; color: var(--sub); font-weight: 500; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.card { background: var(--panel); border: 1.5px solid var(--line); border-left: 5px solid var(--gc); border-radius: 14px; min-width: 0; }
+.card.g4 { background: linear-gradient(var(--gold-bg), var(--panel) 60%); }
+.card summary { list-style: none; cursor: pointer; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; }
+.card summary::-webkit-details-marker { display: none; }
+.badge { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-weight: 700; font-size: 19px; color: #fff; background: var(--ac); grid-row: span 2; }
+.nm { font-weight: 700; font-size: 17px; min-width: 0; }
+.nm small { font-weight: 500; color: var(--sub); font-size: 13px; margin-left: 6px; }
+.gr { font-size: 12px; font-weight: 700; color: var(--gc); border: 1.5px solid var(--gc); border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
+.meta { grid-column: 2 / 4; font-size: 13px; color: var(--sub); min-width: 0; }
+.meta b { color: var(--ink); font-weight: 700; }
+.body { padding: 0 14px 14px; display: grid; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; margin: 0 14px; padding-left: 0; padding-right: 0; }
+.trait { font-size: 13.5px; }
+.trait span { color: var(--sub); }
+ol.skills { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ol.skills li { background: var(--panel2); border-radius: 10px; padding: 7px 10px; font-size: 13.5px; display: grid; grid-template-columns: auto 1fr; gap: 0 10px; }
+ol.skills .lv { font-weight: 700; color: var(--forest); font-variant-numeric: tabular-nums; grid-row: span 2; }
+:root[data-theme="dark"] ol.skills .lv { color: var(--g2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ol.skills .lv { color: var(--g2); } }
+ol.skills .sn { font-weight: 700; } ol.skills .sn small { color: var(--sub); font-weight: 500; margin-left: 4px; }
+ol.skills .sd { color: var(--sub); min-width: 0; }
+.prompt { display: grid; gap: 6px; }
+.prompt code { display: block; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; background: var(--panel2); border-radius: 8px; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; color: var(--sub); max-height: 120px; overflow: auto; }
+.copy { justify-self: start; font: inherit; font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 99px; border: 1.5px solid var(--forest); background: transparent; color: var(--ink); cursor: pointer; }
+.copy.done { background: var(--forest); color: #f6f0dc; }
+.style-prompt { margin-top: 26px; background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; }
+.style-prompt h2 { margin: 0; font-size: 18px; }
+.style-prompt p { margin: 0; color: var(--sub); font-size: 14px; }
+.empty { color: var(--sub); padding: 30px 0; text-align: center; }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } }
+</style>

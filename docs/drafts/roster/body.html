@@ -1,0 +1,68 @@
+<header class="top"><div class="wrap">
+  <h1>용병단 캐릭터 도감<small>속성 3 × 등급 4 · 96명 설계안 — 카드를 누르면 레벨별 스킬과 그림 프롬프트가 펼쳐집니다</small></h1>
+  <div class="rules" id="rules"></div>
+</div></header>
+<nav class="bar" aria-label="필터"><div class="wrap">
+  <div class="chips" id="fa" role="group" aria-label="속성"></div><span class="sep"></span>
+  <div class="chips" id="fg" role="group" aria-label="등급"></div>
+  <input id="q" type="search" placeholder="이름·스킬·특성 검색" aria-label="검색">
+  <span class="count" id="count"></span>
+</div></nav>
+<main class="wrap"><div id="list"></div>
+  <section class="style-prompt"><h2>그림 공통 스타일</h2><p>모든 캐릭터 프롬프트 앞부분에 들어가는 문장입니다. ChatGPT 에는 카드의 프롬프트를 한 명씩 넣으면 됩니다.</p><code id="stylep"></code></section>
+</main>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const ATTR = { red: ['레드', 'var(--red)'], blue: ['블루', 'var(--blue)'], green: ['그린', 'var(--green)'] };
+const GC = { 1: 'var(--g1)', 2: 'var(--g2)', 3: 'var(--g3)', 4: 'var(--g4)' };
+const st = { a: 'all', g: 'all', q: '' };
+try { const s = JSON.parse(localStorage.getItem('roster-filter') || '{}'); Object.assign(st, s, { q: '' }); } catch (e) {}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const G = D.grades;
+document.getElementById('rules').innerHTML = [
+  ['덱 편성', `등급 포인트 합 ${D.deck} 이하 · ${Object.values(G).map((g) => `${g.name} ${g.pt}`).join(' · ')}`],
+  ['고용 확률', Object.values(G).map((g) => `${g.name} ${g.hire}%`).join(' · ')],
+  ['합성', '같은 속성·같은 등급·같은 레벨끼리, 놓여 있는 쪽이 레벨 업. 유니크는 고용으로만'],
+  ['스킬', '커먼~레어는 Lv2·3·4·5, 유니크는 Lv1·2·3·4 에 하나씩 열림'],
+  ['능력치 배율', Object.values(G).map((g) => `${g.name} ×${g.mult}`).join(' · ')]
+].map(([b, t]) => `<div class="rule"><b>${b}</b>${t}</div>`).join('');
+document.getElementById('stylep').textContent = D.style;
+function chips(id, key, opts) {
+  const el = document.getElementById(id);
+  el.innerHTML = opts.map(([v, l]) => `<button class="chip" type="button" data-v="${v}" aria-pressed="${st[key] === v}">${l}</button>`).join('');
+  el.addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; st[key] = b.dataset.v; el.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', c === b)); save(); render(); });
+}
+function save() { try { localStorage.setItem('roster-filter', JSON.stringify({ a: st.a, g: st.g })); } catch (e) {} }
+chips('fa', 'a', [['all', '전체'], ['red', '레드'], ['blue', '블루'], ['green', '그린']]);
+chips('fg', 'g', [['all', '전 등급'], ['1', '커먼'], ['2', '언커먼'], ['3', '레어'], ['4', '유니크']]);
+document.getElementById('q').addEventListener('input', (e) => { st.q = e.target.value.trim(); render(); });
+function card(c) {
+  const sk = c.sk.map((s) => `<li><span class="lv">Lv${s.l}</span><span class="sn">${esc(s.n)}<small>${s.cd}초</small></span><span class="sd">${esc(s.d)}</span></li>`).join('');
+  return `<details class="card g${c.g}" style="--gc:${GC[c.g]};--ac:${ATTR[c.a][1]}"><summary><span class="badge" aria-hidden="true">${esc(c.n[0])}</span><span class="nm">${esc(c.n)}<small>${esc(c.t)}</small></span><span class="gr">${G[c.g].name}</span>
+    <span class="meta">${esc(c.s)} · 공격력 <b>${c.d}</b> · 공속 ${c.r} · 사거리 ${c.rg} — ${esc(c.tr)}</span></summary>
+    <div class="body"><div class="trait"><span>특성</span> ${esc(c.tr)}</div><ol class="skills">${sk}</ol>
+    <div class="prompt"><code>${esc(c.p)}</code><button class="copy" type="button" data-id="${c.id}">프롬프트 복사</button></div></div></details>`;
+}
+function render() {
+  const q = st.q.toLowerCase();
+  const list = D.roster.filter((c) => (st.a === 'all' || c.a === st.a) && (st.g === 'all' || c.g === +st.g) &&
+    (!q || [c.n, c.t, c.tr, c.id, ...c.sk.map((s) => s.n + s.d)].join(' ').toLowerCase().includes(q)));
+  document.getElementById('count').textContent = `${list.length} / ${D.roster.length}명`;
+  let html = '';
+  for (const a of ['red', 'blue', 'green']) for (const g of [4, 3, 2, 1]) {
+    const cs = list.filter((c) => c.a === a && c.g === g);
+    if (!cs.length) continue;
+    html += `<section class="group"><h2><span class="dot" style="background:${ATTR[a][1]}"></span>${ATTR[a][0]} · ${G[g].name}<small>${cs.length}명 · ${G[g].pt}포인트</small></h2><div class="grid">${cs.map(card).join('')}</div></section>`;
+  }
+  document.getElementById('list').innerHTML = html || '<p class="empty">조건에 맞는 캐릭터가 없습니다. 필터를 바꿔 보세요.</p>';
+}
+document.getElementById('list').addEventListener('click', (e) => {
+  const b = e.target.closest('.copy'); if (!b) return;
+  const c = D.roster.find((x) => x.id === b.dataset.id);
+  const done = () => { b.textContent = '복사됨'; b.classList.add('done'); setTimeout(() => { b.textContent = '프롬프트 복사'; b.classList.remove('done'); }, 1400); };
+  const fallback = () => { const code = b.previousElementSibling; const r = document.createRange(); r.selectNodeContents(code); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = '선택됨 — 직접 복사하세요'; };
+  try { navigator.clipboard.writeText(c.p).then(done, fallback); } catch (err) { fallback(); }
+});
+render();
+</script>
