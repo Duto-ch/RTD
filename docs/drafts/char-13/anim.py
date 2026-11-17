@@ -79,7 +79,22 @@ def spark(c, x, y, size):
             g.point([(x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1), (x - 1, y + 1)], fill=(255, 214, 102, 255))
 
 
-def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, extra_after=None, smear=None, behind=False):
+SHIELD = Wp.paint([
+    ".OOOOO.",
+    "OCCGCcO",
+    "OCCGCcO",
+    "OGGGGGO",
+    "OCCGCcO",
+    ".OCGcO.",
+    "..OcO..",
+    "...O..."], {'O': '#2b1d2f', 'C': '#e0393e', 'c': '#a8232f', 'G': '#f5c542'})
+
+
+def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, extra_after=None, smear=None, behind=False, ch=None, sdy=0):
+    """ch['mirror']: 몸을 뒤집어 그린 뒤 전체를 다시 뒤집는다 → 몸은 그대로, 무기·효과만 캐릭터 왼쪽으로"""
+    mirror = bool(ch and ch.get('mirror'))
+    if mirror:
+        body = body.transpose(Image.FLIP_LEFT_RIGHT)
     c = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     hx, hy = OX + hand[0] + bdx, OY + hand[1]
     if smear and weapon:
@@ -95,9 +110,11 @@ def compose(body, weapon=None, deg=0, hand=(19, 20), bdx=0, extra_before=None, e
     c.alpha_composite(body, (OX + bdx, OY))
     if wl and not behind:
         c.alpha_composite(wl[0], (hx - wl[1][0], hy - wl[1][1]))
+    if ch and ch.get('shield'):  # 왼손(뒤집힌 상태 기준) 방패 — 최종 그림에서는 캐릭터 오른쪽
+        c.alpha_composite(SHIELD.transpose(Image.FLIP_LEFT_RIGHT) if mirror else SHIELD, (OX + 1 + bdx, OY + 17 + sdy))
     if extra_after:
         extra_after(c, hx, hy)
-    return c
+    return c.transpose(Image.FLIP_LEFT_RIGHT) if mirror else c
 
 
 # ---------- 대기 ----------
@@ -114,7 +131,7 @@ def idle(ch, weapon, hand, deg=0, hat_rows=0, blink_at=6, extra=None):
         b = pose(b, 0, IDLE_HEAD[i], IDLE_HAT[i] if hat_rows else 0, hat_rows)
         hd = (hand[0], hand[1] + IDLE_WPN[i])
         ex = (lambda c, hx, hy, i=i: extra(c, hx, hy, i)) if extra else None
-        out.append((compose(b, weapon, deg, hd, extra_after=ex), IDLE_MS[i]))
+        out.append((compose(b, weapon, deg, hd, extra_after=ex, ch=ch, sdy=IDLE_WPN[i]), IDLE_MS[i]))
     return out
 
 
@@ -141,7 +158,7 @@ def swing(ch, weapon, hand=(19, 20)):
             if sp:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0] + bdx, OY + hd[1]))
                 spark(c, tx, ty, sp)
-        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, bdx, extra_after=after, smear=sm, behind=deg < -30), ms))
+        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, bdx, extra_after=after, smear=sm, behind=deg < -30, ch=ch, sdy=-1 if deg < -30 else 0), ms))
     return out
 
 
@@ -161,7 +178,7 @@ def thrust(ch, weapon='spear', hand=(19, 20)):
             if fx >= 1:
                 tx, ty = tip_of(weapon, deg, (OX + hd[0], OY + hd[1]))
                 spark(c, tx + 1, ty, 3 if fx == 3 else 1)
-        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after), ms))
+        out.append((compose(pose(b, hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch), ms))
     return out
 
 
@@ -195,7 +212,7 @@ def cast(ch, hand=(19, 22)):
                     a = k * 2.1 + emb
                     r = 3 + emb * 2
                     g.point([(ox + round(math.cos(a) * r), oy + round(math.sin(a) * r) - emb)], fill=(255, 214, 102, 255))
-        out.append((compose(pose(b, 0, hdy), 'staff', deg, hd, extra_after=after), ms))
+        out.append((compose(pose(b, 0, hdy), 'staff', deg, hd, extra_after=after, ch=ch), ms))
     return out
 
 
@@ -225,29 +242,29 @@ def shoot(ch, hand=(1, 18)):
                 for k, yy in enumerate((y - 1, y + 1)):
                     g.line([(axp + 11, yy), (axp + 16 + ax * 3, yy)], fill=SMEAR)
                 c.alpha_composite(arrow, (axp, y - 2))
-        out.append((compose(pose(b, hdx, hdy), 'bow', 0, hand, bdx, extra_after=after), ms))
+        out.append((compose(pose(b, hdx, hdy), 'bow', 0, hand, bdx, extra_after=after, ch=ch), ms))
     return out
 
 
-def char(cid, strip, keep_top=0):
+def char(cid, strip, keep_top=0, mirror=True, shield=False):
     ch = next(c for c in D.CHARS if c['id'] == cid)
-    return {'img': Wp.body(cid, strip, keep_top), 'pal': {**D.COMMON, **ch['pal']}}
+    return {'img': Wp.body(cid, strip, keep_top), 'pal': {**D.COMMON, **ch['pal']}, 'mirror': mirror, 'shield': shield}
 
 
 def build_all():
-    kaira = char('red_sword', (17, 24))
+    kaira = char('red_sword', (17, 24), shield=True)
     verona = char('red_mage', (17, 24), 13)
-    elin = char('green_archer', (0, 5))
+    elin = char('green_archer', (0, 5), mirror=False)
     adel = char('blue_knight', (0, 5))
     return [
-        {'key': 'sword', 'title': '카이라 · 검', 'sub': '젖힘 → 잔상 내려치기 → 타격 멈춤 → 회복',
+        {'key': 'sword', 'title': '카이라 · 검과 방패', 'sub': '젖힘 → 잔상 내려치기 → 타격 멈춤 → 회복',
          'idle': idle(kaira, 'sword', (19, 20)), 'attack': swing(kaira, 'sword')},
         {'key': 'staff', 'title': '베로나 · 지팡이', 'sub': '웅크림 → 번쩍 들어 올림 → 섬광·고리·불티',
          'idle': idle(verona, 'staff', (19, 22), hat_rows=9), 'attack': cast(verona)},
         {'key': 'bow', 'title': '엘린 · 활', 'sub': '당기며 기댐 → 멈춤 → 시위 튕김·반동·화살',
          'idle': idle(elin, 'bow', (1, 18), extra=lambda c, x, y, i: ImageDraw.Draw(c).line([(x + 3, y - 7), (x + 3, y + 6)], fill=(238, 246, 255, 255))), 'attack': shoot(elin)},
-        {'key': 'knight', 'title': '아델 · 무기 바꿔 끼우기', 'sub': '같은 몸 — 도끼 휘두르기 · 창 찌르기',
-         'idle': idle(adel, 'axe', (19, 20)), 'attack': swing(adel, 'axe') + idle(adel, 'spear', (19, 20))[:2] + thrust(adel, 'spear')},
+        {'key': 'knight', 'title': '아델 · 창', 'sub': '뒤로 당김 → 쭉 찌르기(속도선) → 멈춤 → 회복',
+         'idle': idle(adel, 'spear', (19, 20)), 'attack': thrust(adel, 'spear')},
     ]
 
 
