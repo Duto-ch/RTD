@@ -12,8 +12,8 @@ import weapons as Wp
 import draw as D
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-W, H = 52, 32
-OX, OY = 17, 6
+W, H = 56, 32
+OX, OY = 16, 6  # 가운데 — 뒤집어도 같은 자리
 SMEAR = (255, 244, 214, 255)
 SMEAR2 = (255, 210, 122, 255)
 
