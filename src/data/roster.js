@@ -396,8 +396,10 @@ export function skillLevels(c) {
 
 /** ChatGPT 그림 프롬프트 — 모든 캐릭터에 공통으로 붙는 스타일 */
 export const STYLE_PROMPT =
-  '16x16 pixel art sprite, chibi proportions (big head, small body), JRPG fantasy style, 3/4 front view facing right, ' +
-  'clean 1px dark outline, flat shading with max 12 colors, no anti-aliasing, no gradients, transparent background, single character centered';
+  'Tiny 16x16 pixel art game sprite, scaled up with nearest neighbor so every pixel is a big visible square block. ' +
+  'The whole character is only 16 pixels tall: extremely low resolution, very few details, like a tiny NES or Game Boy Color overworld sprite. ' +
+  'Chibi proportions (head about half the height), JRPG fantasy style, 3/4 front view facing right, 1-pixel dark outline, flat colors, max 10 colors, ' +
+  'no anti-aliasing, no gradients, no dithering, plain flat pure white background, single character centered, full body, no text';
 const ATTR_COLOR = { red: 'crimson red and warm orange', blue: 'ice blue and navy', green: 'leaf green and earthy brown' };
 const GRADE_DETAIL = { 1: 'simple outfit', 2: 'slightly detailed outfit', 3: 'ornate outfit with a glowing accent', 4: 'legendary ornate outfit with golden trim and a magical glow' };
 
