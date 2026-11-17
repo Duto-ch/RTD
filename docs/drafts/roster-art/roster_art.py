@@ -12,6 +12,11 @@ sys.path.insert(0, os.path.join(HERE, '..', 'char-13'))
 import draw as D          # 공통 몸 틀 (BASE) · 그리기
 import anim as A          # 무기 레이어 · 손 · 애니메이션
 import weapons as Wp
+import weapons_v2 as W2   # 무기 모양 변형 + 등급별 재질
+
+A.geo_weapon_orig = A.geo_weapon
+A.geo_weapon = W2.geo
+BASE_LEN = dict(A.GEO_LEN)
 
 A.ARMLESS = True
 ROSTER = json.load(open(os.path.join(HERE, 'roster.json')))
@@ -254,7 +259,9 @@ def body(c):
         pal['S'] = '#f4e8e4'
     G = Grid()
     style = hair_style(G, c, female)
+    before = [r[:] for r in G.g]
     hat_rows = headgear(G, c, pal, female)
+    hg_applied = before != G.g
     if has(L, 'beard', 'bearded', 'grizzled', 'viking', 'warlord', 'veteran') and not female:   # 수염
         pal['R'] = hair if not has(L, 'grey') else '#c8ccd4'
         G.row(17, 6, 'OORRRRRRROO'), G.row(18, 8, 'ORRRRRO')
@@ -272,12 +279,25 @@ def body(c):
         pal['Z'] = wc
         for y, (l, r) in {15: ('..OO', 'OO..'), 16: ('.OZZ', 'ZZO.'), 17: ('OZZZ', 'ZZZO'), 18: ('.OZZ', 'ZZO.'), 19: ('..OO', 'OO..')}.items():
             G.row(y, 1, l), G.row(y, 19, r)
+    # ── 등급이 오를수록 하나씩 늘어나는 장식 ──
+    #  언커먼: 금속 버클 · 레어: 은 견갑 + 가슴 보석 (+ 머리 장식이 없으면 은 머리띠) · 유니크: 금 견갑·보석·금관, 망토, 반짝임
+    if grade >= 2:
+        G.put(11, 21, 'G' if grade >= 3 else 'U')
+    if grade >= 3:
+        G.row(18, 7, 'OUU'), G.row(18, 13, 'UUO'), G.put(11, 19, 'Q')
+        if not hg_applied:
+            if grade == 3:
+                G.row(13, 6, 'UUUUUQUUUUU')
+            else:
+                G.row(8, 7, 'O...O...O'), G.row(9, 7, 'GO.OGO.OG'), G.row(10, 7, 'GQGGGGGQG'), G.row(11, 7, 'OGGGGGGGO')
+    pal['U'] = {1: '#c9d3e0', 2: '#c9d3e0', 3: '#dfe6ee', 4: '#f5c542'}[grade]
+    pal['Q'] = {'red': '#ff4a5a', 'blue': '#4ab0ff', 'green': '#5ae07a'}[attr]
     over = G.over()
     pal.setdefault('P', pal['C']), pal.setdefault('p', pal['c'])
-    for k in ('K', 'k', 'R', 'Q', 'Z', 'N', 'W', 'Y'):
+    for k in ('K', 'k', 'R', 'Z', 'N', 'W', 'Y'):
         pal.setdefault(k, {'K': '#f3e6c8', 'k': '#c9b48a', 'R': '#e0393e', 'Q': '#6ab0ff', 'Z': '#ffffff', 'N': '#5a6070', 'W': '#ffffff', 'Y': '#ffe066'}[k])
     pal.pop('K2', None)
-    img = D.build({'id': i, 'pal': pal, 'over': over})
+    img = A.noarms(D.build({'id': i, 'pal': pal, 'over': over}))   # 팔 없음 (둥근 손이 따로)
     return img, {**D.COMMON, **pal}, hat_rows, female, style
 
 
@@ -315,6 +335,11 @@ def animate(c):
                                  {'O': '#2b1d2f', 'C': pal['C'], 'c': pal['c'], 'G': GRADE_ACCENT[max(2, c['grade'])] if c['grade'] < 4 else '#f5c542'})}
     if w == 'staff':
         w = STAFF_BY_ATTR[c['attr']]
+    var = W2.pick_variant(w, c['look'], c['grade'], c['id'])
+    W2.CTX.update(grade=c['grade'], attr=c['attr'], var={w: var})
+    A.GEO_LEN.clear(); A.GEO_LEN.update(BASE_LEN)
+    if (w, var) in W2.GEO_LEN_V:
+        A.GEO_LEN[w] = W2.GEO_LEN_V[(w, var)]
     tilt = A.IDLE_TILT.get(w, 45)
     if w == 'bow':
         hand = A.HAND['bow']
@@ -341,7 +366,17 @@ def animate(c):
         hand = A.HAND.get(w, (16, 20))
         idle = A.idle(ch, w, hand, deg=45, hat_rows=hat_rows)
         attack = A.swing(ch, w, hand, 45)
-    return {'body': img, 'idle': idle, 'attack': attack, 'weapon': w, 'shield': shield, 'female': female, 'hair': style}
+    if c['grade'] == 4:   # 유니크: 대기 중 몸 주위에 반짝임이 돌아가며 핀다
+        spots = [(2, 9), (21, 12), (19, 5), (4, 16), (20, 19), (6, 6), (18, 15), (3, 12)]
+        idle = [(sparkle(f, spots[k % len(spots)], k), ms) for k, (f, ms) in enumerate(idle)]
+    return {'body': img, 'idle': idle, 'attack': attack, 'weapon': w, 'variant': var, 'shield': shield, 'female': female, 'hair': style}
+
+
+def sparkle(frame, pos, k):
+    f = frame.copy()
+    x, y = A.OX + pos[0], A.OY + pos[1]
+    A.spark(f, x, y, 1 + (k % 2))
+    return f
 
 
 def sheet(frames):
@@ -367,7 +402,7 @@ if __name__ == '__main__':
         frames = r['idle'] + r['attack']
         sh = sheet(frames)
         sh.save(os.path.join(HERE, 'sheets', f"{c['id']}.png"))
-        out.append({**c, 'weapon': r['weapon'], 'shield': r['shield'], 'idle': {'n': len(r['idle']), 'ms': [m for _, m in r['idle']]},
+        out.append({**c, 'weapon': r['weapon'], 'variant': r['variant'], 'shield': r['shield'], 'idle': {'n': len(r['idle']), 'ms': [m for _, m in r['idle']]},
                     'attack': {'n': len(r['attack']), 'ms': [m for _, m in r['attack']]}, 'src': uri(sh)})
     json.dump({'W': A.W, 'H': A.H, 'OX': A.OX, 'OY': A.OY, 'chars': out}, open(os.path.join(HERE, 'roster-art.json'), 'w'))
     # 한눈에 보기: 대기 첫 프레임 96명 (속성별 줄)
