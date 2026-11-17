@@ -55,7 +55,7 @@
 ## 작업 규칙
 - 이 프로젝트 폴더 밖의 파일(다른 프로젝트)은 수정하지 않는다.
 - Phaser **3** API만 사용한다 (Phaser 4 문법 금지).
-- 픽셀 격자: **배경·UI 는 아트 1px = 화면 3px(`UI_PX`)**, 직접 그린 캐릭터도 3px(28x24 × manifest scale 0.75). 아직 코드로 그린 유닛·몬스터·성탑·유물 아이콘·이펙트는 4px(`PX`) — 캐릭터 교체가 끝나면 함께 3px 로 옮길 예정. 화면 칸(64px)은 3으로 나누어떨어지지 않으므로 배경은 `toArt()` 로 가장 가까운 픽셀 경계에 맞춘다
+- 픽셀 격자: **필드 배경(땅·길·성벽·석판)은 아트 1px = 화면 2px(`BG_PX`, 칸 64px = 32 아트 px)** — `textures.js` 는 3px 시절 무늬 크기를 `K`(=1.5)배로 맞춘다. 필드는 레이어(`bg_<지역>` → `field_tile_*` → `field_wall`)로 나뉘어 `GameScene.createFieldLayers()` 가 쌓고, 각 키는 manifest 스킨으로 교체된다(크기는 `setDisplaySize` 로 맞춤). **UI 는 아트 1px = 화면 3px(`UI_PX`)**, 직접 그린 캐릭터도 3px(28x24 × manifest scale 0.75). 아직 코드로 그린 유닛·몬스터·성탑·유물 아이콘·이펙트는 4px(`PX`) — 캐릭터 교체가 끝나면 함께 3px 로 옮길 예정. 화면 칸(64px)은 3으로 나누어떨어지지 않으므로 배경은 `toArt()` 로 가장 가까운 픽셀 경계에 맞춘다
 - 밸런스 수치는 코드에 흩지 말고 `config.js`의 BALANCE 또는 `data/` 에 둔다.
 - GameObject 하위 클래스에 `name`, `type`, `state` 같은 Phaser 예약 속성명 getter 금지 (예: 용병 이름은 `heroName`).
 - 유닛·몬스터 그림은 Sprite(애니메이션 가능). 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')` 로 기본 애니메이션을 다시 맞춘다. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영

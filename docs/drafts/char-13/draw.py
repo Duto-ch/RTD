@@ -13,15 +13,15 @@ BASE = ["." * 24] * 11 + [
     "......OOHHHHHHHOO.......",  # 12 │
     ".....OHHHHHHHHHHHO......",  # 13 │
     ".....OHhSSHHHSShHO......",  # 14 │ 두상 13x7 (모두 동일)
-    ".....OHhEESSSEEhHO......",  # 15 │
-    ".....OHsIWSSSIWsHO......",  # 16 │
+    ".....OHhSESSSEShHO......",  # 15 │ 세로눈 1x2 (2026-11-17): 윗칸 진한 눈동자
+    ".....OHsSISSSISsHO......",  # 16 │            아랫칸 눈 색 I
     "......OOSSSSSSSOO.......",  # 17 ┘
     "........OCCDCCO.........",  # 18 ┐
     ".......OcCCCCCcO........",  # 19 │
     ".......OSCCCCCSO........",  # 20 │ 몸 6줄
     "........OAAAAAO.........",  # 21 │
     "........OBBOBBO.........",  # 22 │
-    "........OOO.OOO.........",  # 23 ┘
+    "........ObbObbO.........",  # 23 ┘ 발밑: 검은 줄 대신 신발 그늘색 b (바깥 외곽선만)
 ]
 
 COMMON = {
@@ -153,7 +153,14 @@ def build(ch):
         for x, k in enumerate(line):
             if k != '.':
                 rows[y][x] = k
+    # 로브 밑단이 검은 줄로 끝나면 옷 색으로 채운다 (발밑 규칙과 같게)
+    if ''.join(rows[23][8:15]) == 'OOOOOOO':
+        rows[22][9:14] = list('CCCCC')
+        rows[23][9:14] = list('ccccc')
     pal = {**COMMON, **ch['pal']}
+    if 'b' not in pal:  # 신발 그늘색 = 신발 색을 어둡게
+        h = pal.get('B', '#4a3020').lstrip('#')
+        pal['b'] = '#%02x%02x%02x' % tuple(int(int(h[i:i + 2], 16) * 0.7) for i in (0, 2, 4))
     img = Image.new('RGBA', (24, 24), (0, 0, 0, 0))
     for y, r in enumerate(rows):
         for x, k in enumerate(r):
