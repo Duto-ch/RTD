@@ -15,7 +15,10 @@ export class BootScene extends Phaser.Scene {
   preload() {
     preloadManifest(this);
     preloadFx(this);
-    this.load.image('title_bg', 'assets/title/title.png'); // 타이틀 일러스트 (perfectPixel 로 격자 정리: 312x553, 그림 1px = 원본 약 3px)
+    this.load.image('title_bg', 'assets/title/title.png');
+    // 로비(영지) 배경 — 동화풍 일러스트를 3px 도트로 정리한 그림 (아트 해상도, 화면엔 UI_PX 배)
+    this.load.image('lobby_wide', 'assets/lobby/lobby_wide.png');
+    this.load.image('lobby_tall', 'assets/lobby/lobby_tall.png'); // 타이틀 일러스트 (perfectPixel 로 격자 정리: 312x553, 그림 1px = 원본 약 3px)
   }
 
   create() {

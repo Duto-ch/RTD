@@ -147,10 +147,10 @@ export class UpgradeScene extends Phaser.Scene {
       this.input.keyboard?.on('keydown-ESC', () => this.close());
     } else if (WIDE) {
       new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      new Button(this, bx, GAME_H - 52, SIDE.w, 48, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+      new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => this.scene.start('Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
     } else {
       new Button(this, GAME_W / 2 - 92, 916, 236, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      new Button(this, GAME_W / 2 + 140, 916, 200, 60, '타이틀로', () => this.scene.start('Title'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+      new Button(this, GAME_W / 2 + 140, 916, 200, 60, '영지로', () => this.scene.start('Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
     }
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
@@ -161,7 +161,7 @@ export class UpgradeScene extends Phaser.Scene {
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
   close() {
-    if (!this.scene.isPaused('Game')) return this.scene.start('Title'); // 돌아갈 전투가 없으면 타이틀로
+    if (!this.scene.isPaused('Game')) return this.scene.start('Lobby'); // 돌아갈 전투가 없으면 영지로
     this.scene.stop();
     this.scene.resume('Game');
   }

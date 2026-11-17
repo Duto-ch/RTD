@@ -404,3 +404,39 @@ const GRADE_DETAIL = { 1: 'simple outfit', 2: 'slightly detailed outfit', 3: 'or
 export function artPrompt(c) {
   return `${STYLE_PROMPT}. Character: ${c.look}. Main colors: ${ATTR_COLOR[c.attr]}. ${GRADE_DETAIL[c.grade]}.`;
 }
+
+/** 처음 주어지는 덱 (37포인트): 속성마다 커먼 4 · 언커먼 2 · 레어 1 + 유니크 1 */
+export const DEFAULT_DECK = [
+  'eric', 'rowan', 'helga', 'gunnar', 'bridget', 'karsten', 'elva',
+  'finn', 'ingrid', 'edmund', 'percy', 'sigrid', 'olaf', 'kristin',
+  'robin', 'leif', 'astrid', 'torvald', 'freya', 'sigurd', 'elias',
+  'ragnar'
+];
+
+/** 덱 포인트 합계 */
+export function deckPoints(ids) {
+  return ids.reduce((s, id) => s + (ROSTER_BY_ID[id] ? GRADES[ROSTER_BY_ID[id].grade].pt : 0), 0);
+}
+
+/** 쓸 수 있는 덱인가: 1명 이상, 중복 없음, 포인트 DECK_POINTS 이하 */
+export function deckValid(ids) {
+  return Array.isArray(ids) && ids.length > 0 && new Set(ids).size === ids.length && ids.every((id) => ROSTER_BY_ID[id]) && deckPoints(ids) <= DECK_POINTS;
+}
+
+/**
+ * 고용 등급 굴리기: 등급 확률(유니크 1% 등) + 명성 강화 보정 → 덱에 있는 그 등급 캐릭터 중 무작위.
+ * 덱에 그 등급이 없으면 한 단계 아래 등급, 그래도 없으면 위 등급. rand: 0~1 난수 함수 (테스트용)
+ */
+export function rollHire(deckIds, bonus = {}, rand = Math.random) {
+  const chars = deckIds.map((id) => ROSTER_BY_ID[id]).filter(Boolean);
+  if (!chars.length) return null;
+  const p = { 4: GRADES[4].hire / 100 + (bonus.uniqueChance || 0), 3: GRADES[3].hire / 100 + (bonus.rareChance || 0), 2: GRADES[2].hire / 100 };
+  const r = rand();
+  const grade = r < p[4] ? 4 : r < p[4] + p[3] ? 3 : r < p[4] + p[3] + p[2] ? 2 : 1;
+  const order = [grade, ...[3, 2, 1].filter((g) => g < grade), ...[2, 3, 4].filter((g) => g > grade)];
+  for (const g of order) {
+    const pool = chars.filter((c) => c.grade === g);
+    if (pool.length) return pool[Math.floor(rand() * pool.length)];
+  }
+  return null;
+}

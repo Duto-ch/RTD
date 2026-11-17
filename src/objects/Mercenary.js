@@ -1,40 +1,76 @@
 import Phaser from 'phaser';
 import { PX, CELL, DEPTH, BALANCE } from '../config.js';
-import { MERC_CLASSES, MERC_NAMES, HERO_ARCHETYPES } from '../data/heroes.js';
+import { GRADES, STYLES, skillLevels } from '../data/roster.js';
 import { ATTR_INFO } from '../data/elements.js';
 import { cellCenter } from '../systems/path.js';
-import { playBase, setArt } from '../systems/customArt.js';
+import { playBase, setArt, artScale } from '../systems/customArt.js';
 
-export const MAX_LEVEL = 5; // 용병 최고 레벨. 그 다음은 영웅 승급
+export const MAX_LEVEL = 5; // 최고 레벨 (2026-11-17: 영웅 승급 폐지 — 유니크는 고용으로만)
 
-/** 필드 위 유닛. 1~5레벨은 용병, 승급하면 영웅(hero) */
+/** 필드 위 유닛 = 캐릭터 96명(data/roster.js) 중 하나. 등급·속성·레벨·고유 특성·확정 스킬 */
 const NO_BONUS = {};
 
 // 픽셀 별 모양 (5x5)
 const STAR = ['..x..', '.xxx.', 'xxxxx', '.xxx.', '.x.x.'].flatMap((r, j) => [...r].flatMap((c, i) => (c === 'x' ? [[i, j]] : [])));
 
+// 아직 전용 그림이 없는 캐릭터의 임시 그림 (ChatGPT 그림을 manifest 에 `char_<id>` 로 넣으면 그게 우선)
+const OLD_SPRITE = {
+  eric: 'merc_archer_red', rowan: 'merc_rogue_red', helga: 'merc_shaman_red', gunnar: 'merc_sniper_red', bridget: 'merc_mage_red',
+  sigrid: 'merc_archer_blue', olaf: 'merc_mage_blue', edmund: 'merc_sniper_blue', ingrid: 'merc_shaman_blue', finn: 'merc_rogue_blue',
+  robin: 'merc_archer_green', freya: 'merc_mage_green', torvald: 'merc_sniper_green', astrid: 'merc_shaman_green', leif: 'merc_rogue_green',
+  ragnar: 'hero_ragnar', isolde: 'hero_isolde', bjorn: 'hero_bjorn', arthur: 'hero_arthur', solveig: 'hero_solveig', william: 'hero_william',
+  halvard: 'hero_halvard', freydis: 'hero_freydis', richard: 'hero_richard', brynhild: 'hero_ragnar', vivian: 'hero_solveig', oberon: 'hero_freydis'
+};
+const STYLE_SPRITE = { bow: 'archer', rapid: 'rogue', heavy: 'sniper', blast: 'mage', hex: 'shaman', aid: 'shaman', brawl: 'rogue' };
+/** 연출·효과음용 종류 (예전 병과 이름을 그대로 쓴다) */
+export const STYLE_KIND = { bow: 'archer', rapid: 'rogue', heavy: 'sniper', blast: 'mage', hex: 'shaman', aid: 'shaman', brawl: 'warlord' };
+
+/** 캐릭터 그림 텍스처 키: 직접 넣은 그림(manifest `char_<id>`)이 있으면 그것, 없으면 임시 그림 */
+export function charTexture(scene, c) {
+  const own = `char_${c.id}`;
+  if (scene?.textures.exists(own)) return own;
+  return OLD_SPRITE[c.id] || `merc_${STYLE_SPRITE[c.style]}_${c.attr}`;
+}
+
+/** 로비·병영의 캐릭터 그림 (직접 그린 시트는 첫 프레임 + manifest 배율) */
+export function charImage(scene, x, y, c, base) {
+  const key = charTexture(scene, c);
+  const tex = scene.textures.get(key);
+  const frame = tex.frameTotal > 2 && tex.has(0) ? 0 : undefined;
+  return scene.add.image(x, y, key, frame).setScale(base * artScale(scene, key));
+}
+
+/** 캐릭터 스킬 → 게임 스킬 정의 (id·습득 레벨·속성). 유니크 Lv1 대표 스킬은 영웅 궁극기 연출(level 6) */
+export function skillDefs(c) {
+  const lv = skillLevels(c);
+  return c.skills.map((s, i) => ({ ...s, id: `${c.id}_${i}`, unlock: lv[i], level: c.grade === 4 && i === 0 ? MAX_LEVEL + 1 : lv[i], attr: c.attr }));
+}
+
 export class Mercenary extends Phaser.GameObjects.Container {
-  constructor(scene, col, row, attr, cls) {
+  /** @param {object} char data/roster.js 의 캐릭터 */
+  constructor(scene, col, row, char) {
     const c = cellCenter(col, row);
     super(scene, c.x, c.y);
-    this.attr = attr;
-    this.cls = cls;
+    this.char = char;
+    this.attr = char.attr;
+    this.grade = char.grade;
     this.level = 1;
-    this.hero = null; // 영웅 데이터 (data/heroes.js HEROES)
+    this.defs = skillDefs(char);
     this.skills = []; // { def, cd }
-    this.buffs = []; // { dmg, rate, range, until }
+    this.buffs = []; // { dmg, rate, range, crit, until }
     this.debuffs = []; // 보스 디버프 { def, until }
     this.col = col;
     this.row = row;
     this.cooldown = Math.random() * 0.5;
     this.invested = 0;
     this.kills = 0;
+    this.learnUpTo(1);
 
     this.sprite = setArt(scene.add.sprite(0, -PX, this.textureKey), this.textureKey, PX);
     scene.sys.updateList.add(this.sprite); // 컨테이너 안 스프라이트도 애니메이션이 돌도록
     playBase(this.sprite, 'idle');
     this.pips = scene.add.graphics();
-    this.add([this.sprite, this.pips]);
+    this.add([this.pips, this.sprite]);
     this.drawPips();
 
     this.setSize(CELL, CELL);
@@ -43,20 +79,32 @@ export class Mercenary extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  /** 최고 등급(유니크) — 예전 '영웅' 자리 (금색 표시) */
   get isHero() {
-    return !!this.hero;
+    return this.grade === 4;
   }
   get textureKey() {
-    return this.hero ? `hero_${this.hero.id}` : `merc_${this.cls}_${this.attr}`;
+    return charTexture(this.scene, this.char);
   }
   get heroName() {
-    return this.hero ? this.hero.name : MERC_NAMES[this.attr][this.cls];
+    return this.char.name;
+  }
+  get gradeName() {
+    return GRADES[this.grade].name;
   }
   get roleName() {
-    return this.hero ? HERO_ARCHETYPES[this.hero.arch].title : MERC_CLASSES[this.cls].role;
+    return `${GRADES[this.grade].name} ${STYLES[this.char.style].name}`;
   }
+  get kind() {
+    return STYLE_KIND[this.char.style];
+  }
+  get trait() {
+    return this.char.trait;
+  }
+  /** 1레벨 기본 능력치 = 공격 스타일 × 등급 배율 */
   get baseStats() {
-    return this.hero ? HERO_ARCHETYPES[this.hero.arch] : MERC_CLASSES[this.cls];
+    const st = STYLES[this.char.style];
+    return { ...st, dmg: st.dmg * GRADES[this.grade].mult };
   }
 
   drawPips() {
@@ -75,9 +123,11 @@ export class Mercenary extends Phaser.GameObjects.Container {
       g.fillStyle(color);
       STAR.forEach(([cx, cy]) => g.fillRect(x + cx * 2, y + cy * 2, 2, 2));
     }
-    if (this.isHero) {
-      // 영웅: 금색 테두리
-      g.lineStyle(4, 0xf2c14e, 0.9).strokeRect(-CELL / 2 + 2, -CELL / 2 + 2, CELL - 4, CELL - 4);
+    // 등급 표시: 언커먼 초록·레어 파랑·유니크 금색 테두리 (커먼은 없음)
+    const gc = { 2: 0x4fb06a, 3: 0x3f8fe0, 4: 0xf2c14e }[this.grade];
+    if (gc) {
+      g.lineStyle(this.grade === 4 ? 4 : 3, gc, this.grade === 4 ? 0.95 : 0.85).strokeRect(-CELL / 2 + 3, -CELL / 2 + 3, CELL - 6, CELL - 6);
+      if (this.grade === 4) g.fillStyle(0xf2c14e, 0.14).fillRect(-CELL / 2 + 3, -CELL / 2 + 3, CELL - 6, CELL - 6);
     }
   }
 
@@ -91,32 +141,46 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.setPosition(c.x, c.y);
   }
 
-  /** 같은 속성·같은 레벨 용병끼리만 합칠 수 있다 (Lv5+Lv5 = 영웅 승급) */
+  /** 같은 속성 + 같은 등급 + 같은 레벨끼리 합친다 (2026-11-17). 최고 레벨이면 더 못 합친다 */
   canMergeWith(other) {
-    return other && other !== this && !this.isHero && !other.isHero && other.attr === this.attr && other.level === this.level;
+    return !!other && other !== this && other.attr === this.attr && other.grade === this.grade && other.level === this.level && this.level < MAX_LEVEL;
   }
 
-  learn(def) {
-    this.skills.push({ def, cd: def.cd * 0.5 });
-  }
-
-  levelUp(def) {
-    this.level += 1;
-    this.learn(def);
-    this.drawPips();
-  }
-
-  promote(hero, uniqueSkill) {
-    this.hero = hero;
-    this.level = MAX_LEVEL + 1;
-    this.learn(uniqueSkill);
+  /** 다른 캐릭터로 바꾼다 (테스트·디버그용): 지금 레벨까지의 스킬을 다시 익히고 그림을 바꾼다 */
+  setChar(char) {
+    this.char = char;
+    this.attr = char.attr;
+    this.grade = char.grade;
+    this.defs = skillDefs(char);
+    this.skills = [];
+    this.learnUpTo(this.level);
     setArt(this.sprite, this.textureKey, PX);
     playBase(this.sprite, 'idle');
     this.drawPips();
+    return this;
+  }
+
+  /** level 까지 열리는 확정 스킬을 모두 익힌다 (이미 익힌 것은 건너뛴다) */
+  learnUpTo(level) {
+    const out = [];
+    for (const def of this.defs) {
+      if (def.unlock > level || this.skills.some((s) => s.def.id === def.id)) continue;
+      this.skills.push({ def, cd: def.cd * 0.5 });
+      out.push(def);
+    }
+    return out;
+  }
+
+  /** 레벨 업 → 그 레벨에 열리는 스킬을 익힌다. 새로 익힌 스킬 목록을 돌려준다 */
+  levelUp() {
+    this.level += 1;
+    const learned = this.learnUpTo(this.level);
+    this.drawPips();
+    return learned;
   }
 
   addBuff(b, now) {
-    this.buffs.push({ dmg: b.dmg || 0, rate: b.rate || 0, range: b.range || 0, until: now + b.dur });
+    this.buffs.push({ dmg: b.dmg || 0, rate: b.rate || 0, range: b.range || 0, crit: b.crit || 0, until: now + b.dur });
   }
 
   addDebuff(def, now, durMult = 1) {
@@ -144,38 +208,50 @@ export class Mercenary extends Phaser.GameObjects.Container {
   /** 유물·버프·디버프 반영 최종 능력치 */
   getStats(relics, now) {
     const base = this.baseStats;
+    const t = this.trait;
     const n = (id) => relics[id] || 0;
     this.buffs = this.buffs.filter((b) => b.until > now);
-    const buff = this.buffs.reduce((s, b) => ({ dmg: s.dmg + b.dmg, rate: s.rate + b.rate, range: s.range + b.range }), {
+    const buff = this.buffs.reduce((s, b) => ({ dmg: s.dmg + b.dmg, rate: s.rate + b.rate, range: s.range + b.range, crit: s.crit + b.crit }), {
       dmg: 0,
       rate: 0,
-      range: 0
+      range: 0,
+      crit: 0
     });
+    // 주변 8칸 아군의 상시 오라 (특성 aura)
+    const aura = { dmg: 0, rate: 0, range: 0 };
+    for (const o of this.scene?.mercs || []) {
+      const a = o.trait?.aura;
+      if (!a || o === this || o.dragging || Math.abs(o.col - this.col) > 1 || Math.abs(o.row - this.row) > 1) continue;
+      aura.dmg += a.dmg || 0;
+      aura.rate += a.rate || 0;
+      aura.range += a.range || 0;
+    }
 
     const deb = this.debuffState(now);
     // 명성 강화(영구) — 유물·버프와 따로 곱한다. 유물 효과는 '유물 감정'만큼 커진다
     const mb = this.scene?.bonus || NO_BONUS;
     const v = (k) => mb[k] || 0;
     const rp = 1 + v('relicPow');
-    const dmgBonus = (0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`)) * rp + buff.dmg + deb.dmg;
-    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + deb.rate;
-    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range;
-    // 속성·병과·영웅 전용 강화
-    const special = 1 + v(`attr_${this.attr}`) + (this.isHero ? v('heroDmg') : v(`cls_${this.cls}`));
+    const dmgBonus = (0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`)) * rp + buff.dmg + aura.dmg + deb.dmg;
+    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + aura.rate + deb.rate;
+    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range + aura.range;
+    // 속성·등급 전용 강화
+    const special = 1 + v(`attr_${this.attr}`) + v(`grade_${this.grade}`);
     const lv = Math.min(this.level, MAX_LEVEL);
 
     return {
-      damage: base.dmg * BALANCE.levelDamage[lv - 1] * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
-      rate: base.rate * (1 + v('rate')) * Math.max(0.1, 1 + rateBonus),
-      range: base.range * (1 + v('range')) * (1 + rangeBonus),
-      crit: Math.min(1, (base.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit')),
+      damage: base.dmg * (t.dmgMul || 1) * BALANCE.levelDamage[lv - 1] * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
+      rate: base.rate * (t.rateMul || 1) * (1 + v('rate')) * Math.max(0.1, 1 + rateBonus),
+      range: base.range * (t.rangeMul || 1) * (1 + v('range')) * (1 + rangeBonus),
+      crit: Math.min(1, (t.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit') + buff.crit),
       critMult: 2 + v('critDmg'),
-      targets: (base.targets || 1) + v('targets'),
-      splash: (base.splash || 0) * (1 + v('splash')),
-      chain: base.chain || 0,
-      slow: base.slow || 0,
-      slowDur: base.slowDur || 0,
+      targets: (t.targets || 1) + v('targets'),
+      splash: ((base.splash || 0) + (t.splash || 0)) * (1 + v('splash')),
+      chain: t.chain || 0,
+      slow: t.slow ? t.slow[0] : 0,
+      slowDur: t.slow ? t.slow[1] : 0,
       buffed: this.buffs.length > 0,
+      aura: aura.dmg + aura.rate + aura.range > 0,
       debuff: deb
     };
   }

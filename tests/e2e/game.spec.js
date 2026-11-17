@@ -12,9 +12,16 @@ async function startGame(page) {
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('01-title') });
-  await page.mouse.click(272, 652); // 게임 시작
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await toGame(page, 272, 652);
   return errors;
+}
+
+/** 타이틀을 누르면 영지(로비) → Space(출전) 로 전투 시작 (2026-11-17 로비 신설) */
+async function toGame(page, x, y) {
+  await page.mouse.click(x, y);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
 }
 
 test('고용 → 웨이브 진행 → 처치', async ({ page }) => {
@@ -31,23 +38,23 @@ test('고용 → 웨이브 진행 → 처치', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('같은 속성·레벨 용병을 끌어다 놓으면 레벨 업', async ({ page }) => {
+test('같은 속성·등급·레벨 용병을 끌어다 놓으면 놓여 있던 쪽이 레벨 업 + 확정 스킬', async ({ page }) => {
   const errors = await startGame(page);
   const pos = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 500; g.hire(); g.hire();
     const [a, b] = g.mercs;
-    // 5% 행운 Lv2 고용이 섞이지 않도록 둘 다 Lv1 로 맞춘다
-    for (const m of [a, b]) { m.level = 1; m.skills = []; m.drawPips(); }
-    b.attr = a.attr; b.cls = a.cls; b.sprite.setTexture(b.textureKey);
+    // 둘 다 Lv1 커먼 에릭으로 맞춘다 (5% 행운 Lv2 고용·등급 차이 제거)
+    const eric = window.__rtd.ROSTER.find((c) => c.id === 'eric');
+    for (const m of [a, b]) { m.level = 1; m.setChar(eric); }
     return { ax: a.x, ay: a.y, bx: b.x, by: b.y };
   });
   await page.mouse.move(pos.ax, pos.ay);
   await page.mouse.down();
   await page.mouse.move(pos.bx, pos.by, { steps: 8 });
   await page.mouse.up();
-  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, lv: g.mercs[0].level, skills: g.mercs[0].skills.length }; });
-  expect(r).toEqual({ n: 1, lv: 2, skills: 1 });
+  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, lv: g.mercs[0].level, skills: g.mercs[0].skills.map((s) => s.def.name), at: [g.mercs[0].x, g.mercs[0].y] }; });
+  expect(r).toEqual({ n: 1, lv: 2, skills: ['불화살 연발'], at: [pos.bx, pos.by] }); // 놓여 있던 자리(b)에 남는다
   expect(errors).toEqual([]);
 });
 
@@ -155,19 +162,17 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   }
 });
 
-test('용병 15명 개별 그림, 레벨은 별로 표시', async ({ page }) => {
+test('캐릭터마다 그림, 레벨은 별 · 등급은 테두리로 표시', async ({ page }) => {
   const errors = await startGame(page);
   const info = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
     for (let i = 0; i < 15; i++) g.hire();
-    const classes = ['archer', 'mage', 'sniper', 'shaman', 'rogue'];
-    const attrs = ['red', 'blue', 'green'];
-    // 15칸을 15명 서로 다른 용병으로, 레벨은 1~5 순서로
+    // 15칸을 그림이 다른 15명으로 (예전 용병 15명 = 커먼·언커먼), 레벨은 1~5 순서로
+    const ids = ['eric', 'rowan', 'helga', 'gunnar', 'bridget', 'sigrid', 'olaf', 'edmund', 'ingrid', 'finn', 'robin', 'freya', 'torvald', 'astrid', 'leif'];
     g.mercs.forEach((m, i) => {
-      m.cls = classes[i % 5]; m.attr = attrs[Math.floor(i / 5)];
-      m.level = (i % 5) + 1; m.skills = [];
-      window.__rtd.setArt(m.sprite, m.textureKey, 4); m.drawPips();
+      m.level = (i % 5) + 1;
+      m.setChar(window.__rtd.ROSTER.find((c) => c.id === ids[i]));
     });
     return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length };
   });
@@ -206,7 +211,7 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
     const g = window.game.scene.getScene('Game');
     g.hire();
     const m = g.mercs[0];
-    m.cls = 'archer'; m.attr = 'blue'; m.level = 1; m.skills = []; m.drawPips();
+    m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'sigrid'));
     // 가운데 열에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다. 정가운데는 성탑)
     g.grid[m.row][m.col] = null; m.col = 2; m.row = 1; g.grid[1][2] = m; m.snapToCell();
     window.__rtd.setArt(m.sprite, m.textureKey, 4);
@@ -275,8 +280,7 @@ test('강화 효과: 징집령(무료 용병)·군량 보급·성벽 체력·실
   await page.goto('/');
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
   await game(page, () => { const m = window.__rtd.meta; m.reset(); Object.assign(m.data.levels, { origin: 1, wall: 2, bulwark: 1, conscript: 2, veteran: 1, funds: 1, bounty: 1, stipend: 2 }); m.save(); });
-  await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await toGame(page, 272, 652);
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     const gold0 = g.gold;
@@ -360,7 +364,7 @@ test('필드 가운데 성탑: 용병은 못 놓고, 누르면 전투가 멈추�
   expect(errors).toEqual([]);
 });
 
-test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 타이틀로 정상 이동', async ({ page }) => {
+test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 영지로 정상 이동', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
   // 1) 전투 중 성탑으로 강화 창을 열었다 닫는다
@@ -380,9 +384,9 @@ test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 타�
   await page.mouse.click(p.x, p.y);
   await page.mouse.click(544 - 112, 688 + 140);
   expect(await game(page, () => window.__rtd.meta.level('origin'))).toBe(1);
-  await page.mouse.click(272 + 140, 916); // 타이틀로
-  await page.waitForFunction(() => window.game.scene.isActive('Title'));
-  expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Title']);
+  await page.mouse.click(272 + 140, 916); // 영지로
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Lobby']);
   expect(errors).toEqual([]);
 });
 
@@ -510,7 +514,7 @@ test('PixelLab 시범 캐릭터: 브리짓(레드 마법사) 3픽셀 사양 대�
     const g = window.game.scene.getScene('Game');
     g.hire();
     const m = g.mercs[0];
-    m.cls = 'mage'; m.attr = 'red'; m.level = 1; m.skills = []; m.drawPips();
+    m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'bridget'));
     window.__rtd.setArt(m.sprite, m.textureKey, 4);
     m.sprite.play('merc_mage_red:idle');
     return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anims: ['idle', 'attack'].every((a) => g.anims.exists(`merc_mage_red:${a}`)) };
@@ -588,33 +592,70 @@ test('단축키 S: 선택한 용병 판매', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('스킬 리롤: 스킬 정보 창에서 스킬마다 200/500/1500/3000G 로 같은 레벨의 다른 스킬로 바꾼다', async ({ page }) => {
+test('확정 스킬: 레벨마다 정해진 스킬이 하나씩 열리고, 유니크는 1레벨부터 대표 스킬', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
-    g.hire();
-    const m = g.mercs[0];
-    while (m.level < 5) m.levelUp(window.__rtd.skillOptions(m.attr, m.cls, m.level + 1)[0]);
+    const m = g.hire();
+    m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'bridget'));
+    const steps = [m.skills.length];
+    while (m.level < 5) { m.levelUp(); steps.push(m.skills.length); }
     g.select(m);
     g.hud.showSkillPopup(m);
-    return { btns: g.hud.rerollBtns.map((b) => b.label.text), before: m.skills.map((s) => s.def.id) };
+    const u = g.hire();
+    u.level = 1; u.setChar(window.__rtd.ROSTER.find((c) => c.id === 'isolde'));
+    return { steps, names: m.skills.map((s) => s.def.name), cost: g.mergeCostFor(5), unique: u.skills.map((s) => s.def.name), gold: u.isHero, rerolls: (g.hud.rerollBtns || []).length };
   });
-  expect(r.btns).toEqual(['리롤 200G', '리롤 500G', '리롤 1500G', '리롤 3000G']);
-  await page.screenshot({ path: SHOT('25-skill-reroll') });
-  // Lv4 스킬(3번째) 리롤 버튼을 실제로 누른다
-  const pos = await game(page, () => { const b = window.game.scene.getScene('Game').hud.rerollBtns[2]; return { x: b.x, y: b.y }; });
-  const g0 = await game(page, () => window.game.scene.getScene('Game').gold);
-  await page.mouse.click(pos.x, pos.y);
-  const after = await game(page, () => { const g = window.game.scene.getScene('Game'); return { gold: g.gold, ids: g.mercs[0].skills.map((s) => s.def.id), open: !!g.hud.popup }; });
-  expect(after.gold).toBe(g0 - 1500);
-  expect(after.ids[2]).not.toBe(r.before[2]);
-  expect(after.ids[2].split('_')[2]).toBe('4'); // 같은 레벨 후보
-  expect(after.ids.filter((_, i) => i !== 2)).toEqual(r.before.filter((_, i) => i !== 2));
-  expect(after.open).toBe(true); // 창이 다시 그려져 열려 있다
-  // 골드가 모자라면 버튼이 꺼진다
-  const dis = await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 300; g.hud.showSkillPopup(g.mercs[0]); return g.hud.rerollBtns.map((b) => b.enabled); });
-  expect(dis).toEqual([true, false, false, false]);
+  expect(r.steps).toEqual([0, 1, 2, 3, 4]);
+  expect(r.names).toEqual(['화염구', '불기둥', '마나 과열', '메테오']);
+  expect(r.cost).toBe(null); // 최고 레벨 — 영웅 승급 없음
+  expect(r.unique).toEqual(['태양 낙하']);
+  expect(r.gold).toBe(true);
+  expect(r.rerolls).toBe(0); // 리롤 폐지
+  await page.screenshot({ path: SHOT('25-fixed-skills') });
+  expect(errors).toEqual([]);
+});
+
+test('영지(로비) → 병영에서 덱 편성 (40포인트) → 저장 → 출전하면 그 덱에서만 고용', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => window.__rtd.meta.reset());
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('32-lobby') });
+  // 병영 이름표를 눌러 덱 편성으로
+  await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  const r = await game(page, () => {
+    const d = window.game.scene.getScene('Deck');
+    const pts0 = d.points;
+    const R = (id) => window.__rtd.ROSTER.find((c) => c.id === id);
+    d.deck = ['eric'];
+    d.toggle(R('isolde')); // +4
+    d.toggle(R('arthur')); // +4
+    for (const id of ['solveig', 'william', 'vivian', 'halvard', 'freydis', 'richard', 'oberon', 'ragnar']) d.toggle(R(id)); // 유니크 12명 × 4 = 48 → 40 넘으면 거부
+    return { pts0, pts: d.points, n: d.deck.length };
+  });
+  expect(r.pts0).toBe(37);
+  expect(r.pts).toBeLessThanOrEqual(40);
+  expect(r.pts).toBe(37); // 에릭 1 + 유니크 9명 36
+  await page.screenshot({ path: SHOT('33-deck') });
+  await game(page, () => window.game.scene.getScene('Deck').leave());
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  expect(await game(page, () => window.__rtd.meta.deck.length)).toBe(10);
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  const hired = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 99999;
+    for (let i = 0; i < 24; i++) g.hire();
+    return [...new Set(g.mercs.map((m) => m.char.id))].every((id) => g.deck.includes(id));
+  });
+  expect(hired).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -632,7 +673,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   const ok = await game(page, () => { const b = window.game.scene.getScene('Game').tut.okBtn; return { x: b.x, y: b.y }; });
   await page.mouse.click(ok.x, ok.y);
   expect(await tut()).toBe(null);
-  expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v1')).tutorial.seen.hire)).toBe(true);
+  expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v2')).tutorial.seen.hire)).toBe(true);
   // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
   expect(await tut()).toBe('select');
@@ -647,7 +688,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   expect(errors).toEqual([]);
 });
 
-test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누르면 시작', async ({ page }) => {
+test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누르면 영지(로비)', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
   const t = await page.evaluate(() => { const s = window.game.scene.getScene('Title'); return { tap: s.tapText.text, bg: s.textures.exists('title_bg') }; });
@@ -660,8 +701,7 @@ test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누�
   }
   expect(alphas.size).toBeGreaterThan(1);
   await page.screenshot({ path: SHOT('28-title') });
-  await page.mouse.click(120, 500); // 빈 곳
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await toGame(page, 120, 500); // 빈 곳 → 영지 → 출전
 });
 
 test('물량: 1웨이브 250기가 길 폭에 퍼져 나오고, 남는 피해는 옆 몬스터로 넘어간다 (관통)', async ({ page }) => {
@@ -702,8 +742,7 @@ test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
   expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([2560, 1440]);
   await page.screenshot({ path: SHOT('29-wide-title') });
-  await page.mouse.click(640, 420); // 빈 곳 = 시작
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await toGame(page, 640, 420); // 빈 곳 → 영지 → 출전
   const r = await page.evaluate(() => {
     const g = window.game.scene.getScene('Game');
     g.gold = 999; g.hire(); g.select(g.mercs[0]); g.startWave(1);

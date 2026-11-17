@@ -1,9 +1,11 @@
 // 판을 넘어 유지되는 진행 상황 (명성·강화 레벨·최고 기록) — 브라우저 localStorage 에 저장
 // 저장소를 못 쓰는 환경(사생활 보호 모드 등)에서도 게임은 돌아가고, 그 경우 이번 접속 동안만 유지된다.
 import { UPGRADE_BY_ID, upgradeCost, metaBonus } from '../data/upgrades.js';
+import { DEFAULT_DECK, deckValid } from '../data/roster.js';
 
-const KEY = 'rtd_meta_v1';
-const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0 }, tutorial: { seen: {}, off: false } });
+// v2 (2026-11-17): 캐릭터·덱 개편과 함께 저장 초기화 (사용자 결정). 예전 v1 저장은 읽지 않는다
+const KEY = 'rtd_meta_v2';
+const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0 }, tutorial: { seen: {}, off: false }, deck: [...DEFAULT_DECK] });
 
 export const meta = {
   data: fresh(),
@@ -46,6 +48,17 @@ export const meta = {
   resetTutorial() {
     this.data.tutorial = { seen: {}, off: false };
     this.save();
+  },
+
+  // ── 덱 (등급 포인트 합 40 이하) ──
+  get deck() {
+    return deckValid(this.data.deck) ? this.data.deck : [...DEFAULT_DECK];
+  },
+  setDeck(ids) {
+    if (!deckValid(ids)) return false;
+    this.data.deck = [...ids];
+    this.save();
+    return true;
   },
 
   get fame() {

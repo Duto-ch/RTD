@@ -26,7 +26,7 @@ export const TUTORIAL_STEPS = {
   },
   merge: {
     title: '머지로 레벨 업',
-    text: '같은 속성·같은 레벨 용병을 드래그해서 겹치면\n골드를 내고 레벨 업! 새 스킬을 하나 배웁니다.',
+    text: '같은 속성·같은 등급·같은 레벨 용병을 드래그해서 겹치면\n놓여 있던 쪽이 레벨 업! 레벨마다 정해진 스킬이 열립니다.',
     rect: (s) => {
       const pair = s.mergePair?.();
       return pair ? cellsRect(pair) : null;
@@ -34,8 +34,8 @@ export const TUTORIAL_STEPS = {
   },
   skill: {
     title: '스킬',
-    text: '스킬은 쿨타임마다 자동으로 시전됩니다.\n마음에 들지 않으면 「리롤」로 같은 레벨의 다른 스킬로 바꿀 수 있어요.',
-    rect: (s) => (s.hud.rerollBtns?.length ? btnRect(s.hud.rerollBtns[0], 8) : null)
+    text: '스킬은 쿨타임마다 자동으로 시전됩니다.\n캐릭터마다 레벨별 스킬이 정해져 있어, 레벨을 올리면 하나씩 열려요.',
+    rect: () => null
   },
   next: {
     title: '바로 시작',
@@ -56,11 +56,11 @@ export const TUTORIAL_STEPS = {
     rect: () => (WIDE ? { x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
   },
   hero: {
-    title: '영웅 승급',
-    text: 'Lv5 용병 두 명을 겹치면 영웅으로 승급합니다.\n기존 스킬은 그대로, 영웅 고유 스킬이 추가돼요.',
+    title: '유니크 등장',
+    text: '유니크는 고용할 때 1% 확률로만 나오는 최상위 등급이에요.\n대표 스킬을 처음부터 쓰고, 같은 유니크끼리 합치면 더 강해집니다.',
     rect: (s) => {
-      const pair = s.mergePair?.(5);
-      return pair ? cellsRect(pair) : null;
+      const u = s.mercs?.find((m) => m.isHero);
+      return u ? cellsRect([u]) : null;
     }
   },
   tower: {

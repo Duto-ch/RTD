@@ -8,6 +8,9 @@ import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { UpgradeScene } from './scenes/UpgradeScene.js';
+import { ROSTER } from './data/roster.js';
+import { LobbyScene } from './scenes/LobbyScene.js';
+import { DeckScene } from './scenes/DeckScene.js';
 import { meta } from './systems/meta.js';
 
 async function loadFonts() {
@@ -54,10 +57,10 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [BootScene, TitleScene, GameScene, UpgradeScene]
+  scene: [BootScene, TitleScene, LobbyScene, DeckScene, GameScene, UpgradeScene]
 });
 
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
 window.game = game;
 window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
-window.__rtd = { skillOptions, HEROES, audio, setArt, meta }; // 디버그·테스트용
+window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, meta }; // 디버그·테스트용

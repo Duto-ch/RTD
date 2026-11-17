@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 544, height: 960 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const levels = JSON.parse(process.argv[3] || '{}');
-  await p.addInitScript((levels) => { try { localStorage.setItem('rtd_meta_v1', JSON.stringify({ fame: 0, levels })); } catch {} }, levels);
+  await p.addInitScript((levels) => { try { localStorage.setItem('rtd_meta_v2', JSON.stringify({ fame: 0, levels })); } catch {} }, levels);
   // 고정 대기 대신 화면 준비를 기다린다 (여러 개를 동시에 돌리면 로딩이 늦어져 게임 시작 전에 봇이 움직이던 문제)
   await p.goto('http://localhost:4173');
   await p.waitForFunction(() => window.game?.scene.isActive('Title'), null, { timeout: 60000 });
@@ -37,7 +37,7 @@ const { chromium } = require('playwright');
         // 빈 칸이 있으면 고용 우선, 필드가 차면 낮은 레벨부터 합치기
         if (g.gold >= g.hireCost && g.mercs.length < g.fieldSlots) { g.hire(); acted = true; continue; }
         const ms = g.mercs.sort((a, b) => a.level - b.level);
-        outer: for (const a of ms) for (const c of ms) if (a.canMergeWith(c) && g.gold >= g.mergeCostFor(c.level)) { g.merge(a, c); acted = true; break outer; }
+        outer: for (const a of ms) for (const c of ms) if (a.canMergeWith(c) && g.mergeCostFor(c.level) != null && g.gold >= g.mergeCostFor(c.level)) { g.merge(a, c); acted = true; break outer; }
       }
       if (g.relicChoice) g.pickRelic(0); // 강화 보스 보상: 첫 번째 선택
       g.update(0, 100); // 0.1초
@@ -45,7 +45,7 @@ const { chromium } = require('playwright');
       const boss = g.monsters.find(m => m.isBoss);
       if (boss) bossMax[g.wave - g.wave % 10 || 10] = Math.max(bossMax[g.wave - g.wave % 10] || 0, Math.round(boss.dist / 17.6));
       if (g.wave !== lastWave) {
-        if (g.wave % 5 === 0 || g.wave <= 4) log.push(`W${g.wave} wall=${g.wallHp.toFixed(1)} gold=${g.gold} alive=${g.monsters.length} boss=${(g.monsters.find(m=>m.isBoss)?.dist/1760*100|0)}% lvls=${JSON.stringify(g.mercs.reduce((o,m)=>(o[m.level]=(o[m.level]||0)+1,o),{}))} relics=${Object.values(g.relics).reduce((a,b)=>a+b,0)}`);
+        if (g.wave % 5 === 0 || g.wave <= 4) log.push(`W${g.wave} wall=${g.wallHp.toFixed(1)} gold=${g.gold} alive=${g.monsters.length} boss=${(g.monsters.find(m=>m.isBoss)?.dist/1760*100|0)}% lvls=${JSON.stringify(g.mercs.reduce((o,m)=>(o[m.level]=(o[m.level]||0)+1,o),{}))} grades=${JSON.stringify(g.mercs.reduce((o,m)=>(o[m.grade]=(o[m.grade]||0)+1,o),{}))} relics=${Object.values(g.relics).reduce((a,b)=>a+b,0)}`);
         lastWave = g.wave;
       }
     }

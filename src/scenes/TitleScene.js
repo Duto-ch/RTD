@@ -49,7 +49,7 @@ export class TitleScene extends Phaser.Scene {
       if (this.starting) return;
       this.starting = true;
       audio.init();
-      this.scene.start('Game');
+      this.scene.start('Lobby'); // 2026-11-17: 타이틀 → 영지(로비)
     };
     this.input.on('pointerup', (_p, objs) => {
       if (!objs.length) start();

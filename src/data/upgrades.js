@@ -55,14 +55,14 @@ export const UPGRADES = [
   N('vault', 'manual', 'tactics', '유물 보관함', '함', 'relicSlots', 1, 2, [40, 3], 'count', '유물 활성 슬롯'),
   N('appraise', 'vault', 'tactics', '유물 감정', '감', 'relicPow', 0.1, 10, [20, 1.3], 'pct', '유물 효과'),
   N('merger', 'tower', 'tactics', '합병 협약', '합', 'mergeDiscount', 0.03, 10, [8, 1.28], 'pctMinus', '레벨 업 비용'),
-  N('ascend', 'merger', 'tactics', '영웅의 길', '승', 'promoteDiscount', 0.05, 8, [20, 1.3], 'pctMinus', '영웅 승급 비용'),
-  N('heroPow', 'ascend', 'tactics', '영웅 전승', '영', 'heroDmg', 0.1, 20, [25, 1.25], 'pct', '영웅 공격력'),
-  N('drill', 'tower', 'tactics', '병과 훈련', '병', 'splash', 0.06, 10, [8, 1.25], 'pct', '범위 공격 반경'),
-  N('archerPow', 'drill', 'tactics', '궁술', '궁', 'cls_archer', 0.1, 20, [6, 1.2], 'pct', '궁수 공격력'),
-  N('magePow', 'drill', 'tactics', '마도', '마', 'cls_mage', 0.1, 20, [6, 1.2], 'pct', '마법사 공격력'),
-  N('sniperPow', 'drill', 'tactics', '저격술', '저', 'cls_sniper', 0.1, 20, [6, 1.2], 'pct', '저격수 공격력'),
-  N('shamanPow', 'drill', 'tactics', '주술', '주', 'cls_shaman', 0.1, 20, [6, 1.2], 'pct', '주술사 공격력'),
-  N('roguePow', 'drill', 'tactics', '암살술', '암', 'cls_rogue', 0.1, 20, [6, 1.2], 'pct', '도적 공격력'),
+  N('rareLuck', 'merger', 'tactics', '인재 발굴', '발', 'rareChance', 0.005, 10, [20, 1.3], 'pctp', '레어 고용 확률 (기본 11%)'),
+  N('uniqueLuck', 'rareLuck', 'tactics', '전설의 계보', '설', 'uniqueChance', 0.001, 10, [30, 1.3], 'pctp1', '유니크 고용 확률 (기본 1%)'),
+  N('drill', 'tower', 'tactics', '범위 훈련', '범', 'splash', 0.06, 10, [8, 1.25], 'pct', '범위 공격 반경'),
+  // 등급별 단련 (2026-11-17: 병과 폐지 → 등급별 공격력)
+  N('commonPow', 'drill', 'tactics', '신병 훈련', '신', 'grade_1', 0.1, 20, [6, 1.2], 'pct', '커먼 공격력'),
+  N('uncommonPow', 'drill', 'tactics', '정예 훈련', '정', 'grade_2', 0.1, 20, [6, 1.2], 'pct', '언커먼 공격력'),
+  N('rarePow', 'drill', 'tactics', '명장 훈련', '장', 'grade_3', 0.1, 20, [8, 1.2], 'pct', '레어 공격력'),
+  N('uniquePow', 'drill', 'tactics', '전설 전승', '영', 'grade_4', 0.1, 20, [12, 1.22], 'pct', '유니크 공격력'),
 
   // 방어 (왼쪽)
   N('wall', 'origin', 'defense', '성벽 보강', '벽', 'wallHp', 5, 12, [6, 1.3], 'count', '성벽 체력'),
@@ -101,6 +101,7 @@ export function formatEffect(u, lv) {
   switch (u.fmt) {
     case 'pct': return `+${Math.round(v * 100)}%`;
     case 'pctp': return `+${Math.round(v * 100)}%p`;
+    case 'pctp1': return `+${(v * 100).toFixed(1)}%p`;
     case 'pctMinus': return `-${Math.round(v * 100)}%`;
     case 'gold': return `+${v}G`;
     case 'goldMinus': return `-${v}G`;

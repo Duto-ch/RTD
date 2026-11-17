@@ -8,8 +8,8 @@ import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
 import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
 import { ATTR_INFO, strongAgainst, weakAgainst } from '../data/elements.js';
-import { HEROES } from '../data/heroes.js';
-import { skillOptions, describeSkill, ELEMENT_FLAVOR } from '../data/skills.js';
+import { describeSkill, ELEMENT_FLAVOR } from '../data/skills.js';
+import { STYLES, TRAIT_TEXT } from '../data/roster.js';
 import { RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
@@ -404,7 +404,7 @@ export class Hud {
       this.sellBtn.setVisible(false);
       this.skillBtn.setVisible(false);
       this.infoTitle.setPosition(px + 18, py + 9).setColor(CSS.primary).setText('용병단 지휘');
-      this.infoSub.setPosition(px + 18, py + 30).setText('용병을 누르면 정보가 보여요 · 같은 속성·레벨끼리 겹치면 레벨 업');
+      this.infoSub.setPosition(px + 18, py + 30).setText('용병을 누르면 정보가 보여요 · 같은 속성·등급·레벨끼리 겹치면 레벨 업');
       this.fitText(this.infoSub, pw - 36);
       this.infoBody.setText('');
       return;
@@ -414,9 +414,9 @@ export class Hud {
     this.infoAvatar.setFillStyle(m.isHero ? 0xf3dc94 : C.card).setVisible(true);
     setArt(this.infoPortrait, m.textureKey, PX - 1.5).setVisible(true);
     playBase(this.infoPortrait, 'idle');
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : `승급 ${s.mergeCostFor(MAX_LEVEL)}G`;
+    const next = m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : '최고 레벨';
     this.infoTitle.setPosition(px + 62, py + 7).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
-    this.infoSub.setPosition(px + 62, py + 24).setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
+    this.infoSub.setPosition(px + 62, py + 24).setText(`Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
     this.fitText(this.infoSub, textW);
     const body = st.debuff.list.length
       ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - s.gameTime)}초`).join(', ')}`
@@ -451,8 +451,8 @@ export class Hud {
         .setText(
           [
             '· 고용: 빈 칸에 랜덤 용병 배치',
-            '· 같은 속성·레벨끼리 겹치면 레벨 업',
-            '· Lv5 + Lv5 = 영웅 승급',
+            '· 같은 속성·등급·레벨끼리 겹치면 레벨 업',
+            '· 레벨마다 정해진 스킬이 하나씩 열림',
             '· 상성: 블루>레드>그린>블루',
             '· 패배: 성벽 체력 0 (몬스터가 한 바퀴 돌 때마다 깎임)'
           ].join('\n')
@@ -467,8 +467,8 @@ export class Hud {
     this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : `승급 ${s.mergeCostFor(MAX_LEVEL)}G`;
-    this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
+    const next = m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : '최고 레벨';
+    this.infoSub.setText(`Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
     // 본문은 2줄: 능력치 / (디버프 또는 상성·스킬 수)
     const lines = [
       `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)} · 사거리 ${Math.round(st.range)}${st.buffed && !st.debuff.list.length ? ' (버프)' : ''}`,
@@ -520,35 +520,15 @@ export class Hud {
       cy += t.height + gap;
       return t;
     };
-    add(`${m.heroName} · ${m.isHero ? `영웅 ${m.roleName}` : `Lv.${m.level} ${m.roleName}`}`, 20, m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr], '700', 4);
-    add(`${ELEMENT_FLAVOR[m.attr].desc} (피해 스킬에 추가 적용)`, 13, CSS.sub, '600', 12);
-    if (!m.skills.length) add('아직 스킬이 없습니다.', 14, CSS.ink);
+    // 2026-11-17: 확정 스킬 — 레벨이 오를 때마다 정해진 스킬이 하나씩 열린다 (리롤 폐지)
+    add(`${m.heroName} · Lv.${m.level} ${m.gradeName}`, 20, m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr], '700', 2);
+    add(`${m.char.title} · ${STYLES[m.char.style].name} — ${TRAIT_TEXT(m.trait)}`, 13, CSS.ink, '600', 2);
+    add(`${ELEMENT_FLAVOR[m.attr].desc} (피해 스킬에 추가 적용)`, 12, CSS.sub, '600', 10);
     this.rerollBtns = [];
-    m.skills.forEach((sk, i) => {
-      const d = sk.def;
-      const tag = d.level > MAX_LEVEL ? '영웅 고유' : `Lv${d.level}`;
-      const cost = s.rerollCost(d);
-      const rowY = cy;
-      const title = add(`${tag}  ${d.name}  ·  쿨타임 ${d.cd}초`, 15, d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
-      if (cost) {
-        // 스킬마다 리롤 버튼 (오른쪽 끝). 누르면 골드를 쓰고 창을 다시 그린다
-        title.setWordWrapWidth(w - 48 - 104);
-        const btn = new Button(s, x + w - 72, rowY + 9, 96, 26, `리롤 ${cost}G`, () => {
-          if (s.rerollSkill(m, i)) this.showSkillPopup(m);
-        }, { variant: 'gold', fontSize: 11 });
-        btn.setEnabled(s.gold >= cost);
-        c.add(btn);
-        this.rerollBtns.push(btn);
-      }
-      add(describeSkill(d), 13, CSS.ink, '600', 10);
-    });
-    if (!m.isHero && m.level < MAX_LEVEL) {
-      cy += 4;
-      add(`다음 레벨(Lv${m.level + 1}) 후보 — 이 중 1개 랜덤 습득`, 13, CSS.sub, '700', 4);
-      for (const o of skillOptions(m.attr, m.cls, m.level + 1)) add(`· ${o.name}: ${describeSkill(o)}`, 12, CSS.sub, '600', 3);
-    } else if (!m.isHero) {
-      cy += 4;
-      add(`영웅 승급 후보: ${HEROES[m.attr].map((hh) => hh.name).join(' / ')}`, 13, CSS.sub, '700');
+    for (const d of m.defs) {
+      const open = m.skills.some((sk) => sk.def.id === d.id);
+      add(`Lv${d.unlock}  ${d.name}  ·  쿨타임 ${d.cd}초${open ? '' : '  · 잠김'}`, 15, !open ? CSS.sub : d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
+      add(describeSkill(d), 13, open ? CSS.ink : CSS.sub, '600', 9);
     }
     const h = Math.min(GAME_H - y - 24, cy - y + 40);
     const card = panel(s, x, y, w, h, 'card').setInteractive();
