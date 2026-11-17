@@ -155,8 +155,8 @@ export class LobbyScene extends Phaser.Scene {
   createDeckStrip() {
     const ids = meta.deck;
     const pts = deckPoints(ids);
-    const per = 11; // 한 줄에 놓는 수 (머리 그림 · 도트 2px)
-    const step = 46;
+    const per = WIDE ? 22 : 11; // 한 줄에 놓는 수
+    const step = WIDE ? 33 : 46;
     const rows = Math.ceil(ids.length / per);
     const pw = WIDE ? per * step + 24 : GAME_W - 32;
     const ph = 34 + rows * (step + 2) + 8;
@@ -172,7 +172,7 @@ export class LobbyScene extends Phaser.Scene {
       const r = this.add.graphics();
       r.fillStyle(0xf3ead2, 1).fillRoundedRect(x - step / 2 + 2, y - step / 2 + 2, step - 4, step - 4, 7);
       r.lineStyle(2, Phaser.Display.Color.HexStringToColor(GRADES[ch.grade].color).color, 1).strokeRoundedRect(x - step / 2 + 2, y - step / 2 + 2, step - 4, step - 4, 7);
-      charImage(this, x, y, ch, true);
+      charImage(this, x, y, ch, WIDE ? 1.5 : PX / 2 + 0.5);
     });
     const zone = this.add.zone(px, py, pw, ph).setOrigin(0).setInteractive({ useHandCursor: true });
     zone.on('pointerup', () => this.go('Deck'));

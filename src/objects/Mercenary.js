@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PX, DOT, CELL, DEPTH, BALANCE } from '../config.js';
+import { PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES, skillLevels } from '../data/roster.js';
 import { ATTR_INFO } from '../data/elements.js';
 import { cellCenter } from '../systems/path.js';
@@ -32,25 +32,12 @@ export function charTexture(scene, c) {
   return OLD_SPRITE[c.id] || `merc_${STYLE_SPRITE[c.style]}_${c.attr}`;
 }
 
-/** 로비·병영의 캐릭터 그림 (직접 그린 시트는 첫 프레임 + manifest 배율). 도트 2px 그대로 — head 면 머리 부분만 (작은 칸용) */
-export function charImage(scene, x, y, c, head = false) {
+/** 로비·병영의 캐릭터 그림 (직접 그린 시트는 첫 프레임 + manifest 배율) */
+export function charImage(scene, x, y, c, base) {
   const key = charTexture(scene, c);
   const tex = scene.textures.get(key);
   const frame = tex.frameTotal > 2 && tex.has(0) ? 0 : undefined;
-  const img = scene.add.image(x, y, key, frame).setScale(PX * artScale(scene, key));
-  if (head) cropHead(img);
-  return img;
-}
-
-/** 머리 부분만 보이게 자른다 (2등신·치비: 위 58%, 가운데 70%). 기준점을 잘린 부분 가운데로 */
-export function cropHead(img) {
-  const f = img.frame;
-  const cw = Math.round(f.width * 0.7);
-  const ch = Math.round(f.height * 0.58);
-  const cx = Math.round((f.width - cw) / 2);
-  img.setCrop(cx, 0, cw, ch);
-  img.setOrigin(0.5, ch / 2 / f.height);
-  return img;
+  return scene.add.image(x, y, key, frame).setScale(base * artScale(scene, key));
 }
 
 /** 캐릭터 스킬 → 게임 스킬 정의 (id·습득 레벨·속성). 유니크 Lv1 대표 스킬은 영웅 궁극기 연출(level 6) */
@@ -79,7 +66,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.kills = 0;
     this.learnUpTo(1);
 
-    this.sprite = setArt(scene.add.sprite(0, -DOT, this.textureKey), this.textureKey, PX); // PX × artScale(0.5) = 도트 2px
+    this.sprite = setArt(scene.add.sprite(0, -PX, this.textureKey), this.textureKey, PX);
     scene.sys.updateList.add(this.sprite); // 컨테이너 안 스프라이트도 애니메이션이 돌도록
     playBase(this.sprite, 'idle');
     this.pips = scene.add.graphics();

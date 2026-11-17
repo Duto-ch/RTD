@@ -55,7 +55,7 @@
 ## 작업 규칙
 - 이 프로젝트 폴더 밖의 파일(다른 프로젝트)은 수정하지 않는다.
 - Phaser **3** API만 사용한다 (Phaser 4 문법 금지).
-- 픽셀 격자: **게임 안 모든 그림의 도트 굵기 = 2px (`DOT`, 2026-11-17 사용자 결정)**. 배경·로비·UI 는 아트 1px = 화면 2px(`UI_PX` = `DOT`). 코드로 그린 16x16 그림(용병·영웅·정예·성탑)은 `paintMap(…, 2)` 이 Scale2x 로 32x32 로 다듬고 `customData.artScale` 0.5 → `setArt(obj, key, PX)` 가 2px 로, 보스는 Scale3x 48x48(artScale 0.4), 일반 몬스터는 16x16 그대로 배율 2. 투사체·파티클 텍스처도 Scale2x + 배율 `DOT`. PixelLab 이펙트 시트는 `tools/scale2x.py` 로 2배 해상도(fx.js `px: 2`), 화살·동전은 배율만 2. 직접 그린 캐릭터 manifest `scale` 은 PX(4) 기준 0.5 (= 2px). 작은 칸의 캐릭터 그림은 줄이지 말고 `cropHead()`(머리만). 새 그림도 반드시 1px = 화면 2px 로 넣는다
+- 픽셀 격자: **배경·UI 는 아트 1px = 화면 3px(`UI_PX`)**, 직접 그린 캐릭터도 3px(28x24 × manifest scale 0.75). 아직 코드로 그린 유닛·몬스터·성탑·유물 아이콘·이펙트는 4px(`PX`) — 캐릭터 교체가 끝나면 함께 3px 로 옮길 예정. 화면 칸(64px)은 3으로 나누어떨어지지 않으므로 배경은 `toArt()` 로 가장 가까운 픽셀 경계에 맞춘다
 - 밸런스 수치는 코드에 흩지 말고 `config.js`의 BALANCE 또는 `data/` 에 둔다.
 - GameObject 하위 클래스에 `name`, `type`, `state` 같은 Phaser 예약 속성명 getter 금지 (예: 용병 이름은 `heroName`).
 - 유닛·몬스터 그림은 Sprite(애니메이션 가능). 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')` 로 기본 애니메이션을 다시 맞춘다. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영

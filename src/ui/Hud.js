@@ -2,8 +2,8 @@
 // GameScene 은 게임 진행만 맡고, 화면 표시는 이 클래스에 맡긴다 (scene.hud).
 // 게임 상태는 읽기만 하고, 버튼을 누르면 scene 의 동작(hire, sell, callNextWave …)을 부른다.
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, UI_PX, DOT, WIDE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
-import { MAX_LEVEL, cropHead } from '../objects/Mercenary.js';
+import { GAME_W, GAME_H, PX, UI_PX, WIDE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
+import { MAX_LEVEL } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
 import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
@@ -281,7 +281,7 @@ export class Hud {
       // 칸 27px, 칸 사이 9px (예전 32px 칸이 4px 간격으로 붙고 띠 테두리에 닿았다)
       const { x, y } = this.relicPos(i, s.ownedRelics.length);
       const slot = panelImage(s, x, y, r.active ? 'gold' : 'soft', WIDE ? 28 : 27, WIDE ? 28 : 27);
-      const icon = s.add.image(x, y, `relic_${r.id}`).setScale(DOT).setInteractive({ useHandCursor: true });
+      const icon = s.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => s.toggleRelic(i));
       icon.on('pointerover', () => this.showRelicTip(i, x, y));
       icon.on('pointerout', () => this.hideRelicTip());
@@ -345,8 +345,8 @@ export class Hud {
     // 정보 창
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
     panel(s, px, py, pw, ph, COZY ? 'soft' : 'card').setDepth(D - 1);
-    this.infoAvatar = panelImage(s, px + 44, py + 42, 'soft', 58, 50).setDepth(D).setVisible(false);
-    this.infoPortrait = s.add.sprite(px + 44, py + 42, 'pixel').setDepth(D).setVisible(false);
+    this.infoAvatar = panelImage(s, px + 44, py + 42, 'soft', 48, 48).setDepth(D).setVisible(false);
+    this.infoPortrait = s.add.sprite(px + 44, py + 42, 'pixel').setScale(PX - 1).setDepth(D).setVisible(false);
     this.infoTitle = uiText(s, px + 20, py + 16, '', 16, CSS.ink, 'bold').setDepth(D);
     this.infoSub = uiText(s, px + 78, py + 44, '', 11, CSS.sub, 'bold').setDepth(D);
     this.infoBody = uiText(s, px + 20, py + 44, '', 11, CSS.ink, 'bold', { lineSpacing: 2, wordWrap: { width: pw - 40 } }).setDepth(D);
@@ -381,9 +381,9 @@ export class Hud {
     panel(s, px, py, pw, ph, 'soft').setDepth(D - 1);
     const ax = px + 30;
     const ay = py + ph / 2;
-    this.infoAvatar = s.add.circle(ax, ay, 25, C.card).setStrokeStyle(2, C.line).setDepth(D).setVisible(false);
+    this.infoAvatar = s.add.circle(ax, ay, 22, C.card).setStrokeStyle(2, C.line).setDepth(D).setVisible(false);
     this.infoAvatar.setTexture = () => this.infoAvatar; // 세로 배치와 같은 호출을 받는다
-    this.infoPortrait = s.add.sprite(ax, ay, 'pixel').setDepth(D).setVisible(false);
+    this.infoPortrait = s.add.sprite(ax, ay, 'pixel').setScale(PX - 1.5).setDepth(D).setVisible(false);
     this.infoTitle = uiText(s, px + 62, py + 7, '', 13, CSS.ink, 'bold').setDepth(D);
     this.infoSub = uiText(s, px + 62, py + 24, '', 11, CSS.sub, '600').setDepth(D);
     this.infoBody = uiText(s, px + 62, py + 39, '', 11, CSS.ink, '600').setDepth(D);
@@ -412,9 +412,8 @@ export class Hud {
     const st = m.getStats(s.relics, s.gameTime);
     const info = ATTR_INFO[m.attr];
     this.infoAvatar.setFillStyle(m.isHero ? 0xf3dc94 : C.card).setVisible(true);
-    setArt(this.infoPortrait, m.textureKey, PX).setVisible(true); // 도트 2px 그대로, 머리만
+    setArt(this.infoPortrait, m.textureKey, PX - 1.5).setVisible(true);
     playBase(this.infoPortrait, 'idle');
-    cropHead(this.infoPortrait);
     const next = m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : '최고 레벨';
     this.infoTitle.setPosition(px + 62, py + 7).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     this.infoSub.setPosition(px + 62, py + 24).setText(`Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
@@ -462,10 +461,9 @@ export class Hud {
     }
     const st = m.getStats(s.relics, s.gameTime);
     const info = ATTR_INFO[m.attr];
-    this.infoAvatar.setTexture(panelKey(s, m.isHero ? 'gold' : 'soft', 58, 50)).setVisible(true);
-    setArt(this.infoPortrait, m.textureKey, PX).setVisible(true); // 도트 2px 그대로, 머리만
+    this.infoAvatar.setTexture(panelKey(s, m.isHero ? 'gold' : 'soft', 48, 48)).setVisible(true);
+    setArt(this.infoPortrait, m.textureKey, PX - 1).setVisible(true);
     playBase(this.infoPortrait, 'idle');
-    cropHead(this.infoPortrait);
     this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;

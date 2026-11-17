@@ -148,7 +148,7 @@ export class DeckScene extends Phaser.Scene {
       g.lineStyle(sel ? 4 : 3, sel ? 0xf2c14e : GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, w, L.cardH, 12);
       if (!inDeck) g.fillStyle(0x0b2f2e, 0.28).fillRoundedRect(x, y, w, L.cardH, 12);
       g.fillStyle(ATTR_INFO[c.attr].color, 1).fillCircle(x + 12, y + 12, 6);
-      const img = charImage(this, x + 28, y + L.cardH / 2 + 2, c, true);
+      const img = charImage(this, x + 28, y + L.cardH / 2 + 2, c, 2.5);
       const nm = uiText(this, x + 52, y + 14, c.name, 13, CSS.ink, 'bold');
       const gr = uiText(this, x + 52, y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
       const st = uiText(this, x + 52, y + 52, STYLES[c.style].name, 11, CSS.sub, '600');
@@ -191,7 +191,7 @@ export class DeckScene extends Phaser.Scene {
     this.info.add(panel(this, I.x, I.y, I.w, I.h, 'card'));
     const lv = skillLevels(c);
     const col = c.grade === 4 ? '#b47a12' : ATTR_INFO[c.attr].css;
-    const head = charImage(this, I.x + 34, I.y + 36, c, true);
+    const head = charImage(this, I.x + 34, I.y + 36, c, 3);
     const nm = uiText(this, I.x + 64, I.y + 14, `${c.name}  ·  ${c.title}`, 16.5, col, 'bold');
     const sub = uiText(this, I.x + 64, I.y + 38, `${GRADES[c.grade].name} ${GRADES[c.grade].pt}pt · ${ATTR_INFO[c.attr].name} · ${STYLES[c.style].name} (공격력 ${+(STYLES[c.style].dmg * GRADES[c.grade].mult).toFixed(1)} · 공속 ${STYLES[c.style].rate} · 사거리 ${STYLES[c.style].range})`, 11, CSS.sub, '600');
     this.fit(nm, I.w - 80);
@@ -224,16 +224,16 @@ export class DeckScene extends Phaser.Scene {
     const D = L.deck;
     this.deckBox.add(panel(this, D.x, D.y, D.w, D.h, 'card'));
     this.deckBox.add(uiText(this, D.x + 16, D.y + 10, `출전 덱 ${this.deck.length}명`, 13, CSS.ink, 'bold'));
-    const step = 46;
+    const step = 40;
     const per = Math.floor((D.w - 24) / step);
     const sorted = [...this.deck].map((id) => ROSTER_BY_ID[id]).sort((a, b) => b.grade - a.grade || a.attr.localeCompare(b.attr));
     sorted.forEach((c, i) => {
       const x = D.x + 12 + (i % per) * step + step / 2;
       const y = D.y + 34 + Math.floor(i / per) * step + step / 2;
       const g = this.add.graphics();
-      g.fillStyle(0xf3ead2, 1).fillRoundedRect(x - 22, y - 20, 44, 40, 8);
-      g.lineStyle(2, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x - 22, y - 20, 44, 40, 8);
-      const img = charImage(this, x, y, c, true).setInteractive({ useHandCursor: true });
+      g.fillStyle(0xf3ead2, 1).fillRoundedRect(x - 18, y - 18, 36, 36, 8);
+      g.lineStyle(2, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x - 18, y - 18, 36, 36, 8);
+      const img = charImage(this, x, y, c, 2).setInteractive({ useHandCursor: true });
       img.on('pointerup', () => this.select(c));
       this.deckBox.add([g, img]);
     });
