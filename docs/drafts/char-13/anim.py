@@ -300,6 +300,8 @@ def char(cid, strip, keep_top=0, mirror=True, shield=False):
     return {'img': noarms(img) if ARMLESS else img, 'pal': {**D.COMMON, **ch['pal']}, 'mirror': mirror, 'shield': shield, 'armless': ARMLESS}
 
 
+# 무기 쥐는 손 위치 (몸 기준 좌표, 아델·베로나는 뒤집혀 그려짐) — 몸통 쪽으로 붙여 무기가 몸을 조금 가리게
+HAND = {'staff': (16, 22), 'bow': (5, 19), 'spear': (16, 20)}
 IDLE_TILT = {'bow': -30, 'spear': 35}  # 대기 때 대각선으로 기울여 잡기 (시계 방향 +, 아델은 뒤집혀 그려져 최종 그림에서 바깥쪽으로)
 
 
@@ -317,11 +319,11 @@ def build_all():
         {'key': 'sword', 'title': '카이라 · 검과 방패', 'sub': '젖힘 → 잔상 내려치기 → 타격 멈춤 → 회복',
          'idle': idle(kaira, 'sword', (19, 20)), 'attack': swing(kaira, 'sword')},
         {'key': 'staff', 'title': '베로나 · 지팡이', 'sub': '웅크림 → 번쩍 들어 올림 → 섬광·고리·불티',
-         'idle': idle(verona, 'staff', (19, 22), hat_rows=9), 'attack': cast(verona)},
+         'idle': idle(verona, 'staff', HAND['staff'], hat_rows=9), 'attack': cast(verona, HAND['staff'])},
         {'key': 'bow', 'title': '엘린 · 활', 'sub': '당기며 기댐 → 멈춤 → 시위 튕김·반동·화살',
-         'idle': idle(elin, 'bow', (1, 18), deg=IDLE_TILT['bow'], extra=lambda c, x, y, i: ImageDraw.Draw(c).line([rot_pt(3, -7, IDLE_TILT['bow'], x, y), rot_pt(3, 6, IDLE_TILT['bow'], x, y)], fill=(238, 246, 255, 255))), 'attack': shoot(elin)},
+         'idle': idle(elin, 'bow', HAND['bow'], deg=IDLE_TILT['bow'], extra=lambda c, x, y, i: ImageDraw.Draw(c).line([rot_pt(3, -7, IDLE_TILT['bow'], x, y), rot_pt(3, 6, IDLE_TILT['bow'], x, y)], fill=(238, 246, 255, 255))), 'attack': shoot(elin, HAND['bow'])},
         {'key': 'knight', 'title': '아델 · 창', 'sub': '뒤로 당김 → 쭉 찌르기(속도선) → 멈춤 → 회복',
-         'idle': idle(adel, 'spear', (19, 20), deg=IDLE_TILT['spear']), 'attack': thrust(adel, 'spear')},
+         'idle': idle(adel, 'spear', HAND['spear'], deg=IDLE_TILT['spear']), 'attack': thrust(adel, 'spear', HAND['spear'])},
     ]
 
 
