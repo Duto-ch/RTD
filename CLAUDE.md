@@ -11,7 +11,7 @@
 
 ## 브랜치 상태 (2026-11-17)
 - `main` — 배포 중(https://duto-ch.github.io/RTD/). 예전 규칙(용병 15·영웅 9, 100기 패배, 영웅 승급, 스킬 리롤) + B-2 UI·썬플라워 글꼴·가로 배치
-- `feature/horde` — ① 물량·성벽 체력 시험판. `feature/roster` — 그 위에 ② 캐릭터 96명·로비·덱 + 캐릭터 그림 시안. **둘 다 main 미반영, 사용자 확인 대기**. 아래 규칙은 `feature/roster` 기준
+- `feature/horde` — ① 물량·성벽 체력 시험판. `feature/roster` — 그 위에 ② 캐릭터 96명·로비·덱 + 캐릭터 그림 시안. **둘 다 main 미반영, 사용자 확인 대기**. 아래 규칙은 `feature/roster` 기준 — **개편 작업을 이어 할 때는 `feature/roster` 에서 시작**
 - `preview/field-image` — 초원 필드 그림 시험 + `tools/import-art.py`(perfectPixel 자동·manifest `backgrounds`)·`addBackground` (보류. 새 그림을 넣게 되면 스크립트·장치만 main 으로)
 - 미리보기 시험판: https://claude.ai/artifact/HsbNZRZ3U9vBogYMm52FLW · 캐릭터 96명 열람: https://claude.ai/artifact/L6VHzffZY3o1dAigLJWf7U
 
