@@ -7,9 +7,11 @@ import { BALANCE } from '../../src/config.js';
 // 사용자가 확정한 웨이브 규칙 (CLAUDE.md "확정 규칙 — 전투")
 describe('웨이브 규칙', () => {
   it('1웨이브 50기 → 70웨이브 200기 → 이후 200기 고정', () => {
-    expect(normalCount(1)).toBe(50);
-    expect(normalCount(70)).toBe(200);
-    expect(normalCount(100)).toBe(200);
+    // 물량 ×5 (2026-11-17): 기준 수(50→200)에 BALANCE.horde.mult 를 곱한다
+    expect(BALANCE.horde.mult).toBe(5);
+    expect(normalCount(1)).toBe(50 * 5);
+    expect(normalCount(70)).toBe(200 * 5);
+    expect(normalCount(100)).toBe(200 * 5);
     for (let w = 2; w <= 70; w++) expect(normalCount(w)).toBeGreaterThanOrEqual(normalCount(w - 1));
   });
 
@@ -22,7 +24,7 @@ describe('웨이브 규칙', () => {
     for (const w of [100, 200, 300]) expect(waveInfo(w).type).toBe('final');
     expect(isFinalWave(150)).toBe(false);
     expect(waveInfo(7).type).toBe('normal');
-    expect(waveInfo(250).normal).toBe(200);
+    expect(waveInfo(250).normal).toBe(200 * 5);
   });
 
   it('무한 웨이브: 지역·몬스터 디자인은 100웨이브마다 한 바퀴 돈다', () => {
@@ -52,11 +54,20 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('boss', 100).speed).toBe(BALANCE.monster.bossSpeed);
   });
 
+  it('패배 조건: 성벽 체력 80, 한 바퀴마다 일반 0.2(5마리 = 1)·정예 3·보스 30·강화 보스 40·최종 보스 80', () => {
+    expect(BALANCE.wall.hp).toBe(80);
+    expect(BALANCE.wall.dmg).toEqual({ normal: 0.2, elite: 3, boss: 30, milestone: 40, final: 80 });
+  });
+
   it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 전체 30% 완화(×0.7), 강화 보스 체력 1.5배', () => {
     expect(BALANCE.monster.hpScale).toBe(0.7);
-    expect(monsterStats('normal', 1).hp).toBeCloseTo(34 * 0.7);
-    expect(monsterStats('normal', 2).hp).toBeCloseTo(40 * 1.08 * 0.7);
-    expect(monsterStats('normal', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 0.7);
+    // 물량: 일반 몬스터 마리당 체력은 1/5 (웨이브 전체 체력 총량은 그대로). 정예·보스는 기준 체력의 10배·110배 그대로
+    expect(monsterStats('normal', 1).hp).toBeCloseTo((34 * 0.7) / 5);
+    expect(monsterStats('normal', 2).hp).toBeCloseTo((40 * 1.08 * 0.7) / 5);
+    expect(monsterStats('normal', 10).hp).toBeCloseTo((40 * Math.pow(1.08, 9) * 0.7) / 5);
+    expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 0.7 * 10);
+    expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 0.7 * 110);
+    expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 5) * 2); // 골드 총량 유지
     expect(monsterStats('normal', 3).hp / monsterStats('normal', 2).hp).toBeCloseTo(1.08);
     expect(monsterStats('boss', 30, true).hp / monsterStats('boss', 30).hp).toBeCloseTo(1.5);
   });

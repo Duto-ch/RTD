@@ -8,8 +8,8 @@ import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
 import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
 import { ATTR_INFO, strongAgainst, weakAgainst } from '../data/elements.js';
-import { HEROES } from '../data/heroes.js';
-import { skillOptions, describeSkill, ELEMENT_FLAVOR } from '../data/skills.js';
+import { describeSkill, ELEMENT_FLAVOR } from '../data/skills.js';
+import { STYLES, TRAIT_TEXT } from '../data/roster.js';
 import { RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
@@ -37,7 +37,7 @@ export const HUD = WIDE
       relic: { x: 990, y: 24, w: 132 }, // 유물 칸 4개 자리 (알약 바 오른쪽 끝)
       dark: { x: 290, y: 643, w: 700, h: 68 }, // 아래 독
       hire: { x: 732, y: 677, w: 200, h: 50 },
-      small: { y: 677, xs: [864, 914, 964], w: 46, h: 52 },
+      small: { y: 677, xs: [864, 914, 964], w: 46, h: 52 }, // 배속(→정지) · 메뉴 · 강화
       info: { x: 300, y: 649, w: 320, h: 56 } // 용병 카드
     }
   : {
@@ -49,7 +49,7 @@ export const HUD = WIDE
       relic: { x: 12, y: 142, w: GAME_W - 24 },
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       hire: { x: 100, y: 824, w: 168, h: 80 },
-      small: { y: 906, xs: [40, 100, 160], w: 52, h: 64 },
+      small: { y: 906, xs: [40, 100, 160], w: 52, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       info: { x: 196, y: 788, w: GAME_W - 196 - 16, h: 160 }
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
@@ -70,8 +70,8 @@ export class Hud {
 
   // ───────────────────────── 잠깐 뜨는 알림 ─────────────────────────
   // 전장을 가리지 않도록 필드·몬스터 길 바깥의 빈 띠에만 띄운다.
-  //  배너(웨이브 시작·보스 등장·유물 획득 등): 유물 줄과 위쪽 몬스터 길 사이 (y 180~232)
-  //  토스트(고용·골드 부족 등 짧은 안내): 아래쪽 몬스터 길과 하단 패널 사이 (y 728~776)
+  //  배너(웨이브 시작·보스 등장·유물 획득 등): 유물 줄과 위쪽 몬스터 길 사이 (세로 칸 48px 기준 y 180~272)
+  //  토스트(고용·골드 부족 등 짧은 안내): 아래쪽 몬스터 길과 하단 패널 사이 (y 688~776)
 
   /** 글자가 maxW 를 넘으면 뒤를 줄이고 … 를 붙인다 */
   fitText(t, maxW) {
@@ -172,7 +172,7 @@ export class Hud {
     drawIcon(coin, 'coin', T.x + 30, HUD.line3, 18, 0x6a4a10);
     this.goldText = uiText(s, T.x + 46, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', R - 140, HUD.line3 + 1, 18, C.ink);
+    drawIcon(skull, 'heart', R - 140, HUD.line3 + 1, 18, 0xc2453a);
     this.countText = uiText(s, R - 20, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
     // 진행 막대: 창 아래 테두리와 띄우고 조금 얇게 (위 숫자와도 간격)
     panel(s, HUD.gauge.x, HUD.gauge.y, HUD.gauge.w, 15, 'soft').setDepth(D);
@@ -208,7 +208,7 @@ export class Hud {
     drawIcon(coin, 'coin', T.x + 634, cy, 16, 0x6a4a10);
     this.goldText = uiText(s, T.x + 648, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'monster', T.x + 752, cy + 1, 16, C.ink);
+    drawIcon(skull, 'heart', T.x + 752, cy + 1, 16, 0xc2453a);
     this.countText = uiText(s, T.x + 830, cy, '', 16.5, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
     this.relicLabel = null;
     this.relicRow = s.add.container(0, 0).setDepth(D);
@@ -226,6 +226,7 @@ export class Hud {
 
   /** 상단·하단 숫자와 버튼 상태를 게임 상태에 맞춘다 (0.1초마다 + 상태가 바뀔 때) */
   refresh() {
+    this.upgradeBadge?.setVisible(this.s.canUpgrade);
     const s = this.s;
     const nextWave = s.wave + 1;
     // 무한 웨이브: 목표 없이 계속 올라간다. 최고 기록을 함께 보여 준다
@@ -242,14 +243,15 @@ export class Hud {
         .setText(`${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${debuffs}`)
         .setColor(CSS.red);
     } else {
-      this.waveTypeText.setText(`${s.biome.name} · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
+      this.waveTypeText.setText(`${s.biome.name} · 필드 ${s.monsters.length}기 · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
     }
     this.fitText(this.waveTypeText, WIDE ? 250 : COZY ? GAME_W - 64 : GAME_W - 236 - 48);
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
 
-    const n = s.monsters.length;
-    const max = s.maxAlive;
-    this.countText.setText(`${n} / ${max}`).setColor(n >= max * 0.8 ? CSS.red : CSS.ink);
+    // 성벽 체력 (2026-11-17: 몬스터 수 한도 대신). 실드가 있으면 +n 으로 덧붙인다. 30% 이하면 빨강
+    const n = Math.ceil(s.wallHp);
+    const max = s.wallMax;
+    this.countText.setText(`${n}${s.wallShield > 0 ? `+${Math.ceil(s.wallShield)}` : ''} / ${max}`).setColor(n <= max * 0.3 ? CSS.red : CSS.ink);
     this.nextWaveBtn.setEnabled(s.canCallNextWave);
     this.hireBtn.setLabel(WIDE ? `+ 용병 고용 · ${s.hireCost} G` : `용병 고용\n${s.hireCost} G${s.relics.contract ? ' (-20%)' : ''}`);
     this.hireBtn.setEnabled(s.gold >= s.hireCost);
@@ -261,10 +263,10 @@ export class Hud {
     const bw = HUD.gauge.w - 16;
     const by = HUD.gauge.y + 4;
     g.clear();
-    const pct = Math.min(1, n / max);
+    const pct = Math.max(0, Math.min(1, n / max));
     const fill = Math.round((bw * pct) / UI_PX) * UI_PX;
     if (fill > 0) {
-      const col = pct < 0.5 ? 0x3f9a52 : pct < 0.8 ? 0xe0a32a : 0xc2453a;
+      const col = pct > 0.5 ? 0x3f9a52 : pct > 0.3 ? 0xe0a32a : 0xc2453a; // 성벽 체력: 많을수록 초록
       g.fillStyle(col, 1).fillRect(bx, by, fill, 7);
       g.fillStyle(0xffffff, 0.35).fillRect(bx, by, fill, 3);
     }
@@ -333,13 +335,10 @@ export class Hud {
     panel(s, K.x, K.y, K.w, K.h, COZY ? 'card' : 'dark').setDepth(D - 2); // 포근한 카드형: 둥근 크림 시트
     this.hireBtn = new Button(s, HUD.hire.x, HUD.hire.y, HUD.hire.w, HUD.hire.h, '', () => s.hire(), { variant: 'primary', fontSize: 18 });
     const SM = HUD.small;
-    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => {
-      s.speed = s.speed >= 3 ? 1 : s.speed + 1;
-      this.speedBtn.setLabel(`x${s.speed}`);
-      s.tweens.timeScale = s.speed;
-    }, { variant: 'card', icon: 'speed', fontSize: 12 });
-    this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
-    this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
+    // 배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (2026-11-18, 정지 버튼 합침)
+    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => s.cycleSpeed(), { variant: 'card', icon: 'speed', fontSize: 12 });
+    this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
+    this.createUpgradeButton(SM, 'card', 12);
 
     // 정보 창
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
@@ -361,6 +360,16 @@ export class Hud {
   }
 
   /** 가로 B-2: 아래 가운데 독 — [용병 카드(초상·이름·부제·능력치 + 스킬/판매)] [+ 용병 고용] [x1] [정지] [메뉴] */
+  /** 명성 강화 버튼 (2026-11-18: 필드 성탑 대신). 살 수 있는 노드가 있으면 "!" 가 통통 튄다 */
+  createUpgradeButton(SM, variant, fontSize) {
+    const s = this.s;
+    const x = SM.xs[2], y = SM.y;
+    this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
+    this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
+    this.upgradeBadge.add([s.add.circle(0, 0, 9, 0xffd36a).setStrokeStyle(2.5, 0x3a2608), uiText(s, 0, 0, '!', 12, '#3a2608', 'bold').setOrigin(0.5)]);
+    s.tweens.add({ targets: this.upgradeBadge, y: y - SM.h / 2 - 3, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
   createBottomWide() {
     const s = this.s;
     const D = DEPTH.ui;
@@ -368,13 +377,10 @@ export class Hud {
     panel(s, K.x, K.y, K.w, K.h, 'card').setDepth(D - 2);
     this.hireBtn = new Button(s, HUD.hire.x, HUD.hire.y, HUD.hire.w, HUD.hire.h, '', () => s.hire(), { variant: 'primary', fontSize: 16.5 });
     const SM = HUD.small;
-    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => {
-      s.speed = s.speed >= 3 ? 1 : s.speed + 1;
-      this.speedBtn.setLabel(`x${s.speed}`);
-      s.tweens.timeScale = s.speed;
-    }, { variant: 'outline', icon: 'speed', fontSize: 11 });
-    this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'outline', icon: 'pause', fontSize: 11 });
-    this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'outline', icon: 'menu', fontSize: 11 });
+    // 배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (2026-11-18, 정지 버튼 합침)
+    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => s.cycleSpeed(), { variant: 'outline', icon: 'speed', fontSize: 11 });
+    this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'outline', icon: 'menu', fontSize: 11 });
+    this.createUpgradeButton(SM, 'outline', 11);
 
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
     panel(s, px, py, pw, ph, 'soft').setDepth(D - 1);
@@ -403,7 +409,7 @@ export class Hud {
       this.sellBtn.setVisible(false);
       this.skillBtn.setVisible(false);
       this.infoTitle.setPosition(px + 18, py + 9).setColor(CSS.primary).setText('용병단 지휘');
-      this.infoSub.setPosition(px + 18, py + 30).setText('용병을 누르면 정보가 보여요 · 같은 속성·레벨끼리 겹치면 레벨 업');
+      this.infoSub.setPosition(px + 18, py + 30).setText('용병을 누르면 정보가 보여요 · 같은 속성·등급·레벨끼리 겹치면 레벨 업');
       this.fitText(this.infoSub, pw - 36);
       this.infoBody.setText('');
       return;
@@ -413,9 +419,9 @@ export class Hud {
     this.infoAvatar.setFillStyle(m.isHero ? 0xf3dc94 : C.card).setVisible(true);
     setArt(this.infoPortrait, m.textureKey, PX - 1.5).setVisible(true);
     playBase(this.infoPortrait, 'idle');
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : `승급 ${s.mergeCostFor(MAX_LEVEL)}G`;
+    const next = m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : '최고 레벨';
     this.infoTitle.setPosition(px + 62, py + 7).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
-    this.infoSub.setPosition(px + 62, py + 24).setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
+    this.infoSub.setPosition(px + 62, py + 24).setText(`Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
     this.fitText(this.infoSub, textW);
     const body = st.debuff.list.length
       ? `디버프: ${st.debuff.list.map((d) => `${d.def.name} ${Math.ceil(d.until - s.gameTime)}초`).join(', ')}`
@@ -426,8 +432,9 @@ export class Hud {
     this.skillBtn.setVisible(true);
   }
 
+  /** 배속 버튼 표시: 정지 중이면 '정지'(정지 아이콘), 아니면 'x1~x3' */
   setPaused(paused) {
-    this.pauseBtn.setLabel(paused ? '재개' : '정지');
+    this.speedBtn.setLabel(paused ? '정지' : `x${this.s.speed}`).setIcon(paused ? 'pause' : 'speed');
   }
 
   /** 정보 창: 선택한 용병의 능력치, 선택이 없으면 기본 안내 */
@@ -450,10 +457,10 @@ export class Hud {
         .setText(
           [
             '· 고용: 빈 칸에 랜덤 용병 배치',
-            '· 같은 속성·레벨끼리 겹치면 레벨 업',
-            '· Lv5 + Lv5 = 영웅 승급',
+            '· 같은 속성·등급·레벨끼리 겹치면 레벨 업',
+            '· 레벨마다 정해진 스킬이 하나씩 열림',
             '· 상성: 블루>레드>그린>블루',
-            '· 패배: 몬스터 100기·보스 1바퀴'
+            '· 패배: 성벽 체력 0 (몬스터가 한 바퀴 돌 때마다 깎임)'
           ].join('\n')
         );
       return;
@@ -466,8 +473,8 @@ export class Hud {
     this.infoTitle.setPosition(px + 78, py + 20).setColor(m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr]).setText(m.heroName);
     const strong = ATTR_INFO[strongAgainst(m.attr)].name;
     const weak = ATTR_INFO[weakAgainst(m.attr)].name;
-    const next = m.isHero ? '최종 단계' : m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : `승급 ${s.mergeCostFor(MAX_LEVEL)}G`;
-    this.infoSub.setText(m.isHero ? `영웅 · ${m.roleName} · ${next}` : `Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
+    const next = m.level < MAX_LEVEL ? `레벨업 ${s.mergeCostFor(m.level)}G` : '최고 레벨';
+    this.infoSub.setText(`Lv.${m.level} ${m.roleName} · ${info.name} · ${next}`);
     // 본문은 2줄: 능력치 / (디버프 또는 상성·스킬 수)
     const lines = [
       `공격 ${Math.round(st.damage)} · 공속 ${st.rate.toFixed(2)} · 사거리 ${Math.round(st.range)}${st.buffed && !st.debuff.list.length ? ' (버프)' : ''}`,
@@ -519,35 +526,15 @@ export class Hud {
       cy += t.height + gap;
       return t;
     };
-    add(`${m.heroName} · ${m.isHero ? `영웅 ${m.roleName}` : `Lv.${m.level} ${m.roleName}`}`, 20, m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr], '700', 4);
-    add(`${ELEMENT_FLAVOR[m.attr].desc} (피해 스킬에 추가 적용)`, 13, CSS.sub, '600', 12);
-    if (!m.skills.length) add('아직 스킬이 없습니다.', 14, CSS.ink);
+    // 2026-11-17: 확정 스킬 — 레벨이 오를 때마다 정해진 스킬이 하나씩 열린다 (리롤 폐지)
+    add(`${m.heroName} · Lv.${m.level} ${m.gradeName}`, 20, m.isHero ? CSS.gold : ATTR_CSS_DARK[m.attr], '700', 2);
+    add(`${m.char.title} · ${STYLES[m.char.style].name} — ${TRAIT_TEXT(m.trait)}`, 13, CSS.ink, '600', 2);
+    add(`${ELEMENT_FLAVOR[m.attr].desc} (피해 스킬에 추가 적용)`, 12, CSS.sub, '600', 10);
     this.rerollBtns = [];
-    m.skills.forEach((sk, i) => {
-      const d = sk.def;
-      const tag = d.level > MAX_LEVEL ? '영웅 고유' : `Lv${d.level}`;
-      const cost = s.rerollCost(d);
-      const rowY = cy;
-      const title = add(`${tag}  ${d.name}  ·  쿨타임 ${d.cd}초`, 15, d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
-      if (cost) {
-        // 스킬마다 리롤 버튼 (오른쪽 끝). 누르면 골드를 쓰고 창을 다시 그린다
-        title.setWordWrapWidth(w - 48 - 104);
-        const btn = new Button(s, x + w - 72, rowY + 9, 96, 26, `리롤 ${cost}G`, () => {
-          if (s.rerollSkill(m, i)) this.showSkillPopup(m);
-        }, { variant: 'gold', fontSize: 11 });
-        btn.setEnabled(s.gold >= cost);
-        c.add(btn);
-        this.rerollBtns.push(btn);
-      }
-      add(describeSkill(d), 13, CSS.ink, '600', 10);
-    });
-    if (!m.isHero && m.level < MAX_LEVEL) {
-      cy += 4;
-      add(`다음 레벨(Lv${m.level + 1}) 후보 — 이 중 1개 랜덤 습득`, 13, CSS.sub, '700', 4);
-      for (const o of skillOptions(m.attr, m.cls, m.level + 1)) add(`· ${o.name}: ${describeSkill(o)}`, 12, CSS.sub, '600', 3);
-    } else if (!m.isHero) {
-      cy += 4;
-      add(`영웅 승급 후보: ${HEROES[m.attr].map((hh) => hh.name).join(' / ')}`, 13, CSS.sub, '700');
+    for (const d of m.defs) {
+      const open = m.skills.some((sk) => sk.def.id === d.id);
+      add(`Lv${d.unlock}  ${d.name}  ·  쿨타임 ${d.cd}초${open ? '' : '  · 잠김'}`, 15, !open ? CSS.sub : d.level > MAX_LEVEL ? CSS.gold : CSS.primary, '700', 2);
+      add(describeSkill(d), 13, open ? CSS.ink : CSS.sub, '600', 9);
     }
     const h = Math.min(GAME_H - y - 24, cy - y + 40);
     const card = panel(s, x, y, w, h, 'card').setInteractive();

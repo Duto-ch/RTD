@@ -1,10 +1,13 @@
 import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES, BUILDING_SPRITES } from './sprites.js';
 import { BOSS_EXTRA_PALETTE } from './monsters.js';
 import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
-import { GAME_W, GAME_H, PX, UI_PX, HUD_RECTS, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, BG_PX, HUD_RECTS, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
 
-// 배경은 UI_PX(3) 해상도로 그린다. 화면 좌표 → 배경 아트 좌표 (가장 가까운 픽셀 경계로 맞춤)
-const BP = UI_PX;
+// 배경은 BG_PX(2) 해상도로 그린다. 화면 좌표 → 배경 아트 좌표 (가장 가까운 픽셀 경계로 맞춤)
+// 무늬 크기는 3px 시절 디자인을 기준으로 K 배 (화면에서 보이는 크기는 그대로, 도트만 가늘게)
+const BP = BG_PX;
+const K = 3 / BP;
+const kk = (v) => Math.round(v * K);
 const toArt = (v) => Math.round(v / BP);
 import { RELICS } from '../data/relics.js';
 import { HEROES } from '../data/heroes.js';
@@ -71,6 +74,24 @@ function shade(hex, k) {
  * 땅·길은 한 픽셀씩 흩뿌린 잡티 대신 큰 얼룩(2~3톤) + 손으로 찍은 듯한 작은 무늬(풀 포기·돌멩이)로,
  * 성벽은 벽돌마다 위 밝은 줄·아래 그림자, 바깥엔 성가퀴, 바닥은 모서리가 빛나는 석판 + 금 몇 줄.
  */
+/**
+ * 필드 배경은 레이어로 나뉜다 (2026-11-17) — 각 레이어는 텍스처 키 하나라 manifest 로 스킨을 씌워 바꿀 수 있다
+ *   bg_<지역>          땅 + 장식 + 흙길 (지역마다)
+ *   field_tile_light   밝은 석판 한 칸 (32x32 아트 px) — field_tile_light_b/_c 는 무늬만 다른 변형
+ *   field_tile_dark    어두운 석판 한 칸 (+ _b/_c)
+ *   field_wall         성벽 링 (가운데는 투명, 바닥 가장자리 그림자 포함)
+ * GameScene.createFieldLayers() 가 bg → 석판 25칸 → 성벽 순서로 쌓는다
+ */
+const PATH_JITTER = 2.5; // 몬스터 길 가장자리 들쭉날쭉 폭 (아트 px, ±)
+const WALL_RADIUS = 20;
+const FLOOR_RADIUS = 8; // 바닥(석판) 네 모서리 반지름 (아트 px) — 성벽이 그만큼 안쪽을 덮는다 // 성벽 바깥 모서리 반지름 (아트 px)
+/** 둥근 사각형까지의 부호 거리 (안쪽 음수). x,y,w,h = 사각형, r = 모서리 반지름 */
+function sdRoundRect(px0, py0, x, y, w, h, r) {
+  const qx = Math.abs(px0 - (x + w / 2)) - (w / 2 - r);
+  const qy = Math.abs(py0 - (y + h / 2)) - (h / 2 - r);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+}
+
 function paintBackground(scene, biome) {
   const W = Math.ceil(GAME_W / BP);
   const H = Math.ceil(GAME_H / BP);
@@ -89,8 +110,8 @@ function paintBackground(scene, biome) {
   };
 
   // ── 땅: 큰 얼룩 3톤 + 작은 무늬 ──
-  const n1 = valueNoise(rand, W, H, 19);
-  const n2 = valueNoise(rand, W, H, 7);
+  const n1 = valueNoise(rand, W, H, kk(19));
+  const n2 = valueNoise(rand, W, H, kk(7));
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const v = n1(x, y) * 0.75 + n2(x, y) * 0.25;
@@ -98,7 +119,7 @@ function paintBackground(scene, biome) {
     }
   }
   // 풀 포기·잔무늬: 어두운 V 자 + 밝은 끝 (땅 색만 써서 지역마다 자연스럽게)
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < Math.round(300 * K * K); i++) {
     const x = Math.floor(rand() * W);
     const y = Math.floor(rand() * H);
     px(x, y, g1);
@@ -112,134 +133,44 @@ function paintBackground(scene, biome) {
   const fy = toArt(FIELD_Y);
   const fs = toArt(FIELD_X + FIELD_SIZE) - fx;
 
-  // ── 흙길 (사각 링): 얼룩 2톤 + 자갈, 바깥 모서리는 둥글게 ──
+  // ── 흙길 (둥근 사각 링, 2026-11-18): 가장자리가 저주파 노이즈로 들쭉날쭉 + 얼룩 2톤 + 자갈 ──
   const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
   const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
   const os = toArt(FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) - ox;
-  const ix = toArt(FIELD_X - PATH_OFF + PATH_WIDTH / 2);
-  const iy = toArt(FIELD_Y - PATH_OFF + PATH_WIDTH / 2);
-  const is = toArt(FIELD_X + FIELD_SIZE + PATH_OFF - PATH_WIDTH / 2) - ix;
-  const inPath = (x, y) => x >= ox && x < ox + os && y >= oy && y < oy + os && !(x >= ix && x < ix + is && y >= iy && y < iy + is);
-  const corner = (x, y) => (x === ox || x === ox + os - 1) && (y === oy || y === oy + os - 1);
-  const pn = valueNoise(rand, W, H, 8);
-  for (let y = oy; y < oy + os; y++) {
-    for (let x = ox; x < ox + os; x++) {
-      if (!inPath(x, y) || corner(x, y)) continue;
+  const J = PATH_JITTER; // 가장자리 들쭉날쭉 폭(아트 px, ±)
+  const jo = valueNoise(rand, W, H, kk(6));
+  const sdOut = (x, y) => sdRoundRect(x + 0.5, y + 0.5, ox, oy, os, os, kk(6));
+  const outside = (x, y) => sdOut(x, y) >= (jo(x, y) - 0.5) * 2 * J; // 길 바깥쪽 땅
+  // 길 안쪽은 성벽 바로 밑까지 흙으로 덮는다 (2026-11-18): 구멍 = 성벽 자리(둥근 모서리 포함)보다 2도트 안쪽
+  const wx0 = toArt(FIELD_X - WALL), wy0 = toArt(FIELD_Y - WALL), wsz = toArt(FIELD_X + FIELD_SIZE + WALL) - wx0;
+  const hole = (x, y) => sdRoundRect(x + 0.5, y + 0.5, wx0, wy0, wsz, wsz, WALL_RADIUS) < -2;
+  const inPath = (x, y) => !outside(x, y) && !hole(x, y);
+  const pn = valueNoise(rand, W, H, kk(8));
+  const x0 = ox - J - 1, y0 = oy - J - 1, x1 = ox + os + J + 1, y1 = oy + os + J + 1;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      if (!inPath(x, y)) continue;
       const v = pn(x, y);
       px(x, y, v < 0.3 ? p1 : v > 0.72 ? p2 : p0);
     }
   }
   // 자갈: 2x1 어두운 돌 + 위 밝은 점
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < Math.round(150 * K * K); i++) {
     const x = ox + Math.floor(rand() * os);
     const y = oy + Math.floor(rand() * os);
     if (!inPath(x, y) || !inPath(x + 1, y) || !inPath(x, y - 1)) continue;
     rect(x, y, 2, 1, pEdge);
     px(x, y - 1, p2);
   }
-  // 가장자리: 바깥은 진한 테두리 + 그 안쪽 한 줄 그림자, 바깥 테두리에 풀이 살짝 걸침
-  for (let t = 1; t < os - 1; t++) {
-    for (const [x, y] of [[ox + t, oy], [ox + t, oy + os - 1], [ox, oy + t], [ox + os - 1, oy + t]]) px(x, y, pEdge);
-  }
-  for (let t = 1; t < is + 1; t++) {
-    for (const [x, y] of [[ix - 1 + t, iy - 1], [ix - 1 + t, iy + is], [ix - 1, iy - 1 + t], [ix + is, iy - 1 + t]]) px(x, y, pEdge);
-  }
-  for (let t = 2; t < os - 2; t++) {
-    if (rand() < 0.18) px(ox + t, oy, g0);
-    if (rand() < 0.18) px(ox + t, oy + os - 1, g1);
-    if (rand() < 0.18) px(ox, oy + t, g0);
-    if (rand() < 0.18) px(ox + os - 1, oy + t, g1);
-  }
-  rect(ox + 1, oy + 1, os - 2, 1, p1); // 위쪽 안 그림자 (바깥 둑에서 드리움)
-
-  // ── 성벽 ──
-  const w = toArt(WALL);
-  const wx = fx - w;
-  const wy = fy - w;
-  const ws = fs + 2 * w;
-  const STONE = ['#8a8f99', '#7f848e', '#949aa4'];
-  // 벽 그림자: 오른쪽·아래로 1px 길 위에 드리움
-  rect(wx + 1, wy + ws, ws, 1, shade(p1, 0.7));
-  rect(wx + ws, wy + 1, 1, ws, shade(p1, 0.7));
-  rect(wx - 1, wy - 1, ws + 2, ws + 2, '#2a2c33');
-  // 벽돌: 6x3 (줄마다 반 칸 어긋남) — 위 밝은 줄 / 가운데 / 아래 줄눈
-  for (let by = 0; by < ws; by += 3) {
-    const row = by / 3;
-    for (let bx = -3 * (row % 2); bx < ws; bx += 6) {
-      const c = STONE[Math.floor(rand() * STONE.length)];
-      for (let y = 0; y < 3; y++) {
-        for (let x = 0; x < 6; x++) {
-          const X = wx + bx + x;
-          const Y = wy + by + y;
-          if (X < wx || X >= wx + ws || Y >= wy + ws) continue;
-          if (X >= fx && X < fx + fs && Y >= fy && Y < fy + fs) continue;
-          const mortar = y === 2 || x === 5;
-          px(X, Y, mortar ? '#555963' : y === 0 ? shade(c, 1.12) : c);
-        }
-      }
+  // 가장자리: 길과 땅이 맞닿은 줄은 진한 테두리, 바깥 위쪽 둑 아래는 그림자 한 줄, 바깥 테두리에 풀이 살짝 걸침
+  const edge = (x, y) => inPath(x, y) && (!inPath(x - 1, y) || !inPath(x + 1, y) || !inPath(x, y - 1) || !inPath(x, y + 1));
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      if (!inPath(x, y)) continue;
+      const outer = outside(x - 1, y) || outside(x + 1, y) || outside(x, y - 1) || outside(x, y + 1);
+      if (edge(x, y) && outer) px(x, y, rand() < 0.15 ? (y < oy + os / 2 ? g0 : g1) : pEdge); // 안쪽(성벽 밑)은 테두리 없이 흙 그대로 else if (outside(x, y - 2) && edge(x, y - 1)) px(x, y, p1); // 위쪽 둑에서 드리운 그림자
     }
   }
-  // 성가퀴: 바깥 테두리 2px 띠에 3칸 간격 요철 (위 밝음·옆 그림자)
-  for (let i = 0; i < ws; i++) {
-    const on = Math.floor(i / 4) % 2 === 0;
-    const top = on ? '#c3c8d0' : '#44474f';
-    const sub = on ? '#a7acb5' : '#5b5f68';
-    px(wx + i, wy, top);
-    px(wx + i, wy + 1, sub);
-    px(wx + i, wy + ws - 1, on ? '#a7acb5' : '#3a3d45');
-    px(wx, wy + i, top);
-    px(wx + 1, wy + i, sub);
-    px(wx + ws - 1, wy + i, on ? '#a7acb5' : '#3a3d45');
-  }
-
-  // ── 성벽 위 바닥: 5x5 석판 (모서리 빛·그림자, 금 몇 줄, 이끼 약간) ──
-  const tileRand = rng(77);
-  for (let gy = 0; gy < GRID; gy++) {
-    for (let gx = 0; gx < GRID; gx++) {
-      const sx = toArt(FIELD_X + gx * CELL);
-      const sy = toArt(FIELD_Y + gy * CELL);
-      const cs = toArt(FIELD_X + (gx + 1) * CELL) - sx; // 21 또는 22 (64/3 이 나누어떨어지지 않음)
-      // 밝은/어두운 석판 체크무늬
-      const T = (gx + gy) % 2 === 0
-        ? { base: '#adafb7', spot: ['#a3a5ae', '#b6b8bf'], crack: '#8e919b', hi: '#c3c5cc', hi2: '#bbbdc4', sh: '#93959f', worn: '#cfd1d6' }
-        : { base: '#696e7a', spot: ['#656a76', '#737885'], crack: '#555a65', hi: '#858b97', hi2: '#7c8290', sh: '#5b606b', worn: '#959ba6' };
-      const base = T.base;
-      rect(sx, sy, cs, cs, base);
-      // 석판 안 큰 얼룩 한두 개 (같은 계열 밝은/어두운 톤)
-      for (let k = 0; k < 2; k++) {
-        const bx = sx + 2 + Math.floor(tileRand() * (cs - 7));
-        const by = sy + 2 + Math.floor(tileRand() * (cs - 6));
-        const c = T.spot[k];
-        rect(bx, by, 3, 2, c);
-        rect(bx + 1, by + 2, 2, 1, c);
-      }
-      // 금: 짧은 대각선 3~4px
-      if (tileRand() < 0.55) {
-        let cx = sx + 3 + Math.floor(tileRand() * (cs - 8));
-        let cy = sy + 3 + Math.floor(tileRand() * (cs - 8));
-        const dir = tileRand() < 0.5 ? 1 : -1;
-        for (let k = 0; k < 4; k++) {
-          px(cx, cy, T.crack);
-          cx += dir;
-          cy += k % 2;
-        }
-      }
-      // 모서리 빛(위·왼쪽) / 그림자(아래·오른쪽) / 줄눈
-      rect(sx + 1, sy + 1, cs - 2, 1, T.hi);
-      rect(sx + 1, sy + 1, 1, cs - 2, T.hi2);
-      rect(sx + 1, sy + cs - 2, cs - 2, 1, T.sh);
-      rect(sx + cs - 2, sy + 1, 1, cs - 2, T.sh);
-      rect(sx, sy, cs, 1, '#454953');
-      rect(sx, sy, 1, cs, '#454953');
-      // 귀퉁이 닳음
-      px(sx + 1, sy + 1, T.worn);
-    }
-  }
-  // 성벽이 바닥 위쪽·왼쪽에 드리우는 그림자 1px
-  rect(fx, fy, fs, 1, '#3a3d45');
-  rect(fx, fy, 1, fs, '#3a3d45');
-  rect(fx, fy + fs - 1, fs, 1, '#454953');
-  rect(fx + fs - 1, fy, 1, fs, '#454953');
 
   tex.refresh();
 }
@@ -250,9 +181,9 @@ function paintDecorations(px, rect, rand, W, H, biome) {
   const g1 = biome.ground[1];
   const dark = shade(g1, 0.8);
   // 보이는 땅에만 놓는다: 몬스터 길 바깥 + HUD 가 덮지 않는 곳. 길·HUD 에 가려질 자리는 건너뜀
-  const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
-  const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
-  const os = toArt(FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH);
+  const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2) - Math.ceil(PATH_JITTER); // 들쭉날쭉한 길 가장자리까지 비운다
+  const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2) - Math.ceil(PATH_JITTER);
+  const os = toArt(FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH) + 2 * Math.ceil(PATH_JITTER);
   // HUD 가 덮는 칸 (config HUD_RECTS: 세로는 위·아래 띠, 가로는 양옆 칸)
   const huds = HUD_RECTS.map((r) => ({ x0: toArt(r.x), y0: toArt(r.y), x1: toArt(r.x + r.w), y1: toArt(r.y + r.h) }));
   const underHud = (x, y) => huds.some((r) => x + 5 >= r.x0 && x - 3 < r.x1 && y + 9 >= r.y0 && y - 2 < r.y1);
@@ -412,6 +343,167 @@ function paintDecorations(px, rect, rand, W, H, biome) {
   }
 }
 
+/** 성벽 레이어 (field_wall): 링 모양, 가운데 바닥 자리는 투명. 텍스처 (0,0) = 성벽 바깥 테두리 1px 바깥 */
+function paintWall(scene) {
+  // 2026-11-18: 둥근 바깥 모서리에 맞춰 다시 찍음 — 벽돌 줄·성가퀴가 모서리 곡선을 따라 돈다. 돌 색은 한 단계 밝게
+  const fs = toArt(FIELD_X + FIELD_SIZE) - toArt(FIELD_X);
+  const w = toArt(WALL);
+  const ws = fs + 2 * w;
+  const S = ws + 3;
+  const tex = scene.textures.createCanvas('field_wall', S, S);
+  const ctx = tex.getContext();
+  const rand = rng(4242);
+  const rect = (x, y, ww, hh, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, ww, hh); };
+  const wx = 1;
+  const wy = 1;
+  const fx = wx + w;
+  const fy = wy + w;
+  const R = WALL_RADIUS;
+  const STONE = ['#9aa0aa', '#8f949e', '#a5abb5'];
+  const MORTAR = '#62666f';
+  const OUTLINE = [0x2e, 0x30, 0x38];
+  // 바깥 둘레(외곽선 포함) 둥근 사각형
+  const X0 = wx - 1, Y0 = wy - 1, SZ = ws + 2;
+  const cx = X0 + SZ / 2, cy = Y0 + SZ / 2, half = SZ / 2;
+  const sd = (x, y) => sdRoundRect(x + 0.5, y + 0.5, X0, Y0, SZ, SZ, R);
+  const inWall = (x, y) => sd(x, y) < 0;
+  // 둘레를 따라 잰 위치 u (벽돌 칸·성가퀴 간격용): 곧은 변은 길이, 모서리는 호 길이
+  const L = 2 * (half - R);
+  const RM = R - 3; // 벽돌 띠 가운데쯤의 곡률 반지름 (호 길이 기준)
+  const perim = (x, y) => {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+    const qx = Math.abs(dx) - (half - R), qy = Math.abs(dy) - (half - R);
+    const arc = (RM * Math.PI) / 2;
+    if (qx > 0 && qy > 0) {
+      // 모서리: 위→오른→아래→왼 순서로 0~90° 를 호 길이로
+      const a = Math.atan2(qy, qx); // 0 = 옆, π/2 = 위/아래
+      if (dx > 0 && dy < 0) return L + RM * (Math.PI / 2 - a);
+      if (dx > 0 && dy > 0) return 2 * L + arc + RM * a;
+      if (dx < 0 && dy > 0) return 3 * L + 2 * arc + RM * (Math.PI / 2 - a);
+      return 4 * L + 3 * arc + RM * a;
+    }
+    if (qy > qx) return dy < 0 ? dx + L / 2 : 2 * L + 2 * arc + (L / 2 - dx); // 위 · 아래 변
+    return dx > 0 ? L + arc + dy + L / 2 : 3 * L + 3 * arc + (L / 2 - dy); // 오른 · 왼 변
+  };
+  // 빛은 왼쪽 위에서: 바깥 방향(법선)이 위·왼쪽이면 밝은 면
+  const lit = (x, y) => {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+    const qx = Math.max(Math.abs(dx) - (half - R), 0) * Math.sign(dx), qy = Math.max(Math.abs(dy) - (half - R), 0) * Math.sign(dy);
+    const nx = Math.abs(qx) > 0 || Math.abs(qy) > 0 ? qx : 0, ny = qy;
+    const n = Math.abs(dx) - (half - R) > Math.abs(dy) - (half - R) && !(qx && qy) ? [Math.sign(dx), 0] : !(qx && qy) ? [0, Math.sign(dy)] : [nx, ny];
+    return -(n[0] + n[1]) > 0.01;
+  };
+  const BW = kk(6);
+  const BH = Math.floor(3 * K);
+  const T = kk(2); // 성가퀴 띠 두께
+  const P = kk(4); // 성가퀴 간격
+  const stoneOf = new Map();
+  const img = ctx.createImageData(S, S);
+  const d = img.data;
+  const set = (x, y, c, a = 255) => {
+    const i = (y * S + x) * 4;
+    const v = typeof c === 'string' ? [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)] : c;
+    [d[i], d[i + 1], d[i + 2], d[i + 3]] = [v[0], v[1], v[2], a];
+  };
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      if (!inWall(x, y)) {
+        if (inWall(x - 1, y - 1)) set(x, y, [0, 0, 0], 71); // 오른쪽·아래 그림자 (반투명 0.28)
+        continue;
+      }
+      if (!inWall(x - 1, y) || !inWall(x + 1, y) || !inWall(x, y - 1) || !inWall(x, y + 1)) { set(x, y, OUTLINE); continue; }
+      const depth = -sd(x, y) - 1; // 외곽선 안쪽부터 0
+      const u = perim(x, y);
+      const bright = lit(x, y);
+      if (depth < T) {
+        // 성가퀴: 밝은 돌출부(merlon)와 어두운 틈이 번갈아, 바깥 줄은 하이라이트
+        const on = Math.floor(u / P) % 2 === 0;
+        const top = on ? (bright ? '#d4d9e0' : '#b4b9c2') : bright ? '#50535b' : '#454850';
+        const sub = on ? (bright ? '#b7bcc4' : '#a0a5ae') : bright ? '#686c75' : '#5a5e67';
+        set(x, y, depth < 1 ? top : sub);
+        continue;
+      }
+      // 벽돌: 깊이로 줄, 둘레 위치로 칸 (줄마다 반 칸 어긋남)
+      const row = Math.floor((depth - T) / BH);
+      const ry = (depth - T) - row * BH;
+      const uu = u + (row % 2) * (BW / 2);
+      const col = Math.floor(uu / BW);
+      const rx = uu - col * BW;
+      const key = row * 10000 + col;
+      if (!stoneOf.has(key)) stoneOf.set(key, STONE[Math.floor(rand() * STONE.length)]);
+      const c = stoneOf.get(key);
+      const mortar = ry >= BH - 1 || rx >= BW - 1;
+      set(x, y, mortar ? MORTAR : ry < 1 ? shade(c, 1.12) : c);
+    }
+  }
+  // 바닥 자리는 비우되 네 모서리는 둥글게 (2026-11-18, 반지름 FLOOR_RADIUS) — 모서리 석판이 성벽 아래로 둥글게 깎여 보인다.
+  // 성벽이 바닥 가장자리에 드리우는 그림자: 위·왼쪽 진하게, 아래·오른쪽 옅게
+  const FR = FLOOR_RADIUS;
+  const inFloor = (x, y) => sdRoundRect(x + 0.5, y + 0.5, fx, fy, fs, fs, FR) < 0;
+  for (let y = fy; y < fy + fs; y++) {
+    for (let x = fx; x < fx + fs; x++) {
+      if (!inFloor(x, y)) continue;
+      const i = (y * S + x) * 4;
+      const up = !inFloor(x, y - 1), left = !inFloor(x - 1, y), down = !inFloor(x, y + 1), right = !inFloor(x + 1, y);
+      if (up || left) set(x, y, [0x3a, 0x3d, 0x45]);
+      else if (down || right) set(x, y, [0x45, 0x49, 0x53]);
+      else d[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  tex.refresh();
+}
+
+/** 석판 레이어: 밝은/어두운 석판 한 칸씩 (CELL / BG_PX = 24 아트 px). 변형 _b·_c 는 얼룩·금 위치만 다르다 */
+export const TILE_KEYS = { light: ['field_tile_light', 'field_tile_light_b', 'field_tile_light_c'], dark: ['field_tile_dark', 'field_tile_dark_b', 'field_tile_dark_c'] };
+function paintTiles(scene) {
+  const cs = Math.round(CELL / BP);
+  const TONES = {
+    light: { base: '#adafb7', spot: ['#a3a5ae', '#b6b8bf'], crack: '#8e919b', hi: '#c3c5cc', hi2: '#bbbdc4', sh: '#93959f', worn: '#cfd1d6' },
+    dark: { base: '#696e7a', spot: ['#656a76', '#737885'], crack: '#555a65', hi: '#858b97', hi2: '#7c8290', sh: '#5b606b', worn: '#959ba6' }
+  };
+  for (const [tone, keys] of Object.entries(TILE_KEYS)) {
+    keys.forEach((key, vi) => {
+      const T = TONES[tone];
+      const tex = scene.textures.createCanvas(key, cs, cs);
+      const ctx = tex.getContext();
+      const tileRand = rng(77 + vi * 31 + (tone === 'dark' ? 500 : 0));
+      const px = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+      const rect = (x, y, ww, hh, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, ww, hh); };
+      rect(0, 0, cs, cs, T.base);
+      // 큰 얼룩 두 개 (같은 계열 밝은/어두운 톤)
+      const sw = kk(3);
+      const sh = kk(2);
+      for (let k = 0; k < 2; k++) {
+        const bx = 3 + Math.floor(tileRand() * (cs - sw - 7));
+        const by = 3 + Math.floor(tileRand() * (cs - sh - 7));
+        rect(bx, by, sw, sh, T.spot[k]);
+        rect(bx + 1, by + sh, sw - 2, 1, T.spot[k]);
+      }
+      // 금: 짧은 대각선
+      if (vi !== 1) {
+        let cx = 4 + Math.floor(tileRand() * (cs - 12));
+        let cy = 4 + Math.floor(tileRand() * (cs - 12));
+        const dir = tileRand() < 0.5 ? 1 : -1;
+        for (let k = 0; k < kk(4); k++) {
+          px(cx, cy, T.crack);
+          cx += dir;
+          cy += k % 2;
+        }
+      }
+      // 모서리 빛(위·왼쪽) / 그림자(아래·오른쪽) / 줄눈(위·왼쪽)
+      rect(1, 1, cs - 2, 1, T.hi);
+      rect(1, 1, 1, cs - 2, T.hi2);
+      rect(1, cs - 2, cs - 2, 1, T.sh);
+      rect(cs - 2, 1, 1, cs - 2, T.sh);
+      rect(0, 0, cs, 1, '#454953');
+      rect(0, 0, 1, cs, '#454953');
+      px(1, 1, T.worn);
+      tex.refresh();
+    });
+  }
+}
+
 export function generateTextures(scene) {
   // 용병: 15명 개별 디자인 (속성색 + 용병 전용 색)
   for (const [key, spr] of Object.entries(MERC_SPRITES)) {
@@ -464,4 +556,6 @@ export function generateTextures(scene) {
   paintMap(scene, 'arrow_gold', ['y......k.', '.ybbbbbwk', 'y......k.'], BASE_PALETTE);
 
   for (const b of BIOMES) paintBackground(scene, b);
+  paintWall(scene);
+  paintTiles(scene);
 }

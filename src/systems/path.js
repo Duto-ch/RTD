@@ -7,16 +7,19 @@ const SIDE = FIELD_SIZE + PATH_OFF * 2;
 export const PATH_LENGTH = SIDE * 4;
 export const PATH_START = { x: X0, y: Y0 };
 
-/** 경로 위 거리 d 의 좌표와 진행 방향 */
-export function pathPoint(d) {
+/** 경로 위 거리 d 의 좌표와 진행 방향. lane: 길 가운데에서 바깥(+)·안(-)으로 비켜 걷는 거리 — 한 변이 SIDE+2·lane 인 사각형을 돈다 */
+export function pathPoint(d, lane = 0) {
   d = ((d % PATH_LENGTH) + PATH_LENGTH) % PATH_LENGTH;
   const seg = Math.floor(d / SIDE);
-  const t = d - seg * SIDE;
+  const f = (d - seg * SIDE) / SIDE;
+  const x0 = X0 - lane;
+  const y0 = Y0 - lane;
+  const side = SIDE + lane * 2;
   switch (seg) {
-    case 0: return { x: X0 + t, y: Y0, dir: 'right' };
-    case 1: return { x: X0 + SIDE, y: Y0 + t, dir: 'down' };
-    case 2: return { x: X0 + SIDE - t, y: Y0 + SIDE, dir: 'left' };
-    default: return { x: X0, y: Y0 + SIDE - t, dir: 'up' };
+    case 0: return { x: x0 + f * side, y: y0, dir: 'right' };
+    case 1: return { x: x0 + side, y: y0 + f * side, dir: 'down' };
+    case 2: return { x: x0 + side - f * side, y: y0 + side, dir: 'left' };
+    default: return { x: x0, y: y0 + side - f * side, dir: 'up' };
   }
 }
 

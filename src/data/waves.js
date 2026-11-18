@@ -7,7 +7,8 @@ import { BALANCE } from '../config.js';
 // - 보스 웨이브: 10, 20, 30 … (일반 몬스터 + 보스 1기)
 // - 강화 보스 웨이브: 30의 배수 (100의 배수 제외) (일반 몬스터 + 정예 10기 + 강화 보스) — BALANCE.milestone
 // - 최종 보스 웨이브: 100의 배수 (100, 200 …) (일반 몬스터 + 최종 보스: 디버프 3개·분노·첫 사망 시 50% 부활+디버프 1개 추가) — BALANCE.final
-// - 보스는 느리게 이동하며, 성벽을 한 바퀴 다 돌면 즉시 게임 오버
+// - 패배: 성벽 체력 0 (2026-11-17). 몬스터가 한 바퀴 돌 때마다 성벽 피해 — BALANCE.wall (이전: 100기 쌓임·보스 한 바퀴 즉시 패배)
+// - 물량: 일반 몬스터 수 ×BALANCE.horde.mult, 마리당 체력·골드 ÷mult (총량 유지)
 // - 한 웨이브의 몬스터 속성은 최대 BALANCE.monster.attrsPerWave 종류
 /** 이 웨이브마다 최종 보스가 나오고, 몬스터·지역 디자인이 한 바퀴 돈다 */
 export const CYCLE_WAVES = 100;
@@ -28,8 +29,9 @@ export function isMilestoneWave(w) {
 
 export function normalCount(w) {
   const M = BALANCE.monster;
-  if (w >= M.maxCountWave) return M.maxCount;
-  return Math.round(M.firstWaveCount + ((w - 1) * (M.maxCount - M.firstWaveCount)) / (M.maxCountWave - 1));
+  const k = BALANCE.horde.mult;
+  if (w >= M.maxCountWave) return M.maxCount * k;
+  return Math.round(M.firstWaveCount + ((w - 1) * (M.maxCount - M.firstWaveCount)) / (M.maxCountWave - 1)) * k;
 }
 
 export function waveInfo(w) {
@@ -68,6 +70,7 @@ export function monsterStats(kind, w, milestone = false) {
     case 'elite':
       return { hp: hp * M.eliteHpMult, speed: M.eliteSpeed * speedMultiplier(w), gold: 20 + w };
     default:
-      return { hp, speed: M.normalSpeed * speedMultiplier(w), gold: 2 + Math.floor(w / 15) };
+      // 물량: 마리당 체력·골드는 1/mult (골드는 소수 — GameScene 이 모아서 정수로 지급)
+      return { hp: hp / BALANCE.horde.mult, speed: M.normalSpeed * speedMultiplier(w), gold: (2 + Math.floor(w / 15)) / BALANCE.horde.mult };
   }
 }

@@ -237,6 +237,7 @@ export function uiText(scene, x, y, str, size = 16, color = CSS.ink, weight = '6
 const ICONS = {
   clock: ['..xxx..', '.x...x.', 'x..x..x', 'x..xx.x', 'x.....x', '.x...x.', '..xxx..'],
   coin: ['..xxx..', '.xyyyx.', 'xyyxyyx', 'xyxyyyx', 'xyyxyyx', '.xyyyx.', '..xxx..'],
+  heart: ['.xx.xx.', 'xxxxxxx', 'xxxxxxx', 'xxxxxxx', '.xxxxx.', '..xxx..', '...x...'],
   monster: ['.xxxxx.', 'xxxxxxx', 'x.xxx.x', 'x..x..x', 'xxxxxxx', '.x.x.x.', '.......'],
   speed: ['x..x...', 'xx.xx..', 'xxxxxx.', 'xxxxxxx', 'xxxxxx.', 'xx.xx..', 'x..x...'],
   pause: ['xx..xx.', 'xx..xx.', 'xx..xx.', 'xx..xx.', 'xx..xx.', 'xx..xx.', 'xx..xx.'],
@@ -245,6 +246,11 @@ const ICONS = {
   userplus: ['.xx....', 'xxxx...', '.xx..x.', '....xxx', 'xxxx.x.', 'xxxx...', 'xxxx...'],
   crown: ['x..x..x', 'xx.x.xx', 'xxxxxxx', 'xxxxxxx', 'xyxyxyx', 'xxxxxxx', '.......'],
   star: ['...x...', '..xxx..', 'xxxxxxx', '.xxxxx.', '..xxx..', '.xx.xx.', 'x.....x'],
+  tower: ['..x.x..', '..xxx..', '..x.x..', '..xxx..', '..xxx..', '.xxxxx.', '.......'],
+  ticket: ['.......', 'xxxxxxx', 'x.x.x.x', 'xxxxxxx', 'x.x.x.x', 'xxxxxxx', '.......'],
+  gem: ['.xxxxx.', 'x.x.x.x', 'xxxxxxx', '.x...x.', '..x.x..', '...x...', '.......'],
+  anvil: ['.......', 'xxxxxx.', '.xxxxxx', '..xxx..', '..xxx..', '.xxxxx.', '.......'],
+  sword: ['......x', '.....x.', '....x..', 'x..x...', '.xx....', '.xx....', 'x..x...'],
   cross: ['xx...xx', 'xxx.xxx', '.xxxxx.', '..xxx..', '.xxxxx.', 'xxx.xxx', 'xx...xx']
 };
 

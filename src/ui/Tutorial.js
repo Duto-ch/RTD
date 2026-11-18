@@ -16,7 +16,7 @@ export const TUTORIAL_STEPS = {
   },
   wave: {
     title: '웨이브 시작',
-    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n필드에 100기가 쌓이거나 보스가 한 바퀴를 돌면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
+    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n몬스터가 한 바퀴 돌 때마다 성벽 체력이 깎이고, 0이 되면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
     rect: () => (WIDE ? { x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 } : { x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
   },
   select: {
@@ -26,7 +26,7 @@ export const TUTORIAL_STEPS = {
   },
   merge: {
     title: '머지로 레벨 업',
-    text: '같은 속성·같은 레벨 용병을 드래그해서 겹치면\n골드를 내고 레벨 업! 새 스킬을 하나 배웁니다.',
+    text: '같은 속성·같은 등급·같은 레벨 용병을 드래그해서 겹치면\n놓여 있던 쪽이 레벨 업! 레벨마다 정해진 스킬이 열립니다.',
     rect: (s) => {
       const pair = s.mergePair?.();
       return pair ? cellsRect(pair) : null;
@@ -34,8 +34,8 @@ export const TUTORIAL_STEPS = {
   },
   skill: {
     title: '스킬',
-    text: '스킬은 쿨타임마다 자동으로 시전됩니다.\n마음에 들지 않으면 「리롤」로 같은 레벨의 다른 스킬로 바꿀 수 있어요.',
-    rect: (s) => (s.hud.rerollBtns?.length ? btnRect(s.hud.rerollBtns[0], 8) : null)
+    text: '스킬은 쿨타임마다 자동으로 시전됩니다.\n캐릭터마다 레벨별 스킬이 정해져 있어, 레벨을 올리면 하나씩 열려요.',
+    rect: () => null
   },
   next: {
     title: '바로 시작',
@@ -44,7 +44,7 @@ export const TUTORIAL_STEPS = {
   },
   boss: {
     title: '보스 등장',
-    text: '보스는 용병에게 디버프를 걸어요.\n한 바퀴를 돌기 전에 쓰러뜨리지 못하면 패배합니다!',
+    text: '보스는 용병에게 디버프를 걸어요.\n한 바퀴를 돌 때마다 성벽 체력이 크게 깎입니다!',
     rect: (s) => {
       const b = s.monsters?.find((m) => m.isBoss && m.active);
       return b ? { x: b.x - 44, y: b.y - 52, w: 88, h: 88 } : null;
@@ -56,17 +56,20 @@ export const TUTORIAL_STEPS = {
     rect: () => (WIDE ? { x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
   },
   hero: {
-    title: '영웅 승급',
-    text: 'Lv5 용병 두 명을 겹치면 영웅으로 승급합니다.\n기존 스킬은 그대로, 영웅 고유 스킬이 추가돼요.',
+    title: '유니크 등장',
+    text: '유니크는 고용할 때 1% 확률로만 나오는 최상위 등급이에요.\n대표 스킬을 처음부터 쓰고, 같은 유니크끼리 합치면 더 강해집니다.',
     rect: (s) => {
-      const pair = s.mergePair?.(5);
-      return pair ? cellsRect(pair) : null;
+      const u = s.mercs?.find((m) => m.isHero);
+      return u ? cellsRect([u]) : null;
     }
   },
   tower: {
-    title: '성탑 · 명성 강화',
-    text: '웨이브를 버틸 때마다 명성이 쌓입니다.\n성탑을 누르면 판 도중에도 영구 강화를 찍을 수 있어요.',
-    rect: (s) => (s.tower ? { x: s.tower.x - CELL / 2, y: s.tower.y - CELL, w: CELL, h: CELL } : null)
+    title: '명성 강화',
+    text: '웨이브를 버틸 때마다 명성이 쌓입니다.\n아래 \'강화\' 버튼을 누르면 판 도중에도 영구 강화를 찍을 수 있어요.',
+    rect: (s) => {
+      const b = s.hud?.upgradeBtn;
+      return b ? { x: b.x - b.w / 2, y: b.y - b.h / 2, w: b.w, h: b.h } : null;
+    }
   }
 };
 

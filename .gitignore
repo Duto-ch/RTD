@@ -5,3 +5,4 @@ dist/
 test-results/
 playwright-report/
 graphify-out/
+__pycache__/
