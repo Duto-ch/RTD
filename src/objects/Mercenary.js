@@ -35,7 +35,10 @@ export function charImage(scene, x, y, c, base) {
   const key = charTexture(scene, c);
   const tex = scene.textures.get(key);
   const frame = tex.frameTotal > 2 && tex.has(0) ? 0 : undefined;
-  return scene.add.image(x, y, key, frame).setScale(base * artScale(scene, key));
+  const img = scene.add.image(x, y, key, frame).setScale(base * artScale(scene, key));
+  const cd = tex.customData || {};
+  if (cd.frameWidth && cd.pivotX != null) img.setOrigin(cd.pivotX / cd.frameWidth, cd.pivotY != null ? cd.pivotY / cd.frameHeight : 0.5); // 몸 중심을 자리에
+  return img;
 }
 
 /** 캐릭터 스킬 → 게임 스킬 정의 (id·습득 레벨·속성). 유니크 Lv1 대표 스킬은 영웅 궁극기 연출(level 6) */
@@ -112,7 +115,6 @@ export class Mercenary extends Phaser.GameObjects.Container {
     g.clear();
     const P = BADGE_PX, ox = -8 * P, oy = 5 * P;
     for (const [x, y, c] of badgePixels(this.attr, this.grade, this.level)) g.fillStyle(c).fillRect(ox + x * P, oy + y * P, P, P);
-  }
   }
 
   preDestroy() {

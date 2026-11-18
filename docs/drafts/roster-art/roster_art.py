@@ -318,7 +318,52 @@ def body(c):
         pal.setdefault(k, {'K': '#f3e6c8', 'k': '#c9b48a', 'R': '#e0393e', 'Q': '#6ab0ff', 'Z': '#ffffff', 'N': '#5a6070', 'W': '#ffffff', 'Y': '#ffe066', 'J': '#c98f2a'}[k])
     pal.pop('K2', None)
     img = A.noarms(D.build({'id': i, 'pal': pal, 'over': over}))   # 팔 없음 (둥근 손이 따로)
+    img = cap_colors(img, BODY_COLORS[grade])
     return img, {**D.COMMON, **pal}, hat_rows, female, style
+
+
+# ---------- 등급별 몸 색 수 (2026-11-18 사용자 결정) ----------
+# 몸(무기·손 제외)에 쓰는 색 수를 등급이 오를수록 늘린다: 커먼 10 · 언커먼 12 · 레어 14 · 유니크 15 (+ 투명).
+# 넘으면 적게 쓰인 색을 가장 가까운 색에 합친다. 외곽선 색은 합치지 않는다.
+BODY_COLORS = {1: 10, 2: 12, 3: 14, 4: 15}
+OUTLINE_RGB = (0x2b, 0x1d, 0x2f)
+
+
+def _cdist(a, b):
+    rm = (a[0] + b[0]) / 2
+    dr, dg, db = a[0] - b[0], a[1] - b[1], a[2] - b[2]
+    return ((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) ** 0.5
+
+
+def cap_colors(img, n):
+    px = list(img.getdata())
+    cnt = {}
+    for q in px:
+        if q[3]:
+            cnt[q[:3]] = cnt.get(q[:3], 0) + 1
+    to = {c: c for c in cnt}
+    while len(cnt) > n:
+        best = None
+        for a in cnt:
+            for b in cnt:
+                if a >= b:
+                    continue
+                lo, hi = (a, b) if cnt[a] < cnt[b] else (b, a)
+                if lo == OUTLINE_RGB:
+                    lo, hi = hi, lo
+                if lo == OUTLINE_RGB:
+                    continue
+                cost = _cdist(a, b) * cnt[lo] ** 0.5
+                if best is None or cost < best[0]:
+                    best = (cost, lo, hi)
+        _, lo, hi = best
+        cnt[hi] += cnt.pop(lo)
+        for k, v in to.items():
+            if v == lo:
+                to[k] = hi
+    out = Image.new('RGBA', img.size)
+    out.putdata([to[q[:3]] + (q[3],) if q[3] else (0, 0, 0, 0) for q in px])
+    return out
 
 
 # ---------- 공격: 총·석궁 쏘기 ----------

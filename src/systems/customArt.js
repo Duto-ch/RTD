@@ -44,6 +44,7 @@ export function loadCustomArt(scene, onDone) {
       cd.artScale = def.scale ?? 1;
       // faceTarget: 공격 대상이 왼쪽이면 좌우 반전. pivotX: 몸 중심(프레임 기준 아트 px) — 반전해도 몸이 제자리
       cd.faceTarget = !!def.faceTarget;
+      cd.facesLeft = def.facing === 'left'; // 왼쪽을 보고 그린 그림 (캐릭터 시안: 무기가 왼쪽) → 대상이 오른쪽일 때 뒤집는다
       cd.pivotX = def.pivotX;
       cd.pivotY = def.pivotY; // 몸 중심 y (프레임 기준 아트 px) — 칸 가운데에 몸통을 맞춘다
       cd.frameWidth = def.frameWidth;
@@ -52,10 +53,13 @@ export function loadCustomArt(scene, onDone) {
       for (const [name, a] of Object.entries(def.animations || {})) {
         const animKey = `${key}:${name}`;
         if (scene.anims.exists(animKey)) scene.anims.remove(animKey);
+        const frames = scene.anims.generateFrameNumbers(key, { frames: a.frames });
+        // ms: 프레임마다 길이(밀리초). 프레임 길이 = 1000/frameRate + duration 이라 frameRate 1000(1ms) + (ms-1)
+        if (Array.isArray(a.ms)) frames.forEach((f, i) => (f.duration = Math.max(0, (a.ms[i] ?? a.ms[a.ms.length - 1]) - 1)));
         scene.anims.create({
           key: animKey,
-          frames: scene.anims.generateFrameNumbers(key, { frames: a.frames }),
-          frameRate: a.fps ?? 8,
+          frames,
+          frameRate: Array.isArray(a.ms) ? 1000 : a.fps ?? 8,
           repeat: a.loop ? -1 : 0
         });
       }
@@ -81,17 +85,17 @@ export function setArt(obj, key, base) {
   }
   obj.setTexture(key);
   obj.setScale(base * artScale(obj.scene, key));
-  setFacing(obj, false);
+  setFacing(obj, !!obj.texture?.customData?.facesLeft); // 처음에는 그림을 그린 방향 그대로
   return obj;
 }
 
 /**
- * 바라보는 방향 (그림은 오른쪽을 보고 그린다). manifest 에 faceTarget 이 있는 그림만 반전한다.
+ * 바라보는 방향 (그림은 오른쪽을 보고 그린다 — manifest facing "left" 면 왼쪽). faceTarget 이 있는 그림만 반전한다.
  * Phaser 는 프레임 가운데를 기준으로 뒤집으므로, 몸 중심(pivotX)이 같은 자리에 오도록 origin 도 함께 바꾼다.
  */
 export function setFacing(sprite, left) {
   const cd = sprite.texture?.customData || {};
-  const flip = !!(cd.faceTarget && left);
+  const flip = !!(cd.faceTarget && (cd.facesLeft ? !left : left));
   sprite.setFlipX(flip);
   const fw = cd.frameWidth;
   const pv = cd.pivotX;

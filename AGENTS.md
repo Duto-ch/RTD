@@ -20,6 +20,7 @@
 - `npm run test:e2e` — 브라우저 테스트 (Playwright, `tests/e2e/`): 빌드를 띄워 실제로 조작, 화면을 `test-results/screens/` 에 저장
 - `npm run check` — 위 두 가지 모두 (작업 끝날 때마다 실행)
 - `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇 시뮬레이션. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째 JSON: 명성 강화 레벨 (없으면 강화 0 = 기준 W10~15) (먼저 `npm run build && npx vite preview --port 4173` 실행, playwright 필요)
+- `python3 docs/drafts/roster-art/roster_art.py && python3 tools/import-roster-art.py` — 캐릭터 104명 그림 다시 만들기 → `public/assets/custom/chars/` + manifest `char_<id>` (프레임별 길이 `ms`, 왼쪽을 보는 그림 `facing: "left"`)
 - `node tools/gen-skill-doc.mjs` — 스킬 데이터 변경 후 `docs/SKILLS.md` 재생성
 - `node tools/gen-upgrade-doc.mjs` — 강화 트리 노드 변경 후 `docs/UPGRADES.md` 재생성
 - `node tools/gen-art-doc.mjs` — 영웅·몬스터·유물·지역을 추가/변경하면 `docs/CUSTOM_ART.md` 의 교체 가능 키 목록 재생성

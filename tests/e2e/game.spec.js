@@ -207,7 +207,7 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async ({ page }) => {
+test('캐릭터 그림(시안 104명): 시그리드 대기·공격 모션 · 도트 1px = 화면 2px · 대상 쪽을 바라본다', async ({ page }) => {
   const errors = await startGame(page);
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -216,28 +216,27 @@ test('직접 그린 그림: 시그리드 기본 스탠딩·공격 모션', async
     m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'sigrid'));
     // 가운데 열에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다. 정가운데는 성탑)
     g.grid[m.row][m.col] = null; m.col = 2; m.row = 1; g.grid[1][2] = m; m.snapToCell();
-    window.__rtd.setArt(m.sprite, m.textureKey, 4);
-    m.sprite.play('merc_archer_blue:idle');
     g.select(m);
-    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anim: m.sprite.anims.currentAnim?.key };
+    const idle = g.anims.get('char_sigrid:idle');
+    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, anim: m.sprite.anims.currentAnim?.key,
+      idleFrames: idle.frames.length, idleMs: Math.round(idle.frames.reduce((t, f) => t + f.duration + 1, 0)) };
   });
-  // 28x24 프레임 × 0.75 배율(아트 1px = 화면 3px) → 화면 84x72, 18프레임 = 대기 9 + 공격 9
-  expect(s).toEqual({ key: 'merc_archer_blue', w: 84, h: 72, frames: 18, anim: 'merc_archer_blue:idle' });
+  // 56x40 프레임 × UNIT_PX 3 × scale 2/3 = 화면 112x80 (아트 1px = 화면 2px), 대기 8프레임 · 프레임마다 길이(합 1.2초)
+  expect(s).toEqual({ key: 'char_sigrid', w: 112, h: 80, anim: 'char_sigrid:idle', idleFrames: 8, idleMs: 1240 });
   await page.waitForTimeout(2600);
-  await page.screenshot({ path: SHOT('11-custom-sigrid') });
+  await page.screenshot({ path: SHOT('11-char-sigrid') });
 
-  // 웨이브를 시작하면 공격 모션 재생 → 끝나면 다시 대기 모션
+  // 웨이브를 시작하면 공격 모션 → 끝나면 다시 대기
   await page.keyboard.press('n');
-  // 공격 모션과 그 재생 속도를 같은 순간에 읽는다 (모션이 끝나면 속도가 1로 돌아가므로)
-  const atk = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return sp.anims.currentAnim?.key === 'merc_archer_blue:attack' ? sp.anims.timeScale : 0; });
-  await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBeGreaterThan(1); // 1.8초짜리 모션을 공격 간격 안에 맞춰 빠르게 재생
-  await page.screenshot({ path: SHOT('12-custom-sigrid-attack') });
+  const atk = () => game(page, () => window.game.scene.getScene('Game').mercs[0].sprite.anims.currentAnim?.key);
+  await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBe('char_sigrid:attack');
+  await page.screenshot({ path: SHOT('12-char-sigrid-attack') });
 
-  // 왼쪽 대상을 공격하면 좌우 반전, 오른쪽이면 원래대로. 반전해도 몸 중심(pivotX 12)은 제자리
-  const face = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return { flip: sp.flipX, ox: Math.round(sp.originX * 28) }; });
-  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 16 });
-  await page.screenshot({ path: SHOT('13-custom-sigrid-left') });
-  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 12 });
+  // 그림은 왼쪽을 본다(무기가 왼쪽): 왼쪽 대상이면 그대로, 오른쪽 대상이면 반전. 몸 중심(pivotX 27)은 제자리
+  const face = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return { flip: sp.flipX, ox: Math.round(sp.originX * 56) }; });
+  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 29 });
+  await page.screenshot({ path: SHOT('13-char-sigrid-right') });
+  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 27 });
   expect(errors).toEqual([]);
 });
 
@@ -510,18 +509,14 @@ test('필드 도트(플랫 스타일): 지역 10종 배경이 모두 그려지�
   expect(errors).toEqual([]);
 });
 
-test('PixelLab 시범 캐릭터: 브리짓(레드 마법사) 3픽셀 사양 대기·공격 모션', async ({ page }) => {
+test('캐릭터 그림: 104명 모두 게임 그림이 있고, 병영 카드에도 같은 그림', async ({ page }) => {
   const errors = await startGame(page);
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    g.hire();
-    const m = g.mercs[0];
-    m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'bridget'));
-    window.__rtd.setArt(m.sprite, m.textureKey, 4);
-    m.sprite.play('merc_mage_red:idle');
-    return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, frames: m.sprite.texture.frameTotal - 1, anims: ['idle', 'attack'].every((a) => g.anims.exists(`merc_mage_red:${a}`)) };
+    const R = window.__rtd.ROSTER;
+    return { n: R.length, withArt: R.filter((c) => g.textures.exists(`char_${c.id}`) && g.anims.exists(`char_${c.id}:attack`)).length };
   });
-  expect(s).toEqual({ key: 'merc_mage_red', w: 84, h: 72, frames: 18, anims: true });
+  expect(s).toEqual({ n: 104, withArt: 104 });
   expect(errors).toEqual([]);
 });
 
