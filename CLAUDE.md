@@ -9,15 +9,14 @@
 ## 소통 방식
 - 사용자에게 하는 설명·보고는 **한국어**. 코드·파일 경로·명령어·고유 키 이름만 원문 그대로.
 
-## 브랜치 상태 (2026-11-17)
-- `main` — 배포 중(https://duto-ch.github.io/RTD/). 예전 규칙(용병 15·영웅 9, 100기 패배, 영웅 승급, 스킬 리롤) + B-2 UI·썬플라워 글꼴·가로 배치
-- `feature/horde` — ① 물량·성벽 체력 시험판. `feature/roster` — 그 위에 ② 캐릭터 96명·로비·덱 + 캐릭터 그림 시안. **둘 다 main 미반영, 사용자 확인 대기**. 아래 규칙은 `feature/roster` 기준 — **개편 작업을 이어 할 때는 `feature/roster` 에서 시작**
+## 브랜치 상태 (2026-11-18)
+- `main` — 배포 중(https://duto-ch.github.io/RTD/). **2026-11-18 `feature/roster`(① 물량·성벽 체력 + ② 캐릭터 104명·로비·덱·캐릭터 그림) 합침** ([Duto-ch/RTD#1](https://github.com/Duto-ch/RTD/pull/1)). 아래 규칙은 모두 main 기준
+- `feature/roster`·`feature/horde` — main 에 합쳐짐 (이어서 작업할 때는 main 에서 새 브랜치)
 - `preview/field-image` — 초원 필드 그림 시험 + `tools/import-art.py`(perfectPixel 자동·manifest `backgrounds`)·`addBackground` (보류. 새 그림을 넣게 되면 스크립트·장치만 main 으로)
 - 미리보기 시험판: https://claude.ai/artifact/HsbNZRZ3U9vBogYMm52FLW · 캐릭터 96명 열람: https://claude.ai/artifact/L6VHzffZY3o1dAigLJWf7U
 
 ## 확인 필요 (사용자 결정 대기)
 - **난이도 목표**: 강화 0 으로 W10~15 가 한계라는 기존 기준 유지? (지금 봇 강화 0 → W45·W54 — 칸 48px 적용 후, 이전 칸 64px 에서 W56~62. 물량·관통·성벽 체력으로 쉬워짐)
-- ①·② 를 main 에 합칠지
 - 후반 골드 소비처 (지금 없음 — 골드가 수만 이상 쌓임)
 - 보스 디버프 대상 (지금 랜덤 용병 2+웨이브/20명) · 웨이브 속성 '최대 2종'이 맞는지('1종만' 의도였는지)
 - 랭킹 (내 기기 vs 온라인) — 보류
