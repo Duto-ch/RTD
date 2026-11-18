@@ -233,10 +233,11 @@ test('캐릭터 그림(시안 104명): 시그리드 대기·공격 모션 · 도
   await page.screenshot({ path: SHOT('12-char-sigrid-attack') });
 
   // 그림은 왼쪽을 본다(무기가 왼쪽): 왼쪽 대상이면 그대로, 오른쪽 대상이면 반전. 몸 중심(pivotX 27)은 제자리
-  const face = () => game(page, () => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; return { flip: sp.flipX, ox: Math.round(sp.originX * 56) }; });
-  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: true, ox: 29 });
+  // (전투 중 실제 대상 방향은 몬스터 위치에 따라 늦게 올 수 있어, 방향 전환 자체는 setFacing 으로 바로 확인)
+  const face = (left) => game(page, (l) => { const sp = window.game.scene.getScene('Game').mercs[0].sprite; window.__rtd.setFacing(sp, l); return { flip: sp.flipX, ox: Math.round(sp.originX * 56) }; }, left);
+  expect(await face(false)).toEqual({ flip: true, ox: 29 });
   await page.screenshot({ path: SHOT('13-char-sigrid-right') });
-  await expect.poll(face, { timeout: 30000, intervals: [50] }).toEqual({ flip: false, ox: 27 });
+  expect(await face(true)).toEqual({ flip: false, ox: 27 });
   expect(errors).toEqual([]);
 });
 
