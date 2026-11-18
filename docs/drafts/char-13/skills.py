@@ -12,7 +12,7 @@ import weapons as Wp
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 A.ARMLESS = True
-BW, BH = 112, 64          # 큰 판
+BW, BH = 112, 72          # 큰 판 (캐릭터 판 높이 40 에 맞춤)
 BX, BY = 52, 28           # 캐릭터 판(56x32)을 놓는 자리
 BODY = (BX + A.OX + 11.5, BY + A.OY + 17.5)   # 몸통 가운데 (큰 판 좌표)
 GROUND = BY + A.OY + 23                     # 발밑 줄
