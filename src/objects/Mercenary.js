@@ -1,17 +1,14 @@
 import Phaser from 'phaser';
 import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES, skillLevels } from '../data/roster.js';
-import { ATTR_INFO } from '../data/elements.js';
 import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
+import { badgePixels, BADGE_PX } from '../ui/badge.js';
 
 export const MAX_LEVEL = 5; // 최고 레벨 (2026-11-17: 영웅 승급 폐지 — 유니크는 고용으로만)
 
 /** 필드 위 유닛 = 캐릭터 104명(data/roster.js) 중 하나. 등급·속성·레벨·고유 특성·확정 스킬 */
 const NO_BONUS = {};
-
-// 픽셀 별 모양 (5x5)
-const STAR = ['..x..', '.xxx.', 'xxxxx', '.xxx.', '.x.x.'].flatMap((r, j) => [...r].flatMap((c, i) => (c === 'x' ? [[i, j]] : [])));
 
 // 아직 전용 그림이 없는 캐릭터의 임시 그림 (ChatGPT 그림을 manifest 에 `char_<id>` 로 넣으면 그게 우선)
 const OLD_SPRITE = {
@@ -72,7 +69,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     scene.sys.updateList.add(this.sprite); // 컨테이너 안 스프라이트도 애니메이션이 돌도록
     playBase(this.sprite, 'idle');
     this.pips = scene.add.graphics();
-    this.add([this.pips, this.sprite]);
+    this.add([this.sprite, this.pips]); // 이름표는 캐릭터 앞
     this.drawPips();
 
     this.setSize(CELL, CELL);
@@ -110,21 +107,11 @@ export class Mercenary extends Phaser.GameObjects.Container {
   }
 
   drawPips() {
-    // 레벨 표시: 픽셀 별 (5x5, 1칸=2px) + 검은 외곽선. Lv5 는 금색
+    // 레벨·속성 이름표 (시안 E): 발밑 앞, 테두리 = 등급색, Lv5 는 금색 숫자
     const g = this.pips;
     g.clear();
-    const color = this.level >= MAX_LEVEL ? 0xf2c14e : ATTR_INFO[this.attr].color;
-    const n = Math.min(this.level, MAX_LEVEL);
-    const step = 12;
-    const sx = -Math.round(((n - 1) * step) / 2) - 5;
-    const y = CELL / 2 - 13;
-    for (let i = 0; i < n; i++) {
-      const x = sx + i * step;
-      g.fillStyle(0x1b1b26);
-      STAR.forEach(([cx, cy]) => g.fillRect(x + cx * 2 - 1, y + cy * 2 - 1, 4, 4));
-      g.fillStyle(color);
-      STAR.forEach(([cx, cy]) => g.fillRect(x + cx * 2, y + cy * 2, 2, 2));
-    }
+    const P = BADGE_PX, ox = -8 * P, oy = 5 * P;
+    for (const [x, y, c] of badgePixels(this.attr, this.grade, this.level)) g.fillStyle(c).fillRect(ox + x * P, oy + y * P, P, P);
     // 등급 표시: 언커먼 초록·레어 파랑·유니크 금색 테두리 (커먼은 없음)
     const gc = { 2: 0x4fb06a, 3: 0x3f8fe0, 4: 0xf2c14e }[this.grade];
     if (gc) {
