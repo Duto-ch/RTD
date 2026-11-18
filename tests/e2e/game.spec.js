@@ -162,7 +162,7 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   }
 });
 
-test('캐릭터마다 그림 (15명 서로 다른 그림)', async ({ page }) => {
+test('캐릭터마다 그림 + 등급 받침 고리(뒤·앞)와 레벨 방패 숫자', async ({ page }) => {
   const errors = await startGame(page);
   const info = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -174,9 +174,11 @@ test('캐릭터마다 그림 (15명 서로 다른 그림)', async ({ page }) => 
       m.level = (i % 5) + 1;
       m.setChar(window.__rtd.ROSTER.find((c) => c.id === ids[i]));
     });
-    return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length };
+    // 고리 뒤쪽 반은 캐릭터 뒤, 앞쪽 반 + 방패는 앞
+    const order = g.mercs.every((m) => m.list.indexOf(m.ringBack) < m.list.indexOf(m.sprite) && m.list.indexOf(m.sprite) < m.list.indexOf(m.pips));
+    return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length, order };
   });
-  expect(info).toEqual({ keys: 15, n: 15 });
+  expect(info).toEqual({ keys: 15, n: 15, order: true });
   await page.waitForTimeout(3000); // 시작 배너가 사라진 뒤 촬영
   await page.screenshot({ path: SHOT('09-mercs') });
   expect(errors).toEqual([]);

@@ -3,6 +3,7 @@ import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES, skillLevels } from '../data/roster.js';
 import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
+import { ringPixels, shieldPixels, MARK_PX } from '../ui/gradeMark.js';
 
 export const MAX_LEVEL = 5; // 최고 레벨 (2026-11-17: 영웅 승급 폐지 — 유니크는 고용으로만)
 
@@ -70,8 +71,9 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.sprite = setArt(scene.add.sprite(0, 0, this.textureKey), this.textureKey, UNIT_PX);
     scene.sys.updateList.add(this.sprite); // 컨테이너 안 스프라이트도 애니메이션이 돌도록
     playBase(this.sprite, 'idle');
-    this.pips = scene.add.graphics();
-    this.add([this.sprite, this.pips]); // 이름표는 캐릭터 앞
+    this.ringBack = scene.add.graphics(); // 받침 고리 뒤쪽 반 (캐릭터 뒤)
+    this.pips = scene.add.graphics(); // 받침 고리 앞쪽 반 + 레벨 방패 (캐릭터 앞)
+    this.add([this.ringBack, this.sprite, this.pips]);
     this.drawPips();
 
     this.setSize(CELL, CELL);
@@ -109,8 +111,14 @@ export class Mercenary extends Phaser.GameObjects.Container {
   }
 
   drawPips() {
-    // 레벨·등급 표시 자리 (2026-11-18: 속성·레벨 이름표 삭제 — 새 디자인 시안 확정 전까지 비움, docs/drafts/grade-level/)
+    // 등급 = 발밑 받침 고리(등급색), 레벨 = 오른쪽 아래 방패 숫자 (2026-11-18, 시안 A + C)
+    const P = MARK_PX;
+    const paint = (g, list) => list.forEach(([x, y, c]) => g.fillStyle(c).fillRect(x * P, y * P, P, P));
+    this.ringBack.clear();
     this.pips.clear();
+    paint(this.ringBack, ringPixels(this.grade, 'back'));
+    paint(this.pips, ringPixels(this.grade, 'front'));
+    paint(this.pips, shieldPixels(this.grade, this.level));
   }
 
   preDestroy() {
