@@ -344,6 +344,7 @@ function paintDecorations(px, rect, rand, W, H, biome) {
 
 /** 성벽 레이어 (field_wall): 링 모양, 가운데 바닥 자리는 투명. 텍스처 (0,0) = 성벽 바깥 테두리 1px 바깥 */
 function paintWall(scene) {
+  // 2026-11-18: 둥근 바깥 모서리에 맞춰 다시 찍음 — 벽돌 줄·성가퀴가 모서리 곡선을 따라 돈다. 돌 색은 한 단계 밝게
   const fs = toArt(FIELD_X + FIELD_SIZE) - toArt(FIELD_X);
   const w = toArt(WALL);
   const ws = fs + 2 * w;
@@ -351,61 +352,87 @@ function paintWall(scene) {
   const tex = scene.textures.createCanvas('field_wall', S, S);
   const ctx = tex.getContext();
   const rand = rng(4242);
-  const px = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
   const rect = (x, y, ww, hh, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, ww, hh); };
   const wx = 1;
   const wy = 1;
   const fx = wx + w;
   const fy = wy + w;
-  const STONE = ['#8a8f99', '#7f848e', '#949aa4'];
-  // 벽 그림자: 오른쪽·아래로 1px (반투명 — 어느 지역 길 위에서도 자연스럽게)
-  rect(wx + 1, wy + ws, ws, 1, 'rgba(0,0,0,0.28)');
-  rect(wx + ws, wy + 1, 1, ws, 'rgba(0,0,0,0.28)');
-  rect(wx - 1, wy - 1, ws + 2, ws + 2, '#2a2c33');
-  // 벽돌 (3px 시절 6x3 → 1.5배): 위 밝은 줄 / 가운데 / 아래·오른쪽 줄눈
+  const R = WALL_RADIUS;
+  const STONE = ['#9aa0aa', '#8f949e', '#a5abb5'];
+  const MORTAR = '#62666f';
+  const OUTLINE = [0x2e, 0x30, 0x38];
+  // 바깥 둘레(외곽선 포함) 둥근 사각형
+  const X0 = wx - 1, Y0 = wy - 1, SZ = ws + 2;
+  const cx = X0 + SZ / 2, cy = Y0 + SZ / 2, half = SZ / 2;
+  const sd = (x, y) => sdRoundRect(x + 0.5, y + 0.5, X0, Y0, SZ, SZ, R);
+  const inWall = (x, y) => sd(x, y) < 0;
+  // 둘레를 따라 잰 위치 u (벽돌 칸·성가퀴 간격용): 곧은 변은 길이, 모서리는 호 길이
+  const L = 2 * (half - R);
+  const RM = R - 3; // 벽돌 띠 가운데쯤의 곡률 반지름 (호 길이 기준)
+  const perim = (x, y) => {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+    const qx = Math.abs(dx) - (half - R), qy = Math.abs(dy) - (half - R);
+    const arc = (RM * Math.PI) / 2;
+    if (qx > 0 && qy > 0) {
+      // 모서리: 위→오른→아래→왼 순서로 0~90° 를 호 길이로
+      const a = Math.atan2(qy, qx); // 0 = 옆, π/2 = 위/아래
+      if (dx > 0 && dy < 0) return L + RM * (Math.PI / 2 - a);
+      if (dx > 0 && dy > 0) return 2 * L + arc + RM * a;
+      if (dx < 0 && dy > 0) return 3 * L + 2 * arc + RM * (Math.PI / 2 - a);
+      return 4 * L + 3 * arc + RM * a;
+    }
+    if (qy > qx) return dy < 0 ? dx + L / 2 : 2 * L + 2 * arc + (L / 2 - dx); // 위 · 아래 변
+    return dx > 0 ? L + arc + dy + L / 2 : 3 * L + 3 * arc + (L / 2 - dy); // 오른 · 왼 변
+  };
+  // 빛은 왼쪽 위에서: 바깥 방향(법선)이 위·왼쪽이면 밝은 면
+  const lit = (x, y) => {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+    const qx = Math.max(Math.abs(dx) - (half - R), 0) * Math.sign(dx), qy = Math.max(Math.abs(dy) - (half - R), 0) * Math.sign(dy);
+    const nx = Math.abs(qx) > 0 || Math.abs(qy) > 0 ? qx : 0, ny = qy;
+    const n = Math.abs(dx) - (half - R) > Math.abs(dy) - (half - R) && !(qx && qy) ? [Math.sign(dx), 0] : !(qx && qy) ? [0, Math.sign(dy)] : [nx, ny];
+    return -(n[0] + n[1]) > 0.01;
+  };
   const BW = kk(6);
   const BH = Math.floor(3 * K);
-  for (let by = 0; by < ws; by += BH) {
-    const row = by / BH;
-    for (let bx = -Math.floor(BW / 2) * (row % 2); bx < ws; bx += BW) {
-      const c = STONE[Math.floor(rand() * STONE.length)];
-      for (let y = 0; y < BH; y++) {
-        for (let x = 0; x < BW; x++) {
-          const X = wx + bx + x;
-          const Y = wy + by + y;
-          if (X < wx || X >= wx + ws || Y >= wy + ws) continue;
-          const mortar = y === BH - 1 || x === BW - 1;
-          px(X, Y, mortar ? '#555963' : y === 0 ? shade(c, 1.12) : c);
-        }
-      }
-    }
-  }
-  // 성가퀴: 바깥 테두리 띠에 요철 (위 밝음·옆 그림자)
-  const T = kk(2);
-  const P = kk(4);
-  for (let i = 0; i < ws; i++) {
-    const on = Math.floor(i / P) % 2 === 0;
-    const top = on ? '#c3c8d0' : '#44474f';
-    const sub = on ? '#a7acb5' : '#5b5f68';
-    for (let t = 0; t < T; t++) {
-      px(wx + i, wy + t, t === 0 ? top : sub);
-      px(wx + t, wy + i, t === 0 ? top : sub);
-    }
-    px(wx + i, wy + ws - 1, on ? '#a7acb5' : '#3a3d45');
-    px(wx + ws - 1, wy + i, on ? '#a7acb5' : '#3a3d45');
-  }
-  // 바깥 모서리 둥글게 (2026-11-18): 둥근 사각형 밖은 지우고, 둘레에 외곽선 + 오른쪽·아래 그림자
-  const R = WALL_RADIUS;
-  const inWall = (x, y) => sdRoundRect(x + 0.5, y + 0.5, wx - 1, wy - 1, ws + 2, ws + 2, R) < 0;
-  const img = ctx.getImageData(0, 0, S, S);
+  const T = kk(2); // 성가퀴 띠 두께
+  const P = kk(4); // 성가퀴 간격
+  const stoneOf = new Map();
+  const img = ctx.createImageData(S, S);
   const d = img.data;
+  const set = (x, y, c, a = 255) => {
+    const i = (y * S + x) * 4;
+    const v = typeof c === 'string' ? [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)] : c;
+    [d[i], d[i + 1], d[i + 2], d[i + 3]] = [v[0], v[1], v[2], a];
+  };
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
-      const i = (y * S + x) * 4;
-      if (inWall(x, y)) {
-        if (!inWall(x - 1, y) || !inWall(x + 1, y) || !inWall(x, y - 1) || !inWall(x, y + 1)) [d[i], d[i + 1], d[i + 2], d[i + 3]] = [0x2a, 0x2c, 0x33, 255];
-      } else if (inWall(x - 1, y - 1)) [d[i], d[i + 1], d[i + 2], d[i + 3]] = [0, 0, 0, 71]; // 그림자 (반투명 0.28)
-      else d[i + 3] = 0;
+      if (!inWall(x, y)) {
+        if (inWall(x - 1, y - 1)) set(x, y, [0, 0, 0], 71); // 오른쪽·아래 그림자 (반투명 0.28)
+        continue;
+      }
+      if (!inWall(x - 1, y) || !inWall(x + 1, y) || !inWall(x, y - 1) || !inWall(x, y + 1)) { set(x, y, OUTLINE); continue; }
+      const depth = -sd(x, y) - 1; // 외곽선 안쪽부터 0
+      const u = perim(x, y);
+      const bright = lit(x, y);
+      if (depth < T) {
+        // 성가퀴: 밝은 돌출부(merlon)와 어두운 틈이 번갈아, 바깥 줄은 하이라이트
+        const on = Math.floor(u / P) % 2 === 0;
+        const top = on ? (bright ? '#d4d9e0' : '#b4b9c2') : bright ? '#50535b' : '#454850';
+        const sub = on ? (bright ? '#b7bcc4' : '#a0a5ae') : bright ? '#686c75' : '#5a5e67';
+        set(x, y, depth < 1 ? top : sub);
+        continue;
+      }
+      // 벽돌: 깊이로 줄, 둘레 위치로 칸 (줄마다 반 칸 어긋남)
+      const row = Math.floor((depth - T) / BH);
+      const ry = (depth - T) - row * BH;
+      const uu = u + (row % 2) * (BW / 2);
+      const col = Math.floor(uu / BW);
+      const rx = uu - col * BW;
+      const key = row * 10000 + col;
+      if (!stoneOf.has(key)) stoneOf.set(key, STONE[Math.floor(rand() * STONE.length)]);
+      const c = stoneOf.get(key);
+      const mortar = ry >= BH - 1 || rx >= BW - 1;
+      set(x, y, mortar ? MORTAR : ry < 1 ? shade(c, 1.12) : c);
     }
   }
   ctx.putImageData(img, 0, 0);
