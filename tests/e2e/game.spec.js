@@ -162,7 +162,7 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   }
 });
 
-test('캐릭터마다 그림, 발밑 이름표(속성 아이콘 + 레벨 숫자, 테두리 = 등급색)', async ({ page }) => {
+test('캐릭터마다 그림 (15명 서로 다른 그림)', async ({ page }) => {
   const errors = await startGame(page);
   const info = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -174,13 +174,11 @@ test('캐릭터마다 그림, 발밑 이름표(속성 아이콘 + 레벨 숫자,
       m.level = (i % 5) + 1;
       m.setChar(window.__rtd.ROSTER.find((c) => c.id === ids[i]));
     });
-    // 이름표는 캐릭터 앞(컨테이너 맨 위)에 그려진다
-    const front = g.mercs.every((m) => m.list.indexOf(m.pips) > m.list.indexOf(m.sprite));
-    return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length, front };
+    return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length };
   });
-  expect(info).toEqual({ keys: 15, n: 15, front: true });
+  expect(info).toEqual({ keys: 15, n: 15 });
   await page.waitForTimeout(3000); // 시작 배너가 사라진 뒤 촬영
-  await page.screenshot({ path: SHOT('09-mercs-badges') });
+  await page.screenshot({ path: SHOT('09-mercs') });
   expect(errors).toEqual([]);
 });
 

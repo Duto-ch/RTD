@@ -3,7 +3,6 @@ import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES, skillLevels } from '../data/roster.js';
 import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
-import { badgePixels, BADGE_PX } from '../ui/badge.js';
 
 export const MAX_LEVEL = 5; // 최고 레벨 (2026-11-17: 영웅 승급 폐지 — 유니크는 고용으로만)
 
@@ -110,11 +109,8 @@ export class Mercenary extends Phaser.GameObjects.Container {
   }
 
   drawPips() {
-    // 레벨·속성 이름표 (시안 E): 발밑 앞, 테두리 = 등급색, Lv5 는 금색 숫자
-    const g = this.pips;
-    g.clear();
-    const P = BADGE_PX, ox = -8 * P, oy = 5 * P;
-    for (const [x, y, c] of badgePixels(this.attr, this.grade, this.level)) g.fillStyle(c).fillRect(ox + x * P, oy + y * P, P, P);
+    // 레벨·등급 표시 자리 (2026-11-18: 속성·레벨 이름표 삭제 — 새 디자인 시안 확정 전까지 비움, docs/drafts/grade-level/)
+    this.pips.clear();
   }
 
   preDestroy() {

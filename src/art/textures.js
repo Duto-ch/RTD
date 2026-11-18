@@ -83,7 +83,8 @@ function shade(hex, k) {
  * GameScene.createFieldLayers() 가 bg → 석판 25칸 → 성벽 순서로 쌓는다
  */
 const PATH_JITTER = 2.5; // 몬스터 길 가장자리 들쭉날쭉 폭 (아트 px, ±)
-const WALL_RADIUS = 20; // 성벽 바깥 모서리 반지름 (아트 px)
+const WALL_RADIUS = 20;
+const FLOOR_RADIUS = 8; // 바닥(석판) 네 모서리 반지름 (아트 px) — 성벽이 그만큼 안쪽을 덮는다 // 성벽 바깥 모서리 반지름 (아트 px)
 /** 둥근 사각형까지의 부호 거리 (안쪽 음수). x,y,w,h = 사각형, r = 모서리 반지름 */
 function sdRoundRect(px0, py0, x, y, w, h, r) {
   const qx = Math.abs(px0 - (x + w / 2)) - (w / 2 - r);
@@ -435,13 +436,21 @@ function paintWall(scene) {
       set(x, y, mortar ? MORTAR : ry < 1 ? shade(c, 1.12) : c);
     }
   }
+  // 바닥 자리는 비우되 네 모서리는 둥글게 (2026-11-18, 반지름 FLOOR_RADIUS) — 모서리 석판이 성벽 아래로 둥글게 깎여 보인다.
+  // 성벽이 바닥 가장자리에 드리우는 그림자: 위·왼쪽 진하게, 아래·오른쪽 옅게
+  const FR = FLOOR_RADIUS;
+  const inFloor = (x, y) => sdRoundRect(x + 0.5, y + 0.5, fx, fy, fs, fs, FR) < 0;
+  for (let y = fy; y < fy + fs; y++) {
+    for (let x = fx; x < fx + fs; x++) {
+      if (!inFloor(x, y)) continue;
+      const i = (y * S + x) * 4;
+      const up = !inFloor(x, y - 1), left = !inFloor(x - 1, y), down = !inFloor(x, y + 1), right = !inFloor(x + 1, y);
+      if (up || left) set(x, y, [0x3a, 0x3d, 0x45]);
+      else if (down || right) set(x, y, [0x45, 0x49, 0x53]);
+      else d[i + 3] = 0;
+    }
+  }
   ctx.putImageData(img, 0, 0);
-  // 바닥 자리는 비우고, 성벽이 바닥 가장자리에 드리우는 그림자만 남긴다
-  ctx.clearRect(fx, fy, fs, fs);
-  rect(fx, fy, fs, 1, '#3a3d45');
-  rect(fx, fy, 1, fs, '#3a3d45');
-  rect(fx, fy + fs - 1, fs, 1, '#454953');
-  rect(fx + fs - 1, fy, 1, fs, '#454953');
   tex.refresh();
 }
 
