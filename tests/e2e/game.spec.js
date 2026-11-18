@@ -599,6 +599,35 @@ test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼
   expect(errors).toEqual([]);
 });
 
+test('커먼·언커먼 스킬은 공용 세트 이펙트 (속성색 시트 · 바닥 레이어는 캐릭터 뒤 · 연쇄는 대상 사이)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999; g.hire(); g.hire();
+    const R = window.__rtd.ROSTER;
+    const [a, b] = g.mercs;
+    a.setChar(R.find((c) => c.grade === 1 && c.attr === 'red'));
+    b.setChar(R.find((c) => c.grade === 2 && c.attr === 'blue'));
+    const fake = [{ x: 120, y: 330, alive: true }, { x: 170, y: 320, alive: true }, { x: 220, y: 330, alive: true }];
+    const v = g.vfx;
+    v.setSkill(a, { buff: { scope: 'self' } }, [], null);
+    v.setSkill(a, { area: { type: 'circle' }, fx: { slow: [0.3, 2] } }, fake, fake[0]);
+    v.setSkill(b, { area: { type: 'chain', n: 3 } }, fake, fake[0]);
+    v.setSkill(b, { buff: { scope: 'adjacent' } }, [], null);
+    const spr = g.children.list.filter((o) => o.texture?.key?.startsWith('fxs_'));
+    const keys = [...new Set(spr.map((o) => o.texture.key))].sort();
+    const back = spr.filter((o) => o.texture.key.endsWith('_back')).every((o) => o.depth < a.depth);
+    const rare = R.find((c) => c.grade === 3); a.setChar(rare);
+    return { keys, back, rareUsesSet: v.setSkill(a, { buff: { scope: 'self' } }, [], null) };
+  });
+  expect(r.keys).toEqual(expect.arrayContaining(['fxs_c_buff_self_red', 'fxs_c_buff_self_red_back', 'fxs_c_slow_red', 'fxs_u_chain_blue', 'fxs_u_hit_blue', 'fxs_u_buff_adj_blue_back']));
+  expect(r.back).toBe(true);
+  expect(r.rareUsesSet).toBe(false); // 레어·유니크는 전용 이펙트 전까지 예전 연출
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: SHOT('36-fx-sets') });
+  expect(errors).toEqual([]);
+});
+
 test('단축키 S: 선택한 용병 판매', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });

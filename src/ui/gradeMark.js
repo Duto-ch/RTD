@@ -8,7 +8,7 @@ const MAX_LEVEL = 5;
 const OUT = 0x2b1d2f;
 // 등급색 [진함, 기본, 밝음] — 속성색(빨·파·초)과 겹치지 않게: 커먼 동 · 언커먼 은 · 레어 보라 · 유니크 금
 export const GRADE_COLORS = {
-  1: [0x6a3a14, 0xd4823c, 0xf2b070], // 동: 주황빛 갈색
+  1: [0x3e220c, 0x8a5426, 0xb87a40], // 동: 짙은 동색 (2026-11-18)
   2: [0x3c4656, 0xf0f4fa, 0xffffff], // 은: 거의 흰색 (회색 석판보다 확연히 밝게)
   3: [0x3e1670, 0xb36cff, 0xdcc0ff], // 보라
   4: [0x7a4a00, 0xffd23a, 0xfff6b0] // 금
