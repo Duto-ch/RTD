@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { PX, DEPTH, GAME_W, GAME_H } from '../config.js';
 import { ATTR_INFO } from '../data/elements.js';
-import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim } from '../data/fx.js';
+import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim, FX_SETS, setTexture, setAnim, SET_SCALE, FX_SIG, sigTexture, sigAnim } from '../data/fx.js';
 
 const MAX_SHEET_FX = 48;
 const MAX_COIN_FX = 12; // 동전 연출 동시 상한 (몬스터가 몰려 죽어도 필드를 덮지 않게) // 동시에 재생하는 시트 이펙트 상한 (넘으면 명중 이펙트부터 생략)
@@ -58,6 +58,114 @@ export class Vfx {
     spr.once('animationcomplete', () => spr.destroy());
     spr.once('destroy', () => this.sheetCount--);
     spr.play(fxAnim(key));
+    return true;
+  }
+
+  /**
+   * 세트 이펙트 한 장 재생 (커먼·언커먼 공용, 2026-11-18). 바닥 레이어(_back)가 있으면 캐릭터 뒤에 함께 깐다.
+   * opts: depth(앞 레이어), backDepth, sx(가로 배율 — 연쇄 번개 늘리기), angle(라디안)
+   */
+  playSet(k, x, y, opts = {}) {
+    return this.playSheet(FX_SETS, setTexture, setAnim, k, x, y, opts);
+  }
+
+  /** 시트 표(세트·전용 공통) 한 장 재생 — 바닥 레이어(_back)가 있으면 캐릭터 뒤에 함께 깐다 */
+  playSheet(table, texOf, animOf, k, x, y, opts = {}) {
+    const d = table[k];
+    const s = this.s;
+    if (!d || !s.anims.exists(animOf(k))) return false;
+    if (this.sheetCount >= MAX_SHEET_FX && opts.optional !== false) return false;
+    const one = (back) => {
+      const spr = s.add.sprite(x, y, texOf(k, back), 0).setOrigin(d.ax / d.w, d.ay / d.h)
+        .setScale(SET_SCALE * (opts.sx ?? 1), SET_SCALE).setDepth(back ? opts.backDepth ?? DEPTH.merc - 0.5 : opts.depth ?? DEPTH.fx);
+      if (opts.angle) spr.setRotation(opts.angle);
+      this.sheetCount++;
+      spr.once('animationcomplete', () => spr.destroy());
+      spr.once('destroy', () => this.sheetCount--);
+      spr.play(animOf(k, back));
+    };
+    if (d.back && s.anims.exists(animOf(k, true))) one(true);
+    one(false);
+    return true;
+  }
+
+  /**
+   * 레어·유니크 전용 스킬 연출 (2026-11-18): 스킬 def.id 로 그 캐릭터 전용 시트를 고른다. 없으면 false
+   */
+  sigSkill(unit, def, targets, primary) {
+    const d = FX_SIG[def.id];
+    if (!d || !this.s.anims.exists(sigAnim(def.id))) return false;
+    const P = (x, y, o) => this.playSheet(FX_SIG, sigTexture, sigAnim, def.id, x, y, o);
+    const under = { backDepth: DEPTH.monster - 0.5 }; // 몬스터 쪽 바닥 자국은 몬스터 뒤
+    const live = targets.filter((t) => t.alive !== false);
+    switch (d.kind) {
+      case 'target': (def.area?.type === 'single' ? live.slice(0, 1) : live.slice(0, 8)).forEach((t) => P(t.x, t.y, under)); break;
+      case 'center': if (primary) P(primary.x, primary.y, under); break;
+      case 'self_area': P(unit.x, unit.y); break;
+      case 'chain': {
+        let from = unit;
+        for (const t of live.slice(0, 8)) {
+          const dx = t.x - from.x, dy = t.y - from.y, dist = Math.hypot(dx, dy);
+          if (dist > 4) P(from.x, from.y, { sx: dist / (64 * SET_SCALE), angle: Math.atan2(dy, dx) });
+          from = t;
+        }
+        break;
+      }
+      case 'self': P(unit.x, unit.y + 16); break;
+      case 'adj': P(unit.x, unit.y); break;
+      case 'ally': for (const m of this.s.mercs) P(m.x, m.y + 12); break;
+      default: return false;
+    }
+    return true;
+  }
+
+  /**
+   * 커먼·언커먼 스킬 연출: 스킬 데이터(범위·효과·버프·골드)로 공용 세트 이펙트를 고른다 (docs/VFX_STYLE.md 등급별 겹침 규칙).
+   * 레어·유니크는 전용 이펙트 전까지 예전 연출(skill) 그대로. 그릴 수 없으면 false
+   */
+  setSkill(unit, def, targets, primary) {
+    if (unit.grade > 2) return false;
+    const tier = unit.grade === 1 ? 'c' : 'u';
+    const key = (n) => `${tier}_${n}_${unit.attr}`;
+    if (!FX_SETS[key('hit')] || !this.s.anims.exists(setAnim(key('hit')))) return false;
+    const P = (n, x, y, o) => this.playSet(key(n), x, y, o);
+    const under = DEPTH.monster - 0.5; // 몬스터 발밑 웅덩이 (몬스터 뒤)
+    const each = (n, list, max = 8, o) => list.slice(0, max).forEach((t) => t.alive !== false && P(n, t.x, t.y, o));
+    if (def.buff) {
+      const sc = def.buff.scope;
+      if (sc === 'self') P('buff_self', unit.x, unit.y + 12);
+      else if (sc === 'all') for (const m of this.s.mercs) P(FX_SETS[key('buff_all')] ? 'buff_all' : 'buff_self', m.x, m.y + (FX_SETS[key('buff_all')] ? 4 : 12));
+      else P('buff_adj', unit.x, unit.y);
+    }
+    if (def.area && primary) {
+      const a = def.area, fx = def.fx || {};
+      if (a.type === 'range') {
+        P('pulse', unit.x, unit.y);
+        each('hit', targets, 6);
+      } else if (a.type === 'chain') {
+        if (FX_SETS[key('chain')]) {
+          let from = unit;
+          for (const t of targets.slice(0, 8)) {
+            const dx = t.x - from.x, dy = t.y - from.y, dist = Math.hypot(dx, dy);
+            if (dist > 4) P('chain', from.x, from.y, { sx: dist / (64 * SET_SCALE), angle: Math.atan2(dy, dx) });
+            from = t;
+          }
+        }
+        each('hit', targets);
+      } else if (a.type === 'circle') {
+        if (fx.slow) P('slow', primary.x, primary.y, { depth: under });
+        else if (fx.dot) P('dot', primary.x, primary.y, { depth: under });
+        else if (fx.push) P('push', primary.x, primary.y);
+        else P('blast', primary.x, primary.y);
+        if (fx.stun) P('stun', primary.x, primary.y);
+        if (fx.vuln) each('vuln', targets, 5);
+      } else {
+        each('hit', targets); // single · multi
+        if (fx.vuln) each('vuln', targets, 5);
+        if (fx.stun) each('stun', targets, 3);
+      }
+    }
+    if (def.gold) P('gold', unit.x, unit.y + 12);
     return true;
   }
 
