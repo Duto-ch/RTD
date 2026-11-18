@@ -112,12 +112,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     g.clear();
     const P = BADGE_PX, ox = -8 * P, oy = 5 * P;
     for (const [x, y, c] of badgePixels(this.attr, this.grade, this.level)) g.fillStyle(c).fillRect(ox + x * P, oy + y * P, P, P);
-    // 등급 표시: 언커먼 초록·레어 파랑·유니크 금색 테두리 (커먼은 없음)
-    const gc = { 2: 0x4fb06a, 3: 0x3f8fe0, 4: 0xf2c14e }[this.grade];
-    if (gc) {
-      g.lineStyle(this.grade === 4 ? 4 : 3, gc, this.grade === 4 ? 0.95 : 0.85).strokeRect(-CELL / 2 + 3, -CELL / 2 + 3, CELL - 6, CELL - 6);
-      if (this.grade === 4) g.fillStyle(0xf2c14e, 0.14).fillRect(-CELL / 2 + 3, -CELL / 2 + 3, CELL - 6, CELL - 6);
-    }
+  }
   }
 
   preDestroy() {
