@@ -136,16 +136,13 @@ function paintBackground(scene, biome) {
   const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
   const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
   const os = toArt(FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) - ox;
-  const ix = toArt(FIELD_X - PATH_OFF + PATH_WIDTH / 2);
-  const iy = toArt(FIELD_Y - PATH_OFF + PATH_WIDTH / 2);
-  const is = toArt(FIELD_X + FIELD_SIZE + PATH_OFF - PATH_WIDTH / 2) - ix;
   const J = PATH_JITTER; // 가장자리 들쭉날쭉 폭(아트 px, ±)
   const jo = valueNoise(rand, W, H, kk(6));
-  const ji = valueNoise(rand, W, H, kk(5));
   const sdOut = (x, y) => sdRoundRect(x + 0.5, y + 0.5, ox, oy, os, os, kk(6));
-  const sdIn = (x, y) => sdRoundRect(x + 0.5, y + 0.5, ix, iy, is, is, kk(3));
   const outside = (x, y) => sdOut(x, y) >= (jo(x, y) - 0.5) * 2 * J; // 길 바깥쪽 땅
-  const hole = (x, y) => sdIn(x, y) < (ji(x, y) - 0.5) * 2 * J * 0.8; // 길 안쪽(성벽 쪽)
+  // 길 안쪽은 성벽 바로 밑까지 흙으로 덮는다 (2026-11-18): 구멍 = 성벽 자리(둥근 모서리 포함)보다 2도트 안쪽
+  const wx0 = toArt(FIELD_X - WALL), wy0 = toArt(FIELD_Y - WALL), wsz = toArt(FIELD_X + FIELD_SIZE + WALL) - wx0;
+  const hole = (x, y) => sdRoundRect(x + 0.5, y + 0.5, wx0, wy0, wsz, wsz, WALL_RADIUS) < -2;
   const inPath = (x, y) => !outside(x, y) && !hole(x, y);
   const pn = valueNoise(rand, W, H, kk(8));
   const x0 = ox - J - 1, y0 = oy - J - 1, x1 = ox + os + J + 1, y1 = oy + os + J + 1;
@@ -169,10 +166,8 @@ function paintBackground(scene, biome) {
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       if (!inPath(x, y)) continue;
-      if (edge(x, y)) {
-        const outer = outside(x - 1, y) || outside(x + 1, y) || outside(x, y - 1) || outside(x, y + 1);
-        px(x, y, outer && rand() < 0.15 ? (y < oy + os / 2 ? g0 : g1) : pEdge);
-      } else if (outside(x, y - 2) && edge(x, y - 1)) px(x, y, p1); // 위쪽 둑에서 드리운 그림자
+      const outer = outside(x - 1, y) || outside(x + 1, y) || outside(x, y - 1) || outside(x, y + 1);
+      if (edge(x, y) && outer) px(x, y, rand() < 0.15 ? (y < oy + os / 2 ? g0 : g1) : pEdge); // 안쪽(성벽 밑)은 테두리 없이 흙 그대로 else if (outside(x, y - 2) && edge(x, y - 1)) px(x, y, p1); // 위쪽 둑에서 드리운 그림자
     }
   }
 
