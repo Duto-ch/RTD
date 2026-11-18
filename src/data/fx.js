@@ -54,7 +54,11 @@ export const HIT_FX = {
 };
 
 import { FX_SETS } from './fxSets.js';
-export { FX_SETS };
+import { FX_SIG } from './fxSig.js';
+export { FX_SETS, FX_SIG };
+/** 레어·유니크 전용 스킬 이펙트 (2026-11-18, docs/drafts/skill-fx/signature/) — 키 = 스킬 def.id */
+export const sigTexture = (k, back) => `fxg_${k}${back ? '_back' : ''}`;
+export const sigAnim = (k, back) => `fxg_${k}${back ? '_back' : ''}_play`;
 /** 커먼·언커먼 공용 스킬 이펙트 (2026-11-18, docs/drafts/skill-fx/sets/) — 텍스처·애니메이션 키. back = 캐릭터 뒤 바닥 레이어 */
 export const setTexture = (k, back) => `fxs_${k}${back ? '_back' : ''}`;
 export const setAnim = (k, back) => `fxs_${k}${back ? '_back' : ''}_play`;
@@ -73,6 +77,10 @@ export function preloadFx(scene) {
     scene.load.spritesheet(setTexture(k), `assets/fx/sets/${k}.png`, { frameWidth: d.w, frameHeight: d.h });
     if (d.back) scene.load.spritesheet(setTexture(k, true), `assets/fx/sets/${k}_back.png`, { frameWidth: d.w, frameHeight: d.h });
   }
+  for (const [k, d] of Object.entries(FX_SIG)) {
+    scene.load.spritesheet(sigTexture(k), `assets/fx/sig/${k}.png`, { frameWidth: d.w, frameHeight: d.h });
+    if (d.back) scene.load.spritesheet(sigTexture(k, true), `assets/fx/sig/${k}_back.png`, { frameWidth: d.w, frameHeight: d.h });
+  }
 }
 
 /** BootScene.create 에서 애니메이션을 등록한다 (시트를 못 읽었으면 건너뜀 → 코드 이펙트만 나온다) */
@@ -87,14 +95,16 @@ export function createFxAnims(scene) {
       repeat: d.loop ? -1 : 0
     });
   }
-  // 세트 이펙트: 프레임마다 길이(ms)가 다르다 → frameRate 1000(1ms) + duration(ms-1)
-  for (const [k, d] of Object.entries(FX_SETS)) {
-    for (const back of d.back ? [false, true] : [false]) {
-      const tex = setTexture(k, back);
-      if (!scene.textures.exists(tex) || scene.anims.exists(setAnim(k, back))) continue;
-      const frames = scene.anims.generateFrameNumbers(tex, { start: 0, end: d.n - 1 });
-      frames.forEach((f, i) => (f.duration = d.ms[i] - 1));
-      scene.anims.create({ key: setAnim(k, back), frames, frameRate: 1000, repeat: 0 });
+  // 세트·전용 이펙트: 프레임마다 길이(ms)가 다르다 → frameRate 1000(1ms) + duration(ms-1)
+  for (const [table, texOf, animOf] of [[FX_SETS, setTexture, setAnim], [FX_SIG, sigTexture, sigAnim]]) {
+    for (const [k, d] of Object.entries(table)) {
+      for (const back of d.back ? [false, true] : [false]) {
+        const tex = texOf(k, back);
+        if (!scene.textures.exists(tex) || scene.anims.exists(animOf(k, back))) continue;
+        const frames = scene.anims.generateFrameNumbers(tex, { start: 0, end: d.n - 1 });
+        frames.forEach((f, i) => (f.duration = d.ms[i] - 1));
+        scene.anims.create({ key: animOf(k, back), frames, frameRate: 1000, repeat: 0 });
+      }
     }
   }
 }

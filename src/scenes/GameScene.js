@@ -532,8 +532,8 @@ export class GameScene extends Phaser.Scene {
     } else if (def.buff && !live.length) {
       return false;
     }
-    // 커먼·언커먼은 공용 세트 이펙트 (2026-11-18), 레어·유니크는 전용 이펙트 전까지 예전 연출
-    if (!this.vfx.setSkill(merc, def, targets, primary)) this.vfx.skill(merc, def, this.kindOf(merc), targets, primary, st.range);
+    // 레어·유니크는 캐릭터 전용 이펙트, 커먼·언커먼은 공용 세트 이펙트 (2026-11-18). 시트가 없으면 예전 연출
+    if (!this.vfx.sigSkill(merc, def, targets, primary) && !this.vfx.setSkill(merc, def, targets, primary)) this.vfx.skill(merc, def, this.kindOf(merc), targets, primary, st.range);
     if (def.level > MAX_LEVEL) audio.ult();
     else audio.skill(def.level, merc.attr);
 

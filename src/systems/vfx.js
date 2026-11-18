@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { PX, DEPTH, GAME_W, GAME_H } from '../config.js';
 import { ATTR_INFO } from '../data/elements.js';
-import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim, FX_SETS, setTexture, setAnim, SET_SCALE } from '../data/fx.js';
+import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim, FX_SETS, setTexture, setAnim, SET_SCALE, FX_SIG, sigTexture, sigAnim } from '../data/fx.js';
 
 const MAX_SHEET_FX = 48;
 const MAX_COIN_FX = 12; // 동전 연출 동시 상한 (몬스터가 몰려 죽어도 필드를 덮지 않게) // 동시에 재생하는 시트 이펙트 상한 (넘으면 명중 이펙트부터 생략)
@@ -66,21 +66,56 @@ export class Vfx {
    * opts: depth(앞 레이어), backDepth, sx(가로 배율 — 연쇄 번개 늘리기), angle(라디안)
    */
   playSet(k, x, y, opts = {}) {
-    const d = FX_SETS[k];
+    return this.playSheet(FX_SETS, setTexture, setAnim, k, x, y, opts);
+  }
+
+  /** 시트 표(세트·전용 공통) 한 장 재생 — 바닥 레이어(_back)가 있으면 캐릭터 뒤에 함께 깐다 */
+  playSheet(table, texOf, animOf, k, x, y, opts = {}) {
+    const d = table[k];
     const s = this.s;
-    if (!d || !s.anims.exists(setAnim(k))) return false;
+    if (!d || !s.anims.exists(animOf(k))) return false;
     if (this.sheetCount >= MAX_SHEET_FX && opts.optional !== false) return false;
     const one = (back) => {
-      const spr = s.add.sprite(x, y, setTexture(k, back), 0).setOrigin(d.ax / d.w, d.ay / d.h)
+      const spr = s.add.sprite(x, y, texOf(k, back), 0).setOrigin(d.ax / d.w, d.ay / d.h)
         .setScale(SET_SCALE * (opts.sx ?? 1), SET_SCALE).setDepth(back ? opts.backDepth ?? DEPTH.merc - 0.5 : opts.depth ?? DEPTH.fx);
       if (opts.angle) spr.setRotation(opts.angle);
       this.sheetCount++;
       spr.once('animationcomplete', () => spr.destroy());
       spr.once('destroy', () => this.sheetCount--);
-      spr.play(setAnim(k, back));
+      spr.play(animOf(k, back));
     };
-    if (d.back && s.anims.exists(setAnim(k, true))) one(true);
+    if (d.back && s.anims.exists(animOf(k, true))) one(true);
     one(false);
+    return true;
+  }
+
+  /**
+   * 레어·유니크 전용 스킬 연출 (2026-11-18): 스킬 def.id 로 그 캐릭터 전용 시트를 고른다. 없으면 false
+   */
+  sigSkill(unit, def, targets, primary) {
+    const d = FX_SIG[def.id];
+    if (!d || !this.s.anims.exists(sigAnim(def.id))) return false;
+    const P = (x, y, o) => this.playSheet(FX_SIG, sigTexture, sigAnim, def.id, x, y, o);
+    const under = { backDepth: DEPTH.monster - 0.5 }; // 몬스터 쪽 바닥 자국은 몬스터 뒤
+    const live = targets.filter((t) => t.alive !== false);
+    switch (d.kind) {
+      case 'target': (def.area?.type === 'single' ? live.slice(0, 1) : live.slice(0, 8)).forEach((t) => P(t.x, t.y, under)); break;
+      case 'center': if (primary) P(primary.x, primary.y, under); break;
+      case 'self_area': P(unit.x, unit.y); break;
+      case 'chain': {
+        let from = unit;
+        for (const t of live.slice(0, 8)) {
+          const dx = t.x - from.x, dy = t.y - from.y, dist = Math.hypot(dx, dy);
+          if (dist > 4) P(from.x, from.y, { sx: dist / (64 * SET_SCALE), angle: Math.atan2(dy, dx) });
+          from = t;
+        }
+        break;
+      }
+      case 'self': P(unit.x, unit.y + 16); break;
+      case 'adj': P(unit.x, unit.y); break;
+      case 'ally': for (const m of this.s.mercs) P(m.x, m.y + 12); break;
+      default: return false;
+    }
     return true;
   }
 

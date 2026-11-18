@@ -599,7 +599,7 @@ test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼
   expect(errors).toEqual([]);
 });
 
-test('커먼·언커먼 스킬은 공용 세트 이펙트 (속성색 시트 · 바닥 레이어는 캐릭터 뒤 · 연쇄는 대상 사이)', async ({ page }) => {
+test('스킬 이펙트: 커먼·언커먼은 공용 세트(속성색 · 바닥 레이어는 캐릭터 뒤 · 연쇄는 대상 사이), 레어·유니크는 전용 시트', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -618,11 +618,18 @@ test('커먼·언커먼 스킬은 공용 세트 이펙트 (속성색 시트 · �
     const keys = [...new Set(spr.map((o) => o.texture.key))].sort();
     const back = spr.filter((o) => o.texture.key.endsWith('_back')).every((o) => o.depth < a.depth);
     const rare = R.find((c) => c.grade === 3); a.setChar(rare);
-    return { keys, back, rareUsesSet: v.setSkill(a, { buff: { scope: 'self' } }, [], null) };
+    const rareUsesSet = v.setSkill(a, { buff: { scope: 'self' } }, [], null);
+    // 레어·유니크는 캐릭터 전용 시트 (스킬 def.id 별)
+    const uni = R.find((c) => c.grade === 4); b.setChar(uni);
+    const sig = [...a.defs, ...b.defs].map((d) => v.sigSkill(d.buff?.scope === 'all' || d.buff ? (d.id.startsWith(uni.id) ? b : a) : a, d, fake, fake[0]));
+    const sigKeys = new Set(g.children.list.filter((o) => o.texture?.key?.startsWith('fxg_')).map((o) => o.texture.key.replace(/_back$/, '')));
+    return { keys, back, rareUsesSet, sig, sigKinds: sigKeys.size };
   });
+  expect(r.sig.every(Boolean)).toBe(true);
+  expect(r.sigKinds).toBe(8); // 레어 1명 4개 + 유니크 1명 4개, 모두 서로 다른 시트
   expect(r.keys).toEqual(expect.arrayContaining(['fxs_c_buff_self_red', 'fxs_c_buff_self_red_back', 'fxs_c_slow_red', 'fxs_u_chain_blue', 'fxs_u_hit_blue', 'fxs_u_buff_adj_blue_back']));
   expect(r.back).toBe(true);
-  expect(r.rareUsesSet).toBe(false); // 레어·유니크는 전용 이펙트 전까지 예전 연출
+  expect(r.rareUsesSet).toBe(false); // 레어·유니크는 공용 세트를 쓰지 않는다
   await page.waitForTimeout(250);
   await page.screenshot({ path: SHOT('36-fx-sets') });
   expect(errors).toEqual([]);
