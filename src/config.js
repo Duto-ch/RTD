@@ -20,7 +20,6 @@ export const GAME_W = WIDE ? 1280 : 544; // 세로: 136 아트 px
 export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 
 export const GRID = 5;
-export const TOWER_CELL = { col: 2, row: 2 }; // 필드 가운데 성탑 칸 (용병을 놓을 수 없다)
 // 배경·UI 를 그리는 픽셀 배율: 아트 1px = 화면 3px (캐릭터 사양 28x24 × 0.75 와 같은 밀도, 2026-11-15)
 export const UI_PX = 3;
 // 필드 배경(땅·길·성벽·석판) 도트 굵기 — 아트 1px = 화면 2px (2026-11-17 시안). 칸 64px = 32 아트 px 로 나누어떨어진다

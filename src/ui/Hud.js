@@ -35,9 +35,9 @@ export const HUD = WIDE
       top: { x: 150, y: 16, w: 980, h: 52 }, // 알약 바
       cy: 42, // 알약 바 가운데 y
       relic: { x: 990, y: 24, w: 132 }, // 유물 칸 4개 자리 (알약 바 오른쪽 끝)
-      dark: { x: 290, y: 643, w: 700, h: 68 }, // 아래 독
+      dark: { x: 290, y: 643, w: 708, h: 68 }, // 아래 독
       hire: { x: 732, y: 677, w: 200, h: 50 },
-      small: { y: 677, xs: [864, 914, 964], w: 46, h: 52 },
+      small: { y: 677, xs: [856, 896, 936, 976], w: 38, h: 52 }, // 배속 · 정지 · 메뉴 · 강화
       info: { x: 300, y: 649, w: 320, h: 56 } // 용병 카드
     }
   : {
@@ -49,7 +49,7 @@ export const HUD = WIDE
       relic: { x: 12, y: 142, w: GAME_W - 24 },
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       hire: { x: 100, y: 824, w: 168, h: 80 },
-      small: { y: 906, xs: [40, 100, 160], w: 52, h: 64 },
+      small: { y: 906, xs: [34, 78, 122, 166], w: 42, h: 64 }, // 배속 · 정지 · 메뉴 · 강화
       info: { x: 196, y: 788, w: GAME_W - 196 - 16, h: 160 }
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
@@ -226,6 +226,7 @@ export class Hud {
 
   /** 상단·하단 숫자와 버튼 상태를 게임 상태에 맞춘다 (0.1초마다 + 상태가 바뀔 때) */
   refresh() {
+    this.upgradeBadge?.setVisible(this.s.canUpgrade);
     const s = this.s;
     const nextWave = s.wave + 1;
     // 무한 웨이브: 목표 없이 계속 올라간다. 최고 기록을 함께 보여 준다
@@ -341,6 +342,7 @@ export class Hud {
     }, { variant: 'card', icon: 'speed', fontSize: 12 });
     this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
     this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
+    this.createUpgradeButton(SM, 'card', 12);
 
     // 정보 창
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
@@ -362,6 +364,16 @@ export class Hud {
   }
 
   /** 가로 B-2: 아래 가운데 독 — [용병 카드(초상·이름·부제·능력치 + 스킬/판매)] [+ 용병 고용] [x1] [정지] [메뉴] */
+  /** 명성 강화 버튼 (2026-11-18: 필드 성탑 대신). 살 수 있는 노드가 있으면 "!" 가 통통 튄다 */
+  createUpgradeButton(SM, variant, fontSize) {
+    const s = this.s;
+    const x = SM.xs[3], y = SM.y;
+    this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
+    this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
+    this.upgradeBadge.add([s.add.circle(0, 0, 9, 0xffd36a).setStrokeStyle(2.5, 0x3a2608), uiText(s, 0, 0, '!', 12, '#3a2608', 'bold').setOrigin(0.5)]);
+    s.tweens.add({ targets: this.upgradeBadge, y: y - SM.h / 2 - 3, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
   createBottomWide() {
     const s = this.s;
     const D = DEPTH.ui;
@@ -376,6 +388,7 @@ export class Hud {
     }, { variant: 'outline', icon: 'speed', fontSize: 11 });
     this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'outline', icon: 'pause', fontSize: 11 });
     this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'outline', icon: 'menu', fontSize: 11 });
+    this.createUpgradeButton(SM, 'outline', 11);
 
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
     panel(s, px, py, pw, ph, 'soft').setDepth(D - 1);

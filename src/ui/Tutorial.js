@@ -64,9 +64,12 @@ export const TUTORIAL_STEPS = {
     }
   },
   tower: {
-    title: '성탑 · 명성 강화',
-    text: '웨이브를 버틸 때마다 명성이 쌓입니다.\n성탑을 누르면 판 도중에도 영구 강화를 찍을 수 있어요.',
-    rect: (s) => (s.tower ? { x: s.tower.x - CELL / 2, y: s.tower.y - CELL, w: CELL, h: CELL } : null)
+    title: '명성 강화',
+    text: '웨이브를 버틸 때마다 명성이 쌓입니다.\n아래 \'강화\' 버튼을 누르면 판 도중에도 영구 강화를 찍을 수 있어요.',
+    rect: (s) => {
+      const b = s.hud?.upgradeBtn;
+      return b ? { x: b.x - b.w / 2, y: b.y - b.h / 2, w: b.w, h: b.h } : null;
+    }
   }
 };
 

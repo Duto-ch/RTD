@@ -214,7 +214,7 @@ test('캐릭터 그림(시안 104명): 시그리드 대기·공격 모션 · 도
     g.hire();
     const m = g.mercs[0];
     m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'sigrid'));
-    // 가운데 열에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다. 정가운데는 성탑)
+    // 가운데 열에 둔다 (좌우 양쪽 길이 모두 사거리 안 → 왼쪽·오른쪽 대상이 다 나온다)
     g.grid[m.row][m.col] = null; m.col = 2; m.row = 1; g.grid[1][2] = m; m.snapToCell();
     g.select(m);
     const idle = g.anims.get('char_sigrid:idle');
@@ -334,22 +334,23 @@ test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은
   expect(errors).toEqual([]);
 });
 
-test('필드 가운데 성탑: 용병은 못 놓고, 누르면 전투가 멈추고 강화 트리 → 강화하면 바로 반영', async ({ page }) => {
+test('성탑 삭제: 가운데 칸까지 25칸 모두 용병 자리, 하단 강화 버튼 → 전투가 멈추고 강화 트리 → 강화하면 바로 반영', async ({ page }) => {
   const errors = await startGame(page);
-  // 성탑 칸에는 고용·이동 불가 → 용병 칸은 24개
+  // 2026-11-18: 필드 성탑 삭제 → 용병 칸 25개 (가운데 칸 포함)
   const slots = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
     for (let i = 0; i < 30; i++) g.hire();
-    return { mercs: g.mercs.length, center: g.grid[2][2], slots: g.fieldSlots };
+    return { mercs: g.mercs.length, center: !!g.grid[2][2], slots: g.fieldSlots, tower: !!g.tower };
   });
-  expect(slots).toEqual({ mercs: 24, center: null, slots: 24 });
-  await page.screenshot({ path: SHOT('17-tower-field') });
-  // 명성이 있으면 "!" 표시
+  expect(slots).toEqual({ mercs: 25, center: true, slots: 25, tower: false });
+  await page.screenshot({ path: SHOT('17-field-25') });
+  // 명성이 있으면 강화 버튼에 "!" 표시
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(30); window.game.scene.getScene('Game').refreshHud(); });
-  expect(await game(page, () => window.game.scene.getScene('Game').towerBadge.visible)).toBe(true);
-  // 성탑 클릭 → 강화 트리 (전투 일시정지)
-  const t = await game(page, () => { const tw = window.game.scene.getScene('Game').tower; return { x: tw.x, y: tw.y - 30 }; });
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.upgradeBadge.visible)).toBe(true);
+  await page.screenshot({ path: SHOT('17b-upgrade-button') });
+  // 강화 버튼 클릭 → 강화 트리 (전투 일시정지)
+  const t = await game(page, () => { const b = window.game.scene.getScene('Game').hud.upgradeBtn; return { x: b.x, y: b.y }; });
   await page.mouse.click(t.x, t.y);
   await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
   expect(await game(page, () => window.game.scene.isPaused('Game'))).toBe(true);
@@ -366,11 +367,11 @@ test('필드 가운데 성탑: 용병은 못 놓고, 누르면 전투가 멈추�
   expect(errors).toEqual([]);
 });
 
-test('버그 회귀: 성탑 강화 후 게임 오버 → 명성 강화 → 영지로 정상 이동', async ({ page }) => {
+test('버그 회귀: 전투 중 강화 후 게임 오버 → 명성 강화 → 영지로 정상 이동', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
-  // 1) 전투 중 성탑으로 강화 창을 열었다 닫는다
-  const t = await game(page, () => { const tw = window.game.scene.getScene('Game').tower; return { x: tw.x, y: tw.y - 30 }; });
+  // 1) 전투 중 강화 버튼으로 강화 창을 열었다 닫는다
+  const t = await game(page, () => { const b = window.game.scene.getScene('Game').hud.upgradeBtn; return { x: b.x, y: b.y }; });
   await page.mouse.click(t.x, t.y);
   await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
   await page.keyboard.press('Escape');
