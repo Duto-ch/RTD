@@ -1,7 +1,7 @@
 // 지역(배경) — 10웨이브마다 바뀐다. 1~10 초원, 11~20 사막, 21~30 가을숲 …
 // ground: [기본, 어두운, 밝은] / path: [기본, 어두운, 밝은, 가장자리] / deco: 장식 종류 / decoColors: 장식 색
 export const BIOMES = [
-  { id: 'grass', name: '초원', ground: ['#233f2e', '#1d3628', '#2b4b37'], path: ['#8d754d', '#7a6442', '#a48c5e', '#5a4428'], deco: 'flowers', decoColors: ['#e8d86a', '#ffffff', '#ff9ab0'] },
+  { id: 'grass', name: '초원', ground: ['#233f2e', '#1d3628', '#2b4b37'], path: ['#b38d5c', '#9c784c', '#c9a573', '#6e5232'], deco: 'flowers', decoColors: ['#e8d86a', '#ffffff', '#ff9ab0'] },
   { id: 'desert', name: '사막', ground: ['#d9b46c', '#c79f58', '#e8c98a'], path: ['#b98a52', '#a07444', '#cfa266', '#8a6238'], deco: 'cactus', decoColors: ['#3f8a3f', '#2f6a2f', '#9a8a70'] },
   { id: 'autumn', name: '가을 숲', ground: ['#b5652c', '#8f4a22', '#d6893a'], path: ['#6e5038', '#5a402c', '#82604a', '#3e2c20'], deco: 'leaves', decoColors: ['#ffcc33', '#e0422a', '#ff8a2a'] },
   { id: 'volcano', name: '화산 지대', ground: ['#3a2a2a', '#2a1d1d', '#4a3434'], path: ['#4d4040', '#3a3030', '#5e5050', '#201818'], deco: 'lava', decoColors: ['#ff6a2a', '#ffb03a', '#c8301a'] },
