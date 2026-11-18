@@ -580,6 +580,25 @@ test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 
   expect(errors).toEqual([]);
 });
 
+test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼 없음)', async ({ page }) => {
+  const errors = await startGame(page);
+  const step = async () => {
+    const b = await game(page, () => { const b = window.game.scene.getScene('Game').hud.speedBtn; return { x: b.x, y: b.y }; });
+    await page.mouse.click(b.x, b.y);
+    return game(page, () => { const g = window.game.scene.getScene('Game'); return `${g.paused ? '정지' : 'x' + g.speed}:${g.hud.speedBtn.label.text}`; });
+  };
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.pauseBtn)).toBeUndefined();
+  expect(await step()).toBe('x2:x2');
+  expect(await step()).toBe('x3:x3');
+  expect(await step()).toBe('정지:정지');
+  const t0 = await game(page, () => window.game.scene.getScene('Game').gameTime);
+  await page.waitForTimeout(300);
+  expect(await game(page, () => window.game.scene.getScene('Game').gameTime)).toBe(t0); // 정지 중에는 시간이 멈춤
+  await page.screenshot({ path: SHOT('35-speed-paused') });
+  expect(await step()).toBe('x1:x1');
+  expect(errors).toEqual([]);
+});
+
 test('단축키 S: 선택한 용병 판매', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });

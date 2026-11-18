@@ -75,6 +75,14 @@ export class Button extends Phaser.GameObjects.Container {
     return this;
   }
 
+  /** 아이콘 바꾸기 (아이콘 타일 버튼만) */
+  setIcon(name) {
+    if (!this.icon) return this;
+    this.icon.clear();
+    drawIcon(this.icon, name, 0, -this.h * 0.16, Math.min(21, this.h * 0.3), this.iconColor);
+    return this;
+  }
+
   setIcon(type) {
     if (!this.icon) return this;
     this.icon.clear();

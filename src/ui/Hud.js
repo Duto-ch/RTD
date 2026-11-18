@@ -35,9 +35,9 @@ export const HUD = WIDE
       top: { x: 150, y: 16, w: 980, h: 52 }, // 알약 바
       cy: 42, // 알약 바 가운데 y
       relic: { x: 990, y: 24, w: 132 }, // 유물 칸 4개 자리 (알약 바 오른쪽 끝)
-      dark: { x: 290, y: 643, w: 708, h: 68 }, // 아래 독
+      dark: { x: 290, y: 643, w: 700, h: 68 }, // 아래 독
       hire: { x: 732, y: 677, w: 200, h: 50 },
-      small: { y: 677, xs: [856, 896, 936, 976], w: 38, h: 52 }, // 배속 · 정지 · 메뉴 · 강화
+      small: { y: 677, xs: [864, 914, 964], w: 46, h: 52 }, // 배속(→정지) · 메뉴 · 강화
       info: { x: 300, y: 649, w: 320, h: 56 } // 용병 카드
     }
   : {
@@ -49,7 +49,7 @@ export const HUD = WIDE
       relic: { x: 12, y: 142, w: GAME_W - 24 },
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       hire: { x: 100, y: 824, w: 168, h: 80 },
-      small: { y: 906, xs: [34, 78, 122, 166], w: 42, h: 64 }, // 배속 · 정지 · 메뉴 · 강화
+      small: { y: 906, xs: [40, 100, 160], w: 52, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       info: { x: 196, y: 788, w: GAME_W - 196 - 16, h: 160 }
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
@@ -335,13 +335,9 @@ export class Hud {
     panel(s, K.x, K.y, K.w, K.h, COZY ? 'card' : 'dark').setDepth(D - 2); // 포근한 카드형: 둥근 크림 시트
     this.hireBtn = new Button(s, HUD.hire.x, HUD.hire.y, HUD.hire.w, HUD.hire.h, '', () => s.hire(), { variant: 'primary', fontSize: 18 });
     const SM = HUD.small;
-    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => {
-      s.speed = s.speed >= 3 ? 1 : s.speed + 1;
-      this.speedBtn.setLabel(`x${s.speed}`);
-      s.tweens.timeScale = s.speed;
-    }, { variant: 'card', icon: 'speed', fontSize: 12 });
-    this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'card', icon: 'pause', fontSize: 12 });
-    this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
+    // 배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (2026-11-18, 정지 버튼 합침)
+    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => s.cycleSpeed(), { variant: 'card', icon: 'speed', fontSize: 12 });
+    this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'card', icon: 'menu', fontSize: 12 });
     this.createUpgradeButton(SM, 'card', 12);
 
     // 정보 창
@@ -367,7 +363,7 @@ export class Hud {
   /** 명성 강화 버튼 (2026-11-18: 필드 성탑 대신). 살 수 있는 노드가 있으면 "!" 가 통통 튄다 */
   createUpgradeButton(SM, variant, fontSize) {
     const s = this.s;
-    const x = SM.xs[3], y = SM.y;
+    const x = SM.xs[2], y = SM.y;
     this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
     this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
     this.upgradeBadge.add([s.add.circle(0, 0, 9, 0xffd36a).setStrokeStyle(2.5, 0x3a2608), uiText(s, 0, 0, '!', 12, '#3a2608', 'bold').setOrigin(0.5)]);
@@ -381,13 +377,9 @@ export class Hud {
     panel(s, K.x, K.y, K.w, K.h, 'card').setDepth(D - 2);
     this.hireBtn = new Button(s, HUD.hire.x, HUD.hire.y, HUD.hire.w, HUD.hire.h, '', () => s.hire(), { variant: 'primary', fontSize: 16.5 });
     const SM = HUD.small;
-    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => {
-      s.speed = s.speed >= 3 ? 1 : s.speed + 1;
-      this.speedBtn.setLabel(`x${s.speed}`);
-      s.tweens.timeScale = s.speed;
-    }, { variant: 'outline', icon: 'speed', fontSize: 11 });
-    this.pauseBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '정지', () => s.togglePause(), { variant: 'outline', icon: 'pause', fontSize: 11 });
-    this.menuBtn = new Button(s, SM.xs[2], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'outline', icon: 'menu', fontSize: 11 });
+    // 배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (2026-11-18, 정지 버튼 합침)
+    this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => s.cycleSpeed(), { variant: 'outline', icon: 'speed', fontSize: 11 });
+    this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: 'outline', icon: 'menu', fontSize: 11 });
     this.createUpgradeButton(SM, 'outline', 11);
 
     const { x: px, y: py, w: pw, h: ph } = HUD.info;
@@ -440,8 +432,9 @@ export class Hud {
     this.skillBtn.setVisible(true);
   }
 
+  /** 배속 버튼 표시: 정지 중이면 '정지'(정지 아이콘), 아니면 'x1~x3' */
   setPaused(paused) {
-    this.pauseBtn.setLabel(paused ? '재개' : '정지');
+    this.speedBtn.setLabel(paused ? '정지' : `x${this.s.speed}`).setIcon(paused ? 'pause' : 'speed');
   }
 
   /** 정보 창: 선택한 용병의 능력치, 선택이 없으면 기본 안내 */

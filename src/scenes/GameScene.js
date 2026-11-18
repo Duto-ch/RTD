@@ -1077,6 +1077,21 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('Lobby'); // 게임 종료 → 영지(로비)
   }
 
+  /** 배속 버튼: x1 → x2 → x3 → 정지 → (다시 누르면) x1 */
+  cycleSpeed() {
+    if (this.paused) {
+      this.speed = 1;
+      this.tweens.timeScale = 1;
+      this.togglePause();
+    } else if (this.speed >= 3) {
+      this.togglePause();
+    } else {
+      this.speed += 1;
+      this.tweens.timeScale = this.speed;
+      this.hud.setPaused(false);
+    }
+  }
+
   togglePause() {
     this.paused = !this.paused;
     this.hud.setPaused(this.paused);
