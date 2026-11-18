@@ -82,6 +82,15 @@ function shade(hex, k) {
  *   field_wall         성벽 링 (가운데는 투명, 바닥 가장자리 그림자 포함)
  * GameScene.createFieldLayers() 가 bg → 석판 25칸 → 성벽 순서로 쌓는다
  */
+const PATH_JITTER = 2.5; // 몬스터 길 가장자리 들쭉날쭉 폭 (아트 px, ±)
+const WALL_RADIUS = 20; // 성벽 바깥 모서리 반지름 (아트 px)
+/** 둥근 사각형까지의 부호 거리 (안쪽 음수). x,y,w,h = 사각형, r = 모서리 반지름 */
+function sdRoundRect(px0, py0, x, y, w, h, r) {
+  const qx = Math.abs(px0 - (x + w / 2)) - (w / 2 - r);
+  const qy = Math.abs(py0 - (y + h / 2)) - (h / 2 - r);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+}
+
 function paintBackground(scene, biome) {
   const W = Math.ceil(GAME_W / BP);
   const H = Math.ceil(GAME_H / BP);
@@ -123,19 +132,26 @@ function paintBackground(scene, biome) {
   const fy = toArt(FIELD_Y);
   const fs = toArt(FIELD_X + FIELD_SIZE) - fx;
 
-  // ── 흙길 (사각 링): 얼룩 2톤 + 자갈, 바깥 모서리는 둥글게 ──
+  // ── 흙길 (둥근 사각 링, 2026-11-18): 가장자리가 저주파 노이즈로 들쭉날쭉 + 얼룩 2톤 + 자갈 ──
   const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
   const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
   const os = toArt(FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) - ox;
   const ix = toArt(FIELD_X - PATH_OFF + PATH_WIDTH / 2);
   const iy = toArt(FIELD_Y - PATH_OFF + PATH_WIDTH / 2);
   const is = toArt(FIELD_X + FIELD_SIZE + PATH_OFF - PATH_WIDTH / 2) - ix;
-  const inPath = (x, y) => x >= ox && x < ox + os && y >= oy && y < oy + os && !(x >= ix && x < ix + is && y >= iy && y < iy + is);
-  const corner = (x, y) => (x === ox || x === ox + os - 1) && (y === oy || y === oy + os - 1);
+  const J = PATH_JITTER; // 가장자리 들쭉날쭉 폭(아트 px, ±)
+  const jo = valueNoise(rand, W, H, kk(6));
+  const ji = valueNoise(rand, W, H, kk(5));
+  const sdOut = (x, y) => sdRoundRect(x + 0.5, y + 0.5, ox, oy, os, os, kk(6));
+  const sdIn = (x, y) => sdRoundRect(x + 0.5, y + 0.5, ix, iy, is, is, kk(3));
+  const outside = (x, y) => sdOut(x, y) >= (jo(x, y) - 0.5) * 2 * J; // 길 바깥쪽 땅
+  const hole = (x, y) => sdIn(x, y) < (ji(x, y) - 0.5) * 2 * J * 0.8; // 길 안쪽(성벽 쪽)
+  const inPath = (x, y) => !outside(x, y) && !hole(x, y);
   const pn = valueNoise(rand, W, H, kk(8));
-  for (let y = oy; y < oy + os; y++) {
-    for (let x = ox; x < ox + os; x++) {
-      if (!inPath(x, y) || corner(x, y)) continue;
+  const x0 = ox - J - 1, y0 = oy - J - 1, x1 = ox + os + J + 1, y1 = oy + os + J + 1;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      if (!inPath(x, y)) continue;
       const v = pn(x, y);
       px(x, y, v < 0.3 ? p1 : v > 0.72 ? p2 : p0);
     }
@@ -148,20 +164,17 @@ function paintBackground(scene, biome) {
     rect(x, y, 2, 1, pEdge);
     px(x, y - 1, p2);
   }
-  // 가장자리: 바깥은 진한 테두리 + 그 안쪽 한 줄 그림자, 바깥 테두리에 풀이 살짝 걸침
-  for (let t = 1; t < os - 1; t++) {
-    for (const [x, y] of [[ox + t, oy], [ox + t, oy + os - 1], [ox, oy + t], [ox + os - 1, oy + t]]) px(x, y, pEdge);
+  // 가장자리: 길과 땅이 맞닿은 줄은 진한 테두리, 바깥 위쪽 둑 아래는 그림자 한 줄, 바깥 테두리에 풀이 살짝 걸침
+  const edge = (x, y) => inPath(x, y) && (!inPath(x - 1, y) || !inPath(x + 1, y) || !inPath(x, y - 1) || !inPath(x, y + 1));
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      if (!inPath(x, y)) continue;
+      if (edge(x, y)) {
+        const outer = outside(x - 1, y) || outside(x + 1, y) || outside(x, y - 1) || outside(x, y + 1);
+        px(x, y, outer && rand() < 0.15 ? (y < oy + os / 2 ? g0 : g1) : pEdge);
+      } else if (outside(x, y - 2) && edge(x, y - 1)) px(x, y, p1); // 위쪽 둑에서 드리운 그림자
+    }
   }
-  for (let t = 1; t < is + 1; t++) {
-    for (const [x, y] of [[ix - 1 + t, iy - 1], [ix - 1 + t, iy + is], [ix - 1, iy - 1 + t], [ix + is, iy - 1 + t]]) px(x, y, pEdge);
-  }
-  for (let t = 2; t < os - 2; t++) {
-    if (rand() < 0.18) px(ox + t, oy, g0);
-    if (rand() < 0.18) px(ox + t, oy + os - 1, g1);
-    if (rand() < 0.18) px(ox, oy + t, g0);
-    if (rand() < 0.18) px(ox + os - 1, oy + t, g1);
-  }
-  rect(ox + 1, oy + 1, os - 2, 1, p1); // 위쪽 안 그림자 (바깥 둑에서 드리움)
 
   tex.refresh();
 }
@@ -172,9 +185,9 @@ function paintDecorations(px, rect, rand, W, H, biome) {
   const g1 = biome.ground[1];
   const dark = shade(g1, 0.8);
   // 보이는 땅에만 놓는다: 몬스터 길 바깥 + HUD 가 덮지 않는 곳. 길·HUD 에 가려질 자리는 건너뜀
-  const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2);
-  const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2);
-  const os = toArt(FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH);
+  const ox = toArt(FIELD_X - PATH_OFF - PATH_WIDTH / 2) - Math.ceil(PATH_JITTER); // 들쭉날쭉한 길 가장자리까지 비운다
+  const oy = toArt(FIELD_Y - PATH_OFF - PATH_WIDTH / 2) - Math.ceil(PATH_JITTER);
+  const os = toArt(FIELD_SIZE + 2 * PATH_OFF + PATH_WIDTH) + 2 * Math.ceil(PATH_JITTER);
   // HUD 가 덮는 칸 (config HUD_RECTS: 세로는 위·아래 띠, 가로는 양옆 칸)
   const huds = HUD_RECTS.map((r) => ({ x0: toArt(r.x), y0: toArt(r.y), x1: toArt(r.x + r.w), y1: toArt(r.y + r.h) }));
   const underHud = (x, y) => huds.some((r) => x + 5 >= r.x0 && x - 3 < r.x1 && y + 9 >= r.y0 && y - 2 < r.y1);
@@ -386,6 +399,21 @@ function paintWall(scene) {
     px(wx + i, wy + ws - 1, on ? '#a7acb5' : '#3a3d45');
     px(wx + ws - 1, wy + i, on ? '#a7acb5' : '#3a3d45');
   }
+  // 바깥 모서리 둥글게 (2026-11-18): 둥근 사각형 밖은 지우고, 둘레에 외곽선 + 오른쪽·아래 그림자
+  const R = WALL_RADIUS;
+  const inWall = (x, y) => sdRoundRect(x + 0.5, y + 0.5, wx - 1, wy - 1, ws + 2, ws + 2, R) < 0;
+  const img = ctx.getImageData(0, 0, S, S);
+  const d = img.data;
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      if (inWall(x, y)) {
+        if (!inWall(x - 1, y) || !inWall(x + 1, y) || !inWall(x, y - 1) || !inWall(x, y + 1)) [d[i], d[i + 1], d[i + 2], d[i + 3]] = [0x2a, 0x2c, 0x33, 255];
+      } else if (inWall(x - 1, y - 1)) [d[i], d[i + 1], d[i + 2], d[i + 3]] = [0, 0, 0, 71]; // 그림자 (반투명 0.28)
+      else d[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
   // 바닥 자리는 비우고, 성벽이 바닥 가장자리에 드리우는 그림자만 남긴다
   ctx.clearRect(fx, fy, fs, fs);
   rect(fx, fy, fs, 1, '#3a3d45');
