@@ -19,7 +19,13 @@ class Ctx:
         # 커먼 4색(테두리·기본·밝음·하이라이트), 언커먼 5색(+그늘)
         s.rim, s.dark, s.base, s.light, s.hi = r[0], (r[1] if tier == 2 else r[2]), r[2], r[3], r[4]
     def new(s):
-        s.img = Image.new('RGBA', (s.W, s.H)); s.d = ImageDraw.Draw(s.img); return s
+        s.back = Image.new('RGBA', (s.W, s.H)); s.front = Image.new('RGBA', (s.W, s.H))
+        s.db, s.df = ImageDraw.Draw(s.back), ImageDraw.Draw(s.front)
+        s.img, s.d = s.front, s.df; s.used_back = False; return s
+    def layer(s, which):
+        # 'back' = 바닥에 깔려 캐릭터 뒤에 그려지는 부분, 'front' = 캐릭터 앞
+        if which == 'back': s.img, s.d, s.used_back = s.back, s.db, True
+        else: s.img, s.d = s.front, s.df
     def oval(s, r, fill=None, width=None, ox=0, oy=0):
         b = [s.cx + ox - r, s.cy + oy - r * SQ, s.cx + ox + r, s.cy + oy + r * SQ]
         if width: s.d.ellipse(b, outline=fill, width=width)
@@ -34,15 +40,18 @@ class Ctx:
         if core: s.d.rectangle([x - 1, y - 1, x, y], fill=core)
     def arrow_up(s, x, y, c, h=5):
         s.d.polygon([(x, y - h), (x - 3, y - h + 3), (x - 1, y - h + 3), (x - 1, y), (x + 0, y), (x + 0, y - h + 3), (x + 2, y - h + 3)], fill=c)
-    def done(s):
+    def _rim(s, img):
         # 색 외곽선(셀아웃): 바깥 둘레를 속성 테두리색으로
-        img = s.img; p = img.load(); out = img.copy(); o = out.load()
+        p = img.load(); out = img.copy(); o = out.load()
         for y in range(s.H):
             for x in range(s.W):
                 if p[x, y][3]: continue
                 if any(0 <= x + dx < s.W and 0 <= y + dy < s.H and p[x + dx, y + dy][3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                     o[x, y] = s.rim + (255,)
         return out
+    def done(s):
+        f = s._rim(s.front)
+        return (s._rim(s.back), f) if s.used_back else f
 
 # ── 이펙트들: (ctx 만드는 크기, 프레임 함수 목록, 프레임 길이) ──
 def hit(t, a):
@@ -70,7 +79,7 @@ def blast(t, a):
         c.new()
         r = 6 + (R - 6) * min(1, f / (n - 3))
         if f < n - 1: c.oval(r, c.base if f < n - 3 else c.dark, width=3 if f < 3 else 2)
-        if t == 2 and 1 <= f < n - 2: c.oval(r * 0.7, c.light, width=1)
+        if t == 2 and 1 <= f < n - 2: c.oval(r * 0.7, c.light, width=2)
         if f < 3:
             c.oval(10 - f * 2 if t == 1 else 12 - f * 2, c.light); c.oval(5 - f, c.hi)
         for i in range(5 if t == 1 else 8):
@@ -132,8 +141,8 @@ def dot(t, a):
             k = (f + ph) % 5
             if f < n - 2 and k < 4:
                 r = [1, 2, 3, 1][k]
-                if k == 3: c.d.point((36 + bx - 2, 32 + by - 2), fill=c.hi); c.d.point((36 + bx + 2, 32 + by - 2), fill=c.hi)
-                else: c.oval(r, c.light, ox=bx, oy=by); c.d.point((36 + bx - 1, 32 + by - 1), fill=c.hi)
+                if k == 3: c.sq(36 + bx - 2, 32 + by - 2, 2, c.hi); c.sq(36 + bx + 2, 32 + by - 2, 2, c.hi)
+                else: c.oval(max(r, 2), c.light, ox=bx, oy=by)
         F.append(c.done())
     return F, [60, 60, 70] + [90] * (n - 3), (36, 32)
 def vuln(t, a):
@@ -144,8 +153,8 @@ def vuln(t, a):
         sh = [(16, y - 6), (21, y - 4), (20, y + 2), (16, y + 5), (12, y + 2), (11, y - 4)]
         if f < n - 1:
             c.d.polygon(sh, fill=c.base); c.d.polygon([(16, y - 6), (21, y - 4), (20, y + 2), (16, y + 5)], fill=c.light)
-            if f >= 3: c.d.line([16, y - 6, 15, y - 1, 17, y + 1, 16, y + 5], fill=c.rim, width=1)
-            if t == 2 and f >= 3: c.d.line([12, y - 2, 15, y - 1], fill=c.rim); c.d.line([17, y + 1, 20, y], fill=c.rim)
+            if f >= 3: c.d.line([16, y - 6, 15, y - 1, 17, y + 1, 16, y + 5], fill=c.rim, width=2)
+            if t == 2 and f >= 3: c.d.line([12, y - 2, 15, y - 1], fill=c.rim, width=2); c.d.line([17, y + 1, 20, y], fill=c.rim, width=2)
         if 3 <= f < 6:
             for i in range(4): c.sq(16 + (-1) ** i * (4 + (f - 3) * 3), y + 4 + (i // 2) * 2, 2, c.light)
         F.append(c.done())
@@ -155,10 +164,10 @@ def pulse(t, a):
     for f in range(n):
         c.new(); r = 10 + f * (38 / (n - 1))
         c.oval(r, c.light if f < n - 2 else c.base, width=2)
-        if t == 2 and f >= 1: c.oval(r - 5, c.base, width=1)
+        if t == 2 and f >= 1: c.oval(r - 6, c.base, width=2)
         if t == 2 and f % 2 == 0:
             for i in range(6):
-                ang = i * math.pi / 3 + f * 0.2; c.star(52 + math.cos(ang) * r, 44 + math.sin(ang) * r * SQ, 2, c.hi)
+                ang = i * math.pi / 3 + f * 0.2; c.star(52 + math.cos(ang) * r, 44 + math.sin(ang) * r * SQ, 3, c.hi)
         F.append(c.done())
     return F, [50] * n, (52, 44)
 def buff_adj(t, a):
@@ -173,17 +182,21 @@ def buff_adj(t, a):
                 x0 = 40 + tx * T - T // 2 + 1; y0 = 40 + ty * T - T // 2 + 1
                 if k < 4:
                     col = c.hi if k == 0 else c.light if k < 3 else c.base
-                    c.d.rectangle([x0, y0, x0 + T - 3, y0 + T - 3], outline=col, width=1 if t == 1 else 2)
+                    c.layer('back')
+                    c.d.rectangle([x0, y0, x0 + T - 3, y0 + T - 3], outline=col, width=2)
+                c.layer('front')
                 if 1 <= k < 6:
                     c.arrow_up(40 + tx * T, 40 + ty * T + 5 - k * 2, c.light if k < 4 else c.base, 6)
-                if t == 2 and k == 2: c.star(40 + tx * T + 6, 40 + ty * T - 6, 2, c.hi)
+                if t == 2 and k == 2: c.star(40 + tx * T + 6, 40 + ty * T - 6, 3, c.hi)
         F.append(c.done())
     return F, [60] * n, (40, 40)
 def buff_self(t, a):
     c = Ctx(t, a, 48, 56, 24, 42); F = []; n = 8 if t == 1 else 10
     for f in range(n):
         c.new()
+        c.layer('back')
         if f < n - 1: c.oval(10 + (f % 2), c.base, width=2)
+        c.layer('front')
         for i, (dx, ph) in enumerate([(-10, 0), (10, 2), (0, 4)] + ([(-5, 1), (6, 3)] if t == 2 else [])):
             k = (f + ph) % 6
             if f < n - 1 and k < 5: c.arrow_up(24 + dx, 42 - k * 6, c.light if k < 3 else c.base, 5)
@@ -210,7 +223,7 @@ def chain(t, a):   # 언커먼 전용: 대상 사이를 잇는 번개 (가로 72
         c.new()
         if f < n - 1:
             pts = [(4, 12)] + [(4 + i * 8, 12 + rnd.randint(-5, 5)) for i in range(1, 8)] + [(68, 12)]
-            c.d.line(pts, fill=c.base if f > 2 else c.light, width=3); c.d.line(pts, fill=c.hi, width=1)
+            c.d.line(pts, fill=c.base if f > 2 else c.light, width=4); c.d.line(pts, fill=c.hi, width=2)
             if f < 2: c.star(68, 12, 5, c.hi)
         F.append(c.done())
     return F, [40, 50, 50, 60, 60, 80], (4, 12)
@@ -219,7 +232,8 @@ def buff_all(t, a):  # 언커먼 전용: 아군 전체 — 캐릭터마다 위�
     for f in range(n):
         c.new()
         if f < 4: c.d.rectangle([14, 2 + f * 9, 17, 10 + f * 9], fill=c.light); c.d.rectangle([15, 2 + f * 9, 16, 10 + f * 9], fill=c.hi)
-        if 3 <= f < n - 1: c.oval(6 + (f - 3) * 2, c.base, width=2); c.star(16, 40 - (f - 3) * 4, 3, c.hi)
+        if 3 <= f < n - 1:
+            c.layer('back'); c.oval(6 + (f - 3) * 2, c.base, width=2); c.layer('front'); c.star(16, 40 - (f - 3) * 4, 3, c.hi)
         F.append(c.done())
     return F, [40, 40, 40, 50, 70, 80, 90, 100, 100], (16, 44)
 
@@ -234,11 +248,17 @@ if __name__ == '__main__':
         for key, name, fn in lst:
             for attr in RAMP:
                 frames, ms, (ax, ay) = fn(tier, attr)
-                w, h = frames[0].size; sh = Image.new('RGBA', (w * len(frames), h))
-                for i, fr in enumerate(frames): sh.paste(fr, (i * w, 0))
-                fn_ = f"{'c' if tier == 1 else 'u'}_{key}_{attr}.png"; sh.save(os.path.join(HERE, 'sheets', fn_))
-                cols = {px[:3] for px in sh.getdata() if px[3]}
-                index.append({'tier': tier, 'key': key, 'name': name, 'attr': attr, 'file': fn_, 'w': w, 'h': h, 'n': len(frames), 'ms': ms, 'ax': ax, 'ay': ay, 'colors': len(cols)})
+                layered = any(isinstance(fr, tuple) for fr in frames)
+                if layered: frames = [fr if isinstance(fr, tuple) else (Image.new('RGBA', fr.size), fr) for fr in frames]
+                w, h = (frames[0][1] if layered else frames[0]).size
+                base = f"{'c' if tier == 1 else 'u'}_{key}_{attr}"; entry = {'tier': tier, 'key': key, 'name': name, 'attr': attr, 'w': w, 'h': h, 'n': len(frames), 'ms': ms, 'ax': ax, 'ay': ay}
+                cols = set()
+                for li, suffix in ((0, '_back'), (1, '')) if layered else ((None, ''),):
+                    sh = Image.new('RGBA', (w * len(frames), h))
+                    for i, fr in enumerate(frames): sh.paste(fr[li] if layered else fr, (i * w, 0))
+                    sh.save(os.path.join(HERE, 'sheets', base + suffix + '.png')); cols |= {px[:3] for px in sh.getdata() if px[3]}
+                    entry['back' if suffix else 'file'] = base + suffix + '.png'
+                entry['colors'] = len(cols); index.append(entry)
     json.dump(index, open(os.path.join(HERE, 'index.json'), 'w'), ensure_ascii=False)
     from collections import Counter
     print(len(index), 'sheets; max colors', max(i['colors'] for i in index), Counter((i['tier'], i['colors']) for i in index))
