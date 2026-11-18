@@ -874,6 +874,12 @@ export class GameScene extends Phaser.Scene {
       if (this.over || this.menuOpen || this.relicChoice || this.tut.open || this.hud.popup) return;
       if (this.selected?.active) this.sell(this.selected);
     });
+    // 1·2·3: 게임 속도 바로 선택 (정지 중이면 풀고 그 속도로, 2026-11-18). 숫자패드도 같음
+    [['ONE', 'NUMPAD_ONE', 1], ['TWO', 'NUMPAD_TWO', 2], ['THREE', 'NUMPAD_THREE', 3]].forEach(([k, n, v]) => {
+      const go = () => !(this.over || this.menuOpen || this.relicChoice || this.tut.open) && this.setSpeed(v);
+      this.input.keyboard?.on(`keydown-${k}`, go);
+      this.input.keyboard?.on(`keydown-${n}`, go);
+    });
     this.input.on('gameobjectdown', (_p, obj) => {
       if (obj instanceof Mercenary) this.select(obj);
     });
@@ -1076,6 +1082,14 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
     audio.playMusic(null);
     this.scene.start('Lobby'); // 게임 종료 → 영지(로비)
+  }
+
+  /** 게임 속도를 바로 정한다 (단축키 1·2·3). 정지 중이면 정지를 푼다 */
+  setSpeed(v) {
+    if (this.paused) this.togglePause();
+    this.speed = v;
+    this.tweens.timeScale = v;
+    this.hud.setPaused(false);
   }
 
   /** 배속 버튼: x1 → x2 → x3 → 정지 → (다시 누르면) x1 */

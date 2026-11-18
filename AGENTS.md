@@ -31,7 +31,7 @@
 - **perfectPixel** (`.claude/skills/perfectpixel/`): ChatGPT·Gemini 등이 만든 "픽셀 풍" 이미지를 진짜 픽셀 격자로 정리 — `python3 .claude/skills/perfectpixel/pp.py in.png out.png --preview 8 --key-white --colors 12` (`pip install "perfect-pixel[opencv]" pillow` 필요). PixelLab 횟수를 아끼는 대체 경로. 결과는 게임 사양(28x24·12색)에 맞는지 눈으로 확인
 - **PixelLab MCP** (`.mcp.json`, 픽셀아트 생성): 토큰은 저장소에 넣지 않는다 — `Bearer proxy-injected` 자리에 클라우드 환경의 네트워크 비밀값이 자동으로 들어간다. 새 세션부터 도구가 보인다
 - Claude Code: `/verify` — 작업 루프(검사 → 실패 시 수정 반복 → 화면 확인)를 한 번에 수행
-- 단축키: Space 바로 시작, S 선택 용병 판매, ESC 메뉴
+- 단축키: Space 바로 시작, 1·2·3 게임 속도, S 선택 용병 판매, ESC 메뉴
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)` 등. `window.__rtd` 에 skillOptions·HEROES·audio·setArt·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 
 ## 구조
