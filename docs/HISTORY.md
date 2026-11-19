@@ -175,3 +175,4 @@
 - 2026-11-19 지침 정리(/doctor): AGENTS.md·CLAUDE.md 오래된 줄 수정·코드로 알 수 있는 내용 축소, 그림 절차를 스킬 `rtd-art-pipeline` 으로
 - 2026-11-19 Stop 훅 `.claude/hooks/missed-changes.py` — 브랜치 변경을 보고 빠뜨린 후속 작업(HISTORY 한 줄·문서 재생성·테스트·`npm run check`·글꼴 서브셋·그림 import·커밋/푸시)을 알림 (같은 알림은 한 번만)
 - 2026-11-19 feature/speed-keys 를 main 에 합침 ([Duto-ch/RTD#3](https://github.com/Duto-ch/RTD/pull/3)). CI 에서 이펙트 테스트가 다른 이펙트 때문에 시간 초과 → 테스트 중 전투 정지(`g.paused`)
+- 2026-11-19 공격 모션 길이 = 공격 간격 85%(느리면 최대 1.6배까지만) — Phaser `anim.duration` 이 프레임별 ms 를 빼먹어 예전 '간격 안에 맞추기'가 실제로는 동작하지 않던 버그도 수정(`animMs`). 정지·메뉴·유물 선택·튜토리얼 중 애니메이션·전투 타이머 정지, 배속이 애니메이션에도 적용(`syncFreeze`). 칸 48→56px·성벽 18→20(봇 W62·W56). 유물 아이콘 10종 전용 그림(12x12, 2px). 강화 "!" 스케일 팝 반복, 유물 툴팁 스프링 등장(+배너 위로). 시안: UI 모션 12곳 · 공격 28프레임 6종 · 룰 수정안 1차 설계 제안

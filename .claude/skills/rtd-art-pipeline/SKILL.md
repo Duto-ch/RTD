@@ -20,6 +20,12 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 - 레어·유니크 전용 136개: `python3 docs/drafts/skill-fx/signature/sig.py && python3 tools/import-fx-sig.py` → `public/assets/fx/sig/` + `src/data/fxSig.js` (재생 `vfx.sigSkill`, 키 = 스킬 def.id). 캐릭터 상징은 `docs/drafts/skill-fx/signature/motifs.py`
 - 예전 PixelLab 시트 이펙트(`src/data/fx.js`, `public/assets/fx/*.png`): 원본 수정은 `mcp__pixellab__vfx_workbench start --effect <id>` → export → PNG 교체
 
+## 유물 아이콘
+- 10종 전용 그림 12x12 아트 px(게임에서 2px): `python3 docs/drafts/relic-icons/relics.py` → `public/assets/custom/relics/<id>.png` + manifest `relic_<id>` (미리보기 `preview.png`). 새 유물을 추가하면 이 스크립트에 모양을 더한다
+
+## 공격 모션 28프레임 (시안)
+- `python3 docs/drafts/anim28/anim28.py && python3 docs/drafts/anim28/build_view.py` — 무기 6종 한 명씩, `roster_art.py` 의 공격 함수를 28프레임 버전으로 바꿔 끼워 그린다. 열람 https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT
+
 ## 필드 배경
 - 코드 생성(`src/art/textures.js`): 지역 배경 `bg_<지역>` · 석판 `field_tile_*` · 성벽 `field_wall` (`WALL_RADIUS`·`FLOOR_RADIUS`·`PATH_JITTER`). manifest 스킨으로 교체 가능, 예시 `docs/drafts/field-skin/`
 

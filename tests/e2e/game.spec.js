@@ -400,7 +400,7 @@ test('PixelLab 이펙트: 시트 8종 로드, 명중·속성 폭발·영웅 기�
     const keys = ['hit_star', 'hit_magic', 'hit_snipe', 'slash', 'skill_red', 'skill_blue', 'skill_green', 'ultimate'];
     const missing = keys.filter((k) => !g.anims.exists(`fx_${k}_play`));
     g.tweens.pauseAll();
-    g.paused = true; // 전투를 멈춰 다른 이펙트(몬스터·성벽 피해 등)가 끼어들지 않게 — 느린 CI 에서 개수가 0 이 안 되던 문제
+    g.update = () => {}; // 전투 로직만 멈춰 다른 이펙트(몬스터·성벽 피해 등)가 끼어들지 않게 — 느린 CI 에서 개수가 0 이 안 되던 문제 (정지는 애니메이션까지 멈춘다)
     const v = g.vfx;
     const played = [
       v.elementBlast(140, 330, 60, 'red'),
@@ -603,6 +603,84 @@ test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼
   await page.keyboard.press('1'); expect(await now()).toBe('x1:x1');
   await step(); await step(); await step(); expect(await now()).toBe('정지:정지');
   await page.keyboard.press('2'); expect(await now()).toBe('x2:x2');
+  expect(errors).toEqual([]);
+});
+
+test('정지하면 캐릭터 애니메이션도 멈춤 · 공격 모션은 공속에 맞춤 · 배속은 애니메이션에도 · 칸 56px', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999; g.hire();
+    const { cellCenter } = window.__rtd;
+    const a = cellCenter(0, 0), b = cellCenter(1, 0);
+    return { slots: g.fieldSlots, gap: b.x - a.x };
+  });
+  expect(r.slots).toBe(25);
+  expect(r.gap).toBe(56); // 칸 56px (2026-11-19, 캐릭터 사이를 넓게)
+  // 배속 → 애니메이션 시간도 빨라짐
+  await page.keyboard.press('3');
+  await page.waitForTimeout(100);
+  expect(await game(page, () => window.game.anims.globalTimeScale)).toBe(3);
+  await page.keyboard.press('1');
+  // 정지 → 대기 애니메이션 프레임이 그대로
+  const sb = await game(page, () => { const b = window.game.scene.getScene('Game').hud.speedBtn; return { x: b.x, y: b.y }; });
+  for (let i = 0; i < 3; i++) await page.mouse.click(sb.x, sb.y);
+  await page.waitForTimeout(100);
+  const f0 = await game(page, () => { const m = window.game.scene.getScene('Game').mercs[0]; return { paused: window.game.anims.paused, prog: m.sprite.anims.getProgress(), time: window.game.scene.getScene('Game').time.paused }; });
+  await page.waitForTimeout(500);
+  const f1 = await game(page, () => window.game.scene.getScene('Game').mercs[0].sprite.anims.getProgress());
+  expect(f0.paused).toBe(true);
+  expect(f0.time).toBe(true);
+  expect(f1).toBe(f0.prog);
+  await page.mouse.click(sb.x, sb.y); // x1 로 풀림
+  await page.waitForTimeout(100);
+  expect(await game(page, () => window.game.anims.paused)).toBe(false);
+  // 공격 모션 길이 = 공격 간격 × 0.85 (빠른 공속은 빨리, 느린 공속은 최대 1.6배까지 천천히)
+  const ts = await game(page, () => {
+    const { playOnce, animMs } = window.__rtd;
+    const g = window.game.scene.getScene('Game');
+    const spr = g.mercs[0].sprite;
+    const anim = g.anims.get(`${spr.texture.key}:attack`);
+    const out = [];
+    for (const rate of [4, 1, 0.3]) { spr.anims.stop(); playOnce(spr, 'attack', 'idle', 0.85 * (1000 / rate)); out.push(+(spr.anims.timeScale * 0.85 * (1000 / rate) / animMs(anim)).toFixed(2)); }
+    return out;
+  });
+  expect(ts[0]).toBe(1); // 빠르게 재생해 간격 안에 딱 맞춤
+  expect(ts[1]).toBe(1);
+  expect(ts[2]).toBeGreaterThan(1); // 아주 느린 공속은 1.6배까지만 늘림
+  expect(errors).toEqual([]);
+});
+
+test('유물 아이콘 그림(12px 전용 모양) · 툴팁 스프링 등장 · 강화 버튼 느낌표 스케일 팝', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (const id of ['war_drum', 'hero_sword', 'golden_grail']) g.addRelic(id);
+    g.refreshRelics();
+    const t = g.textures.get('relic_hero_sword').getSourceImage();
+    return { w: t.width, h: t.height };
+  });
+  expect(r).toEqual({ w: 12, h: 12 });
+  const pos = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(1, 3));
+  await page.mouse.move(pos.x, pos.y);
+  await page.waitForTimeout(40);
+  const early = await game(page, () => window.game.scene.getScene('Game').hud.relicTip.container.scale);
+  await page.waitForTimeout(700);
+  const late = await game(page, () => window.game.scene.getScene('Game').hud.relicTip.container.scale);
+  expect(early).toBeLessThan(1);
+  expect(late).toBe(1);
+  await page.screenshot({ path: SHOT('37-relic-icons-tip') });
+  // 느낌표: 실제 시간으로 커졌다 돌아온다 (정지 중에도)
+  const scales = await game(page, async () => {
+    const g = window.game.scene.getScene('Game');
+    g.hud.upgradeBadge.setVisible(true);
+    g.togglePause();
+    const seen = new Set();
+    for (let i = 0; i < 30; i++) { seen.add(+g.hud.upgradeBadge.scale.toFixed(2)); await new Promise((res) => setTimeout(res, 50)); }
+    return [...seen];
+  });
+  expect(Math.max(...scales)).toBeGreaterThan(1.15);
+  expect(Math.min(...scales)).toBeLessThan(1);
   expect(errors).toEqual([]);
 });
 

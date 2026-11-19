@@ -284,7 +284,7 @@ export class Hud {
       const slot = panelImage(s, x, y, r.active ? 'gold' : 'soft', WIDE ? 28 : 27, WIDE ? 28 : 27);
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => s.toggleRelic(i));
-      icon.on('pointerover', () => this.showRelicTip(i, x, y));
+      icon.on('pointerover', () => this.showRelicTip(i, x, y, true));
       icon.on('pointerout', () => this.hideRelicTip());
       if (!r.active) icon.setAlpha(0.4).setTint(0xb8a07a);
       this.relicRow.add([slot, icon]);
@@ -294,13 +294,13 @@ export class Hud {
   }
 
   /** 유물 툴팁: 이름·활성 상태·능력. 아이콘 아래에 띄우고 화면 밖으로 나가지 않게 맞춘다 */
-  showRelicTip(index, x, y) {
+  showRelicTip(index, x, y, animate = false) {
     const s = this.s;
     this.hideRelicTip();
     const owned = s.ownedRelics[index];
     if (!owned) return;
     const relic = RELIC_BY_ID[owned.id];
-    const D = DEPTH.ui + 50;
+    const D = DEPTH.overlay - 0.5; // 배너·토스트(overlay -2·-1) 위에 뜬다
     const c = s.add.container(0, 0).setDepth(D);
     const title = uiText(s, 0, 0, relic.name, 15, CSS.ink, 'bold');
     const state = uiText(s, 0, 0, owned.active ? '활성' : '비활성', 12, owned.active ? CSS.green : CSS.sub, 'bold');
@@ -317,6 +317,15 @@ export class Hud {
     desc.setPosition(left + pad, top + 42);
     hint.setPosition(left + pad, top + 66);
     c.add([bg, title, state, desc, hint]);
+    // 스프링 등장 (2026-11-19): 아이콘 쪽(위 가운데)을 축으로 0.6 → 1, 살짝 넘쳤다가 출렁이며 멈춘다
+    const ax = Phaser.Math.Clamp(x, left, left + w);
+    c.setPosition(ax, top);
+    c.each((o) => o.setPosition(o.x - ax, o.y - top));
+    if (animate) {
+      c.setScale(0.6).setAlpha(0);
+      uiTween(s, { targets: c, scale: 1, duration: 520, ease: springEase });
+      uiTween(s, { targets: c, alpha: 1, duration: 120 });
+    }
     this.relicTip = { index, x, y, container: c };
   }
 
@@ -367,7 +376,13 @@ export class Hud {
     this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
     this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
     this.upgradeBadge.add([s.add.circle(0, 0, 9, 0xffd36a).setStrokeStyle(2.5, 0x3a2608), uiText(s, 0, 0, '!', 12, '#3a2608', 'bold').setOrigin(0.5)]);
-    s.tweens.add({ targets: this.upgradeBadge, y: y - SM.h / 2 - 3, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // 스케일 팝 반복 (2026-11-19): 1.3초마다 톡 커졌다 돌아온다. 배속·정지와 상관없이 실제 시간으로 돈다
+    const badge = this.upgradeBadge;
+    const pop = () => {
+      if (!badge.active) return s.events.off('update', pop);
+      badge.setScale(badgePop((s.game.loop.time % 1300) / 1300));
+    };
+    s.events.on('update', pop);
   }
 
   createBottomWide() {
@@ -635,4 +650,25 @@ export class Hud {
     this.menu = null;
     if (!this.s.paused) this.s.tweens.resumeAll();
   }
+}
+
+/** 감쇠 스프링 이징: 0 → 1 로 가며 한 번 넘쳤다가 출렁이며 멈춘다 */
+export function springEase(t) {
+  return t >= 1 ? 1 : 1 - Math.exp(-6.5 * t) * Math.cos(11 * t);
+}
+
+/** 스케일 팝 곡선 (주기 0~1): 앞 30% 동안 1 → 1.35 → 0.92 → 1, 나머지는 쉼 */
+export function badgePop(p) {
+  if (p >= 0.3) return 1;
+  const t = p / 0.3;
+  if (t < 0.35) return 1 + 0.35 * Math.sin((t / 0.35) * (Math.PI / 2));
+  if (t < 0.7) return 1.35 - 0.43 * ((t - 0.35) / 0.35);
+  return 0.92 + 0.08 * ((t - 0.7) / 0.3);
+}
+
+/** UI 트윈: 전투 배속(tweens.timeScale)과 상관없이 실제 시간으로 재생 */
+function uiTween(s, cfg) {
+  const t = s.tweens.add(cfg);
+  t.timeScale = 1 / (s.tweens.timeScale || 1);
+  return t;
 }

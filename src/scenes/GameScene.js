@@ -91,7 +91,10 @@ export class GameScene extends Phaser.Scene {
   watchUpgrades() {
     const onResume = () => this.applyBonus();
     this.events.on('resume', onResume);
-    this.events.once('shutdown', () => this.events.off('resume', onResume));
+    this.events.once('shutdown', () => {
+      this.events.off('resume', onResume);
+      this.resetAnimClock();
+    });
   }
 
   /** 용병을 놓을 수 있는 칸 수 (2026-11-18: 성탑 삭제 → 25칸 모두) */
@@ -131,7 +134,9 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     if (this.over) return;
-    const dt = this.paused || this.relicChoice || this.menuOpen || this.tut.open ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
+    const frozen = !!(this.paused || this.relicChoice || this.menuOpen || this.tut.open);
+    this.syncFreeze(frozen);
+    const dt = frozen ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
     this.gameTime += dt;
 
     if (dt > 0) {
@@ -365,8 +370,8 @@ export class GameScene extends Phaser.Scene {
       const dx = live[0].x - merc.x;
       if (Math.abs(dx) > 8) setFacing(merc.sprite, dx < 0);
       // 공격 애니메이션이 있으면 재생, 없으면 살짝 튀어오르는 기본 동작
-      // 애니메이션은 다음 공격 전에 끝나도록 (배속 반영) 공격 간격의 90% 안에 맞춘다
-      if (!playOnce(merc.sprite, 'attack', 'idle', (900 / st.rate) / this.speed)) this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
+      // 공격 모션 길이를 공속에 맞춘다 — 공격 간격의 85% 동안 한 번 휘두른다 (배속은 anims.globalTimeScale 이 반영, 2026-11-19)
+      if (!playOnce(merc.sprite, 'attack', 'idle', BALANCE.attackAnim.share * (1000 / st.rate))) this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
     }
   }
 
@@ -1080,6 +1085,7 @@ export class GameScene extends Phaser.Scene {
     this.hud.closeAll();
     this.tweens.resumeAll();
     this.tweens.timeScale = 1;
+    this.resetAnimClock();
     audio.playMusic(null);
     this.scene.start('Lobby'); // 게임 종료 → 영지(로비)
   }
@@ -1107,6 +1113,32 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * 일시정지(정지 버튼·ESC 메뉴·유물 선택·튜토리얼) 동안 캐릭터·몬스터·이펙트 애니메이션과 전투 타이머도 멈춘다 (2026-11-19).
+   * 배속은 애니메이션·타이머에도 그대로 걸린다
+   */
+  syncFreeze(frozen) {
+    const sp = frozen ? 0 : this.speed;
+    if (this._animSpeed === sp) return;
+    this._animSpeed = sp;
+    if (frozen) this.anims.pauseAll();
+    else {
+      this.anims.resumeAll();
+      this.anims.globalTimeScale = this.speed;
+    }
+    this.time.timeScale = this.speed;
+    this.time.paused = frozen;
+  }
+
+  /** 애니메이션 시계는 게임 전체 공용(game.anims) — 판이 끝나거나 장면을 떠날 때 원래대로 */
+  resetAnimClock() {
+    this._animSpeed = null;
+    this.anims.resumeAll();
+    this.anims.globalTimeScale = 1;
+    this.time.paused = false;
+    this.time.timeScale = 1;
+  }
+
   togglePause() {
     this.paused = !this.paused;
     this.hud.setPaused(this.paused);
@@ -1120,6 +1152,7 @@ export class GameScene extends Phaser.Scene {
     this.over = true;
     this.creditFame();
     this.tweens.timeScale = 1;
+    this.resetAnimClock();
     if (this.paused) this.tweens.resumeAll();
     this.hud.closeAll();
     this.relicChoice?.container.destroy();
