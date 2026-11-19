@@ -25,6 +25,7 @@
 - 데이터를 고친 뒤 문서 다시 만들기: `node tools/gen-roster-doc.mjs`(로스터 → `docs/ROSTER.md`) · `node tools/gen-skill-doc.mjs` · `node tools/gen-upgrade-doc.mjs` · `node tools/gen-art-doc.mjs`
 - **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (테스트 화면은 Actions 결과의 `test-screens`)
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)`. `window.__rtd` 에 ROSTER·audio·setArt·setFacing·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
+- 작업을 끝낼 때 Stop 훅(`.claude/hooks/missed-changes.py`)이 빠뜨린 후속 작업을 알린다 — 수동 확인 `python3 .claude/hooks/missed-changes.py --print`
 - `/graphify .` — 코드베이스 지식 그래프(`graphify-out/`, 커밋 안 함) · `/verify` — 작업 루프 한 번에
 
 ## 작업 규칙

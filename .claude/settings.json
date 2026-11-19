@@ -7,5 +7,18 @@
       "Bash(npm run preview:*)",
       "Bash(npx vite:*)"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/missed-changes.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }
