@@ -174,3 +174,4 @@
 - 2026-11-18 단축키 1·2·3 = 게임 속도 x1·x2·x3 (정지 중이면 풀림)
 - 2026-11-19 지침 정리(/doctor): AGENTS.md·CLAUDE.md 오래된 줄 수정·코드로 알 수 있는 내용 축소, 그림 절차를 스킬 `rtd-art-pipeline` 으로
 - 2026-11-19 Stop 훅 `.claude/hooks/missed-changes.py` — 브랜치 변경을 보고 빠뜨린 후속 작업(HISTORY 한 줄·문서 재생성·테스트·`npm run check`·글꼴 서브셋·그림 import·커밋/푸시)을 알림 (같은 알림은 한 번만)
+- 2026-11-19 feature/speed-keys 를 main 에 합침 ([Duto-ch/RTD#3](https://github.com/Duto-ch/RTD/pull/3)). CI 에서 이펙트 테스트가 다른 이펙트 때문에 시간 초과 → 테스트 중 전투 정지(`g.paused`)

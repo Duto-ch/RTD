@@ -400,6 +400,7 @@ test('PixelLab 이펙트: 시트 8종 로드, 명중·속성 폭발·영웅 기�
     const keys = ['hit_star', 'hit_magic', 'hit_snipe', 'slash', 'skill_red', 'skill_blue', 'skill_green', 'ultimate'];
     const missing = keys.filter((k) => !g.anims.exists(`fx_${k}_play`));
     g.tweens.pauseAll();
+    g.paused = true; // 전투를 멈춰 다른 이펙트(몬스터·성벽 피해 등)가 끼어들지 않게 — 느린 CI 에서 개수가 0 이 안 되던 문제
     const v = g.vfx;
     const played = [
       v.elementBlast(140, 330, 60, 'red'),
