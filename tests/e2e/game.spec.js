@@ -580,7 +580,7 @@ test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 
   expect(errors).toEqual([]);
 });
 
-test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼 없음)', async ({ page }) => {
+test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼 없음) · 단축키 1·2·3', async ({ page }) => {
   const errors = await startGame(page);
   const step = async () => {
     const b = await game(page, () => { const b = window.game.scene.getScene('Game').hud.speedBtn; return { x: b.x, y: b.y }; });
@@ -596,6 +596,12 @@ test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼
   expect(await game(page, () => window.game.scene.getScene('Game').gameTime)).toBe(t0); // 정지 중에는 시간이 멈춤
   await page.screenshot({ path: SHOT('35-speed-paused') });
   expect(await step()).toBe('x1:x1');
+  // 단축키 1·2·3: 속도 바로 선택, 정지 중이면 풀린다
+  const now = () => game(page, () => { const g = window.game.scene.getScene('Game'); return `${g.paused ? '정지' : 'x' + g.speed}:${g.hud.speedBtn.label.text}`; });
+  await page.keyboard.press('3'); expect(await now()).toBe('x3:x3');
+  await page.keyboard.press('1'); expect(await now()).toBe('x1:x1');
+  await step(); await step(); await step(); expect(await now()).toBe('정지:정지');
+  await page.keyboard.press('2'); expect(await now()).toBe('x2:x2');
   expect(errors).toEqual([]);
 });
 
