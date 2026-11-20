@@ -14,3 +14,8 @@
 - 스타일·비율 참고 1장 = `arthur_pp_01.png`, `create_image_pro_from_style` 후보 64장(10 generations, `isolde_candidates_64.png`)
 - 설명: 정면 불의 대마법사 여왕, 금빛 도는 붉은 긴 머리, 붉은 보석 태양 왕관, 진홍·주황 불꽃 로브(금 테두리), 세로 1x2 눈, 팔·손·무기 없음
 - 고른 것 후보 #34 → perfectPixel(1024px·살짝 흐림·`--colors 15`) → `isolde_pp_34.png`: 격자 24x24, 모양 변화 0px, 16색 → 14색. 비교 `isolde_compare.png`
+
+## PixelLab 비율로 직접 찍은 도트: 오베론 (2026-11-20)
+- `handdot_oberon.py` → `oberon_handdot.png`, 비교 `oberon_compare.png` (지금 오베론 · 직접 찍은 것 · 참고 아서 · 참고 이졸데)
+- 잰 비율: 머리 장식 5~9줄 · 머리 10~18줄(9줄) · 몸 19~23줄(5줄) · 머리 폭 x4~18 · 몸 폭 x5~17 · 가운데 x11 (규칙은 머리 7줄 + 몸 6줄)
+- 우리 규칙은 그대로: 세로 1x2 눈(아랫칸 눈 색) · 발밑 신발·옷 그늘색 · 외곽선 #2b1d2f · 유니크 15색 이하(14색) · 팔·손·무기 없음
