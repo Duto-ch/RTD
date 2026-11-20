@@ -651,6 +651,36 @@ test('정지하면 캐릭터 애니메이션도 멈춤 · 공격 모션은 공�
   expect(errors).toEqual([]);
 });
 
+test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동작의 휘두름·발사 프레임에 나간다 (시작 프레임이 아니라)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const { hitDelay, animMs } = window.__rtd;
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999; g.hire();
+    const m = g.mercs[0];
+    const st = m.getStats(g.relics, g.gameTime);
+    let fired = false;
+    g.atHitFrame(m, st, () => { fired = true; });
+    const anim = g.anims.get(`${m.sprite.texture.key}:attack`);
+    const hit = m.sprite.texture.customData.hitFrame.attack;
+    const wait = hitDelay(m.sprite, 'attack');
+    window.__hitTest = () => fired;
+    return { firedNow: fired, hit, wait, total: animMs(anim) / m.sprite.anims.timeScale };
+  });
+  expect(r.hit).toBeGreaterThanOrEqual(2); // 첫 프레임이 아님
+  expect(r.firedNow).toBe(false); // 동작 시작과 동시에 나가지 않는다
+  expect(r.wait).toBeGreaterThan(r.total * 0.25); // 예비 동작이 끝난 뒤
+  expect(r.wait).toBeLessThan(r.total);
+  await page.waitForFunction(() => window.__hitTest(), null, { timeout: 5000 });
+  // 무기별 타격 프레임이 manifest 에 있다
+  const hits = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    return ['char_arthur', 'char_isolde', 'char_robin'].map((k) => g.textures.get(k).customData.hitFrame.attack);
+  });
+  expect(hits).toEqual([4, 2, 4]); // 검 = 내려친 타격, 지팡이 = 구슬 섬광, 활 = 시위를 놓음
+  expect(errors).toEqual([]);
+});
+
 test('유물 아이콘 그림(12px 전용 모양) · 툴팁 스프링 등장 · 강화 버튼 느낌표 스케일 팝', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
