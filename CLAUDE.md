@@ -19,7 +19,7 @@
 - 보스 디버프 대상 (지금 랜덤 용병 2+웨이브/20명) · 웨이브 속성 '최대 2종'이 맞는지('1종만' 의도였는지)
 - 랭킹 (내 기기 vs 온라인) — 보류
 - **게임 룰 수정안 1차** (속성·머지 없앰, 상점·시너지·아이템 조합) — 확정 사항은 **`docs/drafts/rules-v2/DECISIONS.md`**(룰 v2 작업 전 반드시 읽기). 시너지 시안(https://claude.ai/artifact/8ne2r2KfY6X1BGz6q8MvKc) — 이름·수치 정리(2026-11-20: 북방 부족·왕국 기사단·마탑·숲의 일족·호수의 성역·황금 길드, 수치 가안) 확인 대기. 구현 전까지 아래 규칙이 유효
-- **캐릭터 그림 시안 전부 보류 (2026-11-20 사용자 결정)** — 등급 재배분 그림 다시 뽑기(`docs/drafts/regrade-art/`) · 캐릭터 v2 키 컬러 16색·생김새·무기 배분(`docs/drafts/roster-v2-art/`) · 화풍 시험 6명·도트 광원 5종(`docs/drafts/chibi-test/`) · 빛 번짐 시안(`docs/drafts/chibi-test/glow.tpl.html`). 게임 캐릭터 그림은 지금 것 그대로. 도끼·망치 실루엣 시안(`docs/drafts/chibi-test/axe_hammer.py`)·무기 v3 모양(`weapons_v3.py`)은 무기 쪽이라 따로 검토 대기
+- **캐릭터 그림 시안 전부 보류 (2026-11-20 사용자 결정)** — 등급 재배분 그림 다시 뽑기(`docs/drafts/regrade-art/`) · 캐릭터 v2 키 컬러 16색·생김새·무기 배분(`docs/drafts/roster-v2-art/`) · 화풍 시험 6명·도트 광원 5종(`docs/drafts/chibi-test/`) · 빛 번짐 시안(`docs/drafts/chibi-test/glow.tpl.html`). 게임 캐릭터 그림은 지금 것 그대로 — **단, 아서·이졸데·오베론 3명은 새 비율(머리 9줄 + 몸 5줄, PixelLab 정리본·직접 도트) + 전용 무기(성검·태양 지팡이·요정 홀)로 게임 적용** (2026-11-20, `roster_art.py` 의 `CUSTOM_BODY`·`UNIQUE_WPN`·`WPN_DX`, 시험 기록 `docs/drafts/pixellab-rule-test/`). 나머지 101명에 새 비율을 쓸지는 결정 대기. 도끼·망치 실루엣 시안(`docs/drafts/chibi-test/axe_hammer.py`)·무기 v3 모양(`weapons_v3.py`)은 무기 쪽이라 따로 검토 대기
 - UI 모션 시안 12곳 (https://claude.ai/artifact/3wd8z9Jx7HfNX8HXx5gduW, `docs/drafts/ui-motion/`) · 공격 28프레임 시안 6종 (https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT, `docs/drafts/anim28/`) — 어느 것을 적용할지
 
 ## 게임 개요

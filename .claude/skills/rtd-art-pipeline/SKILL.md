@@ -11,6 +11,7 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 ## 캐릭터 104명
 - 다시 만들기: `python3 docs/drafts/roster-art/roster_art.py && python3 tools/import-roster-art.py`
   → `public/assets/custom/chars/<id>.png` + manifest `char_<id>` (프레임 56x40, 대기 8 + 공격, 프레임별 길이 `ms`, `facing: "left"`, 몸 중심 27,23)
+- 예외 3명(2026-11-20): 아서·이졸데·오베론은 몸 그림을 `docs/drafts/pixellab-rule-test/` 의 새 비율 그림으로 바꿔 넣는다 (`CUSTOM_BODY`, 머리/몸 나누는 줄 19·눈 (9,15)(13,15)) + 전용 무기 `UNIQUE_WPN` + 무기 바깥으로 `WPN_DX`
 - `roster_art.py`: 캐릭터 설명(look) 키워드로 머리 모양·장식·수염·망토·날개·무기(31종 변형 `weapons_v2.py`)·방패를 정한다. 몸 색 수 `BODY_COLORS`(등급별 10·12·14·15)
 - 시안 출신 8명(카이라·베로나 등)은 `docs/drafts/char-13/anim.py` 그림을 그대로 쓴다(사용자 그림 `edit/`). 열람 https://claude.ai/artifact/KM2FJB4RDdDhGkQYhpEGBN
 - 도감(104명, 게임 크기 2px) https://claude.ai/artifact/WgsXZqDagZNaDmox6BUBAz
