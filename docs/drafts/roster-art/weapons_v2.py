@@ -79,7 +79,13 @@ def geo(name, deg, silhouette=None):
                     f[P(tt, kk * kd)] = '#f5c542' if tt < 4 else '#c98f2a'
                 f[P(2, kk * 3)] = '#f5c542'
             f[P(1, 0)] = '#4ab0ff'; f[P(1.5, 0)] = '#4ab0ff'
-            band(2, 13, -1, 1, lambda t, k: '#4ab0ff' if (abs(k) < 0.4 and 3 <= t <= 11) else ('#ffffff' if k < 0 else '#bfe6ff'))
+            def blade(t, k):            # 날 아랫부분 가운데 = 금 장식(2026-11-20 사용자 요청), 그 위로 빛나는 푸른 홈
+                if abs(k) < 0.4 and t <= 5:
+                    return '#f5c542' if t < 4.5 else '#c98f2a'
+                if abs(k) < 0.4 and t <= 11:
+                    return '#4ab0ff'
+                return '#ffffff' if k < 0 else '#bfe6ff'
+            band(2, 13, -1, 1, blade)
             band(13.5, 14, -0.5, 0.5, '#ffffff')
         elif v == 'great':           # 대검: 3px 넓은 날, 큰 막이
             band(-1, 0, 0, 0, m['grip']); f[P(-2)] = m['guard']
