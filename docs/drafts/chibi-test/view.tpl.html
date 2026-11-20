@@ -1,0 +1,204 @@
+<title>캐릭터 화풍 · 광원 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sunflower:wght@500;700&family=Gowun+Dodum&display=swap">
+<style>
+/* 레이아웃: ① 규칙대로 6명(움직임) ② 고등급 광원 이펙트 — 켜고 끄며 비교 ③ 도끼·망치 실루엣 시안(지금 vs 새) */
+:root { --bg: #e9e2cf; --card: #fbf7ec; --ink: #3a2e22; --sub: #7d6e5a; --line: #d9cdb2; --sage: #7a9a5c; --sage-d: #4f6b3a; --field: #6d8f4e; --night: #2a3a2a;
+  --display: 'Sunflower', 'Gowun Dodum', sans-serif; --body: 'Gowun Dodum', 'Sunflower', sans-serif; color-scheme: light }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage-d: #c7e0ac; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage-d: #c7e0ac; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.55 }
+.wrap { max-width: 1200px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 26px }
+h1 { font-family: var(--display); font-size: 1.9rem; margin: 0 }
+h2 { font-family: var(--display); font-size: 1.25rem; margin: 0 0 6px }
+.lead { color: var(--sub); max-width: 74ch; margin: 4px 0 10px }
+.grid6 { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 4px; align-items: center; min-width: 0 }
+.card h3 { font-family: var(--display); margin: 0; font-size: 1rem }
+.card small { color: var(--sub); text-align: center; font-size: .8rem }
+canvas { image-rendering: pixelated; background: var(--field); border-radius: 10px; width: 100%; max-width: 224px; aspect-ratio: 56 / 40 }
+.dark canvas { background: var(--night) }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 10px }
+.ctl label { display: flex; gap: 6px; align-items: center; font: 700 13px var(--display); border: 1.5px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer }
+.ctl label:has(input:checked) { border-color: #c9a227; background: color-mix(in srgb, #ffd23a 18%, transparent) }
+.ctl input:focus-visible { outline: 3px solid #ffd36a }
+.ctl .sep { width: 1px; align-self: stretch; background: var(--line) }
+button { font-family: var(--display); font-weight: 700; border: 0; border-radius: 10px; background: var(--sage); color: #fff; padding: 6px 12px; cursor: pointer }
+button.ghost { background: transparent; color: var(--sage-d); border: 1.5px solid var(--sage) }
+.fxlist { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; margin: 0 0 10px; padding: 0; list-style: none }
+.fxlist li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: .85rem }
+.fxlist b { font-family: var(--display); display: block }
+.wrow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px }
+.wrow > b { width: 100%; font-family: var(--display); font-size: .85rem; align-self: center }
+.wcell { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .72rem; color: var(--sub); text-align: center }
+.wcell .pic { display: flex; gap: 3px; align-items: flex-end; min-height: 90px }
+.wcell img { image-rendering: pixelated }
+</style>
+<div class="wrap">
+  <header>
+    <h1>규칙대로 6명 · 고등급 광원 · 도끼와 망치</h1>
+    <p class="lead">참고 그림에서는 '머리 위·양옆으로 크게 튀어나오는 실루엣'과 '선명한 머리색'만 빌렸어요. 몸 틀(두상 13×7 + 몸 13×6, 세로 1×2 눈, 팔 없음 + 둥근 손, 무기 왼쪽)은 지금 규칙 그대로예요.</p>
+  </header>
+
+  <section>
+    <h2>① 규칙대로 다시 그린 6명 (대기 → 공격)</h2>
+    <div class="grid6" id="six"></div>
+  </section>
+
+  <section>
+    <h2>② 고등급 광원 이펙트</h2>
+    <p class="lead">이펙트 규칙(반투명·그라데이션 없음, 도트로만)에 맞춘 다섯 가지예요. 켜고 끄며 비교해 보세요. 추천 조합 — 레어: 테두리 빛 + 빛 입자 / 유니크: 후광 광선 + 빛 입자 + 반짝 스윕.</p>
+    <ul class="fxlist">
+      <li><b>테두리 빛</b>왼쪽 위(빛 방향) 외곽선이 등급색으로 바뀌고 천천히 밝아졌다 어두워짐</li>
+      <li><b>빛 입자</b>발밑에서 1도트 빛 알갱이가 떠오름 (레어 2개 · 유니크 4개 + 반짝 별)</li>
+      <li><b>후광 광선</b>머리 뒤로 등급색 광선 8줄이 천천히 돎 (캐릭터 뒤 레이어)</li>
+      <li><b>반짝 스윕</b>2.4초마다 대각선 빛줄기가 몸을 훑고 지나감</li>
+      <li><b>빛 기둥</b>발밑 고리에서 점선 빛기둥이 솟았다 줄어듦 (가장 화려함 — 유니크 3성 전용 등으로)</li>
+    </ul>
+    <div class="ctl" id="ctl">
+      <label><input type="checkbox" data-fx="rim" checked> 테두리 빛</label>
+      <label><input type="checkbox" data-fx="particles" checked> 빛 입자</label>
+      <label><input type="checkbox" data-fx="halo" checked> 후광 광선</label>
+      <label><input type="checkbox" data-fx="sweep" checked> 반짝 스윕</label>
+      <label><input type="checkbox" data-fx="pillar"> 빛 기둥</label>
+      <span class="sep"></span>
+      <button type="button" id="rec">추천 조합</button>
+      <button type="button" class="ghost" id="none">모두 끄기</button>
+      <button type="button" class="ghost" id="night">어두운 바닥</button>
+    </div>
+    <div class="grid6" id="fx"></div>
+  </section>
+
+  <section>
+    <h2>③ 도끼·망치 실루엣 — 지금 vs 새 시안</h2>
+    <p class="lead">검게 칠했을 때도 무엇인지 알 수 있게 머리 모양 자체를 다르게 했어요. 세로로 세운 그림이라, 게임에 넣을 때는 각도마다 다시 찍어요.</p>
+    <div id="weap"></div>
+  </section>
+</div>
+<script>
+const D = __DATA__;
+const GR = { 1: '커먼', 2: '언커먼', 3: '레어', 4: '유니크' };
+const GLOW = { 3: ['#3e1670', '#b36cff', '#dcc0ff'], 4: ['#7a4a00', '#ffd23a', '#fff6b0'] };
+const RING = { 3: ['#3e1670', '#b36cff'], 4: ['#7a4a00', '#ffd23a'] };
+const Z = 4;
+const fx = { rim: true, particles: true, halo: true, sweep: true, pillar: false };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sprites = [];
+// 이미지 + 프레임별 불투명 마스크
+function load(c) {
+  return new Promise((res) => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+      const g = cv.getContext('2d'); g.drawImage(img, 0, 0);
+      res({ img, data: g.getImageData(0, 0, img.width, img.height) });
+    };
+    img.src = c.src;
+  });
+}
+function hexRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function makePlayer(c, holder, withFx) {
+  const el = document.createElement('section'); el.className = 'card';
+  el.innerHTML = `<canvas></canvas><h3>${c.name} <small>${GR[c.grade]}</small></h3><small>${c.note}</small>`;
+  holder.appendChild(el);
+  const cv = el.querySelector('canvas'); cv.width = D.W * Z; cv.height = D.H * Z;
+  const ms = withFx ? [...c.idle] : [...c.idle, ...c.idle, ...c.attack];
+  const idx = withFx ? c.idle.map((_, i) => i) : [...c.idle.keys(), ...c.idle.keys(), ...c.attack.map((_, j) => c.idle.length + j)];
+  return { c, cv, ms, idx, total: ms.reduce((s, x) => s + x, 0), withFx, parts: [], seed: Math.random() * 1000 };
+}
+const off = document.createElement('canvas'); off.width = 56; off.height = 40;
+const og = off.getContext('2d');
+function px(g, x, y, col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
+function drawFrame(p, now, sheet) {
+  let t = reduce ? 0 : now % p.total, k = 0;
+  while (t >= p.ms[k]) { t -= p.ms[k]; k++; }
+  const f = p.idx[k];
+  og.clearRect(0, 0, 56, 40);
+  const g3 = p.c.grade >= 3 && p.withFx;
+  const G = GLOW[p.c.grade] || GLOW[3];
+  const cx = 27, headY = 20, footY = 31;
+  // 발밑 등급 고리
+  if (p.c.grade >= 3) {
+    const [o, m] = RING[p.c.grade];
+    og.fillStyle = o; og.fillRect(cx - 8, footY - 1, 17, 3); og.fillRect(cx - 6, footY - 2, 13, 5);
+    og.fillStyle = m; og.fillRect(cx - 7, footY - 1, 15, 3); og.fillStyle = o; og.fillRect(cx - 5, footY, 11, 1);
+  }
+  const s = now / 1000;
+  // 후광 광선 (캐릭터 뒤)
+  if (g3 && fx.halo) {
+    const rot = reduce ? 0 : s * 0.6;
+    const n = p.c.grade === 4 ? 8 : 6;
+    for (let i = 0; i < n; i++) {
+      const a = rot + (i * Math.PI * 2) / n;
+      for (let r = 8; r <= (i % 2 ? 11 : 13); r++) {
+        const x = Math.round(cx + Math.cos(a) * r), y = Math.round(headY - 4 + Math.sin(a) * r * 0.85);
+        px(og, x, y, r > 11 ? G[2] : G[1]);
+      }
+    }
+  }
+  // 빛 기둥 (뒤)
+  if (g3 && fx.pillar) {
+    const h = reduce ? 14 : Math.round(8 + 8 * (0.5 + 0.5 * Math.sin(s * 2.2)));
+    for (const dx of [-5, -2, 2, 5]) for (let y = footY - 1; y > footY - h - (Math.abs(dx) < 3 ? 6 : 0); y--) if ((y + dx) % 2 === 0) px(og, cx + dx, y, Math.abs(dx) < 3 ? G[2] : G[1]);
+  }
+  og.drawImage(sheet.img, f * 56, 0, 56, 40, 0, 0, 56, 40);
+  const W = sheet.img.width, dat = sheet.data.data;
+  const alpha = (x, y) => (x < 0 || y < 0 || x >= 56 || y >= 40) ? 0 : dat[((y * W) + f * 56 + x) * 4 + 3];
+  const isOut = (x, y) => { const i = ((y * W) + f * 56 + x) * 4; return dat[i] === 0x2b && dat[i + 1] === 0x1d && dat[i + 2] === 0x2f; };
+  // 테두리 빛: 왼쪽·위가 비어 있는 외곽선 픽셀을 등급색으로
+  if (g3 && fx.rim) {
+    const on = reduce || Math.sin(s * 2.4 + p.seed) > -0.6;
+    const col = Math.sin(s * 2.4 + p.seed) > 0.4 ? G[2] : G[1];
+    if (on) for (let y = 0; y < 40; y++) for (let x = 0; x < 56; x++) if (alpha(x, y) && isOut(x, y) && (!alpha(x - 1, y) || !alpha(x, y - 1)) && y < 34) px(og, x, y, col);
+  }
+  // 반짝 스윕
+  if (g3 && fx.sweep && !reduce) {
+    const per = 2.4, ph = (s + p.seed) % per;
+    if (ph < 0.6) {
+      const d = Math.round(-8 + (ph / 0.6) * 72);
+      for (let y = 0; y < 40; y++) for (let x = 0; x < 56; x++) {
+        const v = x + y;
+        if ((v === d || v === d + 1) && alpha(x, y) && !isOut(x, y)) px(og, x, y, '#ffffff');
+        else if (v === d + 2 && alpha(x, y) && !isOut(x, y)) px(og, x, y, G[2]);
+      }
+    }
+  }
+  // 빛 입자
+  if (g3 && fx.particles) {
+    const want = p.c.grade === 4 ? 4 : 2;
+    while (p.parts.length < want) p.parts.push({ x: cx - 8 + Math.floor(Math.random() * 17), y: footY, born: now - Math.random() * 1400, life: 1100 + Math.random() * 500 });
+    p.parts = p.parts.filter((q) => now - q.born < q.life);
+    for (const q of p.parts) {
+      const a = (now - q.born) / q.life;
+      const y = Math.round(q.y - a * 22), x = q.x + Math.round(Math.sin(a * 6 + q.x) * 1);
+      px(og, x, y, a < 0.6 ? G[2] : G[1]);
+      if (p.c.grade === 4 && a > 0.3 && a < 0.5) { px(og, x - 1, y, G[1]); px(og, x + 1, y, G[1]); px(og, x, y - 1, G[1]); px(og, x, y + 1, G[1]); }
+    }
+  }
+  const g = p.cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, p.cv.width, p.cv.height);
+  g.drawImage(off, 0, 0, 56 * Z, 40 * Z);
+}
+(async () => {
+  const sheets = {};
+  for (const c of D.chars) sheets[c.id] = await load(c);
+  const players = [];
+  for (const c of D.chars) players.push(makePlayer(c, document.getElementById('six'), false));
+  for (const c of D.chars) players.push(makePlayer(c, document.getElementById('fx'), true));
+  function loop(now) { for (const p of players) drawFrame(p, now, sheets[p.c.id]); if (!reduce) requestAnimationFrame(loop); }
+  requestAnimationFrame(loop);
+  if (reduce) setInterval(() => { for (const p of players) drawFrame(p, 0, sheets[p.c.id]); }, 500);
+})();
+const boxes = [...document.querySelectorAll('#ctl input')];
+boxes.forEach((b) => b.onchange = () => fx[b.dataset.fx] = b.checked);
+const setFx = (o) => { Object.assign(fx, o); boxes.forEach((b) => b.checked = fx[b.dataset.fx]); };
+document.getElementById('rec').onclick = () => setFx({ rim: true, particles: true, halo: true, sweep: true, pillar: false });
+document.getElementById('none').onclick = () => setFx({ rim: false, particles: false, halo: false, sweep: false, pillar: false });
+document.getElementById('night').onclick = (e) => { const on = document.getElementById('fx').classList.toggle('dark'); e.target.textContent = on ? '밝은 바닥' : '어두운 바닥'; };
+// 무기
+const KIND = { axe: '도끼', hammer: '망치' };
+const img = (s, sc) => `<img src="${s}" alt="" onload="this.style.width=(this.naturalWidth*${sc})+'px'">`;
+document.getElementById('weap').innerHTML = ['axe', 'hammer'].map((k) => `
+  <div class="wrow"><b>지금 ${KIND[k]}<br><small style="font-weight:400;color:var(--sub)">실루엣 · 색</small></b>${D.cur[k].map((w) => `<div class="wcell"><div class="pic">${img(w.sil, 3)}${img(w.steel, 3)}</div>${w.name}</div>`).join('')}</div>
+  <div class="wrow new"><b>새 ${KIND[k]}<br><small style="font-weight:400;color:var(--sub)">실루엣 · 강철 · 금</small></b>${D.new[k].map((w) => `<div class="wcell" title="${w.desc}"><div class="pic">${img(w.sil, 3)}${img(w.steel, 3)}${img(w.gold, 3)}</div>${w.name}</div>`).join('')}</div>`).join('');
+</script>
