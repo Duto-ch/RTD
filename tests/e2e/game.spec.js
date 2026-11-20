@@ -196,6 +196,38 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   }
 });
 
+test('시너지: 서로 다른 캐릭터 수로 단계가 켜지고 효과가 붙는다 (전사 2 · 기사단 3 · 북방 분노 · 숲 감속) + 위 줄 칩', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const st = (m) => m.getStats(g.relics, g.gameTime);
+    const leo = g.hire('leo'); // 전사·기사단
+    const d0 = st(leo).damage;
+    g.hire('leo'); // 같은 캐릭터 2장은 1명
+    const one = g.syn.counts.warrior;
+    g.hire('gareth'); // 전사·기사단 → 전사 2
+    const d1 = st(leo).damage;
+    g.hire('claire'); // 지원가·기사단 → 기사단 3
+    const wallDmg = g.syn.tiers.knight?.wallDmg;
+    for (const id of ['stein', 'einar', 'ingrid']) g.hire(id); // 북방 3
+    const north = g.mercs.find((m) => m.char.id === 'stein');
+    north.rage = 10;
+    const rage = st(north).rate / (window.__rtd.ROSTER.find((c) => c.id === 'stein').trait?.rateMul || 1);
+    g.hud.refreshSynergy();
+    const chips = g.hud.synRow.list.length;
+    return { one, warrior: g.syn.counts.warrior, up: d1 / d0, wallDmg, rageOn: !!g.syn.tiers.north, chips };
+  });
+  expect(r.one).toBe(1);
+  expect(r.warrior).toBeGreaterThanOrEqual(2);
+  expect(r.up).toBeGreaterThan(1.1); // 전사 2: 공격력 +15% (전열이면 1.5배)
+  expect(r.wallDmg).toBe(0.15); // 기사단 3: 성벽 피해 -15%
+  expect(r.rageOn).toBe(true);
+  expect(r.chips).toBeGreaterThanOrEqual(4);
+  await page.waitForTimeout(2600);
+  await page.screenshot({ path: SHOT('08-synergy') });
+  expect(errors).toEqual([]);
+});
+
 test('캐릭터마다 그림 + 등급 받침 고리(뒤·앞)와 별 패', async ({ page }) => {
   const errors = await startGame(page);
   const info = await game(page, () => {
