@@ -2,8 +2,19 @@
 // 대표 스킬 = 지금 4개 중 마지막(Lv5) 스킬 (가장 강하고 그 캐릭터다운 것).
 // 1성 수치는 Lv5 수치의 절반에서 시작 (가안 — 밸런스 봇으로 다시 맞춤).
 // 사용: node skillstar.mjs id1 id2 ... → JSON {id: {name, cd, stars: [def1, def2, def3], desc: [..]}}
-import { ROSTER } from '../../../src/data/roster.js';
+import { ROSTER, STYLES } from '../../../src/data/roster.js';
 import { describeSkill } from '../../../src/data/skills.js';
+
+// 마나 시전 (2026-11-20 사용자 결정, TFT 식): 기본 공격 1번마다 마나 +10, 가득 차면 스킬 시전 후 0 으로.
+// 최대 마나 = 지금 쿨타임의 60% 동안 하는 공격 횟수 × 10 (10 단위 반올림, 40~150 — TFT 와 비슷한 범위).
+// 1성 수치가 Lv5 의 절반이라 시전은 지금보다 조금 자주.
+// 공속이 오르면 스킬도 자주 터진다 (쿨타임 방식과 가장 큰 차이). 별이 올라도 최대 마나는 그대로.
+export const MANA = { perAttack: 10, cdShare: 0.6, min: 40, max: 150, start: 0 };
+export function maxMana(c, def) {
+  const rate = STYLES[c.style].rate * (c.trait?.rateMul || 1);
+  const v = Math.round((def.cd * MANA.cdShare * rate * MANA.perAttack) / 10) * 10;
+  return Math.max(MANA.min, Math.min(MANA.max, v));
+}
 
 export const STAR = {
   dmg: [0.5, 0.8, 1.3], // 피해·지속 피해 배율 (Lv5 수치 기준) — 1 : 1.6 : 2.6
@@ -46,6 +57,6 @@ for (const id of ids) {
   const c = ROSTER.find((r) => r.id === id);
   const def = c.skills[c.skills.length - 1];
   const stars = [1, 2, 3].map((n) => starSkill(def, n));
-  out[id] = { name: def.name, cd: def.cd, desc: stars.map(describeSkill), dropped: c.skills.slice(0, -1).map((s) => s.name) };
+  out[id] = { name: def.name, cd: def.cd, mana: maxMana(c, def), desc: stars.map(describeSkill), dropped: c.skills.slice(0, -1).map((s) => s.name) };
 }
 console.log(JSON.stringify(out));

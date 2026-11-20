@@ -30,8 +30,9 @@ export function isMilestoneWave(w) {
 export function normalCount(w) {
   const M = BALANCE.monster;
   const k = BALANCE.horde.mult;
-  if (w >= M.maxCountWave) return M.maxCount * k;
-  return Math.round(M.firstWaveCount + ((w - 1) * (M.maxCount - M.firstWaveCount)) / (M.maxCountWave - 1)) * k;
+  const base = w >= M.maxCountWave ? M.maxCount : Math.round(M.firstWaveCount + ((w - 1) * (M.maxCount - M.firstWaveCount)) / (M.maxCountWave - 1));
+  // countScale: 출현 수만 줄이거나 늘린다 (마리당 체력·골드는 그대로, 2026-11-20 시험용 — 기본 1)
+  return Math.round(base * k * (BALANCE.horde.countScale ?? 1));
 }
 
 export function waveInfo(w) {

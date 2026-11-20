@@ -13,6 +13,12 @@ describe('웨이브 규칙', () => {
     expect(normalCount(70)).toBe(200 * 5);
     expect(normalCount(100)).toBe(200 * 5);
     for (let w = 2; w <= 70; w++) expect(normalCount(w)).toBeGreaterThanOrEqual(normalCount(w - 1));
+    // countScale: 출현 수만 줄인다 (2026-11-20 '1/3 줄이기' 시험용, 기본 1) — 마리당 체력은 그대로
+    const hp = monsterStats('normal', 10).hp;
+    BALANCE.horde.countScale = 2 / 3;
+    expect(normalCount(1)).toBe(Math.round(250 * 2 / 3));
+    expect(monsterStats('normal', 10).hp).toBe(hp);
+    BALANCE.horde.countScale = 1;
   });
 
   it('정예 5·15… / 보스 10·20… / 강화 보스 30의 배수 / 최종 보스 100의 배수 (무한 웨이브)', () => {

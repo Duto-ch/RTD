@@ -6,6 +6,7 @@ roster = json.loads(subprocess.check_output(['node', '-e', "import('./src/data/r
 # 2026-11-20: 60 → 70명 (사용자 결정). 언커먼 이상 64명 전원 + 커먼 6명 — 암살자·주술사·지원가가 얇아서 그 계열에서 고름
 DROP = []
 ADD_COMMON = ['leif', 'lucy', 'ingrid', 'helga', 'aud', 'emma']
+PROMOTE = ['leif', 'aud']   # 2026-11-20: 커먼 6명 중 2명만 언커먼으로 (암살자·주술사 한 명씩, 그림은 언커먼 12색으로 다시 그림)
 ORIGIN = {
     'north': ['ragnar', 'brynhild', 'halvard', 'bjorn', 'ulf', 'atle', 'einar', 'stein', 'ylva', 'ingrid', 'leif'],
     'knight': ['arthur', 'eleanor', 'kristin', 'adel', 'claire', 'henrik', 'leo', 'kaira', 'sigurd', 'gareth', 'lucy'],
@@ -21,6 +22,8 @@ for r in roster:
     if (r['grade'] < 2 and r['id'] not in ADD_COMMON) or r['id'] in DROP:
         continue
     assert r['id'] in o_of, r['id']
+    if r['id'] in PROMOTE:
+        r = {**r, 'grade': 2, 'promoted': True}
     chars.append({**r, 'cls': CLASS_OF_STYLE[r['style']], 'origin': o_of[r['id']]})
 assert len(chars) == 70, len(chars)
 sk = json.loads(subprocess.check_output(['node', os.path.join(HERE, 'skillstar.mjs'), *[c['id'] for c in chars]], cwd=ROOT))
@@ -47,8 +50,8 @@ TRAITS = {
               'tiers': [[3, '공격할 때마다 분노 1중첩(최대 10), 중첩당 공격 속도 +2%'], [6, '중첩당 +4%, 10중첩이면 공격력 +20%'], [9, '중첩당 +6%, 분노가 웨이브 사이에도 유지']]},
     'knight': {'kind': 'origin', 'name': '왕국 기사단', 'color': '#4a6fa8', 'glyph': '방', 'desc': '판금·방패·창. 성벽을 지킨다',
                'tiers': [[3, '성벽이 받는 피해 -15%'], [6, '성벽 피해 -30%, 웨이브 시작 때 성벽 실드 10'], [9, '성벽 피해 -50%, 실드 25, 기사단 공격력 +25%']]},
-    'tower': {'kind': 'origin', 'name': '마탑', 'color': '#8a4fb5', 'glyph': '탑', 'desc': '로브·지팡이·연금술. 스킬이 자주 터진다',
-              'tiers': [[3, '마탑 스킬 쿨타임 -10%'], [6, '쿨타임 -20%, 스킬 피해 +20%'], [9, '쿨타임 -35%, 25% 확률로 스킬 두 번 시전']]},
+    'tower': {'kind': 'origin', 'name': '마탑', 'color': '#8a4fb5', 'glyph': '탑', 'desc': '로브·지팡이·연금술. 마나가 빨리 차서 스킬이 자주 터진다',
+              'tiers': [[3, '마탑 공격당 마나 +3'], [6, '공격당 마나 +6, 스킬 피해 +20%'], [9, '공격당 마나 +10, 시전 후 마나 30% 돌려받음, 25% 확률로 두 번 시전']]},
     'grove': {'kind': 'origin', 'name': '숲의 수호자', 'color': '#3e8a50', 'glyph': '숲', 'desc': '나무·꽃·요정. 길을 덩굴로 묶는다',
               'tiers': [[3, '길 위 모든 몬스터 이동 속도 -5%'], [6, '-10%, 8초마다 무작위 지점 덩굴 속박 1.5초'], [9, '-18%, 속박 범위 2배, 정예도 묶임']]},
     'lake': {'kind': 'origin', 'name': '호수의 성역', 'color': '#3a8fb0', 'glyph': '물', 'desc': '물·얼음·성녀. 성벽을 회복시킨다',
