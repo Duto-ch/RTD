@@ -21,6 +21,9 @@ TESTS = {   # id: (몸 그림, 피부색, 여성)
 OUT = os.path.join(HERE, 'anim')
 os.makedirs(OUT, exist_ok=True)
 orig_body = R.body
+UNIQUE_WPN = {'arthur': 'excalibur', 'isolde': 'sun', 'oberon': 'fairy'}   # 캐릭터 전용 무기 (weapons_v2.py)
+_pick = R.W2.pick_variant
+R.W2.pick_variant = lambda w, look, g, cid: UNIQUE_WPN.get(cid) or _pick(w, look, g, cid)
 
 
 def run(cid):

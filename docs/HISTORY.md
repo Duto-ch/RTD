@@ -197,3 +197,4 @@
 - 2026-11-20 PixelLab 아서(새 비율)를 참고로 이졸데 정면 한 장 → perfectPixel 14색(`docs/drafts/pixellab-rule-test/isolde_pp_34.png`)
 - 2026-11-20 PixelLab 비율(머리 9줄 + 몸 5줄)로 오베론 정면을 직접 도트로 찍음(`docs/drafts/pixellab-rule-test/handdot_oberon.py`)
 - 2026-11-20 새 비율 시험 3명(아서·이졸데·오베론)을 지금 애니메이션 규칙 그대로 움직임(`docs/drafts/pixellab-rule-test/animate_tests.py`, 나누는 줄 19)
+- 2026-11-20 시험 3명 전용 무기: 아서 성검(날개 막이·푸른 홈) · 이졸데 태양 지팡이(빛살·붉은 보석) · 오베론 요정 홀(분홍 나비 꽃머리·덩굴) — `weapons_v2.py` 변형 추가, 게임 그림은 그대로
