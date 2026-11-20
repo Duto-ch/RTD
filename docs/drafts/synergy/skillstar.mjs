@@ -51,12 +51,38 @@ export function starSkill(def, star) {
   return s;
 }
 
-const ids = process.argv.slice(2);
+// ── 등급 재배분 (2026-11-20) ──
+// 기본 능력 = 공격 스타일 기본값 × 등급 배율 × 특성. 상점에서 사는 구조라 예전(랜덤 고용 1·1.6·2.5·4)보다 완만하게.
+// 별 단계 능력 배율은 TFT 와 비슷하게 1·1.8·3.2.
+export const GRADE_V2 = { mult: { 1: 1, 2: 1.35, 3: 1.8, 4: 2.5 }, price: { 1: 1, 2: 2, 3: 3, 4: 5 } };
+export const STAR_STAT = [1, 1.8, 3.2];
+// 스킬 세기(공격력 대비 %)도 등급마다 다르다 — 지금 로스터의 등급별 Lv5 스킬 평균 피해(3.9·4.45·4.95·7.2 배)를 기준으로,
+// 등급이 바뀐 캐릭터는 스킬 % 수치(피해·지속 피해·버프·골드)를 새 등급/옛 등급 비율만큼 고친다 (대상 수·범위·시간은 그대로)
+export const SKILL_GRADE = { 1: 3.9, 2: 4.45, 3: 4.95, 4: 7.2 };
+export function regradeSkill(def, oldG, newG) {
+  const k = SKILL_GRADE[newG] / SKILL_GRADE[oldG];
+  if (k === 1) return def;
+  const s = JSON.parse(JSON.stringify(def));
+  if (s.fx?.dmg) s.fx.dmg = r2(s.fx.dmg * k);
+  if (s.fx?.dot) s.fx.dot = [r2(s.fx.dot[0] * k), s.fx.dot[1]];
+  if (s.buff) for (const b of ['dmg', 'rate', 'range', 'crit']) if (s.buff[b]) s.buff[b] = r2(s.buff[b] * Math.sqrt(k)); // 버프는 팀 전체에 걸려 완만하게
+  if (s.gold) s.gold = Math.round(s.gold * k);
+  return s;
+}
+export function baseStats(c, g) {
+  const st = STYLES[c.style], t = c.trait || {};
+  const m = GRADE_V2.mult[g];
+  return STAR_STAT.map((sm) => ({ atk: Math.round(st.dmg * m * sm * (t.dmgMul || 1)), rate: r2(st.rate * (t.rateMul || 1)), range: Math.round(st.range * (t.rangeMul || 1)) }));
+}
+
+// 인자: id:새등급 …
 const out = {};
-for (const id of ids) {
+for (const arg of process.argv.slice(2)) {
+  const [id, gs] = arg.split(':');
   const c = ROSTER.find((r) => r.id === id);
-  const def = c.skills[c.skills.length - 1];
+  const g = +(gs || c.grade);
+  const def = regradeSkill(c.skills[c.skills.length - 1], c.grade, g);
   const stars = [1, 2, 3].map((n) => starSkill(def, n));
-  out[id] = { name: def.name, cd: def.cd, mana: maxMana(c, def), desc: stars.map(describeSkill), dropped: c.skills.slice(0, -1).map((s) => s.name) };
+  out[id] = { name: def.name, cd: def.cd, mana: maxMana(c, def), desc: stars.map(describeSkill), stats: baseStats(c, g), dropped: c.skills.slice(0, -1).map((s) => s.name) };
 }
 console.log(JSON.stringify(out));

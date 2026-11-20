@@ -87,6 +87,7 @@ td .p { display: inline-flex; flex-direction: column; align-items: center; width
 td .p img { width: 36px; image-rendering: pixelated; border-radius: 6px; border: 2px solid var(--line); background: #fff8e8 }
 td .p.g3 img { border-color: var(--g3) } td .p.g4 img { border-color: var(--g4) }
 tbody th, thead th:first-child { white-space: nowrap }
+#grades th, #grades td:not(:last-child) { white-space: nowrap }
 td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--sub) }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px }
@@ -147,7 +148,7 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
   <section class="pool" aria-label="캐릭터 70명">
     <div class="filters">
       <h2 style="margin:0 8px 0 0">캐릭터 70명</h2>
-      <select id="fGrade" aria-label="등급"><option value="">모든 등급</option><option value="4">유니크 13</option><option value="3">레어 21</option><option value="2">언커먼 32</option><option value="1">커먼 4</option></select>
+      <select id="fGrade" aria-label="등급"><option value="">모든 등급</option><option value="4">유니크 12</option><option value="3">레어 16</option><option value="2">언커먼 20</option><option value="1">커먼 22</option><option value="up">등급 오름</option><option value="down">등급 내림</option></select>
       <select id="fTrait" aria-label="시너지"><option value="">모든 시너지</option></select>
     </div>
     <div class="units" id="units"></div>
@@ -156,6 +157,14 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
   <section class="matrix" aria-label="계열 × 출신 표">
     <h2>계열 × 출신 표</h2>
     <table id="matrix"></table>
+  </section>
+
+  <section class="matrix" aria-label="등급과 상점">
+    <h2>등급 재배분 · 상점 (2026-11-20, 수치는 가안)</h2>
+    <p class="lead" style="margin:0 0 10px">70명 = <b>커먼 22 · 언커먼 20 · 레어 16 · 유니크 12</b>. 출신마다 유니크 2명씩, 나머지 등급도 고르게 나눠 어떤 시너지든 초반(커먼·언커먼)부터 후반(레어·유니크)까지 이어서 키울 수 있게 했어요(TFT 처럼 특성이 여러 가격대에 걸침). 출신 안에서는 지금 등급이 높은 순으로 위를 채우고, 모든 계열에 유니크가 하나 이상 있게 아스타(주술사)를 유니크로 올렸어요. 31명의 등급이 바뀌었고, 바뀐 만큼 기본 능력·스킬 수치를 새 등급에 맞췄어요.</p>
+    <table id="grades"></table>
+    <h3 style="font-family:var(--display);margin:14px 0 6px">영지 레벨별 상점 등급 확률 (%)</h3>
+    <table id="odds"></table>
   </section>
 
   <section class="matrix" aria-label="스킬 70개">
@@ -282,14 +291,14 @@ function renderPool() {
   const g = document.getElementById('fGrade').value, tr = fTrait.value;
   unitsEl.innerHTML = '';
   for (const c of [...C].sort((a, b) => b.grade - a.grade)) {
-    if (g && c.grade !== +g) continue;
+    if (g === 'up' ? c.grade <= c.old : g === 'down' ? c.grade >= c.old : g && c.grade !== +g) continue;
     if (tr && c.cls !== tr && c.origin !== tr) continue;
     const u = document.createElement('button');
     u.type = 'button';
     u.className = `unit g${c.grade}`;
     u.dataset.id = c.id;
     u.setAttribute('aria-label', `${c.name} ${GR[c.grade]} ${T[c.cls].name} ${T[c.origin].name}`);
-    u.innerHTML = `<span class="gr">${GR[c.grade]}</span><img src="${c.img}" alt=""><span class="nm">${c.name}</span><span class="tr">${hex(c.cls, 'sm')}${hex(c.origin, 'sm')}</span>`;
+    u.innerHTML = `<span class="gr">${c.old !== c.grade ? `<span style="color:${c.grade > c.old ? '#3e8a50' : '#b0562a'}">${c.grade > c.old ? '▲' : '▼'}</span> ` : ''}${GR[c.grade]}</span><img src="${c.img}" alt=""><span class="nm">${c.name}</span><span class="tr">${hex(c.cls, 'sm')}${hex(c.origin, 'sm')}</span>`;
     u.onclick = () => {
       if (board.includes(c.id)) { board[board.indexOf(c.id)] = null; render(); return; }
       if (board.filter(Boolean).length >= cap()) { u.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 180 }); return; }
@@ -323,8 +332,15 @@ document.getElementById('cards').innerHTML = Object.keys(T).map((k) => {
     <div class="who">${who.map((c) => `${c.name}${c.grade === 4 ? '★' : ''}`).join(' · ')}</div></article>`;
 }).join('');
 
-document.getElementById('skt').innerHTML = '<thead><tr><th>캐릭터</th><th>스킬 · 최대 마나</th><th>★</th><th>★★</th><th>★★★</th></tr></thead><tbody>' +
-  [...C].sort((a, b) => b.grade - a.grade).map((c) => `<tr><td><img src="${c.img}" alt=""> ${c.name} <small style="color:var(--sub)">${GR[c.grade]} · ${T[c.cls].name} · ${T[c.origin].name}</small></td><td><b>${c.skill.name}</b> · 마나 ${c.skill.mana}</td>${c.skill.desc.map((d) => `<td>${d}</td>`).join('')}</tr>`).join('') + '</tbody>';
+document.getElementById('skt').innerHTML = '<thead><tr><th>캐릭터</th><th>등급</th><th>공격력 ★·★★·★★★ · 공속 · 사거리</th><th>스킬 · 최대 마나</th><th>★</th><th>★★</th><th>★★★</th></tr></thead><tbody>' +
+  [...C].sort((a, b) => b.grade - a.grade || (b.grade - b.old) - (a.grade - a.old)).map((c) => `<tr><td><img src="${c.img}" alt=""> ${c.name} <small style="color:var(--sub)">${T[c.cls].name} · ${T[c.origin].name}</small></td><td style="white-space:nowrap">${c.old !== c.grade ? `${GR[c.old]} → <b>${GR[c.grade]}</b>` : GR[c.grade]}</td><td style="white-space:nowrap">${c.skill.stats.map((x) => x.atk).join(' · ')} · ${c.skill.stats[0].rate}/초 · ${c.skill.stats[0].range}</td><td><b>${c.skill.name}</b> · 마나 ${c.skill.mana}</td>${c.skill.desc.map((d) => `<td>${d}</td>`).join('')}</tr>`).join('') + '</tbody>';
+const GRADE_ROWS = [[1, '1', '×1', 'Lv5 스킬 평균 피해 기준 3.9배'], [2, '2', '×1.35', '4.45배'], [3, '3', '×1.8', '4.95배'], [4, '5', '×2.5', '7.2배']];
+document.getElementById('grades').innerHTML = '<thead><tr><th>등급</th><th>인원</th><th>값(상점 단위)</th><th>기본 공격력 배율</th><th>스킬 세기</th><th>오름 ▲ / 내림 ▼</th></tr></thead><tbody>' +
+  GRADE_ROWS.map(([g, price, mult, sk]) => `<tr><td>${GR[g]}</td><td class="cnt">${C.filter((c) => c.grade === g).length}</td><td class="cnt">${price}</td><td class="cnt">${mult}</td><td>${sk}</td><td>${C.filter((c) => c.grade === g && c.old !== g).map((c) => `${c.name}${c.grade > c.old ? '▲' : '▼'}`).join(' · ') || '—'}</td></tr>`).join('') +
+  '<tr><td colspan="6" style="color:var(--sub)">별 단계 능력 ×1 · ×1.8 · ×3.2 (TFT 와 비슷). 등급이 바뀐 캐릭터의 스킬 % 수치는 새 등급/옛 등급 스킬 세기 비율만큼 고침 (버프는 팀 전체라 제곱근만큼 완만하게)</td></tr></tbody>';
+const ODDS = [[100, 0, 0, 0], [75, 25, 0, 0], [55, 35, 10, 0], [45, 35, 18, 2], [35, 35, 25, 5], [25, 35, 32, 8], [18, 30, 38, 14], [12, 25, 40, 23], [8, 20, 40, 32], [5, 15, 40, 40]];
+document.getElementById('odds').innerHTML = '<thead><tr><th>영지 레벨</th><th>출전 인원</th><th>커먼</th><th>언커먼</th><th>레어</th><th>유니크</th></tr></thead><tbody>' +
+  ODDS.map((o, i) => `<tr><td>Lv${i + 1}</td><td class="cnt">${i + 3}명</td>${o.map((p) => `<td class="cnt">${p || '—'}</td>`).join('')}</tr>`).join('') + '</tbody>';
 renderPool();
 presetEl.value = '마탑 포격 — 스킬 연타';
 presetEl.onchange();

@@ -843,14 +843,14 @@ test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누�
   await toGame(page, 120, 500); // 빈 곳 → 영지 → 출전
 });
 
-test('물량: 1웨이브 250기가 길 폭에 퍼져 나오고, 남는 피해는 옆 몬스터로 넘어간다 (관통)', async ({ page }) => {
+test('물량: 1웨이브 167기(2026-11-20 1/3 감소)가 길 폭에 퍼져 나오고, 남는 피해는 옆 몬스터로 넘어간다 (관통)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 999; g.hire();
     g.startWave(1);
     const queued = g.spawnQueue.length;
-    while (g.spawnQueue.length > 200) g.spawnMonster(g.spawnQueue.shift());
+    while (g.spawnQueue.length > 117) g.spawnMonster(g.spawnQueue.shift());
     const ms = g.monsters;
     for (const [i, m] of ms.entries()) { m.dist = 300 + i * 2; m.place(); } // 한 줄로 촘촘히
     const lanes = new Set(ms.map((m) => Math.round(m.lane)));
@@ -863,7 +863,7 @@ test('물량: 1웨이브 250기가 길 폭에 퍼져 나오고, 남는 피해는
     const dead = before - ms.filter((m) => m.alive).length;
     return { queued, scale: ms[0].scaleX, lanes: lanes.size, dead, hurt: ms.filter((m) => m.alive && m.hp < m.maxHp).length };
   });
-  expect(r.queued).toBe(250);
+  expect(r.queued).toBe(167);
   expect(r.scale).toBe(2); // 일반 몬스터는 작게
   expect(r.lanes).toBeGreaterThan(8); // 길 폭 전체에 퍼진다
   expect(r.dead).toBe(6);

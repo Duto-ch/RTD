@@ -17,6 +17,7 @@ ORIGIN = {
 }
 CLASS_OF_STYLE = {'brawl': 'warrior', 'bow': 'ranger', 'heavy': 'ranger', 'rapid': 'assassin', 'blast': 'gunner', 'hex': 'hexer', 'aid': 'support'}
 o_of = {cid: o for o, ids in ORIGIN.items() for cid in ids}
+from collections import Counter
 chars = []
 for r in roster:
     if (r['grade'] < 2 and r['id'] not in ADD_COMMON) or r['id'] in DROP:
@@ -26,10 +27,44 @@ for r in roster:
         r = {**r, 'grade': 2, 'promoted': True}
     chars.append({**r, 'cls': CLASS_OF_STYLE[r['style']], 'origin': o_of[r['id']]})
 assert len(chars) == 70, len(chars)
-sk = json.loads(subprocess.check_output(['node', os.path.join(HERE, 'skillstar.mjs'), *[c['id'] for c in chars]], cwd=ROOT))
+
+# ── 등급 재배분 (2026-11-20 사용자 결정) ──
+# 70명 = 커먼 22 · 언커먼 20 · 레어 16 · 유니크 12. 출신마다 유니크 2명씩 + 나머지 등급도 고르게 →
+# 어떤 시너지든 초반(커먼·언커먼)부터 후반(레어·유니크)까지 이어서 키울 수 있다 (TFT 처럼 특성이 여러 가격대에 걸침).
+# 출신 안에서는 지금 등급이 높은 순으로 위 등급을 채우고, 같은 등급끼리는 그 등급에 적게 들어간 계열을 먼저 고른다.
+QUOTA = {  # 출신: (유니크, 레어, 언커먼, 커먼)
+    'north': (2, 3, 3, 3), 'knight': (2, 2, 4, 3), 'tower': (2, 2, 3, 4),
+    'grove': (2, 3, 3, 4), 'lake': (2, 3, 3, 4), 'guild': (2, 3, 4, 4),
+}
+order = {r['id']: i for i, r in enumerate(roster)}
+for o, q in QUOTA.items():
+    mem = [c for c in chars if c['origin'] == o]
+    assert sum(q) == len(mem), (o, sum(q), len(mem))
+cls_at = {g: {} for g in (1, 2, 3, 4)}
+FORCE = {'asta': 4, 'leif': 2, 'aud': 2}   # 아스타: 주술사에도 유니크가 하나는 있게 · 레이프·오드: 사용자가 언커먼으로 올린 2명 유지
+for cid, g in FORCE.items():
+    c = next(c for c in chars if c['id'] == cid)
+    c['new'] = g
+    cls_at[g][c['cls']] = cls_at[g].get(c['cls'], 0) + 1
+for g, qi in ((4, 0), (3, 1), (2, 2)):
+    for o, q in QUOTA.items():
+        have = sum(1 for c in chars if c['origin'] == o and c.get('new') == g)
+        for _ in range(q[qi] - have):
+            pool = [c for c in chars if c['origin'] == o and 'new' not in c]
+            pick = max(pool, key=lambda c: (c['grade'], -cls_at[g].get(c['cls'], 0), -order[c['id']]))
+            pick['new'] = g
+            cls_at[g][pick['cls']] = cls_at[g].get(pick['cls'], 0) + 1
+for c in chars:
+    c.setdefault('new', 1)
+    c['old'] = c['grade']
+    c['grade'] = c['new']
+print('새 등급', Counter(c['grade'] for c in chars), '바뀜', sum(c['grade'] != c['old'] for c in chars))
+for cl in CLASS_OF_STYLE.values():
+    pass
+print({k: dict(Counter(c['grade'] for c in chars if c['cls'] == k)) for k in set(CLASS_OF_STYLE.values())})
+sk = json.loads(subprocess.check_output(['node', os.path.join(HERE, 'skillstar.mjs'), *[f"{c['id']}:{c['grade']}" for c in chars]], cwd=ROOT))
 for c in chars:
     c['skill'] = sk[c['id']]
-from collections import Counter
 print(Counter(c['cls'] for c in chars), Counter(c['origin'] for c in chars), Counter(c['grade'] for c in chars))
 TRAITS = {
     # 계열 (공격 특징 6가지) — 단계 2·5·8 (2026-11-20 사용자 결정). 그 계열 캐릭터만 강화, 마지막 단계만 팀 전체.
