@@ -24,10 +24,8 @@ orig_body = R.body
 UNIQUE_WPN = {'arthur': 'excalibur', 'isolde': 'sun', 'oberon': 'fairy'}   # 캐릭터 전용 무기 (weapons_v2.py)
 _pick = R.W2.pick_variant
 R.W2.pick_variant = lambda w, look, g, cid: UNIQUE_WPN.get(cid) or _pick(w, look, g, cid)
-# 대기 때 무기 각도를 캐릭터마다 바꾸기 (2026-11-20 사용자 요청: 아서 = 몸 쪽으로 직각으로 눕혀 가로로 듦, 기본은 바깥 45°)
-IDLE_DEG = {'arthur': -90}
-IDLE_DY = {'arthur': 2}   # 가로로 든 칼이 턱·깃을 가리지 않게 손을 2px 내려 허리 높이로
-
+# 무기(쥐는 손)를 캐릭터 바깥쪽으로 옮기기 — 대기·공격 모두 (2026-11-20 사용자 요청: 아서 칼을 약간 바깥으로. 가로로 눕힌 시안은 되돌림)
+WPN_DX = {'arthur': 2}
 
 def run(cid):
     file, skin, female = TESTS[cid]
@@ -37,21 +35,15 @@ def run(cid):
     img.info = {'split': 19, 'eyes': [(9, 15), (13, 15)]}
     pal = {**pal, 'S': skin}
     R.body = lambda _c: (img, pal, 0, female, style)
-    oi, osw, first = A.idle, A.swing, []
-    if cid in IDLE_DEG:
-        deg = IDLE_DEG[cid]
-        def idle_fix(ch, w, hand, **kw):
-            fr = oi(ch, w, (hand[0], hand[1] + IDLE_DY.get(cid, 0)), **{**kw, 'deg': deg})
-            first.append(fr[0])
-            return fr
-        A.idle = idle_fix
-        A.swing = lambda ch, w, hand, idle_deg=0: osw(ch, w, hand, deg)
+    oi, osw = A.idle, A.swing
+    if cid in WPN_DX:   # 그림은 몸을 뒤집어 그린 뒤 다시 뒤집으므로 x 를 키우면 최종 그림에서 바깥(왼쪽)
+        dx = WPN_DX[cid]
+        A.idle = lambda ch, w, hand, **kw: oi(ch, w, (hand[0] + dx, hand[1]), **kw)
+        A.swing = lambda ch, w, hand, idle_deg=0: osw(ch, w, (hand[0] + dx, hand[1]), idle_deg)
     try:
         r = R.animate(c)
     finally:
         R.body, A.idle, A.swing = orig_body, oi, osw
-    if first:   # 공격 마지막 = 대기 자세 (swing 은 -30° 아래를 몸 뒤로 그리므로 대기 첫 프레임 그대로 씀)
-        r['attack'][-2:] = [(first[0][0], ms) for _, ms in r['attack'][-2:]]
     frames = r['idle'] + r['attack']
     R.sheet(frames).save(os.path.join(OUT, f'{cid}.png'))
     return r, frames
