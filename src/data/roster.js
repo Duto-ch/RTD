@@ -265,7 +265,7 @@ const BLUE = [
     S('제독의 명령', 16, { buff: { scope: 'all', rate: 0.2, dur: 8 } }), S('폭풍 함대', 22, { area: all, fx: { dmg: 4, push: 60 } })]),
 
   // ── 유니크 4 ──
-  C('blue', 4, 'arthur', '아서', 'brawl', '호수의 기사왕', 'legendary knight king with gilded crown, glowing holy sword and long blue royal mantle', { splash: 30, stun: [0.15, 1] }, [
+  C('blue', 4, 'arthur', '아서', 'brawl', '호수의 기사왕', 'bright blonde legendary knight king with gilded crown, glowing holy sword and long blue royal mantle', { splash: 30, stun: [0.15, 1] }, [
     S('호수의 검', 18, { area: all, fx: { dmg: 6, stun: 1.5 } }), S('원탁의 맹세', 16, { buff: { scope: 'all', dmg: 0.3, dur: 8 } }),
     S('성검 일섬', 10, { area: many(6), ...hit(7) }), S('아발론', 26, { buff: { scope: 'all', dmg: 0.3, rate: 0.3, range: 0.15, dur: 8 } })]),
   C('blue', 4, 'solveig', '솔베이그', 'blast', '절대영도의 마녀', 'ice queen archmage with crystal crown and long white hair', { splash: 25, slow: [0.35, 2] }, [
