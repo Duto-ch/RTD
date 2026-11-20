@@ -73,7 +73,7 @@ select { background: var(--card); color: var(--ink); border: 1.5px solid var(--l
 .unit img { width: 48px; image-rendering: pixelated }
 .unit .nm { font: 700 12px var(--display) }
 .unit .tr { display: flex; gap: 2px }
-.unit.g2 { border-color: var(--g2) } .unit.g3 { border-color: var(--g3) } .unit.g4 { border-color: var(--g4); box-shadow: 0 0 0 1px #c99a00 }
+.unit.g1 { border-color: #b87a40 } .unit.g2 { border-color: var(--g2) } .unit.g3 { border-color: var(--g3) } .unit.g4 { border-color: var(--g4); box-shadow: 0 0 0 1px #c99a00 }
 .unit.used { opacity: .35 }
 .unit .gr { position: absolute; top: 2px; right: 4px; font-size: 10px; color: #7d6e5a }
 
@@ -98,6 +98,13 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
 .tc ol li { display: grid; grid-template-columns: 28px 1fr; gap: 6px }
 .tc ol li span { font-family: var(--display); font-variant-numeric: tabular-nums; text-align: center; background: color-mix(in srgb, var(--tc) 22%, transparent); border-radius: 5px }
 .tc .who { font-size: .78rem; color: var(--sub) }
+.detail { border-top: 1px dashed var(--line); padding-top: 8px; font-size: .85rem }
+.detail h4 { font-family: var(--display); margin: 0 0 4px; font-size: 1rem }
+.stars { display: grid; grid-template-columns: 38px 1fr; gap: 3px 6px }
+.stars b { font-family: var(--display); color: #c99a00; white-space: nowrap }
+.skt { width: 100%; min-width: 900px; font-size: .84rem }
+.skt td:first-child { white-space: nowrap }
+.skt img { width: 30px; image-rendering: pixelated; vertical-align: middle }
 .note { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 18px; font-size: .9rem }
 .note h3 { font-family: var(--display); margin: 0 0 6px }
 .note ul { margin: 0; padding-left: 1.2em }
@@ -105,12 +112,13 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
 
 <div class="wrap">
   <header>
-    <h1>시너지 시안 — 계열 6 × 출신 6</h1>
-    <p class="lead">60명이 모두 <b>계열 1개 + 출신 1개</b>를 가집니다. 필드에 놓인 <b>서로 다른 캐릭터 수</b>로 단계를 세고(같은 캐릭터 여러 장·별 단계는 1명), 단계가 오를수록 효과가 커집니다. 아래 판에서 캐릭터를 눌러 직접 조합해 보세요.</p>
+    <h1>시너지 시안 — 70명 · 계열 6 × 출신 6 · 스킬 1개</h1>
+    <p class="lead">70명이 모두 <b>계열 1개 + 출신 1개</b>를 가집니다. 필드에 놓인 <b>서로 다른 캐릭터 수</b>로 단계를 세고(같은 캐릭터 여러 장·별 단계는 1명), 단계가 오를수록 효과가 커집니다. 아래 판에서 캐릭터를 눌러 직접 조합해 보세요.</p>
   </header>
   <section class="rules" aria-label="규칙 요약">
-    <div><b>계열 6 — 공격 특징</b>전사·사수·암살자·포격수·주술사·지원가. 연사·저격 = 사수, 속공(단검) = 암살자. <b style="display:inline">단계 2·5·8</b> — 2명이면 초반에 바로 켜지고, 5명부터는 노려야 켜짐. 암살자·주술사(7명)의 8단계는 문장 아이템 필요</div>
+    <div><b>계열 6 — 공격 특징</b>전사·사수·암살자·포격수·주술사·지원가. 연사·저격 = 사수, 속공(단검) = 암살자. <b style="display:inline">단계 2·5·8</b> — 2명이면 초반에 바로 켜지고, 5명부터는 노려야 켜짐. 70명이 되면서 모든 계열이 9명 이상 — 8단계까지 닿음</div>
     <div><b>출신 6 — 세력</b>북방 전사단·왕국 기사단·마탑·숲의 수호자·호수의 성역·용병 길드. 단계 3·6·9 — 9단계는 유니크까지 모아야 함</div>
+    <div><b>스킬 1개 · 별마다 강해짐</b>TFT 처럼 캐릭터마다 스킬 1개(지금 4개 중 마지막 Lv5 스킬). 1성 → 2성 → 3성: 피해 ×1 → ×1.6 → ×2.6, 버프 ×1 → ×1.5 → ×2.25, 대상 수 +1·+2, 범위 +10%·+20%, 지속 +1초·+2초 (가안). 같은 캐릭터 3장 → 별 승급</div>
     <div><b>자리도 의미가 있다</b>바깥 16칸 = 전열(전사 효과 1.5배), 가운데 9칸 = 후열(사수 사거리 +1칸)</div>
     <div><b>출전 인원 최대 12명</b>판 안에서 골드로 영지 레벨을 올리면 놓을 수 있는 인원과 상점 고급 확률이 함께 오름. Lv1 3명 → Lv10 12명 (초반 Lv1~5 싸게, 후반 Lv9~10 비싸게 — 후반 골드 소비처)</div>
   </section>
@@ -131,14 +139,15 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
       <aside class="side" aria-label="시너지 목록">
         <h3>시너지 <small>필드 띠의 칩을 누르면 펼쳐지는 화면</small></h3>
         <div id="traits"></div>
+        <div id="detail" class="detail"></div>
       </aside>
     </div>
   </section>
 
-  <section class="pool" aria-label="캐릭터 60명">
+  <section class="pool" aria-label="캐릭터 70명">
     <div class="filters">
-      <h2 style="margin:0 8px 0 0">캐릭터 60명</h2>
-      <select id="fGrade" aria-label="등급"><option value="">모든 등급</option><option value="4">유니크 13</option><option value="3">레어 21</option><option value="2">언커먼 26</option></select>
+      <h2 style="margin:0 8px 0 0">캐릭터 70명</h2>
+      <select id="fGrade" aria-label="등급"><option value="">모든 등급</option><option value="4">유니크 13</option><option value="3">레어 21</option><option value="2">언커먼 30</option><option value="1">커먼 6</option></select>
       <select id="fTrait" aria-label="시너지"><option value="">모든 시너지</option></select>
     </div>
     <div class="units" id="units"></div>
@@ -147,6 +156,11 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
   <section class="matrix" aria-label="계열 × 출신 표">
     <h2>계열 × 출신 표</h2>
     <table id="matrix"></table>
+  </section>
+
+  <section class="matrix" aria-label="스킬 70개">
+    <h2>스킬 70개 — 1성 · 2성 · 3성 (수치는 가안)</h2>
+    <table class="skt" id="skt"></table>
   </section>
 
   <section aria-label="시너지 12종">
@@ -158,7 +172,9 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
     <h3>정해야 할 것</h3>
     <ul>
       <li>✅ 출전 인원 최대 12명 · 계열 2·5·8 (2026-11-20 결정). 계산: 12명이면 시너지 12개 중 평균 5개가 켜지고, 그중 2단계 이상은 노려서 모아야 켜짐</li>
-      <li><span class="q">❓</span> 빼는 언커먼 4명: 카르스텐·베른·에다·퍼거스 (출신 숫자를 9~11명으로 맞추려고 고름)</li>
+      <li>✅ 70명 = 언커먼 이상 64명 전원 + 커먼 6명(레이프·루시·잉그리드·헬가·오드·엠마 — 얇은 암살자·주술사·지원가를 채우려고 고름) (2026-11-20)</li>
+      <li>✅ 스킬 1개 · 별마다 강해짐 (2026-11-20). <span class="q">❓</span> 시전 방식: 지금처럼 쿨타임 vs TFT 처럼 마나(공격할 때마다 차고, 가득 차면 시전) · 대표 스킬을 Lv5 스킬 말고 다른 것으로 바꿀 캐릭터</li>
+      <li>레어·유니크 전용 스킬 이펙트 136개 중 대표 스킬 34개만 쓰고, 나머지 102개는 쉬게 됨 (3성 전용 연출로 다시 쓸 수 있음)</li>
       <li><span class="q">❓</span> 시너지 이름·효과 수치, 유니크 전용 시너지(TFT 의 5코스트 고유 특성처럼) 둘지</li>
       <li>아이템 조합·유물(로비 공방)은 다음 시안에서 이 시너지와 맞물리게 짬 (예: '마탑 문장' 아이템 = 장착하면 마탑 출신 +1)</li>
     </ul>
@@ -170,8 +186,8 @@ const D = __DATA__;
 const T = D.traits, C = D.chars;
 const CLASS_IDS = Object.keys(T).filter((k) => T[k].kind === 'class');
 const ORIGIN_IDS = Object.keys(T).filter((k) => T[k].kind === 'origin');
-const GR = { 2: '언커먼', 3: '레어', 4: '유니크' };
-const GC = { 2: '#c8d0dc', 3: '#b36cff', 4: '#ffd23a' };
+const GR = { 1: '커먼', 2: '언커먼', 3: '레어', 4: '유니크' };
+const GC = { 1: '#b87a40', 2: '#c8d0dc', 3: '#b36cff', 4: '#ffd23a' };
 const byId = Object.fromEntries(C.map((c) => [c.id, c]));
 const board = Array(25).fill(null);
 let sel = -1;
@@ -249,6 +265,10 @@ function render() {
     return `<div class="trait ${t >= 0 ? 'on' : 'off'}" style="--tc:${T[k].color}">${hex(k, t < 0 ? 'dim' : '')}
       <div><div class="nm">${T[k].name} <span class="steps">${n[k]}명 · ${steps}</span></div><div class="fx">${fx}</div></div></div>`;
   }).join('') : '<p class="empty" style="color:var(--sub)">아직 놓인 캐릭터가 없어요. 아래 목록이나 예시 조합에서 골라 보세요.</p>';
+  // 선택한 칸의 캐릭터 스킬
+  const det = document.getElementById('detail');
+  const pick = sel >= 0 ? byId[board[sel]] : null;
+  det.innerHTML = pick ? `<h4>${pick.name} · ${pick.skill.name} <small style="color:var(--sub)">쿨타임 ${pick.skill.cd}초</small></h4><div class="stars">${pick.skill.desc.map((d, i) => `<b>${'★'.repeat(i + 1)}</b><span>${d}</span>`).join('')}</div>` : '<span style="color:var(--sub)">필드의 캐릭터를 누르면 스킬(1·2·3성)이 여기에 나와요</span>';
   // 목록 사용 표시
   const used = new Set(board.filter(Boolean));
   document.querySelectorAll('.unit').forEach((u) => u.classList.toggle('used', used.has(u.dataset.id)));
@@ -303,6 +323,8 @@ document.getElementById('cards').innerHTML = Object.keys(T).map((k) => {
     <div class="who">${who.map((c) => `${c.name}${c.grade === 4 ? '★' : ''}`).join(' · ')}</div></article>`;
 }).join('');
 
+document.getElementById('skt').innerHTML = '<thead><tr><th>캐릭터</th><th>스킬 · 쿨타임</th><th>★</th><th>★★</th><th>★★★</th></tr></thead><tbody>' +
+  [...C].sort((a, b) => b.grade - a.grade).map((c) => `<tr><td><img src="${c.img}" alt=""> ${c.name} <small style="color:var(--sub)">${GR[c.grade]} · ${T[c.cls].name} · ${T[c.origin].name}</small></td><td><b>${c.skill.name}</b> · ${c.skill.cd}초</td>${c.skill.desc.map((d) => `<td>${d}</td>`).join('')}</tr>`).join('') + '</tbody>';
 renderPool();
 presetEl.value = '마탑 포격 — 스킬 연타';
 presetEl.onchange();

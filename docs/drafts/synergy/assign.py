@@ -3,39 +3,43 @@ import json, os, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 roster = json.loads(subprocess.check_output(['node', '-e', "import('./src/data/roster.js').then(({ROSTER})=>console.log(JSON.stringify(ROSTER.map(r=>({id:r.id,name:r.name,grade:r.grade,style:r.style,title:r.title,original:!!r.original})))))"], cwd=ROOT))
-DROP = ['karsten', 'bern', 'edda', 'fergus']   # 언커먼 30명 중 빼는 4명 (출신 숫자 맞춤)
+# 2026-11-20: 60 → 70명 (사용자 결정). 언커먼 이상 64명 전원 + 커먼 6명 — 암살자·주술사·지원가가 얇아서 그 계열에서 고름
+DROP = []
+ADD_COMMON = ['leif', 'lucy', 'ingrid', 'helga', 'aud', 'emma']
 ORIGIN = {
-    'north': ['ragnar', 'brynhild', 'halvard', 'bjorn', 'ulf', 'atle', 'einar', 'stein', 'ylva'],
-    'knight': ['arthur', 'eleanor', 'kristin', 'adel', 'claire', 'henrik', 'leo', 'kaira', 'sigurd', 'gareth'],
-    'tower': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'aidan', 'bridget', 'olaf', 'gilbert', 'greta'],
-    'grove': ['oberon', 'freydis', 'rowena', 'elias', 'gwen', 'thorn', 'freya', 'thea', 'elin', 'marit'],
-    'lake': ['vivian', 'serena', 'william', 'rosalind', 'haakon', 'theodore', 'asta', 'liv', 'agnes', 'sigrid'],
-    'guild': ['richard', 'winston', 'thorsten', 'ivar', 'cecilia', 'oscar', 'jonathan', 'colin', 'siri', 'nora', 'nix'],
+    'north': ['ragnar', 'brynhild', 'halvard', 'bjorn', 'ulf', 'atle', 'einar', 'stein', 'ylva', 'ingrid', 'leif'],
+    'knight': ['arthur', 'eleanor', 'kristin', 'adel', 'claire', 'henrik', 'leo', 'kaira', 'sigurd', 'gareth', 'lucy'],
+    'tower': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'aidan', 'bridget', 'olaf', 'gilbert', 'greta', 'helga'],
+    'grove': ['oberon', 'freydis', 'rowena', 'elias', 'gwen', 'thorn', 'freya', 'thea', 'elin', 'marit', 'edda', 'fergus'],
+    'lake': ['vivian', 'serena', 'william', 'rosalind', 'haakon', 'theodore', 'asta', 'liv', 'agnes', 'sigrid', 'aud', 'emma'],
+    'guild': ['richard', 'winston', 'thorsten', 'ivar', 'cecilia', 'oscar', 'jonathan', 'colin', 'siri', 'nora', 'nix', 'karsten', 'bern'],
 }
 CLASS_OF_STYLE = {'brawl': 'warrior', 'bow': 'ranger', 'heavy': 'ranger', 'rapid': 'assassin', 'blast': 'gunner', 'hex': 'hexer', 'aid': 'support'}
 o_of = {cid: o for o, ids in ORIGIN.items() for cid in ids}
 chars = []
 for r in roster:
-    if r['grade'] < 2 or r['id'] in DROP:
+    if (r['grade'] < 2 and r['id'] not in ADD_COMMON) or r['id'] in DROP:
         continue
     assert r['id'] in o_of, r['id']
     chars.append({**r, 'cls': CLASS_OF_STYLE[r['style']], 'origin': o_of[r['id']]})
-assert len(chars) == 60, len(chars)
+assert len(chars) == 70, len(chars)
+sk = json.loads(subprocess.check_output(['node', os.path.join(HERE, 'skillstar.mjs'), *[c['id'] for c in chars]], cwd=ROOT))
+for c in chars:
+    c['skill'] = sk[c['id']]
 from collections import Counter
 print(Counter(c['cls'] for c in chars), Counter(c['origin'] for c in chars), Counter(c['grade'] for c in chars))
 TRAITS = {
     # 계열 (공격 특징 6가지) — 단계 2·5·8 (2026-11-20 사용자 결정). 그 계열 캐릭터만 강화, 마지막 단계만 팀 전체.
-    # 암살자·주술사는 7명뿐 → 8단계는 '문장' 아이템(장착하면 그 계열 +1, TFT 엠블럼처럼)으로만
     'warrior': {'kind': 'class', 'name': '전사', 'color': '#c0563c', 'glyph': '검', 'desc': '길 가까이에서 베는 근접 계열. 바깥 줄(전열)에 있으면 효과 1.5배',
                 'tiers': [[2, '전사 공격력 +15%'], [5, '전사 공격력 +40%, 3번째 공격마다 주변 베기'], [8, '전사 공격력 +70%, 모든 공격이 주변 베기, 팀 전체 공격력 +15%']]},
     'ranger': {'kind': 'class', 'name': '사수', 'color': '#5f8f3e', 'glyph': '활', 'desc': '활·석궁·총. 멀리서 한 마리씩 정확하게. 가운데 3×3(후열)이면 사거리 +1칸',
                'tiers': [[2, '사수 사거리 +10%'], [5, '사거리 +25%, 관통 +2'], [8, '사거리 +40%, 관통 +4, 정예·보스 피해 +50%']]},
     'assassin': {'kind': 'class', 'name': '암살자', 'color': '#6b4a8f', 'glyph': '단', 'desc': '단검·쌍검으로 빠르게. 치명타가 핵심',
-                 'tiers': [[2, '암살자 치명타 +15%, 치명 피해 +30%'], [5, '치명타 +35%, 치명 피해 +70%'], [8, '치명타 시 40% 확률로 즉시 한 번 더 공격 (7명뿐이라 문장 아이템 필요)']]},
+                 'tiers': [[2, '암살자 치명타 +15%, 치명 피해 +30%'], [5, '치명타 +35%, 치명 피해 +70%'], [8, '치명타 시 40% 확률로 즉시 한 번 더 공격']]},
     'gunner': {'kind': 'class', 'name': '포격수', 'color': '#d9822b', 'glyph': '폭', 'desc': '폭발·범위 공격. 물량(250기) 담당',
                'tiers': [[2, '포격수 폭발 범위 +15%'], [5, '범위 +35%, 폭발 자리에 불길 1초'], [8, '범위 +60%, 폭발이 두 번 터짐']]},
     'hexer': {'kind': 'class', 'name': '주술사', 'color': '#3f7f86', 'glyph': '술', 'desc': '지속 피해·약화·감속을 거는 계열',
-              'tiers': [[2, '주술 효과(지속 피해·약화·감속) +30%'], [5, '주술 효과 +80%, 주술 걸린 적이 죽으면 옆 적에게 옮음'], [8, '모든 아군 공격에 약화(받는 피해 +20%) 부여 (7명뿐이라 문장 아이템 필요)']]},
+              'tiers': [[2, '주술 효과(지속 피해·약화·감속) +30%'], [5, '주술 효과 +80%, 주술 걸린 적이 죽으면 옆 적에게 옮음'], [8, '모든 아군 공격에 약화(받는 피해 +20%) 부여']]},
     'support': {'kind': 'class', 'name': '지원가', 'color': '#c9a227', 'glyph': '깃', 'desc': '오라·버프·골드. 혼자 약하지만 팀을 키움',
                 'tiers': [[2, '팀 전체 공격 속도 +8%'], [5, '공격 속도 +20%, 버프 지속 2배'], [8, '공격 속도 +35%, 웨이브마다 골드 +8']]},
     # 출신 6가지 — 그 출신 캐릭터만 강화 (3·6·9)
