@@ -338,7 +338,8 @@ const GRADE_ROWS = [[1, '1', '×1', 'Lv5 스킬 평균 피해 기준 3.9배'], [
 document.getElementById('grades').innerHTML = '<thead><tr><th>등급</th><th>인원</th><th>값(상점 단위)</th><th>기본 공격력 배율</th><th>스킬 세기</th><th>오름 ▲ / 내림 ▼</th></tr></thead><tbody>' +
   GRADE_ROWS.map(([g, price, mult, sk]) => `<tr><td>${GR[g]}</td><td class="cnt">${C.filter((c) => c.grade === g).length}</td><td class="cnt">${price}</td><td class="cnt">${mult}</td><td>${sk}</td><td>${C.filter((c) => c.grade === g && c.old !== g).map((c) => `${c.name}${c.grade > c.old ? '▲' : '▼'}`).join(' · ') || '—'}</td></tr>`).join('') +
   '<tr><td colspan="6" style="color:var(--sub)">별 단계 능력 ×1 · ×1.8 · ×3.2 (TFT 와 비슷). 등급이 바뀐 캐릭터의 스킬 % 수치는 새 등급/옛 등급 스킬 세기 비율만큼 고침 (버프는 팀 전체라 제곱근만큼 완만하게)</td></tr></tbody>';
-const ODDS = [[100, 0, 0, 0], [75, 25, 0, 0], [55, 35, 10, 0], [45, 35, 18, 2], [35, 35, 25, 5], [25, 35, 32, 8], [18, 30, 38, 14], [12, 25, 40, 23], [8, 20, 40, 32], [5, 15, 40, 40]];
+// Lv10 유니크 25% (2026-11-20 사용자 결정, TFT 최고 레벨 최고 등급과 비슷하게)
+const ODDS = [[100, 0, 0, 0], [75, 25, 0, 0], [55, 35, 10, 0], [45, 35, 18, 2], [35, 35, 25, 5], [26, 35, 31, 8], [19, 31, 38, 12], [13, 27, 44, 16], [9, 22, 48, 21], [6, 19, 50, 25]];
 document.getElementById('odds').innerHTML = '<thead><tr><th>영지 레벨</th><th>출전 인원</th><th>커먼</th><th>언커먼</th><th>레어</th><th>유니크</th></tr></thead><tbody>' +
   ODDS.map((o, i) => `<tr><td>Lv${i + 1}</td><td class="cnt">${i + 3}명</td>${o.map((p) => `<td class="cnt">${p || '—'}</td>`).join('')}</tr>`).join('') + '</tbody>';
 renderPool();
