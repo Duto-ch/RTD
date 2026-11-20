@@ -1,4 +1,4 @@
-"""시험 중인 3명(PixelLab 아서·이졸데 + 직접 찍은 오베론)을 지금 애니메이션 규칙 그대로 움직이기 (2026-11-20)
+"""시험 3명(PixelLab 아서·이졸데 + 직접 찍은 오베론) 애니메이션 미리보기 (2026-11-20, 게임에도 적용됨)
 - 게임과 같은 코드(`roster-art/roster_art.py` animate → `char-13/anim.py`)에 몸 그림만 바꿔 넣는다:
   무기는 별도 레이어·캐릭터 왼쪽·대기 때 대각선 / 둥근 손 4x4 / 대기 8프레임(숨쉬기 머리 1px·무기 반 박자 늦게·깜빡임) /
   공격(예비 멈춤 → 잔상 → 타격 섬광·멈춤 → 회복, 마지막 = 대기 자세) / 유니크 반짝임
@@ -13,37 +13,14 @@ sys.path.insert(0, os.path.join(HERE, '..', 'roster-art'))
 import roster_art as R
 A = R.A
 
-TESTS = {   # id: (몸 그림, 피부색, 여성)
-    'arthur': ('arthur_pp_01.png', '#fccbaf', False),
-    'isolde': ('isolde_pp_34.png', '#fdc1a2', True),
-    'oberon': ('oberon_handdot.png', '#ffe2c8', False),
-}
+TESTS = ('arthur', 'isolde', 'oberon')   # 몸 그림·전용 무기·무기 위치는 roster_art.py 의 CUSTOM_BODY·UNIQUE_WPN·WPN_DX (2026-11-20 게임 적용)
 OUT = os.path.join(HERE, 'anim')
 os.makedirs(OUT, exist_ok=True)
-orig_body = R.body
-UNIQUE_WPN = {'arthur': 'excalibur', 'isolde': 'sun', 'oberon': 'fairy'}   # 캐릭터 전용 무기 (weapons_v2.py)
-_pick = R.W2.pick_variant
-R.W2.pick_variant = lambda w, look, g, cid: UNIQUE_WPN.get(cid) or _pick(w, look, g, cid)
-# 무기(쥐는 손)를 캐릭터 바깥쪽으로 옮기기 — 대기·공격 모두 (2026-11-20 사용자 요청: 아서 칼을 약간 바깥으로. 가로로 눕힌 시안은 되돌림)
-WPN_DX = {'arthur': 2}
+
 
 def run(cid):
-    file, skin, female = TESTS[cid]
     c = next(c for c in R.ROSTER if c['id'] == cid)
-    _, pal, _, _, style = orig_body(c)          # 옷 색 등(방패용)은 원래 값
-    img = Image.open(os.path.join(HERE, file)).convert('RGBA')
-    img.info = {'split': 19, 'eyes': [(9, 15), (13, 15)]}
-    pal = {**pal, 'S': skin}
-    R.body = lambda _c: (img, pal, 0, female, style)
-    oi, osw = A.idle, A.swing
-    if cid in WPN_DX:   # 그림은 몸을 뒤집어 그린 뒤 다시 뒤집으므로 x 를 키우면 최종 그림에서 바깥(왼쪽)
-        dx = WPN_DX[cid]
-        A.idle = lambda ch, w, hand, **kw: oi(ch, w, (hand[0] + dx, hand[1]), **kw)
-        A.swing = lambda ch, w, hand, idle_deg=0: osw(ch, w, (hand[0] + dx, hand[1]), idle_deg)
-    try:
-        r = R.animate(c)
-    finally:
-        R.body, A.idle, A.swing = orig_body, oi, osw
+    r = R.animate(c)
     frames = r['idle'] + r['attack']
     R.sheet(frames).save(os.path.join(OUT, f'{cid}.png'))
     return r, frames

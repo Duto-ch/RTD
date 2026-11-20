@@ -270,7 +270,31 @@ def D_shade(hexc, k=0.7):
     return '#%02x%02x%02x' % tuple(int(int(hc[i:i + 2], 16) * k) for i in (0, 2, 4))
 
 
+# ---------- 새 비율 몸 그림 (2026-11-20 사용자 결정: 시험 3명을 게임에 적용) ----------
+# PixelLab(perfectPixel 정리) 2명 + 같은 비율로 직접 찍은 1명. 머리 9줄 + 몸 5줄이라 머리/몸 나누는 줄 = 19, 눈 = (9,15)·(13,15)
+# 그림·시험 기록: docs/drafts/pixellab-rule-test/
+NEW_RATIO = os.path.join(HERE, '..', 'pixellab-rule-test')
+CUSTOM_BODY = {   # id: (몸 그림, 피부색)
+    'arthur': ('arthur_pp_01.png', '#fccbaf'),
+    'isolde': ('isolde_pp_34.png', '#fdc1a2'),
+    'oberon': ('oberon_handdot.png', '#ffe2c8'),
+}
+UNIQUE_WPN = {'arthur': 'excalibur', 'isolde': 'sun', 'oberon': 'fairy'}   # 캐릭터 전용 무기 모양 (weapons_v2.py)
+WPN_DX = {'arthur': 2, 'isolde': 2}   # 쥐는 손(무기)을 바깥쪽으로 옮기는 칸 수 — 대기·공격 모두
+
+
 def body(c):
+    img, pal, hat_rows, female, style = _body(c)
+    if c['id'] in CUSTOM_BODY:
+        f, skin = CUSTOM_BODY[c['id']]
+        img = Image.open(os.path.join(NEW_RATIO, f)).convert('RGBA')
+        img.info = {'split': 19, 'eyes': [(9, 15), (13, 15)]}
+        pal = {**pal, 'S': skin}
+        hat_rows = 0
+    return img, pal, hat_rows, female, style
+
+
+def _body(c):
     L, i, attr, grade = c['look'], c['id'], c['attr'], c['grade']
     female = i in FEMALE_IDS or has(L, *FEMALE)
     Cm, Cs = OUTFIT[attr][h(i + 'o', 4)]
@@ -411,35 +435,37 @@ def animate(c):
                                  {'O': '#2b1d2f', 'C': pal['C'], 'c': pal['c'], 'G': GRADE_ACCENT[max(2, c['grade'])] if c['grade'] < 4 else '#f5c542'})}
     if w == 'staff':
         w = STAFF_BY_ATTR[c['attr']]
-    var = W2.pick_variant(w, c['look'], c['grade'], c['id'])
+    var = UNIQUE_WPN.get(c['id']) or W2.pick_variant(w, c['look'], c['grade'], c['id'])
     W2.CTX.update(grade=c['grade'], attr=c['attr'], var={w: var})
     A.GEO_LEN.clear(); A.GEO_LEN.update(BASE_LEN)
     if (w, var) in W2.GEO_LEN_V:
         A.GEO_LEN[w] = W2.GEO_LEN_V[(w, var)]
     tilt = A.IDLE_TILT.get(w, 45)
+    dx = WPN_DX.get(c['id'], 0)
+    shift = lambda hd: (hd[0] + dx, hd[1])   # 몸을 뒤집어 그린 뒤 다시 뒤집으므로 x+ = 최종 그림에서 바깥(왼쪽)
     if w == 'bow':
-        hand = A.HAND['bow']
+        hand = shift(A.HAND['bow'])
         idle = A.idle(ch, 'bow', hand, deg=A.IDLE_TILT['bow'], hat_rows=hat_rows,
                       extra=lambda cc, x, y, i: ImageDraw.Draw(cc).line(list(A.bow_tips(A.IDLE_TILT['bow'], x, y)), fill=(238, 246, 255, 255)))
         attack = A.shoot(ch, hand)
     elif w.startswith('staff'):
-        hand = A.HAND['staff']
+        hand = shift(A.HAND['staff'])
         idle = A.idle(ch, w, hand, deg=tilt, hat_rows=hat_rows)
         attack = A.cast(ch, hand, w, tilt)
     elif w in ('gun', 'crossbow'):
-        hand = A.HAND[w]
+        hand = shift(A.HAND[w])
         idle = A.idle(ch, w, hand, deg=tilt, hat_rows=hat_rows)
         attack = fire(ch, w, hand, tilt)
     elif w == 'spear':
-        hand = A.HAND['spear']
+        hand = shift(A.HAND['spear'])
         idle = A.idle(ch, 'spear', hand, deg=45, hat_rows=hat_rows)
         attack = A.thrust(ch, 'spear', hand)
     elif w == 'dagger':
-        hand = A.HAND['dagger']
+        hand = shift(A.HAND['dagger'])
         idle = A.idle(ch, 'dagger', hand, deg=45, hat_rows=hat_rows)
         attack = A.thrust(ch, 'dagger', hand, A.STAB2)
     else:  # sword · axe · hammer
-        hand = A.HAND.get(w, (16, 20))
+        hand = shift(A.HAND.get(w, (16, 20)))
         idle = A.idle(ch, w, hand, deg=45, hat_rows=hat_rows)
         attack = A.swing(ch, w, hand, 45)
     if c['grade'] == 4:   # 유니크: 대기 중 몸 주위에 반짝임이 돌아가며 핀다
