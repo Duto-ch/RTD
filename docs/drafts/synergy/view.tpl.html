@@ -109,10 +109,10 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
     <p class="lead">60명이 모두 <b>계열 1개 + 출신 1개</b>를 가집니다. 필드에 놓인 <b>서로 다른 캐릭터 수</b>로 단계를 세고(같은 캐릭터 여러 장·별 단계는 1명), 단계가 오를수록 효과가 커집니다. 아래 판에서 캐릭터를 눌러 직접 조합해 보세요.</p>
   </header>
   <section class="rules" aria-label="규칙 요약">
-    <div><b>계열 6 — 공격 특징</b>전사·사수·암살자·포격수·주술사·지원가. 지금 공격 스타일 7종에서 연사·저격을 '사수'로 묶음. 단계 2·4·6(전사는 8까지)</div>
+    <div><b>계열 6 — 공격 특징</b>전사·사수·암살자·포격수·주술사·지원가. 연사·저격 = 사수, 속공(단검) = 암살자. <b style="display:inline">단계 2·5·8</b> — 2명이면 초반에 바로 켜지고, 5명부터는 노려야 켜짐. 암살자·주술사(7명)의 8단계는 문장 아이템 필요</div>
     <div><b>출신 6 — 세력</b>북방 전사단·왕국 기사단·마탑·숲의 수호자·호수의 성역·용병 길드. 단계 3·6·9 — 9단계는 유니크까지 모아야 함</div>
     <div><b>자리도 의미가 있다</b>바깥 16칸 = 전열(전사 효과 1.5배), 가운데 9칸 = 후열(사수 사거리 +1칸)</div>
-    <div><b>출전 인원 = 영지 레벨 + 2</b> <span class="q">❓</span> TFT 처럼 판 안에서 골드로 영지 레벨을 올리면 놓을 수 있는 인원과 상점 고급 확률이 함께 오름 (Lv1 3명 → Lv9 11명)</div>
+    <div><b>출전 인원 최대 12명</b>판 안에서 골드로 영지 레벨을 올리면 놓을 수 있는 인원과 상점 고급 확률이 함께 오름. Lv1 3명 → Lv10 12명 (초반 Lv1~5 싸게, 후반 Lv9~10 비싸게 — 후반 골드 소비처)</div>
   </section>
 
   <section aria-label="배치해 보기">
@@ -122,7 +122,7 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
         <div class="strip" id="strip" aria-live="polite"></div>
         <div class="fieldwrap"><div class="board" id="board" role="grid" aria-label="5×5 성벽 안 칸"></div></div>
         <div class="ctl">
-          <label for="lv">영지 레벨 <input id="lv" type="range" min="1" max="9" value="7"><output id="lvOut">Lv7 · 9명</output></label>
+          <label for="lv">영지 레벨 <input id="lv" type="range" min="1" max="10" value="7"><output id="lvOut">Lv7 · 9명</output></label>
           <select id="preset" aria-label="예시 조합"><option value="">예시 조합 고르기</option></select>
           <button class="ghost" id="clear" type="button">비우기</button>
         </div>
@@ -157,7 +157,7 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
   <section class="note">
     <h3>정해야 할 것</h3>
     <ul>
-      <li><span class="q">❓</span> 출전 인원 상한(영지 레벨 + 2) — 25칸을 다 채우면 모든 시너지가 최대가 되어 고민이 사라짐. 상한을 두는 것을 추천</li>
+      <li>✅ 출전 인원 최대 12명 · 계열 2·5·8 (2026-11-20 결정). 계산: 12명이면 시너지 12개 중 평균 5개가 켜지고, 그중 2단계 이상은 노려서 모아야 켜짐</li>
       <li><span class="q">❓</span> 빼는 언커먼 4명: 카르스텐·베른·에다·퍼거스 (출신 숫자를 9~11명으로 맞추려고 고름)</li>
       <li><span class="q">❓</span> 시너지 이름·효과 수치, 유니크 전용 시너지(TFT 의 5코스트 고유 특성처럼) 둘지</li>
       <li>아이템 조합·유물(로비 공방)은 다음 시안에서 이 시너지와 맞물리게 짬 (예: '마탑 문장' 아이템 = 장착하면 마탑 출신 +1)</li>
@@ -184,12 +184,14 @@ const PRESETS = {
   '마탑 포격 — 스킬 연타': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'bridget', 'olaf', 'aidan', 'rosalind'],
   '기사단 수비 + 사수': ['arthur', 'eleanor', 'adel', 'claire', 'henrik', 'kristin', 'william', 'richard', 'cecilia'],
   '용병 길드 — 골드 굴리기': ['richard', 'winston', 'thorsten', 'ivar', 'cecilia', 'oscar', 'jonathan', 'nix', 'nora'],
+  'Lv10 12명 — 마탑 9 + 포격 8': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'aidan', 'bridget', 'olaf', 'gilbert', 'oberon', 'theodore', 'freya'],
   '숲 + 호수 — 감속·회복': ['oberon', 'freydis', 'rowena', 'gwen', 'thorn', 'vivian', 'serena', 'agnes', 'asta'],
 };
 const presetEl = document.getElementById('preset');
 for (const k of Object.keys(PRESETS)) presetEl.insertAdjacentHTML('beforeend', `<option>${k}</option>`);
 presetEl.onchange = () => {
   const ids = PRESETS[presetEl.value]; if (!ids) return;
+  if (ids.length > cap()) { lv.value = ids.length - 2; lv.oninput(); }
   board.fill(null); sel = -1;
   // 전사는 바깥 줄, 나머지는 가운데부터
   const inner = [6, 7, 8, 11, 12, 13, 16, 17, 18], outer = [...Array(25).keys()].filter((i) => isFront(i));
