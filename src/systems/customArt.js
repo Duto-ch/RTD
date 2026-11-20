@@ -50,8 +50,10 @@ export function loadCustomArt(scene, onDone) {
       cd.frameWidth = def.frameWidth;
       cd.frameHeight = def.frameHeight;
       applied++;
+      cd.hitFrame = {};
       for (const [name, a] of Object.entries(def.animations || {})) {
         const animKey = `${key}:${name}`;
+        if (a.hit != null) cd.hitFrame[name] = a.hit; // 타격·발사 프레임 (이때 피해·투사체가 나간다)
         if (scene.anims.exists(animKey)) scene.anims.remove(animKey);
         const frames = scene.anims.generateFrameNumbers(key, { frames: a.frames });
         // ms: 프레임마다 길이(밀리초). 프레임 길이 = 1000/frameRate + duration 이라 frameRate 1000(1ms) + (ms-1)
@@ -118,6 +120,20 @@ export function playAnim(sprite, name, ignoreIfPlaying = true) {
  */
 export function animMs(anim) {
   return anim.frames.reduce((t, f) => t + anim.msPerFrame + (f.duration || 0), 0);
+}
+
+/**
+ * 지금 재생 중인 name 애니메이션이 타격·발사 프레임(manifest animations.<name>.hit)에 닿기까지 남은 시간(ms).
+ * 장면 시계(time.timeScale = 게임 속도) 기준이라 time.delayedCall 에 그대로 넣는다. hit 가 없거나 재생 중이 아니면 0
+ */
+export function hitDelay(sprite, name) {
+  const hit = sprite.texture?.customData?.hitFrame?.[name];
+  const cur = sprite.anims?.currentAnim;
+  if (hit == null || !cur || !sprite.anims.isPlaying || cur.key !== `${sprite.texture.key}:${name}`) return 0;
+  const from = Math.max(0, (sprite.anims.currentFrame?.index ?? 1) - 1);
+  let ms = 0;
+  for (let i = from; i < hit && i < cur.frames.length; i++) ms += cur.msPerFrame + (cur.frames[i].duration || 0);
+  return ms / (sprite.anims.timeScale || 1);
 }
 
 /** 텍스처가 바뀐 뒤 기본 동작(대기/걷기)으로 맞춘다 */
