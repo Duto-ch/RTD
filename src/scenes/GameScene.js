@@ -15,7 +15,7 @@ import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
-import { playOnce, playBase, setArt, setFacing, hitDelay } from '../systems/customArt.js';
+import { playOnce, playBase, setArt, setFacing, hitDelay, cancelOnce } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
@@ -362,7 +362,14 @@ export class GameScene extends Phaser.Scene {
         });
       }
 
-      // 기본 공격
+      // 기본 공격 — 휘두름·발사 전에 노린 몬스터가 모두 죽으면 공격 동작을 끊고 바로 다음 대상을 노린다 (2026-11-20)
+      const p = merc.pendingHit;
+      if (p && p.targets.every((m) => !m.alive)) {
+        p.timer.remove(false);
+        merc.pendingHit = null;
+        cancelOnce(merc.sprite, 'idle');
+        merc.cooldown = 0;
+      }
       merc.cooldown -= dt;
       if (merc.cooldown > 0) continue;
       const live = inRange.filter((m) => m.alive);
@@ -375,13 +382,12 @@ export class GameScene extends Phaser.Scene {
       // 대상 쪽을 바라본다 (거의 위·아래에 있으면 방향 유지)
       const dx = live[0].x - merc.x;
       if (Math.abs(dx) > 8) setFacing(merc.sprite, dx < 0);
-      // 피해·투사체는 휘두름·발사 프레임에 나간다 (2026-11-20). 그사이 대상이 죽으면 사거리 안 다음 대상
-      this.atHitFrame(merc, st, () => {
-        const alive = this.monstersInRange(merc.x, merc.y, st.range).filter((m) => m.alive);
-        const ts = picked.filter((m) => m.alive);
-        for (const m of alive) if (ts.length < picked.length && !ts.includes(m)) ts.push(m);
-        for (const m of ts) this.basicAttack(merc, st, m);
+      // 피해·투사체는 휘두름·발사 프레임에 나간다 (2026-11-20). 노린 대상 중 살아 있는 것만 — 모두 죽으면 위에서 공격 취소
+      const timer = this.atHitFrame(merc, st, () => {
+        if (merc.pendingHit?.timer === timer) merc.pendingHit = null;
+        for (const m of picked) if (m.alive) this.basicAttack(merc, st, m);
       });
+      if (timer) merc.pendingHit = { timer, targets: picked };
     }
   }
 
@@ -393,16 +399,21 @@ export class GameScene extends Phaser.Scene {
   /**
    * 공격 동작을 재생하고, 타격·발사 프레임(manifest attack.hit)에 fn 을 부른다.
    * 공격 모션 길이는 공속에 맞춘다 — 공격 간격의 85% 동안 한 번 휘두른다 (배속은 anims.globalTimeScale, 2026-11-19).
-   * 애니메이션이 없으면 살짝 튀어오르고 바로 fn. 기다리는 동안 판이 끝나거나 용병이 필드를 떠나면 취소
+   * 애니메이션이 없으면 살짝 튀어오르고 바로 fn. 기다리는 동안 판이 끝나거나 용병이 필드를 떠나면 취소.
+   * 기다리면 타이머를 돌려준다 (바로 부르면 null) — 공격 취소용
    */
   atHitFrame(merc, st, fn) {
     if (!playOnce(merc.sprite, 'attack', 'idle', BALANCE.attackAnim.share * (1000 / st.rate))) {
       this.tweens.add({ targets: merc.sprite, y: -PX * 2, duration: 60, yoyo: true });
-      return fn();
+      fn();
+      return null;
     }
     const wait = hitDelay(merc.sprite, 'attack');
-    if (wait <= 0) return fn();
-    this.time.delayedCall(wait, () => {
+    if (wait <= 0) {
+      fn();
+      return null;
+    }
+    return this.time.delayedCall(wait, () => {
       if (this.over || !merc.sprite.active || !this.mercs.includes(merc)) return;
       fn();
     });
