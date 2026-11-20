@@ -182,16 +182,36 @@
 
 | 키 | 유물 |
 |---|---|
-| `relic_war_drum` | 전쟁의 북 |
 | `relic_hero_sword` | 용사의 검 |
+| `relic_war_drum` | 전쟁의 북 |
 | `relic_hawk_eye` | 매의 눈 |
-| `relic_golden_grail` | 황금 성배 |
+| `relic_lucky_coin` | 행운의 동전 |
 | `relic_red_orb` | 홍염의 보주 |
+| `relic_mana_chalice` | 마나 성배 |
+| `relic_warrior_banner` | 전사의 깃발 |
+| `relic_ranger_quiver` | 사수의 화살통 |
+| `relic_assassin_mask` | 암살자의 가면 |
+| `relic_gunner_keg` | 포격수의 화약통 |
+| `relic_hexer_doll` | 주술 인형 |
+| `relic_support_harp` | 음유시인의 하프 |
+| `relic_north_horn` | 북방의 뿔피리 |
+| `relic_knight_shield` | 기사단 방패 |
 | `relic_blue_orb` | 창해의 보주 |
 | `relic_green_orb` | 녹림의 보주 |
-| `relic_frost_crown` | 서리 왕관 |
+| `relic_lake_pearl` | 호수의 진주 |
+| `relic_guild_ledger` | 길드 장부 |
+| `relic_golden_grail` | 황금 성배 |
+| `relic_merchant_seal` | 상인의 인장 |
+| `relic_estate_deed` | 영지 문서 |
+| `relic_treasure_map` | 보물 지도 |
 | `relic_contract` | 용병 계약서 |
-| `relic_lucky_coin` | 행운의 동전 |
+| `relic_stone_heart` | 돌 심장 |
+| `relic_aegis` | 수호의 방패 |
+| `relic_mason_hammer` | 석공의 망치 |
+| `relic_frost_crown` | 서리 왕관 |
+| `relic_royal_seal_box` | 왕실 인장함 |
+| `relic_anvil_charm` | 모루 부적 |
+| `relic_star_dust` | 별가루 병 |
 
 ### 지역 배경 — 땅·장식·흙길 (세로 272×480 · 가로 640×360, 아트 1px = 화면 2px)
 
