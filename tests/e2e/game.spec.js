@@ -651,7 +651,7 @@ test('정지하면 캐릭터 애니메이션도 멈춤 · 공격 모션은 공�
   expect(errors).toEqual([]);
 });
 
-test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동작의 휘두름·발사 프레임에 나간다 (시작 프레임이 아니라)', async ({ page }) => {
+test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동작의 휘두름·발사 프레임에 나간다 (시작 프레임이 아니라) · 대상이 먼저 죽으면 공격 취소', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const { hitDelay, animMs } = window.__rtd;
@@ -678,6 +678,31 @@ test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동
     return ['char_arthur', 'char_isolde', 'char_robin'].map((k) => g.textures.get(k).customData.hitFrame.attack);
   });
   expect(hits).toEqual([4, 2, 4]); // 검 = 내려친 타격, 지팡이 = 구슬 섬광, 활 = 시위를 놓음
+  // 발사 전에 노린 몬스터가 모두 죽으면 공격 동작을 끊고 대기로 (피해·투사체도 안 나감, 바로 다음 대상을 노릴 수 있게 쿨타임 0)
+  const c = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const m = g.mercs[0];
+    const st = m.getStats(g.relics, g.gameTime);
+    const target = { alive: true };
+    let fired = false;
+    m.sprite.anims.stop(); // 앞 단계의 공격 동작이 끝나지 않았을 수 있다 — 새로 시작
+    const timer = g.atHitFrame(m, st, () => { fired = true; });
+    if (!timer) return { noTimer: true };
+    m.pendingHit = { timer, targets: [target] };
+    m.cooldown = 1;
+    const playing = m.sprite.anims.currentAnim.key;
+    target.alive = false;
+    g.updateMercs(0.016);
+    window.__cancelFired = () => fired;
+    return { playing, after: m.sprite.anims.currentAnim?.key, pending: m.pendingHit, cd: m.cooldown };
+  });
+  expect(c.noTimer).toBeUndefined();
+  expect(c.playing.endsWith(':attack')).toBe(true);
+  expect(c.after.endsWith(':idle')).toBe(true);
+  expect(c.pending).toBe(null);
+  expect(c.cd).toBeLessThanOrEqual(0);
+  await page.waitForTimeout(1200);
+  expect(await game(page, () => window.__cancelFired())).toBe(false);
   expect(errors).toEqual([]);
 });
 

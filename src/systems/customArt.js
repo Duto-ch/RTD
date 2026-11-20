@@ -157,9 +157,20 @@ export function playOnce(sprite, name, back, maxMs) {
   // 공속에 맞춤: 빠르면 빨리, 느리면 천천히 (너무 굼뜨지 않게 최대 1.6배까지만 늘림)
   sprite.anims.timeScale = maxMs ? Math.max(0.6, animMs(anim) / maxMs) : 1;
   sprite.play(key);
-  sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+  sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE, sprite._onceDone); // 취소된 공격의 남은 리스너 정리
+  sprite._onceDone = () => {
+    sprite._onceDone = null;
     sprite.anims.timeScale = 1;
     playBase(sprite, back);
-  });
+  };
+  sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, sprite._onceDone);
   return true;
+}
+
+/** playOnce 로 재생 중인 동작을 중간에 끊고 기본 동작으로 (공격 취소 — 대상이 발사 전에 죽었을 때, 2026-11-20) */
+export function cancelOnce(sprite, back) {
+  if (sprite._onceDone) sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE, sprite._onceDone);
+  sprite._onceDone = null;
+  sprite.anims.timeScale = 1;
+  playBase(sprite, back);
 }
