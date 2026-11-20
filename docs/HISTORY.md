@@ -196,3 +196,4 @@
 - 2026-11-20 PixelLab 후보 #1 을 perfectPixel 로 정리: 24x24 격자 그대로·모양 변화 없음·16색 → 14색(`docs/drafts/pixellab-rule-test/arthur_pp_01.png`)
 - 2026-11-20 PixelLab 아서(새 비율)를 참고로 이졸데 정면 한 장 → perfectPixel 14색(`docs/drafts/pixellab-rule-test/isolde_pp_34.png`)
 - 2026-11-20 PixelLab 비율(머리 9줄 + 몸 5줄)로 오베론 정면을 직접 도트로 찍음(`docs/drafts/pixellab-rule-test/handdot_oberon.py`)
+- 2026-11-20 새 비율 시험 3명(아서·이졸데·오베론)을 지금 애니메이션 규칙 그대로 움직임(`docs/drafts/pixellab-rule-test/animate_tests.py`, 나누는 줄 19)
