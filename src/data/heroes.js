@@ -12,8 +12,8 @@ export const MERC_CLASS_IDS = Object.keys(MERC_CLASSES);
 // 영미권·북유럽권 이름
 export const MERC_NAMES = {
   red: { archer: '에릭', mage: '브리짓', sniper: '군나르', shaman: '헬가', rogue: '로완' },
-  blue: { archer: '시그리드', mage: '올라프', sniper: '에드먼드', shaman: '잉그리드', rogue: '핀' },
-  green: { archer: '로빈', mage: '프레야', sniper: '토르발드', shaman: '아스트리드', rogue: '레이프' }
+  blue: { archer: '시그리드', mage: '에스벤', sniper: '에드먼드', shaman: '잉그리드', rogue: '핀' },
+  green: { archer: '로빈', mage: '프레야', sniper: '토르발드', shaman: '아스트리드', rogue: '비다르' }
 };
 
 // ── 영웅 (Lv5 + Lv5 승급) ──────────────────────

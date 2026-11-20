@@ -78,6 +78,15 @@ select { background: var(--card); color: var(--ink); border: 1.5px solid var(--l
 .unit .gr { position: absolute; top: 2px; right: 4px; font-size: 10px; color: #7d6e5a }
 
 /* 표 */
+.sum { border-collapse: collapse; width: 100%; font-size: .84rem }
+.sum th, .sum td { border-bottom: 1px solid var(--line); padding: 7px 6px; text-align: left; vertical-align: top }
+.sum th { font-family: var(--display); color: var(--sub); font-weight: 700; white-space: nowrap }
+.sum .tn { font-family: var(--display); font-weight: 700; white-space: nowrap }
+.sum .tn small { display: block; font-family: var(--body); font-weight: 400; color: var(--sub); font-size: .76rem; white-space: normal; max-width: 18ch }
+.sum .st b { font-family: var(--display); font-variant-numeric: tabular-nums; margin-right: 4px }
+.sum .grp td { background: color-mix(in srgb, var(--sub) 10%, transparent); font-family: var(--display); font-weight: 700 }
+.sum .mem span { white-space: nowrap }
+.sum .mem i { font-style: normal; display: inline-block; width: .6em; height: .6em; border-radius: 50%; margin-right: 3px; vertical-align: .05em; border: 1px solid #0003 }
 .matrix { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px }
 table { border-collapse: collapse; min-width: 860px; width: 100% }
 th, td { border: 1px solid var(--line); padding: 6px; vertical-align: top }
@@ -118,10 +127,15 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
   </header>
   <section class="rules" aria-label="규칙 요약">
     <div><b>계열 6 — 공격 특징</b>전사·사수·암살자·포격수·주술사·지원가. 연사·저격 = 사수, 속공(단검) = 암살자. <b style="display:inline">단계 2·5·8</b> — 2명이면 초반에 바로 켜지고, 5명부터는 노려야 켜짐. 70명이 되면서 모든 계열이 9명 이상 — 8단계까지 닿음</div>
-    <div><b>출신 6 — 세력</b>북방 전사단·왕국 기사단·마탑·숲의 수호자·호수의 성역·용병 길드. 단계 3·6·9 — 9단계는 유니크까지 모아야 함</div>
+    <div><b>출신 6 — 세력</b>북방 부족·왕국 기사단·마탑·숲의 일족·호수의 성역·황금 길드. 단계 3·6·9 — 9단계는 유니크까지 모아야 함</div>
     <div><b>스킬 1개 · 마나 · 별마다 강해짐</b>TFT 처럼 캐릭터마다 스킬 1개, 공격할 때마다 마나가 차고 가득 차면 시전(지금 4개 중 마지막 Lv5 스킬). 1성 → 2성 → 3성: 피해 ×1 → ×1.6 → ×2.6, 버프 ×1 → ×1.5 → ×2.25, 대상 수 +1·+2, 범위 +10%·+20%, 지속 +1초·+2초 (가안). 같은 캐릭터 3장 → 별 승급</div>
     <div><b>자리도 의미가 있다</b>바깥 16칸 = 전열(전사 효과 1.5배), 가운데 9칸 = 후열(사수 사거리 +1칸)</div>
     <div><b>출전 인원 최대 12명</b>판 안에서 골드로 영지 레벨을 올리면 놓을 수 있는 인원과 상점 고급 확률이 함께 오름. Lv1 3명 → Lv10 12명 (초반 Lv1~5 싸게, 후반 Lv9~10 비싸게 — 후반 골드 소비처)</div>
+  </section>
+
+  <section class="matrix" aria-label="시너지 정리표">
+    <h2>시너지 정리표 — 이름 · 단계별 수치 · 캐릭터 (2026-11-20, 수치는 가안)</h2>
+    <table id="sumtab" class="sum"></table>
   </section>
 
   <section aria-label="배치해 보기">
@@ -181,10 +195,11 @@ td.cnt { text-align: center; font-variant-numeric: tabular-nums; color: var(--su
     <h3>정해야 할 것</h3>
     <ul>
       <li>✅ 출전 인원 최대 12명 · 계열 2·5·8 (2026-11-20 결정). 계산: 12명이면 시너지 12개 중 평균 5개가 켜지고, 그중 2단계 이상은 노려서 모아야 켜짐</li>
-      <li>✅ 70명 = 언커먼 이상 64명 전원 + 커먼 6명(레이프·루시·잉그리드·헬가·오드·엠마). 그중 <b>레이프(암살자)·오드(주술사)는 언커먼으로 올림</b> → 커먼 4 · 언커먼 32 · 레어 21 · 유니크 13 (2026-11-20)</li>
+      <li>✅ 70명 = 언커먼 이상 64명 전원 + 커먼 6명(비다르·루시·잉그리드·헬가·모이라·엠마). 그중 <b>비다르(암살자)·모이라(주술사)는 언커먼으로 올림</b> → 그 뒤 등급 재배분으로 커먼 22 · 언커먼 20 · 레어 16 · 유니크 12 (2026-11-20)</li>
       <li>✅ 스킬 1개 · 별마다 강해짐 · <b>마나 시전</b> (2026-11-20): 기본 공격마다 마나 +10, 가득 차면 시전하고 0 으로. 최대 마나 = 지금 쿨타임의 60% 동안 하는 공격 수 × 10 (40~150). 공속이 오르면 스킬도 자주 터짐. <span class="q">❓</span> 대표 스킬을 Lv5 스킬 말고 다른 것으로 바꿀 캐릭터</li>
       <li>레어·유니크 전용 스킬 이펙트 136개 중 대표 스킬 34개만 쓰고, 나머지 102개는 쉬게 됨 (3성 전용 연출로 다시 쓸 수 있음)</li>
-      <li><span class="q">❓</span> 시너지 이름·효과 수치, 유니크 전용 시너지(TFT 의 5코스트 고유 특성처럼) 둘지</li>
+      <li>✅ 시너지 이름·수치 정리 (2026-11-20, 수치는 가안): 계열 이름과 겹치던 <b>북방 전사단 → 북방 부족</b>, <b>숲의 수호자 → 숲의 일족</b>, 모두가 용병이라 헷갈리던 <b>용병 길드 → 황금 길드</b>. 수치는 단계마다 대략 ×1 → ×2.3 → ×4 로 맞추고, 너무 세던 북방 9단계(공속 +60%)를 +40% 로 낮춤</li>
+      <li><span class="q">❓</span> 유니크 전용 시너지(TFT 의 5코스트 고유 특성처럼) 둘지</li>
       <li>아이템 조합·유물(로비 공방)은 다음 시안에서 이 시너지와 맞물리게 짬 (예: '마탑 문장' 아이템 = 장착하면 마탑 출신 +1)</li>
     </ul>
   </section>
@@ -205,10 +220,10 @@ const hex = (k, cls = '') => `<span class="hex ${cls}" style="--tc:${T[k].color}
 const cap = () => +document.getElementById('lv').value + 2;
 
 const PRESETS = {
-  '북방 9 — 분노 전사': ['ragnar', 'halvard', 'brynhild', 'bjorn', 'ulf', 'atle', 'einar', 'stein', 'ylva'],
+  '북방 9 — 분노': ['ragnar', 'halvard', 'brynhild', 'bjorn', 'ulf', 'atle', 'einar', 'stein', 'ylva'],
   '마탑 포격 — 스킬 연타': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'bridget', 'olaf', 'aidan', 'rosalind'],
   '기사단 수비 + 사수': ['arthur', 'eleanor', 'adel', 'claire', 'henrik', 'kristin', 'william', 'richard', 'cecilia'],
-  '용병 길드 — 골드 굴리기': ['richard', 'winston', 'thorsten', 'ivar', 'cecilia', 'oscar', 'jonathan', 'nix', 'nora'],
+  '황금 길드 — 골드 굴리기': ['richard', 'winston', 'thorsten', 'ivar', 'cecilia', 'oscar', 'jonathan', 'nix', 'nora'],
   'Lv10 12명 — 마탑 9 + 포격 8': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'aidan', 'bridget', 'olaf', 'gilbert', 'oberon', 'theodore', 'freya'],
   '숲 + 호수 — 감속·회복': ['oberon', 'freydis', 'rowena', 'gwen', 'thorn', 'vivian', 'serena', 'agnes', 'asta'],
 };
@@ -342,6 +357,17 @@ document.getElementById('grades').innerHTML = '<thead><tr><th>등급</th><th>인
 const ODDS = [[100, 0, 0, 0], [75, 25, 0, 0], [55, 35, 10, 0], [45, 35, 18, 2], [35, 35, 25, 5], [26, 35, 31, 8], [19, 31, 38, 12], [13, 27, 44, 16], [9, 22, 48, 21], [6, 19, 50, 25]];
 document.getElementById('odds').innerHTML = '<thead><tr><th>영지 레벨</th><th>출전 인원</th><th>커먼</th><th>언커먼</th><th>레어</th><th>유니크</th></tr></thead><tbody>' +
   ODDS.map((o, i) => `<tr><td>Lv${i + 1}</td><td class="cnt">${i + 3}명</td>${o.map((p) => `<td class="cnt">${p || '—'}</td>`).join('')}</tr>`).join('') + '</tbody>';
+const sumRow = (k) => {
+  const t = T[k], mem = C.filter((c) => c.cls === k || c.origin === k).sort((a, b) => b.grade - a.grade || a.name.localeCompare(b.name, 'ko'));
+  const cnt = [4, 3, 2, 1].map((g) => mem.filter((c) => c.grade === g).length);
+  return `<tr><td class="tn">${hex(k)} ${t.name}<small>${t.desc}</small></td>` +
+    t.tiers.map(([n, e]) => `<td class="st"><b>${n}명</b>${e}</td>`).join('') +
+    `<td class="cnt">${mem.length}명<br><small style="color:var(--sub)">유${cnt[0]}·레${cnt[1]}·언${cnt[2]}·커${cnt[3]}</small></td>` +
+    `<td class="mem">${mem.map((c) => `<span><i style="background:${GC[c.grade]}"></i>${c.name}</span>`).join(' · ')}</td></tr>`;
+};
+document.getElementById('sumtab').innerHTML = '<thead><tr><th>시너지</th><th>1단계</th><th>2단계</th><th>3단계</th><th>인원</th><th>캐릭터 (등급 높은 순, 점 = 등급색)</th></tr></thead><tbody>' +
+  '<tr class="grp"><td colspan="6">계열 6 — 공격 방식 (단계 2·5·8, 그 계열만 강해짐 · 8단계는 팀 전체에도)</td></tr>' + CLASS_IDS.map(sumRow).join('') +
+  '<tr class="grp"><td colspan="6">출신 6 — 세력 (단계 3·6·9)</td></tr>' + ORIGIN_IDS.map(sumRow).join('') + '</tbody>';
 renderPool();
 presetEl.value = '마탑 포격 — 스킬 연타';
 presetEl.onchange();

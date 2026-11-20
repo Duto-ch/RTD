@@ -89,7 +89,7 @@ const RED = [
   C('red', 1, 'miles', '마일스', 'bow', '성벽 석궁병', 'young crossbowman in a red tabard with a steel helmet', { targets: 2 }, [
     S('2연발 볼트', 6, { area: many(2), ...hit(2) }), S('관통 볼트', 8, { area: many(4), ...hit(1.8) }),
     S('성벽 수비', 14, { buff: { scope: 'self', range: 0.3, dur: 8 } }), S('일제 사격', 14, { area: many(10), ...hit(2) })]),
-  C('red', 1, 'kale', '케일', 'blast', '투석병', 'freckled slinger girl with a leather sling and pouch of rocks', { push: 12 }, [
+  C('red', 1, 'kale', '케이티', 'blast', '투석병', 'freckled slinger girl with a leather sling and pouch of rocks', { push: 12 }, [
     S('돌팔매', 5, { area: ring(40), fx: { dmg: 2, push: 30 } }), S('불붙은 돌', 8, { area: ring(60), fx: { dmg: 2, dot: [0.6, 3] } }),
     S('연속 투석', 10, { area: many(5), ...hit(1.8) }), S('바위 굴리기', 18, { area: all, fx: { dmg: 1.5, push: 60 } })]),
   C('red', 1, 'yvonne', '이본', 'aid', '횃불 파수꾼', 'night watch woman holding a tall torch and a horn', { aura: { range: 0.1 } }, [
@@ -98,7 +98,7 @@ const RED = [
   C('red', 1, 'derek', '데릭', 'brawl', '도끼 나무꾼', 'burly lumberjack with a double-bit axe and plaid shirt', { dmgMul: 1.15 }, [
     S('장작 패기', 6, { area: one, ...hit(4) }), S('휘두르기', 8, { area: ring(60), ...hit(2.5) }),
     S('나무꾼의 끈기', 14, { buff: { scope: 'self', dmg: 0.4, dur: 6 } }), S('벌목', 15, { pick: 'strongest', area: one, ...hit(10) })]),
-  C('red', 1, 'molly', '몰리', 'aid', '야전 요리사', 'cheerful plump cook with a frying pan and steaming pot', { aura: { rate: 0.06 } }, [
+  C('red', 1, 'molly', '베티', 'aid', '야전 요리사', 'cheerful plump cook with a frying pan and steaming pot', { aura: { rate: 0.06 } }, [
     S('따끈한 스튜', 14, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('프라이팬 일격', 7, { area: one, fx: { dmg: 3, stun: 0.6 } }),
     S('매운 고추', 12, { area: ring(60), fx: { dot: [0.8, 3] } }), S('잔치', 25, { buff: { scope: 'all', rate: 0.2, dur: 6 } })]),
   C('red', 1, 'sven', '스벤', 'brawl', '술통 바이킹', 'jolly viking with horned helmet carrying a beer barrel', { splash: 10, push: 10 }, [
@@ -115,7 +115,7 @@ const RED = [
   C('red', 2, 'karsten', '카르스텐', 'brawl', '용광로 대장장이', 'muscular master smith with glowing tongs and leather apron', { aura: { dmg: 0.08 } }, [
     S('담금질', 14, { buff: { scope: 'adjacent', dmg: 0.25, dur: 6 } }), S('불꽃 망치', 7, { area: ring(60), fx: { dmg: 3, stun: 0.6 } }),
     S('쇳물 붓기', 12, { area: ring(80), fx: { dot: [1.2, 4] } }), S('명검 단조', 22, { buff: { scope: 'all', dmg: 0.25, dur: 8 } })]),
-  C('red', 2, 'siri', '시리', 'rapid', '화염 무희', 'dancer with fire fans and flowing red silk dress', { crit: 0.15, targets: 2 }, [
+  C('red', 2, 'siri', '셀마', 'rapid', '화염 무희', 'dancer with fire fans and flowing red silk dress', { crit: 0.15, targets: 2 }, [
     S('불꽃 회전', 6, { area: ring(60), ...hit(2) }), S('부채춤', 8, { area: many(5), ...hit(2) }),
     S('열정', 12, { buff: { scope: 'adjacent', rate: 0.25, dur: 5 } }), S('불새의 춤', 16, { area: all, ...hit(2.5) })]),
   C('red', 2, 'oscar', '오스카', 'heavy', '대포 공병', 'goggled engineer with a small hand cannon and backpack of shells', { splash: 30, bossMult: 1.2 }, [
@@ -187,7 +187,7 @@ const BLUE = [
   C('blue', 1, 'nils', '닐스', 'bow', '어부 작살꾼', 'young fisherman with a harpoon gun and yellow raincoat', { push: 15 }, [
     S('작살', 6, { area: one, fx: { dmg: 3, push: 40 } }), S('그물 작살', 9, { area: ring(60), fx: { dmg: 1.5, slow: [0.4, 2] } }),
     S('만선의 꿈', 16, { gold: 5, goldPerWave: 0.3 }), S('고래잡이', 16, { pick: 'strongest', area: one, fx: { dmg: 9, push: 80 } })]),
-  C('blue', 1, 'harry', '해리', 'blast', '물방울 견습생', 'nerdy apprentice water mage with round glasses and a bubble wand', { slow: [0.15, 1] }, [
+  C('blue', 1, 'harry', '펠릭스', 'blast', '물방울 견습생', 'nerdy apprentice water mage with round glasses and a bubble wand', { slow: [0.15, 1] }, [
     S('물방울 폭탄', 6, { area: ring(60), fx: { dmg: 1.8, slow: [0.25, 1.5] } }), S('물대포', 8, { area: many(3), fx: { dmg: 2, push: 30 } }),
     S('복습', 12, { buff: { scope: 'self', dmg: 0.4, dur: 5 } }), S('해일 주문', 18, { area: all, fx: { dmg: 2, push: 50 } })]),
   C('blue', 1, 'emma', '엠마', 'aid', '얼음 약사', 'gentle herbalist girl with ice blue apron and potion basket', { aura: { rate: 0.06 } }, [
@@ -196,7 +196,7 @@ const BLUE = [
   C('blue', 1, 'percy', '퍼시', 'bow', '수습 기사 궁수', 'squire archer with blue plume helmet and kite shield on back', { targets: 2 }, [
     S('이중 사격', 6, { area: many(2), ...hit(2.2) }), S('정렬 사격', 9, { area: many(4), ...hit(2) }),
     S('기사도', 14, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('창공 사격', 16, { area: many(8), ...hit(2.2) })]),
-  C('blue', 1, 'aud', '오드', 'hex', '안개 점술사', 'mysterious fortune teller with crystal ball and starry blue shawl', { vuln: [0.15, 3] }, [
+  C('blue', 1, 'aud', '모이라', 'hex', '안개 점술사', 'mysterious fortune teller with crystal ball and starry blue shawl', { vuln: [0.15, 3] }, [
     S('불길한 예언', 7, { area: one, fx: { vuln: [0.35, 5] } }), S('안개', 10, { area: ring(80), fx: { slow: [0.35, 3] } }),
     S('운명 엿보기', 14, { buff: { scope: 'adjacent', dmg: 0.2, dur: 6 } }), S('정해진 파멸', 18, { area: ring(100), fx: { vuln: [0.4, 6], dmg: 1.5 } })]),
   C('blue', 1, 'lucy', '루시', 'rapid', '스케이트 전령', 'speedy messenger girl on ice skates with a satchel and short sword', { rateMul: 1.15 }, [
@@ -205,7 +205,7 @@ const BLUE = [
   C('blue', 1, 'karl', '칼', 'brawl', '방패 수비병', 'stout shield guard with a tower shield and short spear', { push: 20, stun: [0.08, 0.5] }, [
     S('방패 밀치기', 6, { area: ring(50), fx: { dmg: 1.5, push: 50 } }), S('방패 강타', 8, { area: one, fx: { dmg: 2.5, stun: 1 } }),
     S('철벽', 14, { buff: { scope: 'adjacent', range: 0.15, dur: 8 } }), S('밀어내기 진형', 18, { area: all, fx: { push: 70, dmg: 1 } })]),
-  C('blue', 1, 'dag', '다그', 'heavy', '빙하 투석기 기사', 'engineer with a mini ice catapult and woolen scarf', { splash: 25, slow: [0.2, 1.5] }, [
+  C('blue', 1, 'dag', '구스타프', 'heavy', '빙하 투석기 기사', 'engineer with a mini ice catapult and woolen scarf', { splash: 25, slow: [0.2, 1.5] }, [
     S('얼음덩이', 7, { area: ring(70), fx: { dmg: 2.5, slow: [0.3, 2] } }), S('빙산 조각', 10, { area: many(4), ...hit(3) }),
     S('장력 조절', 14, { buff: { scope: 'self', range: 0.3, dmg: 0.2, dur: 8 } }), S('빙하 낙하', 18, { area: ring(120), fx: { dmg: 4, stun: 0.8 } })]),
   C('blue', 1, 'alan', '앨런', 'aid', '왕립 서기관', 'scholarly scribe with quill, scroll and blue spectacles', { aura: { range: 0.12 } }, [
@@ -219,7 +219,7 @@ const BLUE = [
   C('blue', 2, 'sigrid', '시그리드', 'bow', '빙설 궁수', 'silver-haired archer woman with ice-crystal bow and blue cloak', { slow: [0.2, 1.5], targets: 2 }, [
     S('얼음 화살', 6, { area: many(3), fx: { dmg: 2, slow: [0.3, 2] } }), S('빙결 화살', 9, { area: one, fx: { dmg: 3, stun: 1 } }),
     S('설원의 시선', 14, { buff: { scope: 'self', range: 0.3, dmg: 0.3, dur: 6 } }), S('눈보라 화살비', 16, { area: all, fx: { dmg: 2, slow: [0.35, 3] } })]),
-  C('blue', 2, 'olaf', '올라프', 'blast', '눈보라 마법사', 'old bearded snow wizard with tall blue hat and frosty staff', { splash: 15, slow: [0.2, 1.5] }, [
+  C('blue', 2, 'olaf', '에스벤', 'blast', '눈보라 마법사', 'old bearded snow wizard with tall blue hat and frosty staff', { splash: 15, slow: [0.2, 1.5] }, [
     S('냉기 폭발', 7, { area: ring(80), fx: { dmg: 2.5, slow: [0.35, 2] } }), S('얼음 감옥', 12, { area: ring(70), fx: { stun: 1.5 } }),
     S('마나 순환', 14, { buff: { scope: 'self', rate: 0.6, dur: 5 } }), S('블리자드', 20, { area: all, fx: { dmg: 3, slow: [0.4, 4] } })]),
   C('blue', 2, 'henrik', '헨릭', 'brawl', '창기병 교관', 'tall lancer in blue plate with a long lance and pennant', { push: 25, dmgMul: 1.1 }, [
@@ -234,7 +234,7 @@ const BLUE = [
   C('blue', 2, 'agnes', '아그네스', 'aid', '수도원 치유사', 'nun healer with blue habit and glowing water chalice', { aura: { rate: 0.08 } }, [
     S('성수 뿌리기', 12, { buff: { scope: 'adjacent', rate: 0.25, dur: 6 } }), S('정화의 물결', 9, { area: ring(80), fx: { dmg: 2, slow: [0.3, 2] } }),
     S('침묵 기도', 16, { buff: { scope: 'adjacent', dmg: 0.25, dur: 6 } }), S('기적', 26, { buff: { scope: 'all', dmg: 0.2, rate: 0.2, dur: 8 } })]),
-  C('blue', 2, 'stein', '스테인', 'brawl', '빙벽 수호자', 'giant guard with ice-encrusted shield and frost hammer', { stun: [0.12, 0.8], slow: [0.15, 1] }, [
+  C('blue', 2, 'stein', '하겐', 'brawl', '빙벽 수호자', 'giant guard with ice-encrusted shield and frost hammer', { stun: [0.12, 0.8], slow: [0.15, 1] }, [
     S('빙벽', 10, { area: ring(80), fx: { slow: [0.5, 3] } }), S('서리 망치', 8, { area: ring(60), fx: { dmg: 3, stun: 1 } }),
     S('굳건함', 14, { buff: { scope: 'adjacent', range: 0.15, dmg: 0.15, dur: 8 } }), S('빙하 붕괴', 20, { area: all, fx: { dmg: 2.5, stun: 1.2 } })]),
   C('blue', 2, 'nora', '노라', 'rapid', '얼음 쌍검사', 'agile duelist with twin ice blades and short blue cape', { crit: 0.25 }, [
@@ -265,7 +265,7 @@ const BLUE = [
     S('제독의 명령', 16, { buff: { scope: 'all', rate: 0.2, dur: 8 } }), S('폭풍 함대', 22, { area: all, fx: { dmg: 4, push: 60 } })]),
 
   // ── 유니크 4 ──
-  C('blue', 4, 'arthur', '아서', 'brawl', '호수의 기사왕', 'legendary knight king with glowing holy sword and blue royal cape', { splash: 30, stun: [0.15, 1] }, [
+  C('blue', 4, 'arthur', '아서', 'brawl', '호수의 기사왕', 'legendary knight king with gilded crown, glowing holy sword and long blue royal mantle', { splash: 30, stun: [0.15, 1] }, [
     S('호수의 검', 18, { area: all, fx: { dmg: 6, stun: 1.5 } }), S('원탁의 맹세', 16, { buff: { scope: 'all', dmg: 0.3, dur: 8 } }),
     S('성검 일섬', 10, { area: many(6), ...hit(7) }), S('아발론', 26, { buff: { scope: 'all', dmg: 0.3, rate: 0.3, range: 0.15, dur: 8 } })]),
   C('blue', 4, 'solveig', '솔베이그', 'blast', '절대영도의 마녀', 'ice queen archmage with crystal crown and long white hair', { splash: 25, slow: [0.35, 2] }, [
@@ -285,7 +285,7 @@ const GREEN = [
   C('green', 1, 'robin', '로빈', 'bow', '숲의 의적', 'cheerful forest outlaw with green feathered cap and longbow', { targets: 2, bounty: 0.1 }, [
     S('의적의 화살', 6, { area: many(3), ...hit(1.8) }), S('부자 털기', 12, { area: one, fx: { dmg: 2 }, gold: 5 }),
     S('셔우드의 함성', 14, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('화살비', 15, { area: all, ...hit(2) })]),
-  C('green', 1, 'leif', '레이프', 'rapid', '독침 사냥꾼', 'wiry tracker with green hood and poison-tipped knives', { dot: [0.4, 3], crit: 0.15 }, [
+  C('green', 1, 'leif', '비다르', 'rapid', '독침 사냥꾼', 'wiry tracker with green hood and poison-tipped knives', { dot: [0.4, 3], crit: 0.15 }, [
     S('독 바르기', 6, { area: one, fx: { dot: [1.5, 3] } }), S('던지는 칼', 7, { area: many(3), fx: { dmg: 2, dot: [0.5, 3] } }),
     S('잠복', 12, { buff: { scope: 'self', dmg: 0.5, dur: 5 } }), S('맹독 연격', 15, { area: many(6), fx: { dmg: 2, dot: [1, 4] } })]),
   C('green', 1, 'astrid', '아스트리드', 'hex', '사슴뿔 드루이드', 'druid girl with antler headdress and leafy robes', { dot: [0.5, 3] }, [

@@ -96,7 +96,7 @@
 | `merc_archer_blue` | 시그리드 (블루 궁수) |
 | `merc_archer_green` | 로빈 (그린 궁수) |
 | `merc_mage_red` | 브리짓 (레드 마법사) |
-| `merc_mage_blue` | 올라프 (블루 마법사) |
+| `merc_mage_blue` | 에스벤 (블루 마법사) |
 | `merc_mage_green` | 프레야 (그린 마법사) |
 | `merc_sniper_red` | 군나르 (레드 저격수) |
 | `merc_sniper_blue` | 에드먼드 (블루 저격수) |
@@ -106,7 +106,7 @@
 | `merc_shaman_green` | 아스트리드 (그린 주술사) |
 | `merc_rogue_red` | 로완 (레드 도적) |
 | `merc_rogue_blue` | 핀 (블루 도적) |
-| `merc_rogue_green` | 레이프 (그린 도적) |
+| `merc_rogue_green` | 비다르 (그린 도적) |
 
 ### 영웅 (16×16 · 애니메이션 idle / attack)
 
