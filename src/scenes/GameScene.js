@@ -881,6 +881,14 @@ export class GameScene extends Phaser.Scene {
     return (want.length ? want : cells)[0];
   }
 
+  /** 디버그·테스트용: 덱에서 무작위 캐릭터를 빈 칸에 바로 놓는다 (골드·인원 제한 없음 — 게임 규칙은 상점 buy) */
+  hire(id) {
+    const pool = this.deck.filter((x) => ROSTER_BY_ID[x]);
+    const char = ROSTER_BY_ID[typeof id === 'string' ? id : Phaser.Utils.Array.GetRandom(pool)];
+    if (!char || !this.emptyCell(char)) return null;
+    return this.placeChar(char, priceOf(char));
+  }
+
   /** 상점 칸 사기 */
   buy(i) {
     if (this.over) return null;
