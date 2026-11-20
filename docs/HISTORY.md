@@ -194,3 +194,4 @@
 - 2026-11-20 아서 머리 밝은 금발·망토 짙은 파랑으로. 그림 스크립트의 모자 판정을 낱말 cap 으로만 → 토르스텐(captain·cape)·노라(cape)에게 잘못 씌워지던 모자 제거
 - 2026-11-20 PixelLab 에 캐릭터 규칙 적용 시험: 스타일 참고 4장 + 규칙 설명으로 아서 정면 24x24 한 장(`docs/drafts/pixellab-rule-test/`). 화풍은 비슷하나 두상 크고 몸 짧음·폭 15칸·16색 등 규칙과 차이
 - 2026-11-20 PixelLab 후보 #1 을 perfectPixel 로 정리: 24x24 격자 그대로·모양 변화 없음·16색 → 14색(`docs/drafts/pixellab-rule-test/arthur_pp_01.png`)
+- 2026-11-20 PixelLab 아서(새 비율)를 참고로 이졸데 정면 한 장 → perfectPixel 14색(`docs/drafts/pixellab-rule-test/isolde_pp_34.png`)

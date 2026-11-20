@@ -9,3 +9,8 @@
 ## 후보 #1 → perfectPixel (2026-11-20)
 - `arthur_pixellab_01.png`(후보 #1, 16색) → 흰 배경에 얹어 1024px 로 키우고 살짝 흐리게(정확한 배수 확대는 격자 검출 실패) → `pp.py --key-white --colors 15`
 - 결과 `arthur_pp_01.png`: 격자 24x24 검출, 모양 변화 0px, 색 16 → 14(유니크 15색 이하), 비교 `pp_compare_01.png`
+
+## 같은 비율로 다른 유니크: 이졸데 (2026-11-20)
+- 스타일·비율 참고 1장 = `arthur_pp_01.png`, `create_image_pro_from_style` 후보 64장(10 generations, `isolde_candidates_64.png`)
+- 설명: 정면 불의 대마법사 여왕, 금빛 도는 붉은 긴 머리, 붉은 보석 태양 왕관, 진홍·주황 불꽃 로브(금 테두리), 세로 1x2 눈, 팔·손·무기 없음
+- 고른 것 후보 #34 → perfectPixel(1024px·살짝 흐림·`--colors 15`) → `isolde_pp_34.png`: 격자 24x24, 모양 변화 0px, 16색 → 14색. 비교 `isolde_compare.png`
