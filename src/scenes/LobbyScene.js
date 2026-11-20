@@ -10,7 +10,7 @@ import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
 
 // 로비 = 용병단 영지 (2026-11-17, 시안 A '영지 지도형'). 건물이 곧 메뉴:
-//   성탑(스킬 노드) · 병영(덱 편성) · 모집 천막(가챠, 3단계) · 대장간(장비, 4단계) · 성문/출전(전투 시작)
+//   성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용, 룰 v2) · 유물 공방(마정석 유물 생산·장착, 룰 v2) · 성문/출전(전투 시작)
 // 배경은 동화풍 일러스트를 캐릭터와 같은 3px 도트로 정리한 그림 (public/assets/lobby/lobby_<wide|tall>.png, 아트 1px = 화면 3px)
 
 /** 건물 이름표 위치 (게임 좌표) · 누를 수 있는 건물 영역 */
@@ -32,9 +32,9 @@ const SPOTS = WIDE
 
 const LABELS = {
   tower: ['성탑', '스킬 노드', 'tower'],
-  tent: ['모집 천막', '용병 모집 · 준비 중', 'ticket'],
-  barracks: ['병영', '덱 편성', 'userplus'],
-  forge: ['대장간', '장비 강화 · 준비 중', 'anvil'],
+  tent: ['술집', '용병 고용', 'userplus'],
+  barracks: ['병영', '덱 편성', 'sword'],
+  forge: ['유물 공방', '유물 생산·장착', 'gem'],
   gate: ['성문', '출전', 'sword']
 };
 
@@ -76,15 +76,14 @@ export class LobbyScene extends Phaser.Scene {
     uiText(this, 70, 27, '용병단 영지', 16.5, CSS.ink, 'bold');
     uiText(this, 70, 47, `최고 기록 WAVE ${best}`, 11, CSS.sub, '600');
 
-    // 재화: 명성(노드) · 소환권(가챠, 3단계) · 강화석(장비, 4단계)
+    // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
       ['명성', meta.fame, 0xf2c14e, 'crown'],
-      ['소환권', meta.data.tickets || 0, 0x9a6fe0, 'ticket'],
-      ['강화석', meta.data.stones || 0, 0x2fbfb2, 'gem']
+      ['마정석', meta.stones, 0x2fbfb2, 'gem']
     ];
-    const w = WIDE ? 150 : 162;
+    const w = WIDE ? 170 : 252;
     cur.forEach(([label, n, col, icon], i) => {
-      const x = WIDE ? GAME_W - 16 - (3 - i) * (w + 8) + 8 : 16 + i * (w + 8);
+      const x = WIDE ? GAME_W - 16 - (cur.length - i) * (w + 8) + 8 : 16 + i * (w + 8);
       const y = WIDE ? 14 : 74;
       panel(this, x, y, w, 40, 'strip');
       const g = this.add.graphics();
@@ -139,7 +138,8 @@ export class LobbyScene extends Phaser.Scene {
     if (id === 'tower') return this.go('Upgrade', { from: 'lobby' });
     if (id === 'barracks') return this.go('Deck');
     if (id === 'gate') return this.go('Game');
-    this.toast(id === 'tent' ? '용병 모집(가챠)은 다음 단계에서 열립니다' : '장비 강화는 다음 단계에서 열립니다');
+    if (id === 'tent') return this.go('Tavern');
+    if (id === 'forge') return this.go('Workshop');
   }
 
   toast(msg) {

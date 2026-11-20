@@ -123,21 +123,19 @@ test('ESC 메뉴: 일시정지·볼륨·닫기', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('보스 처치 → 유물, 강화 보스 → 유물 3택1', async ({ page }) => {
+test('보스 처치 → 마정석 (보스 2 · 강화 보스 5, 바로 저장) — 판 안 유물 드랍·3택1 없음', async ({ page }) => {
   const errors = await startGame(page);
+  const s0 = await game(page, () => window.__rtd.meta.stones);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.startWave(10); });
   await page.waitForFunction(() => window.game.scene.getScene('Game').monsters.some((m) => m.isBoss));
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.damageMonster(g.monsters.find((m) => m.isBoss), 1e15, {}); });
-  expect(await game(page, () => window.game.scene.getScene('Game').ownedRelics.length)).toBe(1);
-
+  expect(await game(page, () => window.__rtd.meta.stones)).toBe(s0 + 2);
   await game(page, () => window.game.scene.getScene('Game').startWave(30));
   await page.waitForFunction(() => window.game.scene.getScene('Game').monsters.some((m) => m.milestone));
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.damageMonster(g.monsters.find((m) => m.milestone), 1e15, {}); });
-  expect(await game(page, () => !!window.game.scene.getScene('Game').relicChoice)).toBe(true);
-  await page.screenshot({ path: SHOT('04-relic-choice') });
-  await page.mouse.click(272, 250 + 140); // 첫 번째 유물 선택
-  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { open: !!g.relicChoice, owned: g.ownedRelics.length }; });
-  expect(r).toEqual({ open: false, owned: 2 });
+  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { stones: window.__rtd.meta.stones, earned: g.stonesEarned, relics: g.ownedRelics.length }; });
+  expect(r).toEqual({ stones: s0 + 7, earned: 7, relics: 0 });
+  await page.screenshot({ path: SHOT('04-boss-stones') });
   expect(errors).toEqual([]);
 });
 
@@ -285,9 +283,9 @@ test('캐릭터마다 그림 + 등급 받침 고리(뒤·앞)와 별 패', async
   const info = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
-    for (let i = 0; i < 15; i++) g.hire();
-    // 15칸을 그림이 다른 15명으로, 별은 1~3 순서로
+    // 15칸을 그림이 다른 15명으로 (무작위 고용은 같은 캐릭터 3장이 겹치면 별 승급으로 수가 줄어 고정 id 로), 별은 1~3 순서로
     const ids = ['helga', 'bridget', 'karsten', 'siri', 'oscar', 'sigrid', 'olaf', 'ingrid', 'leif', 'freya', 'elva', 'ragnar', 'arthur', 'isolde', 'oberon'];
+    for (const id of ids) g.hire(id);
     g.mercs.forEach((m, i) => m.setChar(window.__rtd.ROSTER.find((c) => c.id === ids[i]), (i % 3) + 1));
     // 고리 뒤쪽 반은 캐릭터 뒤, 앞쪽 반 + 방패는 앞
     const order = g.mercs.every((m) => m.list.indexOf(m.ringBack) < m.list.indexOf(m.sprite) && m.list.indexOf(m.sprite) < m.list.indexOf(m.pips));
@@ -303,20 +301,20 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   const errors = await startGame(page);
   await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    g.addRelic('war_drum'); g.addRelic('hawk_eye'); g.addRelic('frost_crown'); g.addRelic('contract'); g.addRelic('lucky_coin');
-    g.refreshRelics();
+    for (const id of ['war_drum', 'hawk_eye', 'frost_crown', 'contract']) g.addRelic(id);
+    g.addRelic('lucky_coin'); // 장착 칸 4칸 — 5번째는 안 들어감
   });
+  expect(await game(page, () => window.game.scene.getScene('Game').ownedRelics.length)).toBe(4);
   const tip = () => game(page, () => {
     const t = window.game.scene.getScene('Game').hud.relicTip;
     return t ? t.container.list.filter((o) => o.text).map((o) => o.text) : null;
   });
   expect(await tip()).toBeNull();
-  await page.mouse.move(392, 161); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
-  await expect.poll(tip).toEqual(['전쟁의 북', '활성', '모든 용병 공격 속도 +15%', '클릭: 비활성으로 전환']);
+  const p0 = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(0, 4));
+  await page.mouse.move(p0.x, p0.y); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
+  await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%', '영지 유물 공방에서 바꿔 끼울 수 있어요']);
   await page.waitForTimeout(100);
   await page.screenshot({ path: SHOT('10-relic-tooltip') });
-  await page.mouse.move(512, 161); // 다섯 번째 (슬롯이 가득 차 비활성)
-  await expect.poll(async () => (await tip())?.[1]).toBe('비활성');
   await page.mouse.move(272, 500); // 아이콘 밖
   await expect.poll(tip).toBeNull();
   expect(errors).toEqual([]);
@@ -983,6 +981,59 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
   expect(shopOk).toBe(true);
   expect(errors).toEqual([]);
 });
+test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 → 강화) · 리롤 값 상승 / 유물 공방: 생산 → 장착 → 출전하면 효과', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addStones(60); });
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await game(page, () => window.game.scene.getScene('Lobby').openSpot('tent'));
+  await page.waitForFunction(() => window.game.scene.isActive('Tavern'));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: SHOT('38-tavern') });
+  const t = await game(page, () => {
+    const m = window.__rtd.meta;
+    const s = window.game.scene.getScene('Tavern');
+    const slots = m.tavern().slots.map((x) => x.id);
+    const id = slots[0];
+    const wasOwned = m.owns(id);
+    const enh0 = m.enhance(id);
+    s.hire(0);
+    const r1 = m.rerollTavern(); // 3
+    const r2 = m.rerollTavern(); // 5
+    s.refresh();
+    return { n: slots.length, owned: m.owns(id), up: wasOwned ? m.enhance(id) - enh0 : 0, hired: !wasOwned || m.enhance(id) === enh0 + 1, r1, r2, next: m.tavernRerollCost };
+  });
+  expect(t).toMatchObject({ n: 3, owned: true, hired: true, r1: true, r2: true, next: 7 });
+  await game(page, () => window.game.scene.getScene('Tavern').leave());
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await game(page, () => window.game.scene.getScene('Lobby').openSpot('forge'));
+  await page.waitForFunction(() => window.game.scene.isActive('Workshop'));
+  const w = await game(page, () => {
+    const m = window.__rtd.meta;
+    const s = window.game.scene.getScene('Workshop');
+    for (let i = 0; i < 6; i++) s.craft();
+    const have = Object.keys(m.data.relics);
+    return { have: have.length > 0, equipped: m.equipped.length, levels: Object.values(m.data.relics).reduce((a, b) => a + b, 0) };
+  });
+  expect(w.have).toBe(true);
+  expect(w.equipped).toBeGreaterThan(0);
+  expect(w.equipped).toBeLessThanOrEqual(4);
+  expect(w.levels).toBe(6);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: SHOT('39-workshop') });
+  await game(page, () => window.game.scene.getScene('Workshop').leave());
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.screenshot({ path: SHOT('32b-lobby-stones') });
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  const g = await game(page, () => { const g = window.game.scene.getScene('Game'); return { relics: g.ownedRelics.map((r) => r.id), eq: window.__rtd.meta.equipped }; });
+  expect(g.relics).toEqual(g.eq);
+  expect(errors).toEqual([]);
+});
+
 test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈춘다 · 확인 · 끄기 · 다시 보기', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('rtd_tutorial_test', '1'));
   const errors = await startGame(page);

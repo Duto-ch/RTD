@@ -76,7 +76,6 @@ export const BALANCE = {
   // 공격 모션: 공격 간격 중 이 비율 동안 한 번 휘두른다 (공속에 맞춤, 2026-11-19)
   attackAnim: { share: 0.85 },
   startGold: 120,
-  maxActiveRelics: 4, // 동시에 활성화할 수 있는 유물 수
   // 룰 v2 (2026-11-20): 고용·합성·레벨·속성 상성 폐지 → 상점·별 승급(data/shop.js·stars.js)·시너지(data/synergy.js)
   // 용병 기본 전투력 배율 — 출전 인원이 25 → 최대 12명, 성장이 레벨 ×8.5 → 별 ×3.2 로 줄어서 올림 (가안, 밸런스 봇으로 맞춤)
   baseDamageMult: 3,
@@ -118,8 +117,7 @@ export const BALANCE = {
     extraElites: 10, // 함께 나오는 정예 수
     enrageAt: 0.5, // 체력 비율 이하에서 분노
     enrageSpeed: 1.3, // 분노 시 이동 속도 배율
-    enrageCdMult: 0.5, // 분노 시 디버프 쿨타임 배율
-    relicChoices: 3 // 처치 시 유물 선택지 수
+    enrageCdMult: 0.5 // 분노 시 디버프 쿨타임 배율
   },
   // 최종 보스 (100웨이브마다 — 무한 웨이브라 100·200·300 …에 다시 나온다)
   final: {

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES } from '../data/roster.js';
 import { STAR_STAT, MAX_STAR, starSkill, maxMana } from '../data/stars.js';
+import { TAVERN } from '../data/tavern.js';
 import { TRAITS, RAGE_MAX } from '../data/synergy.js';
 import { ITEM_BY_ID, itemFx, emblemTraits } from '../data/items.js';
 import { cellCenter } from '../systems/path.js';
@@ -217,11 +218,10 @@ export class Mercenary extends Phaser.GameObjects.Container {
     return s;
   }
 
-  /** 유물·버프·디버프·시너지·명성 강화 반영 최종 능력치 */
-  getStats(relics, now) {
+  /** 버프·디버프·시너지·아이템·명성 강화·유물(this.scene.bonus 에 합쳐 있음)·술집 강화 반영 최종 능력치 */
+  getStats(_unused, now) {
     const base = this.baseStats;
     const t = this.trait;
-    const n = (id) => relics[id] || 0;
     this.buffs = this.buffs.filter((b) => b.until > now);
     const buff = this.buffs.reduce((s, b) => ({ dmg: s.dmg + b.dmg, rate: s.rate + b.rate, range: s.range + b.range, crit: s.crit + b.crit }), {
       dmg: 0,
@@ -252,22 +252,22 @@ export class Mercenary extends Phaser.GameObjects.Container {
 
     const deb = this.debuffState(now);
     const ix = this.ifx; // 아이템 (data/items.js)
-    // 명성 강화(영구) — 유물·버프와 따로 곱한다. 유물 효과는 '유물 감정'만큼 커진다
+    // 명성 강화 + 장착 유물(영구) — 버프와 따로 곱한다 (meta.bonus 가 둘을 합쳐 둔다)
     const mb = this.scene?.bonus || NO_BONUS;
     const v = (k) => mb[k] || 0;
-    const rp = 1 + v('relicPow');
-    const dmgBonus = 0.2 * n('hero_sword') * rp + buff.dmg + aura.dmg + deb.dmg + synDmg + (ix.dmg || 0);
-    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + aura.rate + deb.rate + synRate + (ix.rate || 0);
-    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range + aura.range + synRange + (ix.range || 0);
-    // 등급·자리 전용 강화
-    const special = 1 + v(`grade_${this.grade}`) + (this.isFront ? v('frontline') : v('backline'));
+    const dmgBonus = buff.dmg + aura.dmg + deb.dmg + synDmg + (ix.dmg || 0);
+    const rateBonus = buff.rate + aura.rate + deb.rate + synRate + (ix.rate || 0);
+    const rangeBonus = buff.range + aura.range + synRange + (ix.range || 0);
+    // 등급·자리·계열·출신 전용 강화(명성·유물) + 술집 강화(+10%씩)
+    const enh = this.scene?.enhanceOf?.(this.char.id) || 0;
+    const special = (1 + v(`grade_${this.grade}`) + (this.isFront ? v('frontline') : v('backline')) + v(`cls_${this.cls}`) + v(`org_${this.origin}`)) * (1 + TAVERN.enhanceDmg * enh);
     const backRange = (this.cls === 'ranger' && syn.tiers.ranger && !this.isFront ? 56 : 0) + (!this.isFront ? ix.backRange || 0 : 0); // 사수 후열·독수리 망원경: 사거리 +1칸
 
     return {
       damage: base.dmg * (t.dmgMul || 1) * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
       rate: base.rate * (t.rateMul || 1) * (1 + v('rate')) * Math.max(0.1, 1 + rateBonus),
       range: base.range * (t.rangeMul || 1) * (1 + v('range')) * (1 + rangeBonus) + backRange,
-      crit: Math.min(1, (t.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit') + buff.crit + (my.crit || 0) + (ix.crit || 0)),
+      crit: Math.min(1, (t.crit || 0) + v('crit') + buff.crit + (my.crit || 0) + (ix.crit || 0)),
       critMult: 2 + v('critDmg') + (my.critDmg || 0),
       critExtra: my.critExtra || 0,
       targets: (t.targets || 1) + v('targets') + (ix.targets || 0),

@@ -70,9 +70,14 @@ export const TUTORIAL_STEPS = {
       return b ? { x: b.x - 44, y: b.y - 52, w: 88, h: 88 } : null;
     }
   },
+  stones: {
+    title: '마정석',
+    text: '보스를 쓰러뜨리면 마정석이 떨어져요.\n영지의 술집(캐릭터 고용)·유물 공방(유물 생산)에서 씁니다.',
+    rect: () => null
+  },
   relic: {
     title: '유물',
-    text: '보스를 처치하면 유물을 얻어요. 최대 4개까지 효과가 켜지고,\n아이콘을 눌러 언제든 바꿀 수 있습니다.',
+    text: '영지 유물 공방에서 장착한 유물이에요.\n팀 전체에 매 판 적용됩니다 (아이콘에 올리면 효과).',
     rect: () => (WIDE ? { x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
   },
   hero: {

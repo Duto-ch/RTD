@@ -13,7 +13,7 @@ import { starSkill, MAX_STAR } from '../data/stars.js';
 import { TRAITS, tierIndex, sortedTraits } from '../data/synergy.js';
 import { SHOP, priceOf } from '../data/shop.js';
 import { ITEM_RULES, ITEM_BY_ID, isComponent, recipesWith } from '../data/items.js';
-import { RELIC_BY_ID } from '../data/relics.js';
+import { RELIC_BY_ID, relicText } from '../data/relics.js';
 import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
 import { setArt, playBase } from '../systems/customArt.js';
@@ -300,12 +300,12 @@ export class Hud {
     s.ownedRelics.forEach((r, i) => {
       // 칸 27px, 칸 사이 9px (예전 32px 칸이 4px 간격으로 붙고 띠 테두리에 닿았다)
       const { x, y } = this.relicPos(i, s.ownedRelics.length);
-      const slot = panelImage(s, x, y, r.active ? 'gold' : 'soft', WIDE ? 28 : 27, WIDE ? 28 : 27);
+      // 영지 유물 공방에서 장착한 유물 (판 안에서는 끄고 켜기 없음 — 룰 v2 ③). 누르거나 올리면 툴팁
+      const slot = panelImage(s, x, y, 'gold', WIDE ? 28 : 27, WIDE ? 28 : 27);
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
-      icon.on('pointerdown', () => s.toggleRelic(i));
+      icon.on('pointerdown', () => (this.relicTip?.index === i ? this.hideRelicTip() : this.showRelicTip(i, x, y, true)));
       icon.on('pointerover', () => this.showRelicTip(i, x, y, true));
       icon.on('pointerout', () => this.hideRelicTip());
-      if (!r.active) icon.setAlpha(0.4).setTint(0xb8a07a);
       this.relicRow.add([slot, icon]);
     });
     // 아이콘이 다시 그려졌으니, 마우스가 올라가 있던 툴팁은 새 상태로 갱신
@@ -322,9 +322,9 @@ export class Hud {
     const D = DEPTH.overlay - 0.5; // 배너·토스트(overlay -2·-1) 위에 뜬다
     const c = s.add.container(0, 0).setDepth(D);
     const title = uiText(s, 0, 0, relic.name, 15, CSS.ink, 'bold');
-    const state = uiText(s, 0, 0, owned.active ? '활성' : '비활성', 12, owned.active ? CSS.green : CSS.sub, 'bold');
-    const desc = uiText(s, 0, 0, relic.desc, 13, CSS.ink);
-    const hint = uiText(s, 0, 0, owned.active ? '클릭: 비활성으로 전환' : `클릭: 활성으로 전환 (최대 ${s.maxRelics}개)`, 11, CSS.sub);
+    const state = uiText(s, 0, 0, `Lv${owned.level}`, 12, CSS.green, 'bold');
+    const desc = uiText(s, 0, 0, relicText(relic, owned.level, s.bonus.relicPow || 0), 13, CSS.ink);
+    const hint = uiText(s, 0, 0, '영지 유물 공방에서 바꿔 끼울 수 있어요', 11, CSS.sub);
     const pad = 16;
     const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / UI_PX) * UI_PX;
     const h = 96;

@@ -14,7 +14,8 @@ import { MAX_STAR } from '../data/stars.js';
 import { SHOP, priceOf, rerollCost, levelUpCost, refillShop, findStarUp } from '../data/shop.js';
 import { countTraits, activeTier, TRAIT_IDS, RAGE_MAX, ORIGIN_IDS, TRAITS } from '../data/synergy.js';
 import { ITEM_RULES, ITEM_BY_ID, MAT_IDS, isComponent, combine } from '../data/items.js';
-import { RELICS, RELIC_BY_ID } from '../data/relics.js';
+import { STONES } from '../data/tavern.js';
+import { RELIC_BY_ID, relicBonus, addBonus } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
@@ -69,10 +70,12 @@ export class GameScene extends Phaser.Scene {
     this.bench = [];
     this.tools = 0;
     this.smithBought = 0;
-    this.ownedRelics = []; // { id, active } — 활성 유물만 효과 (최대 BALANCE.maxActiveRelics + 명성 강화)
-    this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
+    // 유물 (룰 v2 ③): 영지 유물 공방에서 장착한 것 — 판 안에서는 바뀌지 않는다 (효과는 meta.bonus 가 this.bonus 에 합쳐 둠)
+    this.ownedRelics = meta.equipped.map((id) => ({ id, level: meta.relicLevel(id), active: true }));
+    this.relics = {};
+    this.enhanceMap = { ...meta.data.owned }; // 술집 강화 (캐릭터 id → 단계)
+    this.stonesEarned = 0; // 이번 판에서 얻은 마정석 (얻을 때 바로 저장)
     this.waveAttrs = ATTRS; // 몬스터 그림 색만 (룰 v2: 속성 상성 없음)
-    this.relicChoice = null;
     this.selected = null;
     this.totalKills = 0;
     this.hudTimer = 0;
@@ -93,11 +96,13 @@ export class GameScene extends Phaser.Scene {
     this.hud = new Hud(this);
     this.tut = new Tutorial(this);
     this.time.delayedCall(400, () => this.tut.show('shop'));
+    if (this.ownedRelics.length) this.time.delayedCall(500, () => this.tut.show('relic'));
     this.setupInput();
     this.shop = refillShop([], this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
     this.conscript();
     this.recomputeSynergy();
     this.refreshShop();
+    this.refreshRelics();
     this.refreshHud();
     this.refreshInfo();
     this.showBanner('용병단 디펜스', `${BALANCE.prepTime}초 후 1웨이브 시작 · 상점에서 용병을 사서 시너지를 맞추세요`);
@@ -125,7 +130,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   openUpgrades() {
-    if (this.over || this.menuOpen || this.relicChoice || this.tut.open) return;
+    if (this.over || this.menuOpen || this.tut.open) return;
     this.select(null);
     this.hud.hideRelicTip();
     this.scene.launch('Upgrade', { from: 'game' });
@@ -137,6 +142,7 @@ export class GameScene extends Phaser.Scene {
   applyBonus() {
     const before = this.wallMax;
     this.bonus = meta.bonus();
+    if (this.debugRelics) this.bonus = addBonus(this.bonus, relicBonus(Object.keys(this.debugRelics), this.debugRelics, this.bonus.relicPow || 0));
     this.wallHp += this.wallMax - before; // 성벽 보강을 판 도중에 찍으면 늘어난 만큼 바로 더한다
     this.refreshRelics();
     this.refreshHud();
@@ -155,16 +161,16 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     if (this.over) return;
-    const frozen = !!(this.paused || this.relicChoice || this.menuOpen || this.tut.open);
+    const frozen = !!(this.paused || this.menuOpen || this.tut.open);
     this.syncFreeze(frozen);
     const dt = frozen ? 0 : Math.min(delta / 1000, 0.1) * this.speed;
     this.gameTime += dt;
 
     if (dt > 0) {
       this.updateWaves(dt);
-      // 이동 속도: 서리 왕관(유물) + 명성 강화(서릿길·늪지 함정·족쇄)
+      // 이동 속도: 명성 강화(서릿길·늪지 함정·족쇄) + 유물 서리 왕관(monsterSlow 에 합쳐 있음) + 숲의 일족
       const b = this.bonus;
-      const relicSlow = 0.1 * (this.relics.frost_crown || 0) * (1 + b.relicPow) + (this.syn.tiers.grove?.slow || 0); // 숲의 일족: 이동 속도 -
+      const relicSlow = this.syn.tiers.grove?.slow || 0;
       const mul = {
         normal: Math.max(0.4, 1 - relicSlow - b.monsterSlow),
         elite: Math.max(0.4, 1 - relicSlow - b.monsterSlow - b.eliteSlow),
@@ -293,7 +299,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
   callNextWave() {
-    if (this.menuOpen || this.relicChoice || this.tut.open || !this.canCallNextWave) return;
+    if (this.menuOpen || this.tut.open || !this.canCallNextWave) return;
     const now = this.time.now;
     if (now - (this.lastCall || 0) < 600) return;
     this.lastCall = now;
@@ -728,7 +734,7 @@ export class GameScene extends Phaser.Scene {
     const bounty = source?.trait?.bounty || 0; // 특성: 처치 골드 증가
     const guild = this.syn.tiers.guild?.gold || 0; // 황금 길드: 처치 골드 +
     const ix = source?.items?.length ? source.ifx : {};
-    this.goldFrac += m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty + bounty + guild + (ix.gold || 0));
+    this.goldFrac += m.gold * (1 + this.bonus.bounty + bounty + guild + (ix.gold || 0));
     // 아이템: 행운의 편자(치명타 처치 10% +1G) · 보물 폭탄(10% +3G)
     if ((crit && ix.critGold && Math.random() < ix.critGold) || (ix.treasure && Math.random() < ix.treasure)) this.goldFrac += ix.treasure && !crit ? 3 : 1;
     if (source) source.waveKills = (source.waveKills || 0) + 1;
@@ -747,8 +753,7 @@ export class GameScene extends Phaser.Scene {
     if (m.isBoss) {
       this.earnFame((m.isFinal ? FAME.finalBoss : m.milestone ? FAME.milestoneBoss : FAME.boss) + this.bonus.bossFame);
       audio.bossKill();
-      if (m.milestone) this.offerRelicChoice();
-      else this.dropRelic(m.x, m.y);
+      this.earnStones(m.isFinal ? STONES.final : m.milestone ? STONES.milestone : STONES.boss, m.x, m.y);
       if (m.isFinal) this.celebrateCycle();
     } else audio.kill();
     if (m.kind !== 'normal') this.floatText(m.x, m.y - 30, `+${gold}G`, '#f2c14e');
@@ -767,112 +772,43 @@ export class GameScene extends Phaser.Scene {
     audio.bossAppear();
   }
 
-  dropRelic(x, y) {
-    const relic = Phaser.Utils.Array.GetRandom(RELICS);
-    const active = this.addRelic(relic.id);
-    const icon = this.add.image(x, y, `relic_${relic.id}`).setScale(PX).setDepth(DEPTH.fx);
-    this.tweens.add({
-      targets: icon,
-      x: 108,
-      y: 160,
-      duration: 700,
-      ease: 'Cubic.easeIn',
-      onComplete: () => {
-        icon.destroy();
-        this.refreshRelics();
-      }
-    });
-    this.showBanner(`유물 획득: ${relic.name}`, `${relic.desc}${active ? '' : ' (슬롯이 가득 차 비활성)'}`, '#f2c14e');
-    this.refreshInfo();
+  /** 마정석 (보스 처치): 바로 저장 — 영지 술집·유물 공방에서 쓴다 */
+  earnStones(n, x, y) {
+    if (!n) return;
+    meta.addStones(n);
+    this.stonesEarned += n;
+    this.floatText(x, y - 54, `마정석 +${n}`, '#6fe0d6');
+    this.toast(`마정석 +${n} (보유 ${meta.stones}) — 영지 술집·유물 공방에서 사용`, '#6fe0d6');
+    this.tut.show('stones');
   }
 
-  // ───────────────────────── 유물 ─────────────────────────
-  /** 성벽 최대 체력 (명성 강화 '성벽 보강') */
+  /** 술집 강화 단계 (Mercenary.getStats) */
+  enhanceOf(id) {
+    return this.enhanceMap[id] || 0;
+  }
+
+  // ───────────────────────── 유물 (영지에서 장착한 것, 판 안 고정) ─────────────────────────
+  /** 성벽 최대 체력 (명성 강화 '성벽 보강' + 유물 돌 심장) */
   get wallMax() {
     return BALANCE.wall.hp + (this.bonus.wallHp || 0);
   }
 
-  /** 활성 유물 최대 수 (명성 강화 '유물 보관함'으로 늘어남) */
   get maxRelics() {
-    return BALANCE.maxActiveRelics + this.bonus.relicSlots;
+    return meta.relicSlots;
   }
 
   get activeRelicCount() {
-    return this.ownedRelics.filter((r) => r.active).length;
+    return this.ownedRelics.length;
   }
 
-  /** 유물 추가. 빈 슬롯이 있으면 자동 활성. 활성 여부 반환 */
-  addRelic(id) {
-    const active = this.activeRelicCount < this.maxRelics;
-    this.ownedRelics.push({ id, active });
-    this.recomputeRelics();
-    this.tut.show('relic');
-    return active;
-  }
-
-  recomputeRelics() {
-    this.relics = {};
-    for (const r of this.ownedRelics) if (r.active) this.relics[r.id] = (this.relics[r.id] || 0) + 1;
-  }
-
-  toggleRelic(index) {
-    const r = this.ownedRelics[index];
-    const info = RELIC_BY_ID[r.id];
-    if (!r.active && this.activeRelicCount >= this.maxRelics) {
-      this.toast(`활성 유물은 최대 ${this.maxRelics}개입니다. 다른 유물을 먼저 끄세요`, '#ff9a7a');
-      return;
-    }
-    r.active = !r.active;
-    this.recomputeRelics();
+  /** 디버그·테스트용: 이번 판에만 유물 하나 더 장착 (저장 안 함, 칸이 가득 차면 false) */
+  addRelic(id, level = 1) {
+    if (!RELIC_BY_ID[id] || this.ownedRelics.length >= this.maxRelics) return false;
+    this.ownedRelics.push({ id, level, active: true });
+    this.debugRelics = { ...this.debugRelics, [id]: level };
+    this.bonus = addBonus(this.bonus, relicBonus([id], { [id]: level }, this.bonus.relicPow || 0));
     this.refreshRelics();
-    this.refreshHud();
-    this.toast(`${info.name} ${r.active ? '활성' : '비활성'} — ${info.desc}`, r.active ? '#f2c14e' : '#9aa3b8');
-  }
-
-  /** 강화 보스 처치 보상: 유물 3개 중 1개 선택 (선택하는 동안 게임 정지) */
-  offerRelicChoice() {
-    const options = Phaser.Utils.Array.Shuffle([...RELICS]).slice(0, BALANCE.milestone.relicChoices);
-    this.hud.clearNotices();
-    const pw = WIDE ? 472 : GAME_W - 72;
-    const px = (GAME_W - pw) / 2;
-    const ph = 470;
-    const py = WIDE ? (GAME_H - ph) / 2 : 250;
-    const c = this.hud.modal(DEPTH.overlay - 0.5, px, py, pw, ph, null, '보상 선택'); // 배너·토스트보다 위
-    this.relicChoice = { options, container: c };
-    c.add(uiText(this, GAME_W / 2, py + 40, '강화 보스 처치!', 24, CSS.primary, '700').setOrigin(0.5));
-    c.add(uiText(this, GAME_W / 2, py + 72, '유물 하나를 골라주세요', 14, CSS.sub, '600').setOrigin(0.5));
-    options.forEach((r, i) => {
-      const y = py + 140 + i * 96;
-      const row = this.add.container(GAME_W / 2, y);
-      const bg = panelImage(this, 0, 0, 'outline', pw - 40, 80);
-      const circle = panelImage(this, -pw / 2 + 64, 0, 'soft', 56, 56);
-      const icon = this.add.image(-pw / 2 + 64, 0, `relic_${r.id}`).setScale(PX);
-      const name = uiText(this, -pw / 2 + 104, -14, r.name, 17, CSS.ink, '700').setOrigin(0, 0.5);
-      const desc = uiText(this, -pw / 2 + 104, 12, r.desc, 13, CSS.sub, '600').setOrigin(0, 0.5);
-      const pick = uiText(this, pw / 2 - 40, 0, '선택', 14, CSS.primary, '700').setOrigin(1, 0.5);
-      row.add([bg, circle, icon, name, desc, pick]);
-      row.setSize(pw - 40, 80).setInteractive({ useHandCursor: true });
-      row.on('pointerdown', () => row.setScale(0.97));
-      row.on('pointerout', () => row.setScale(1));
-      row.on('pointerup', () => this.pickRelic(i));
-      c.add(row);
-    });
-    c.add(
-      uiText(this, GAME_W / 2, py + ph - 26, `활성 유물 ${this.activeRelicCount}/${this.maxRelics} · 가득 차면 비활성으로 보관돼요`, 12, CSS.sub, '600').setOrigin(0.5)
-    );
-  }
-
-
-  pickRelic(i) {
-    if (!this.relicChoice) return;
-    const relic = this.relicChoice.options[i];
-    this.relicChoice.container.destroy();
-    this.relicChoice = null;
-    const active = this.addRelic(relic.id);
-    this.refreshRelics();
-    audio.promote();
-    this.showBanner(`유물 획득: ${relic.name}`, `${relic.desc}${active ? '' : ' (슬롯이 가득 차 비활성)'}`, '#f2c14e');
-    this.refreshInfo();
+    return true;
   }
 
   // ───────────────────────── 상점 · 영지 레벨 · 별 승급 (룰 v2, 2026-11-20) ─────────────────────────
@@ -1153,7 +1089,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 판 안 대장장이: 골드로 무작위 재료 1개 (값은 살 때마다 오른다) */
   get smithCost() {
-    return ITEM_RULES.smith.base + ITEM_RULES.smith.step * this.smithBought;
+    return Math.round((ITEM_RULES.smith.base + ITEM_RULES.smith.step * this.smithBought) * (1 - (this.bonus.smithDiscount || 0))); // 유물 모루 부적
   }
   smithBuy() {
     const cost = this.smithCost;
@@ -1194,7 +1130,7 @@ export class GameScene extends Phaser.Scene {
     if (!m.isBoss) return;
     for (let i = 0; i < R.bossMats; i++) this.giveItem(mat(), m.x, m.y);
     const big = m.milestone || m.isFinal;
-    if (big || Math.random() < R.bossSeal) this.giveItem('seal', m.x, m.y);
+    if (big || Math.random() < R.bossSeal + (this.bonus.sealChance || 0)) this.giveItem('seal', m.x, m.y);
     if (big || Math.random() < R.bossTool) {
       this.tools += 1;
       this.floatText(m.x, m.y - 50, '해제 도구 +1', '#d6a8ff', 16, true);
@@ -1297,12 +1233,12 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard?.addCapture('SPACE');
     this.input.keyboard?.on('keydown-SPACE', () => this.callNextWave());
     this.input.keyboard?.on('keydown-S', () => {
-      if (this.over || this.menuOpen || this.relicChoice || this.tut.open || this.hud.popup) return;
+      if (this.over || this.menuOpen || this.tut.open || this.hud.popup) return;
       if (this.selected?.active) this.sell(this.selected);
     });
     // 1·2·3: 게임 속도 바로 선택 (정지 중이면 풀고 그 속도로, 2026-11-18). 숫자패드도 같음
     [['ONE', 'NUMPAD_ONE', 1], ['TWO', 'NUMPAD_TWO', 2], ['THREE', 'NUMPAD_THREE', 3]].forEach(([k, n, v]) => {
-      const go = () => !(this.over || this.menuOpen || this.relicChoice || this.tut.open) && this.setSpeed(v);
+      const go = () => !(this.over || this.menuOpen || this.tut.open) && this.setSpeed(v);
       this.input.keyboard?.on(`keydown-${k}`, go);
       this.input.keyboard?.on(`keydown-${n}`, go);
     });
@@ -1567,8 +1503,6 @@ export class GameScene extends Phaser.Scene {
     this.resetAnimClock();
     if (this.paused) this.tweens.resumeAll();
     this.hud.closeAll();
-    this.relicChoice?.container.destroy();
-    this.relicChoice = null;
     this.select(null);
     audio.playMusic(null);
     if (victory) audio.victory();
@@ -1610,7 +1544,7 @@ export class GameScene extends Phaser.Scene {
     const rows = [
       ['도달 웨이브', `W${this.wave} (최고 W${Math.max(this.bestWave, this.wave)})`],
       ['처치한 몬스터', this.totalKills.toLocaleString()],
-      ['유니크 · 유물', `${heroes}명 · ${this.ownedRelics.length}개`],
+      ['유니크 · 마정석', `${heroes}명 · +${this.stonesEarned} (보유 ${meta.stones})`],
       ['획득 명성', `+${this.fameEarned} (보유 ${meta.fame})`]
     ];
     rows.forEach(([k, v], i) => {
