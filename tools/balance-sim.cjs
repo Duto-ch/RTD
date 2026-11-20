@@ -1,14 +1,19 @@
-// 밸런스 시뮬레이터: 봇(빈 칸 있으면 고용, 가득 차면 낮은 레벨부터 머지)으로 게임 로직을 고속 실행해 도달 웨이브를 출력
-// 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']
+// 밸런스 시뮬레이터 (룰 v2, 2026-11-20): 봇이 상점에서 사고(별 승급 > 같은 캐릭터 > 높은 등급·시너지), 칸이 차면 영지 레벨 업,
+// 약한 1성을 팔아 더 센 캐릭터로 바꾸고, 남는 골드로 리롤, 아이템은 가장 센 캐릭터에 끼운다. 게임 로직을 고속 실행해 도달 웨이브를 출력.
+// 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/balance-sim.cjs ['{"baseDamageMult":3}'] ['{"atk":10}'] ['{"hero_sword":3}']
 //   1번째 인자(JSON): BALANCE 덮어쓰기 실험. BALANCE.monster 의 키는 monster 에, 나머지(baseDamageMult 등)는 BALANCE 에 적용
 //   성벽·물량: '{"wall":{"hp":80,"dmg":{"normal":0.2}},"horde":{"carryHops":10}}' (물량 배수 mult 는 빌드 때 정해져 덮어쓸 수 없다)
-//   2번째 인자(JSON): 명성 강화 레벨 (예: {"atk":10,"funds":5}). 없으면 강화 0 (기본 밸런스: 10~15웨이브가 한계)
+//   2번째 인자(JSON): 명성 강화 레벨 (예: {"atk":10,"funds":5}). 없으면 강화 0
+//   3번째 인자(JSON): 장착 유물 id → 레벨 (예: {"hero_sword":3,"war_drum":1}, 최대 4개). 없으면 유물 없음
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 544, height: 960 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const levels = JSON.parse(process.argv[3] || '{}');
-  await p.addInitScript((levels) => { try { localStorage.setItem('rtd_meta_v2', JSON.stringify({ fame: 0, levels })); } catch {} }, levels);
+  const relics = JSON.parse(process.argv[4] || '{}');
+  await p.addInitScript(([levels, relics]) => {
+    try { localStorage.setItem('rtd_meta_v3', JSON.stringify({ fame: 0, levels, relics, equipped: Object.keys(relics) })); } catch {}
+  }, [levels, relics]);
   // 고정 대기 대신 화면 준비를 기다린다 (여러 개를 동시에 돌리면 로딩이 늦어져 게임 시작 전에 봇이 움직이던 문제)
   await p.goto('http://localhost:4173');
   await p.waitForFunction(() => window.game?.scene.isActive('Title'), null, { timeout: 60000 });
@@ -27,31 +32,84 @@ const { chromium } = require('playwright');
     const g = game.scene.getScene('Game');
     g.wallHp = g.wallMax; // 덮어쓴 성벽 체력 반영
     g.toast = () => {}; g.showBanner = () => {}; g.floatText = () => {};
+    const R = Object.fromEntries(window.__rtd.ROSTER.map((c) => [c.id, c]));
+    const GM = [0, 1, 1.35, 1.8, 2.5]; // 등급 배율 (data/roster.js GRADES)
+    const SM = [0, 1, 1.8, 3.2]; // 별 배율 (data/stars.js STAR_STAT)
+    const power = (m) => GM[m.grade] * SM[m.star] * (1 + 0.15 * m.items.length);
+    const price = (c) => [0, 10, 20, 30, 50][c.grade];
+    // 시너지 점수: 필드에 같은 계열·출신이 있으면 + (서로 다른 캐릭터라야 단계가 오른다)
+    const synScore = (c) => {
+      const ids = new Set(g.mercs.map((m) => m.char.id));
+      if (ids.has(c.id)) return 0;
+      return g.mercs.filter((m) => m.cls === c.cls).length * 0.15 + g.mercs.filter((m) => m.origin === c.origin).length * 0.1;
+    };
+    const slotValue = (s) => {
+      const c = R[s.id];
+      const same = g.mercs.filter((m) => m.char.id === s.id && m.star === 1).length;
+      const two = g.mercs.filter((m) => m.char.id === s.id && m.star === 2).length; // 3성을 노린다
+      return GM[c.grade] * (1 + synScore(c)) + (same ? 1.2 * same : 0) + (two ? 0.8 * GM[c.grade] : 0);
+    };
+    let wave = -1, rerolls = 0;
+    const act = () => {
+      if (g.wave !== wave) { wave = g.wave; rerolls = 0; }
+      for (let guard = 0; guard < 40; guard++) {
+        const open = g.shop.map((s, i) => ({ s, i })).filter(({ s }) => s && !s.sold && g.gold >= price(R[s.id]));
+        // 1) 별 승급이 되는 칸
+        const star = open.find(({ s }) => g.completesStar(s.id));
+        if (star && g.buy(star.i)) continue;
+        // 2) 빈 자리: 가장 좋은 칸
+        if (g.mercs.length < g.cap && open.length) {
+          const best = open.sort((a, b) => slotValue(b.s) - slotValue(a.s))[0];
+          if (g.buy(best.i)) continue;
+        }
+        // 3) 자리가 차면 영지 레벨 업
+        const ec = g.estateCost;
+        if (g.mercs.length >= g.cap && ec != null && g.gold >= ec) { g.levelUpEstate(); continue; }
+        // 4) 약한 1성을 팔고 더 센 캐릭터로 (같은 캐릭터가 2장 이상이면 남긴다)
+        if (g.mercs.length >= g.cap && open.length) {
+          const weak = g.mercs.filter((m) => m.star === 1 && g.mercs.filter((o) => o.char.id === m.char.id).length < 2).sort((a, b) => power(a) - power(b))[0];
+          const best = open.sort((a, b) => slotValue(b.s) - slotValue(a.s))[0];
+          if (weak && slotValue(best.s) > power(weak) * 1.3 && g.gold + Math.floor(weak.invested * g.sellRefund) >= price(R[best.s.id])) {
+            g.sell(weak);
+            if (g.buy(best.i)) continue;
+          }
+        }
+        // 5) 아이템: 띠의 아이템을 가장 센(아이템 칸이 남은) 캐릭터에
+        if (g.bench.length) {
+          const tgt = [...g.mercs].filter((m) => m.items.length < 3 || m.items.some((x) => ['whet', 'feath', 'mana', 'lens', 'powd', 'coin', 'seal'].includes(x))).sort((a, b) => power(b) - power(a))[0];
+          if (tgt && g.equip(0, tgt)) continue;
+        }
+        // 6) 남는 골드로 리롤 (영지 레벨 업 몫은 남긴다, 웨이브마다 최대 30번)
+        const keep = ec != null ? ec : 0;
+        if (g.mercs.length >= g.cap && rerolls < 30 && g.gold >= g.rerollPrice + keep + 20) { g.reroll(); rerolls++; continue; }
+        break;
+      }
+    };
     const log = [];
     let lastWave = 0, maxAlive = 0; const bossMax = {};
     for (let step = 0; step < 200000 && !g.over; step++) {
-      // 봇: 머지 가능하면 머지(낮은 레벨 우선), 아니면 고용
-      let acted = true;
-      while (acted) {
-        acted = false;
-        // 빈 칸이 있으면 고용 우선, 필드가 차면 낮은 레벨부터 합치기
-        if (g.gold >= g.hireCost && g.mercs.length < g.fieldSlots) { g.hire(); acted = true; continue; }
-        const ms = g.mercs.sort((a, b) => a.level - b.level);
-        outer: for (const a of ms) for (const c of ms) if (a.canMergeWith(c) && g.mergeCostFor(c.level) != null && g.gold >= g.mergeCostFor(c.level)) { g.merge(a, c); acted = true; break outer; }
-      }
-      if (g.relicChoice) g.pickRelic(0); // 강화 보스 보상: 첫 번째 선택
+      if (step % 5 === 0) act(); // 0.5초마다 봇 판단
+      // 루프를 재웠으니 장면 시계(타격 프레임 타이머)·트윈도 손으로 0.1초씩 돌린다
+      const t = (step + 1) * 100;
+      g.time.preUpdate(t, 100); g.time.update(t, 100);
+      g.tweens.preUpdate?.(); g.tweens.update(t, 100);
       g.update(0, 100); // 0.1초
       maxAlive = Math.max(maxAlive, g.monsters.length);
       const boss = g.monsters.find(m => m.isBoss);
       if (boss) bossMax[g.wave - g.wave % 10 || 10] = Math.max(bossMax[g.wave - g.wave % 10] || 0, Math.round(boss.dist / 17.6));
       if (g.wave !== lastWave) {
-        if (g.wave % 5 === 0 || g.wave <= 4) log.push(`W${g.wave} wall=${g.wallHp.toFixed(1)} gold=${g.gold} alive=${g.monsters.length} boss=${(g.monsters.find(m=>m.isBoss)?.dist/1760*100|0)}% lvls=${JSON.stringify(g.mercs.reduce((o,m)=>(o[m.level]=(o[m.level]||0)+1,o),{}))} grades=${JSON.stringify(g.mercs.reduce((o,m)=>(o[m.grade]=(o[m.grade]||0)+1,o),{}))} relics=${Object.values(g.relics).reduce((a,b)=>a+b,0)}`);
+        if (g.wave % 5 === 0 || g.wave <= 4) {
+          const stars = g.mercs.reduce((o, m) => (o[m.star] = (o[m.star] || 0) + 1, o), {});
+          const grades = g.mercs.reduce((o, m) => (o[m.grade] = (o[m.grade] || 0) + 1, o), {});
+          const syn = Object.entries(g.syn.tiers).filter(([, t]) => t).map(([k]) => k).join(',');
+          log.push(`W${g.wave} wall=${g.wallHp.toFixed(1)} gold=${g.gold} estate=${g.estate} units=${g.mercs.length} alive=${g.monsters.length} stars=${JSON.stringify(stars)} grades=${JSON.stringify(grades)} items=${g.mercs.reduce((t, m) => t + m.items.length, 0)} syn=${syn}`);
+        }
         lastWave = g.wave;
       }
     }
     const reason = g.children.list.filter(o => o.type === 'Text').map(o => o.text).find(t => /무너졌습니다/.test(t));
-    return { wave: g.wave, fame: g.fameEarned, kills: g.totalKills, over: g.over, log: [...log, 'boss max lap%: ' + JSON.stringify(bossMax), 'reason: ' + reason] };
+    return { wave: g.wave, fame: g.fameEarned, stones: g.stonesEarned, kills: g.totalKills, over: g.over, log: [...log, 'boss max lap%: ' + JSON.stringify(bossMax), 'reason: ' + reason] };
   }, override);
-  console.log(res.log.join('\n')); console.log('END wave', res.wave, 'fame', res.fame, 'kills', res.kills, 'errors', JSON.stringify(errs));
+  console.log(res.log.join('\n')); console.log('END wave', res.wave, 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));
   await b.close();
 })();

@@ -6374,6 +6374,66 @@
   },
   "relic_lucky_coin": {
    "file": "relics/lucky_coin.png"
+  },
+  "relic_mana_chalice": {
+   "file": "relics/mana_chalice.png"
+  },
+  "relic_warrior_banner": {
+   "file": "relics/warrior_banner.png"
+  },
+  "relic_ranger_quiver": {
+   "file": "relics/ranger_quiver.png"
+  },
+  "relic_assassin_mask": {
+   "file": "relics/assassin_mask.png"
+  },
+  "relic_gunner_keg": {
+   "file": "relics/gunner_keg.png"
+  },
+  "relic_hexer_doll": {
+   "file": "relics/hexer_doll.png"
+  },
+  "relic_support_harp": {
+   "file": "relics/support_harp.png"
+  },
+  "relic_north_horn": {
+   "file": "relics/north_horn.png"
+  },
+  "relic_knight_shield": {
+   "file": "relics/knight_shield.png"
+  },
+  "relic_lake_pearl": {
+   "file": "relics/lake_pearl.png"
+  },
+  "relic_guild_ledger": {
+   "file": "relics/guild_ledger.png"
+  },
+  "relic_merchant_seal": {
+   "file": "relics/merchant_seal.png"
+  },
+  "relic_estate_deed": {
+   "file": "relics/estate_deed.png"
+  },
+  "relic_treasure_map": {
+   "file": "relics/treasure_map.png"
+  },
+  "relic_stone_heart": {
+   "file": "relics/stone_heart.png"
+  },
+  "relic_aegis": {
+   "file": "relics/aegis.png"
+  },
+  "relic_mason_hammer": {
+   "file": "relics/mason_hammer.png"
+  },
+  "relic_royal_seal_box": {
+   "file": "relics/royal_seal_box.png"
+  },
+  "relic_anvil_charm": {
+   "file": "relics/anvil_charm.png"
+  },
+  "relic_star_dust": {
+   "file": "relics/star_dust.png"
   }
  }
 }

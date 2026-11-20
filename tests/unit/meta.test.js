@@ -29,7 +29,7 @@ describe('명성 강화 트리 (인크리멘탈)', () => {
   it('비용은 레벨마다 커진다', () => {
     for (const u of UPGRADES.filter((x) => x.max > 1)) expect(upgradeCost(u, 5)).toBeGreaterThan(upgradeCost(u, 0)); // 1레벨짜리(뿌리 등)는 제외
     expect(formatEffect(UPGRADE_BY_ID.atk, 3)).toBe('+30%');
-    expect(formatEffect(UPGRADE_BY_ID.network, 2)).toBe('-2G');
+    expect(formatEffect(UPGRADE_BY_ID.network, 2)).toBe('-4G'); // 리롤 값 (룰 v2)
   });
 
   it('명성으로 사고, 선행 강화가 없으면 잠김, 최대 레벨에서 멈춤', () => {

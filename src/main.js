@@ -12,6 +12,8 @@ import { UpgradeScene } from './scenes/UpgradeScene.js';
 import { ROSTER } from './data/roster.js';
 import { LobbyScene } from './scenes/LobbyScene.js';
 import { DeckScene } from './scenes/DeckScene.js';
+import { TavernScene } from './scenes/TavernScene.js';
+import { WorkshopScene } from './scenes/WorkshopScene.js';
 import { meta } from './systems/meta.js';
 
 async function loadFonts() {
@@ -58,7 +60,7 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [BootScene, TitleScene, LobbyScene, DeckScene, GameScene, UpgradeScene]
+  scene: [BootScene, TitleScene, LobbyScene, DeckScene, TavernScene, WorkshopScene, GameScene, UpgradeScene]
 });
 
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)

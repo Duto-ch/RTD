@@ -24,10 +24,19 @@ async function toGame(page, x, y) {
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
 }
 
-test('고용 → 웨이브 진행 → 처치', async ({ page }) => {
+// 세로 상점 칸 가운데 (룰 v2 하단 시트: x 12~532, y 786~882, 6칸)
+const SHOP_X = (i) => 12 + ((520 - 30) / 6) * (i + 0.5) + 6 * i;
+const SHOP_Y = 820;
+
+test('상점에서 사기 → 웨이브 진행 → 처치', async ({ page }) => {
   const errors = await startGame(page);
-  for (let i = 0; i < 4; i++) await page.mouse.click(100, 824); // 용병 고용 버튼
-  expect(await game(page, () => window.game.scene.getScene('Game').mercs.length)).toBe(4);
+  for (let i = 0; i < 3; i++) await page.mouse.click(SHOP_X(i), SHOP_Y); // 상점 칸 (영지 Lv1 = 3명)
+  const r0 = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, sold: g.shop.filter((x) => x?.sold).length, gold: g.gold }; });
+  expect(r0.n).toBe(3);
+  expect(r0.sold).toBe(3);
+  expect(r0.gold).toBe(120 - 30); // 커먼 10G × 3 (영지 Lv1 은 커먼만)
+  await page.mouse.click(SHOP_X(3), SHOP_Y); // 4번째: 인원이 가득 (영지 레벨을 올려야)
+  expect(await game(page, () => window.game.scene.getScene('Game').mercs.length)).toBe(3);
   await page.mouse.click(544 - 68, 56); // 바로 시작
   expect(await game(page, () => window.game.scene.getScene('Game').wave)).toBe(1);
   // 첫 처치가 나올 때까지 기다린다 (고정 대기는 느린 환경에서 가끔 실패)
@@ -38,23 +47,48 @@ test('고용 → 웨이브 진행 → 처치', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('같은 속성·등급·레벨 용병을 끌어다 놓으면 놓여 있던 쪽이 레벨 업 + 확정 스킬', async ({ page }) => {
+test('같은 캐릭터 3장 → 별 승급 (인원이 꽉 차도 3장째는 살 수 있음) · 리롤·잠금 · 영지 레벨 업 · 드래그로 자리 바꾸기', async ({ page }) => {
   const errors = await startGame(page);
-  const pos = await game(page, () => {
+  const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    g.gold = 500; g.hire(); g.hire();
-    const [a, b] = g.mercs;
-    // 둘 다 Lv1 커먼 에릭으로 맞춘다 (5% 행운 Lv2 고용·등급 차이 제거)
-    const eric = window.__rtd.ROSTER.find((c) => c.id === 'eric');
-    for (const m of [a, b]) { m.level = 1; m.setChar(eric); }
-    return { ax: a.x, ay: a.y, bx: b.x, by: b.y };
+    g.gold = 1000;
+    g.shop = [0, 1, 2, 3, 4, 5].map(() => ({ id: 'helga', locked: false, sold: false }));
+    g.refreshShop();
+    g.buy(0); g.buy(1);
+    g.hire('stein'); // 인원 3/3
+    const full = g.mercs.length;
+    const third = g.buy(2); // 3장째: 꽉 찼어도 별 승급이면 살 수 있다
+    const helga = g.mercs.filter((m) => m.char.id === 'helga');
+    const out = { full, n: g.mercs.length, helga: helga.length, star: helga[0].star, dmg2: helga[0].def.fx?.dot?.[0] };
+    // 리롤: 잠근 칸은 남고 리롤 값이 오른다
+    const before = g.rerollPrice;
+    g.toggleLock(3);
+    out.lockUp = g.rerollPrice > before;
+    g.reroll();
+    out.kept = g.shop[3].id === 'helga' && g.shop[3].locked;
+    // 영지 레벨 업: 인원 +1
+    const cap = g.cap;
+    g.levelUpEstate();
+    out.cap = [cap, g.cap, g.estate];
+    const st = helga[0];
+    return { ...out, from: { x: st.x, y: st.y }, cell: { col: st.col, row: st.row } };
   });
-  await page.mouse.move(pos.ax, pos.ay);
+  expect(r.full).toBe(3);
+  expect(r.n).toBe(2); // 헬가 2성 1장 + 스테인
+  expect(r.helga).toBe(1);
+  expect(r.star).toBe(2);
+  expect(r.dmg2).toBeGreaterThan(0);
+  expect(r.lockUp).toBe(true);
+  expect(r.kept).toBe(true);
+  expect(r.cap).toEqual([3, 4, 2]);
+  // 드래그로 빈 칸에 옮기기 (합성 없음 — 자리 교체만)
+  await page.mouse.move(r.from.x, r.from.y);
   await page.mouse.down();
-  await page.mouse.move(pos.bx, pos.by, { steps: 8 });
+  await page.mouse.move(272, 480, { steps: 8 });
   await page.mouse.up();
-  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, lv: g.mercs[0].level, skills: g.mercs[0].skills.map((s) => s.def.name), at: [g.mercs[0].x, g.mercs[0].y] }; });
-  expect(r).toEqual({ n: 1, lv: 2, skills: ['불화살 연발'], at: [pos.bx, pos.by] }); // 놓여 있던 자리(b)에 남는다
+  const after = await game(page, () => { const m = window.game.scene.getScene('Game').mercs.find((x) => x.char.id === 'helga'); return { col: m.col, row: m.row, star: m.star }; });
+  expect(after).toEqual({ col: 2, row: 2, star: 2 });
+  await page.screenshot({ path: SHOT('03-star') });
   expect(errors).toEqual([]);
 });
 
@@ -89,21 +123,19 @@ test('ESC 메뉴: 일시정지·볼륨·닫기', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('보스 처치 → 유물, 강화 보스 → 유물 3택1', async ({ page }) => {
+test('보스 처치 → 마정석 (보스 2 · 강화 보스 5, 바로 저장) — 판 안 유물 드랍·3택1 없음', async ({ page }) => {
   const errors = await startGame(page);
+  const s0 = await game(page, () => window.__rtd.meta.stones);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.startWave(10); });
   await page.waitForFunction(() => window.game.scene.getScene('Game').monsters.some((m) => m.isBoss));
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.damageMonster(g.monsters.find((m) => m.isBoss), 1e15, {}); });
-  expect(await game(page, () => window.game.scene.getScene('Game').ownedRelics.length)).toBe(1);
-
+  expect(await game(page, () => window.__rtd.meta.stones)).toBe(s0 + 2);
   await game(page, () => window.game.scene.getScene('Game').startWave(30));
   await page.waitForFunction(() => window.game.scene.getScene('Game').monsters.some((m) => m.milestone));
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.damageMonster(g.monsters.find((m) => m.milestone), 1e15, {}); });
-  expect(await game(page, () => !!window.game.scene.getScene('Game').relicChoice)).toBe(true);
-  await page.screenshot({ path: SHOT('04-relic-choice') });
-  await page.mouse.click(272, 250 + 140); // 첫 번째 유물 선택
-  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { open: !!g.relicChoice, owned: g.ownedRelics.length }; });
-  expect(r).toEqual({ open: false, owned: 2 });
+  const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { stones: window.__rtd.meta.stones, earned: g.stonesEarned, relics: g.ownedRelics.length }; });
+  expect(r).toEqual({ stones: s0 + 7, earned: 7, relics: 0 });
+  await page.screenshot({ path: SHOT('04-boss-stones') });
   expect(errors).toEqual([]);
 });
 
@@ -162,18 +194,99 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   }
 });
 
-test('캐릭터마다 그림 + 등급 받침 고리(뒤·앞)와 레벨 방패 숫자', async ({ page }) => {
+test('시너지: 서로 다른 캐릭터 수로 단계가 켜지고 효과가 붙는다 (전사 2 · 기사단 3 · 북방 분노 · 숲 감속) + 위 줄 칩', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const st = (m) => m.getStats(g.relics, g.gameTime);
+    const leo = g.hire('leo'); // 전사·기사단
+    const d0 = st(leo).damage;
+    g.hire('leo'); // 같은 캐릭터 2장은 1명
+    const one = g.syn.counts.warrior;
+    g.hire('gareth'); // 전사·기사단 → 전사 2
+    const d1 = st(leo).damage;
+    g.hire('claire'); // 지원가·기사단 → 기사단 3
+    const wallDmg = g.syn.tiers.knight?.wallDmg;
+    for (const id of ['stein', 'einar', 'ingrid']) g.hire(id); // 북방 3
+    const north = g.mercs.find((m) => m.char.id === 'stein');
+    north.rage = 10;
+    const rage = st(north).rate / (window.__rtd.ROSTER.find((c) => c.id === 'stein').trait?.rateMul || 1);
+    g.hud.refreshSynergy();
+    const chips = g.hud.synRow.list.length;
+    return { one, warrior: g.syn.counts.warrior, up: d1 / d0, wallDmg, rageOn: !!g.syn.tiers.north, chips };
+  });
+  expect(r.one).toBe(1);
+  expect(r.warrior).toBeGreaterThanOrEqual(2);
+  expect(r.up).toBeGreaterThan(1.1); // 전사 2: 공격력 +15% (전열이면 1.5배)
+  expect(r.wallDmg).toBe(0.15); // 기사단 3: 성벽 피해 -15%
+  expect(r.rageOn).toBe(true);
+  expect(r.chips).toBeGreaterThanOrEqual(4);
+  await page.waitForTimeout(2600);
+  await page.screenshot({ path: SHOT('08-synergy') });
+  expect(errors).toEqual([]);
+});
+
+test('아이템 조합: 대장장이에서 재료 구매 → 끌어다 장착 → 같은 캐릭터에 재료 2개면 자동 조합 · 문장으로 시너지 +1 · 해제 도구 · 판매하면 띠로', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 1000;
+    const leo = g.hire('leo');
+    const helga = g.hire('helga');
+    const gold0 = g.gold;
+    g.smithBuy(); g.smithBuy();
+    const spent = gold0 - g.gold; // 30 + 45
+    g.bench = ['whet', 'whet', 'seal', 'seal'];
+    g.hud.refreshBench();
+    return { spent, at: { x: leo.x, y: leo.y }, helgaAt: { x: helga.x, y: helga.y } };
+  });
+  expect(r.spent).toBe(30 + 45);
+  // 띠의 첫 아이템(숫돌)을 레오에게 실제로 끌어다 놓는다
+  const slot = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
+  for (let i = 0; i < 2; i++) {
+    await page.mouse.move(slot.x, slot.y);
+    await page.mouse.down();
+    await page.mouse.move(r.at.x, r.at.y, { steps: 10 });
+    await page.mouse.up();
+  }
+  const s = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const [leo, helga] = g.mercs;
+    const knightBefore = g.syn.counts.knight;
+    // 인장 2개 → 출신 문장 (기사단으로 골라서) — 헬가(마탑)가 기사단으로도 셈
+    g.equip(g.bench.indexOf('seal'), helga, 'knight'); g.equip(g.bench.indexOf('seal'), helga, 'knight');
+    const st = leo.getStats(g.relics, g.gameTime);
+    const out = { leo: leo.items, helga: helga.items, knight: [knightBefore, g.syn.counts.knight], bench: g.bench.length, dmgItem: st.item.dmg };
+    // 해제 도구: 아이템이 띠로
+    g.tools = 1;
+    out.tool = g.useTool(leo);
+    out.afterTool = { leo: leo.items.length, bench: [...g.bench] };
+    // 판매: 아이템은 띠로
+    g.sell(helga);
+    out.afterSell = [...g.bench];
+    return out;
+  });
+  expect(s.leo).toEqual(['giant_sword']);
+  expect(s.helga).toEqual(['emblem_knight']);
+  expect(s.knight).toEqual([1, 2]);
+  expect(s.dmgItem).toBeCloseTo(0.4);
+  expect(s.tool).toBe(true);
+  expect(s.afterTool).toEqual({ leo: 0, bench: ['giant_sword'] });
+  expect(s.afterSell).toEqual(['giant_sword', 'emblem_knight']);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT('07-items') });
+  expect(errors).toEqual([]);
+});
+
+test('캐릭터마다 그림 + 등급 받침 고리(뒤·앞)와 별 패', async ({ page }) => {
   const errors = await startGame(page);
   const info = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
-    for (let i = 0; i < 15; i++) g.hire();
-    // 15칸을 그림이 다른 15명으로 (예전 용병 15명 = 커먼·언커먼), 레벨은 1~5 순서로
-    const ids = ['eric', 'rowan', 'helga', 'gunnar', 'bridget', 'sigrid', 'olaf', 'edmund', 'ingrid', 'finn', 'robin', 'freya', 'torvald', 'astrid', 'leif'];
-    g.mercs.forEach((m, i) => {
-      m.level = (i % 5) + 1;
-      m.setChar(window.__rtd.ROSTER.find((c) => c.id === ids[i]));
-    });
+    // 15칸을 그림이 다른 15명으로 (무작위 고용은 같은 캐릭터 3장이 겹치면 별 승급으로 수가 줄어 고정 id 로), 별은 1~3 순서로
+    const ids = ['helga', 'bridget', 'karsten', 'siri', 'oscar', 'sigrid', 'olaf', 'ingrid', 'leif', 'freya', 'elva', 'ragnar', 'arthur', 'isolde', 'oberon'];
+    for (const id of ids) g.hire(id);
+    g.mercs.forEach((m, i) => m.setChar(window.__rtd.ROSTER.find((c) => c.id === ids[i]), (i % 3) + 1));
     // 고리 뒤쪽 반은 캐릭터 뒤, 앞쪽 반 + 방패는 앞
     const order = g.mercs.every((m) => m.list.indexOf(m.ringBack) < m.list.indexOf(m.sprite) && m.list.indexOf(m.sprite) < m.list.indexOf(m.pips));
     return { keys: new Set(g.mercs.map((m) => m.sprite.texture.key)).size, n: g.mercs.length, order };
@@ -188,20 +301,20 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   const errors = await startGame(page);
   await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    g.addRelic('war_drum'); g.addRelic('hawk_eye'); g.addRelic('frost_crown'); g.addRelic('contract'); g.addRelic('lucky_coin');
-    g.refreshRelics();
+    for (const id of ['war_drum', 'hawk_eye', 'frost_crown', 'contract']) g.addRelic(id);
+    g.addRelic('lucky_coin'); // 장착 칸 4칸 — 5번째는 안 들어감
   });
+  expect(await game(page, () => window.game.scene.getScene('Game').ownedRelics.length)).toBe(4);
   const tip = () => game(page, () => {
     const t = window.game.scene.getScene('Game').hud.relicTip;
     return t ? t.container.list.filter((o) => o.text).map((o) => o.text) : null;
   });
   expect(await tip()).toBeNull();
-  await page.mouse.move(124, 161); // 첫 유물 (전쟁의 북)
-  await expect.poll(tip).toEqual(['전쟁의 북', '활성', '모든 용병 공격 속도 +15%', '클릭: 비활성으로 전환']);
+  const p0 = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(0, 4));
+  await page.mouse.move(p0.x, p0.y); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
+  await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%', '영지 유물 공방에서 바꿔 끼울 수 있어요']);
   await page.waitForTimeout(100);
   await page.screenshot({ path: SHOT('10-relic-tooltip') });
-  await page.mouse.move(124 + 4 * 36, 161); // 다섯 번째 (슬롯이 가득 차 비활성)
-  await expect.poll(async () => (await tip())?.[1]).toBe('비활성');
   await page.mouse.move(272, 500); // 아이콘 밖
   await expect.poll(tip).toBeNull();
   expect(errors).toEqual([]);
@@ -276,7 +389,7 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   expect(errors).toEqual([]);
 });
 
-test('강화 효과: 징집령(무료 용병)·군량 보급·성벽 체력·실드', async ({ page }) => {
+test('강화 효과: 징집령(무료 용병, 노련한 신병 = 언커먼)·군량 보급·성벽 체력·실드', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -287,9 +400,9 @@ test('강화 효과: 징집령(무료 용병)·군량 보급·성벽 체력·실
     const g = window.game.scene.getScene('Game');
     const gold0 = g.gold;
     g.startWave(1);
-    return { mercs: g.mercs.length, lv: g.mercs.map((m) => m.level), gold0, waveGold: g.gold - gold0, wall: [g.wallHp, g.wallMax, g.wallShield] };
+    return { mercs: g.mercs.length, grade: g.mercs.map((m) => m.grade), gold0, waveGold: g.gold - gold0, wall: [g.wallHp, g.wallMax, g.wallShield] };
   });
-  expect(s).toEqual({ mercs: 2, lv: [2, 2], gold0: 140, waveGold: 10, wall: [90, 90, 5] });
+  expect(s).toEqual({ mercs: 2, grade: [2, 2], gold0: 140, waveGold: 10, wall: [90, 90, 5] }); // 노련한 신병: 무료 용병이 언커먼 (룰 v2)
   expect(errors).toEqual([]);
 });
 
@@ -512,14 +625,14 @@ test('필드 도트(플랫 스타일): 지역 10종 배경이 모두 그려지�
   expect(errors).toEqual([]);
 });
 
-test('캐릭터 그림: 104명 모두 게임 그림이 있고, 병영 카드에도 같은 그림', async ({ page }) => {
+test('캐릭터 그림: 70명 모두 게임 그림이 있다', async ({ page }) => {
   const errors = await startGame(page);
   const s = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     const R = window.__rtd.ROSTER;
     return { n: R.length, withArt: R.filter((c) => g.textures.exists(`char_${c.id}`) && g.anims.exists(`char_${c.id}:attack`)).length };
   });
-  expect(s).toEqual({ n: 104, withArt: 104 });
+  expect(s).toEqual({ n: 70, withArt: 70 }); // 룰 v2: 34명 삭제
   expect(errors).toEqual([]);
 });
 
@@ -761,12 +874,12 @@ test('스킬 이펙트: 커먼·언커먼은 공용 세트(속성색 · 바닥 �
     const rareUsesSet = v.setSkill(a, { buff: { scope: 'self' } }, [], null);
     // 레어·유니크는 캐릭터 전용 시트 (스킬 def.id 별)
     const uni = R.find((c) => c.grade === 4); b.setChar(uni);
-    const sig = [...a.defs, ...b.defs].map((d) => v.sigSkill(d.buff?.scope === 'all' || d.buff ? (d.id.startsWith(uni.id) ? b : a) : a, d, fake, fake[0]));
+    const sig = [[a, a.def], [b, b.def]].map(([u, d]) => v.sigSkill(u, d, fake, fake[0]));
     const sigKeys = new Set(g.children.list.filter((o) => o.texture?.key?.startsWith('fxg_')).map((o) => o.texture.key.replace(/_back$/, '')));
     return { keys, back, rareUsesSet, sig, sigKinds: sigKeys.size };
   });
   expect(r.sig.every(Boolean)).toBe(true);
-  expect(r.sigKinds).toBe(8); // 레어 1명 4개 + 유니크 1명 4개, 모두 서로 다른 시트
+  expect(r.sigKinds).toBe(2); // 룰 v2 스킬 1개: 레어 1명 + 유니크 1명, 서로 다른 시트
   expect(r.keys).toEqual(expect.arrayContaining(['fxs_c_buff_self_red', 'fxs_c_buff_self_red_back', 'fxs_c_slow_red', 'fxs_u_chain_blue', 'fxs_u_hit_blue', 'fxs_u_buff_adj_blue_back']));
   expect(r.back).toBe(true);
   expect(r.rareUsesSet).toBe(false); // 레어·유니크는 공용 세트를 쓰지 않는다
@@ -777,46 +890,59 @@ test('스킬 이펙트: 커먼·언커먼은 공용 세트(속성색 · 바닥 �
 
 test('단축키 S: 선택한 용병 판매', async ({ page }) => {
   const errors = await startGame(page);
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire('helga'); g.select(g.mercs[0]); });
   const g0 = await game(page, () => window.game.scene.getScene('Game').gold);
   await page.keyboard.press('s');
   const r = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, gold: g.gold, sel: !!g.selected }; });
-  expect(r).toEqual({ n: 0, gold: g0 + 15, sel: false }); // 고용비 30G × 50%
+  expect(r).toEqual({ n: 0, gold: g0 + 7, sel: false }); // 커먼 10G × 70% (룰 v2)
   await page.keyboard.press('s'); // 선택이 없으면 아무 일도 없다
   expect(errors).toEqual([]);
 });
 
-test('확정 스킬: 레벨마다 정해진 스킬이 하나씩 열리고, 유니크는 1레벨부터 대표 스킬', async ({ page }) => {
+test('스킬 1개 · 마나 시전 · 별마다 강해짐 · 유니크', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
-    const m = g.hire();
-    m.level = 1; m.setChar(window.__rtd.ROSTER.find((c) => c.id === 'bridget'));
-    const steps = [m.skills.length];
-    while (m.level < 5) { m.levelUp(); steps.push(m.skills.length); }
+    const m = g.hire('bridget');
+    const R = (id) => window.__rtd.ROSTER.find((c) => c.id === id);
+    const one = m.def.fx?.dmg || 0;
+    m.starUp();
+    const two = m.def.fx?.dmg || 0;
     g.select(m);
     g.hud.showSkillPopup(m);
-    const u = g.hire();
-    u.level = 1; u.setChar(window.__rtd.ROSTER.find((c) => c.id === 'isolde'));
-    return { steps, names: m.skills.map((s) => s.def.name), cost: g.mergeCostFor(5), unique: u.skills.map((s) => s.def.name), gold: u.isHero, rerolls: (g.hud.rerollBtns || []).length };
+    const popup = g.hud.popup.list.filter((o) => o.text).map((o) => o.text).join('\n');
+    // 마나가 가득 차면 다음 공격 대신 스킬 (몬스터 하나를 사거리 안에)
+    g.startWave(1);
+    for (let i = 0; i < 400 && !g.monsters.length; i++) g.updateWaves(0.05);
+    const mon = g.monsters[0];
+    mon.x = m.x + 40; mon.y = m.y; mon.hp = 1e9; mon.maxHp = 1e9;
+    m.mana = m.maxMana; m.cooldown = 0;
+    g.updateMercs(0.016);
+    const u = g.hire('isolde');
+    return { name: m.def.name, last: R('bridget').skills.at(-1).name, one, two, manaAfter: m.mana, max: m.maxMana, popup, unique: u.isHero, uname: u.def.name };
   });
-  expect(r.steps).toEqual([0, 1, 2, 3, 4]);
-  expect(r.names).toEqual(['화염구', '불기둥', '마나 과열', '메테오']);
-  expect(r.cost).toBe(null); // 최고 레벨 — 영웅 승급 없음
-  expect(r.unique).toEqual(['태양 낙하']);
-  expect(r.gold).toBe(true);
-  expect(r.rerolls).toBe(0); // 리롤 폐지
+  expect(r.name).toBe(r.last); // 대표 스킬 = 예전 마지막(Lv5) 스킬
+  expect(r.two).toBeGreaterThan(r.one); // 2성이 더 세다
+  expect(r.manaAfter).toBe(0); // 시전하고 마나 0
+  expect(r.max).toBeGreaterThanOrEqual(40);
+  expect(r.popup).toContain('★★★');
+  expect(r.unique).toBe(true);
+  expect(r.uname).toBe('초신성'); // 유니크도 마지막 스킬이 대표 (룰 v2)
   await page.screenshot({ path: SHOT('25-fixed-skills') });
   expect(errors).toEqual([]);
 });
-
-test('영지(로비) → 병영에서 덱 편성 (40포인트) → 저장 → 출전하면 그 덱에서만 고용', async ({ page }) => {
+test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 레어 9 · 유니크 3) → 저장 → 출전하면 그 덱에서만 상점에 나옴', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.waitForFunction(() => window.game?.scene.isActive('Title'));
-  await game(page, () => window.__rtd.meta.reset());
+  await game(page, () => {
+    const m = window.__rtd.meta;
+    m.reset();
+    Object.assign(m.data.owned, { isolde: 0, arthur: 0 }); // 술집에서 고용했다고 치고 유니크 2명 더
+    m.save();
+  });
   await page.mouse.click(272, 652);
   await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
   await page.waitForTimeout(300);
@@ -826,30 +952,85 @@ test('영지(로비) → 병영에서 덱 편성 (40포인트) → 저장 → �
   await page.waitForFunction(() => window.game.scene.isActive('Deck'));
   const r = await game(page, () => {
     const d = window.game.scene.getScene('Deck');
-    const pts0 = d.points;
+    const n0 = d.deck.length;
     const R = (id) => window.__rtd.ROSTER.find((c) => c.id === id);
-    d.deck = ['eric'];
-    d.toggle(R('isolde')); // +4
-    d.toggle(R('arthur')); // +4
-    for (const id of ['solveig', 'william', 'vivian', 'halvard', 'freydis', 'richard', 'oberon', 'ragnar']) d.toggle(R(id)); // 유니크 12명 × 4 = 48 → 40 넘으면 거부
-    return { pts0, pts: d.points, n: d.deck.length };
+    d.toggle(R('isolde')); // 30명이라 못 넣음
+    const full = d.deck.includes('isolde');
+    d.toggle(R('helga')); // 빼기
+    d.toggle(R('bridget'));
+    d.toggle(R('isolde')); // 유니크 3명째
+    d.toggle(R('arthur')); // 유니크 4명째 → 거부
+    d.toggle(R('william')); // 가지지 않은 캐릭터 → 거부
+    return { n0, full, n: d.deck.length, isolde: d.deck.includes('isolde'), arthur: d.deck.includes('arthur'), william: d.deck.includes('william') };
   });
-  expect(r.pts0).toBe(37);
-  expect(r.pts).toBeLessThanOrEqual(40);
-  expect(r.pts).toBe(37); // 에릭 1 + 유니크 9명 36
+  expect(r).toEqual({ n0: 30, full: false, n: 29, isolde: true, arthur: false, william: false });
   await page.screenshot({ path: SHOT('33-deck') });
   await game(page, () => window.game.scene.getScene('Deck').leave());
   await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
-  expect(await game(page, () => window.__rtd.meta.deck.length)).toBe(10);
+  expect(await game(page, () => window.__rtd.meta.deck.length)).toBe(29);
   await page.keyboard.press('Space');
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
-  const hired = await game(page, () => {
+  const shopOk = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
-    for (let i = 0; i < 24; i++) g.hire();
-    return [...new Set(g.mercs.map((m) => m.char.id))].every((id) => g.deck.includes(id));
+    for (let i = 0; i < 20; i++) g.reroll();
+    for (let i = 0; i < 9; i++) g.levelUpEstate();
+    for (let i = 0; i < 20; i++) g.reroll();
+    return g.shop.every((x) => !x || g.deck.includes(x.id)) && !g.deck.includes('helga');
   });
-  expect(hired).toBe(true);
+  expect(shopOk).toBe(true);
+  expect(errors).toEqual([]);
+});
+test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 → 강화) · 리롤 값 상승 / 유물 공방: 생산 → 장착 → 출전하면 효과', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addStones(60); });
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await game(page, () => window.game.scene.getScene('Lobby').openSpot('tent'));
+  await page.waitForFunction(() => window.game.scene.isActive('Tavern'));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: SHOT('38-tavern') });
+  const t = await game(page, () => {
+    const m = window.__rtd.meta;
+    const s = window.game.scene.getScene('Tavern');
+    const slots = m.tavern().slots.map((x) => x.id);
+    const id = slots[0];
+    const wasOwned = m.owns(id);
+    const enh0 = m.enhance(id);
+    s.hire(0);
+    const r1 = m.rerollTavern(); // 3
+    const r2 = m.rerollTavern(); // 5
+    s.refresh();
+    return { n: slots.length, owned: m.owns(id), up: wasOwned ? m.enhance(id) - enh0 : 0, hired: !wasOwned || m.enhance(id) === enh0 + 1, r1, r2, next: m.tavernRerollCost };
+  });
+  expect(t).toMatchObject({ n: 3, owned: true, hired: true, r1: true, r2: true, next: 7 });
+  await game(page, () => window.game.scene.getScene('Tavern').leave());
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await game(page, () => window.game.scene.getScene('Lobby').openSpot('forge'));
+  await page.waitForFunction(() => window.game.scene.isActive('Workshop'));
+  const w = await game(page, () => {
+    const m = window.__rtd.meta;
+    const s = window.game.scene.getScene('Workshop');
+    for (let i = 0; i < 6; i++) s.craft();
+    const have = Object.keys(m.data.relics);
+    return { have: have.length > 0, equipped: m.equipped.length, levels: Object.values(m.data.relics).reduce((a, b) => a + b, 0) };
+  });
+  expect(w.have).toBe(true);
+  expect(w.equipped).toBeGreaterThan(0);
+  expect(w.equipped).toBeLessThanOrEqual(4);
+  expect(w.levels).toBe(6);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: SHOT('39-workshop') });
+  await game(page, () => window.game.scene.getScene('Workshop').leave());
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.screenshot({ path: SHOT('32b-lobby-stones') });
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  const g = await game(page, () => { const g = window.game.scene.getScene('Game'); return { relics: g.ownedRelics.map((r) => r.id), eq: window.__rtd.meta.equipped }; });
+  expect(g.relics).toEqual(g.eq);
   expect(errors).toEqual([]);
 });
 
@@ -857,7 +1038,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   await page.addInitScript(() => localStorage.setItem('rtd_tutorial_test', '1'));
   const errors = await startGame(page);
   const tut = () => game(page, () => window.game.scene.getScene('Game').tut.open);
-  await page.waitForFunction(() => window.game.scene.getScene('Game').tut.open === 'hire', null, { timeout: 5000 });
+  await page.waitForFunction(() => window.game.scene.getScene('Game').tut.open === 'shop', null, { timeout: 5000 });
   // 떠 있는 동안 전투 시간이 멈춘다
   const t0 = await game(page, () => window.game.scene.getScene('Game').gameTime);
   await page.waitForTimeout(400);
@@ -867,7 +1048,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   const ok = await game(page, () => { const b = window.game.scene.getScene('Game').tut.okBtn; return { x: b.x, y: b.y }; });
   await page.mouse.click(ok.x, ok.y);
   expect(await tut()).toBe(null);
-  expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v2')).tutorial.seen.hire)).toBe(true);
+  expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v3')).tutorial.seen.shop)).toBe(true);
   // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
   expect(await tut()).toBe('select');
@@ -941,15 +1122,15 @@ test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을
     const g = window.game.scene.getScene('Game');
     g.gold = 999; g.hire(); g.select(g.mercs[0]); g.startWave(1);
     const ring = { x0: 392, y0: 112, x1: 888, y1: 608 }; // 필드 + 몬스터 길
-    const boxes = [g.hud.hireBtn, g.hud.nextWaveBtn, g.hud.skillBtn, g.hud.sellBtn, g.hud.menuBtn].map((b) => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h / 2, y1: b.y + b.h / 2 }));
+    const boxes = [g.hud.estateBtn, g.hud.rerollBtn, g.hud.nextWaveBtn, g.hud.skillBtn, g.hud.sellBtn, g.hud.menuBtn].map((b) => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h / 2, y1: b.y + b.h / 2 }));
     const hit = boxes.filter((b) => b.x0 < ring.x1 && b.x1 > ring.x0 && b.y0 < ring.y1 && b.y1 > ring.y0);
-    return { hit: hit.length, banner: g.hud.bannerObj?.y, field: [g.mercs[0].x > ring.x0, g.mercs[0].x < ring.x1], hire: g.hud.hireBtn.label.text, dock: [g.hud.hireBtn.y > 608, g.hud.nextWaveBtn.y < 112] };
+    return { hit: hit.length, banner: g.hud.bannerObj?.y, field: [g.mercs[0].x > ring.x0, g.mercs[0].x < ring.x1], reroll: g.hud.rerollBtn.label.text, dock: [g.hud.estateBtn.y > 608, g.hud.nextWaveBtn.y < 112] };
   });
   expect(r.hit).toBe(0);
   expect(r.banner).toBeLessThan(112); // 배너는 필드 위 빈 띠
   expect(r.field).toEqual([true, true]);
-  // B-2 포근한 카드형: 위 알약 바(바로 시작) + 아래 독(한 줄 고용 버튼)
-  expect(r.hire).toMatch(/^\+ 용병 고용 · \d+ G$/);
+  // B-2 포근한 카드형: 위 알약 바(바로 시작) + 아래 독(상점 6칸·영지·리롤)
+  expect(r.reroll).toMatch(/^리롤 \d+G$/);
   expect(r.dock).toEqual([true, true]);
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('30-wide-battle') });

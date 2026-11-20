@@ -251,7 +251,11 @@ const ICONS = {
   gem: ['.xxxxx.', 'x.x.x.x', 'xxxxxxx', '.x...x.', '..x.x..', '...x...', '.......'],
   anvil: ['.......', 'xxxxxx.', '.xxxxxx', '..xxx..', '..xxx..', '.xxxxx.', '.......'],
   sword: ['......x', '.....x.', '....x..', 'x..x...', '.xx....', '.xx....', 'x..x...'],
-  cross: ['xx...xx', 'xxx.xxx', '.xxxxx.', '..xxx..', '.xxxxx.', 'xxx.xxx', 'xx...xx']
+  cross: ['xx...xx', 'xxx.xxx', '.xxxxx.', '..xxx..', '.xxxxx.', 'xxx.xxx', 'xx...xx'],
+  lock: ['..xxx..', '.x...x.', '.x...x.', 'xxxxxxx', 'xxx.xxx', 'xxx.xxx', 'xxxxxxx'],
+  unlock: ['..xxx..', '.x...x.', '.x.....', 'xxxxxxx', 'xxx.xxx', 'xxx.xxx', 'xxxxxxx'],
+  reroll: ['..xxxx.', '.x...xx', 'x...xxx', 'x......', 'xxx...x', 'xx...x.', '.xxxx..'],
+  house: ['...x...', '..xxx..', '.xxxxx.', 'xxxxxxx', '.x...x.', '.x.x.x.', '.xxxxx.']
 };
 
 /** 픽셀 아이콘 그리기 (s = 대략적인 크기 px) */

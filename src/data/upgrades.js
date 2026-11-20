@@ -31,32 +31,34 @@ export const UPGRADES = [
   N('giant', 'atk', 'attack', '거인 사냥꾼', '거', 'bossDmg', 0.1, 30, [10, 1.2], 'pctp', '보스·정예 피해 (기본 40%)'),
   N('kingslayer', 'giant', 'attack', '왕 사냥꾼', '왕', 'bossOnly', 0.1, 20, [18, 1.22], 'pct', '보스에게 주는 피해'),
   N('eliteBane', 'giant', 'attack', '정예 사냥꾼', '예', 'eliteOnly', 0.12, 20, [14, 1.22], 'pct', '정예에게 주는 피해'),
-  N('attune', 'atk', 'attack', '속성 공명', '상', 'advantage', 0.05, 10, [15, 1.3], 'pctp', '상성 우위 피해 (기본 150%)'),
-  N('redPow', 'attune', 'attack', '홍염 숙련', '홍', 'attr_red', 0.08, 25, [8, 1.2], 'pct', '레드 용병 공격력'),
-  N('bluePow', 'attune', 'attack', '창해 숙련', '창', 'attr_blue', 0.08, 25, [8, 1.2], 'pct', '블루 용병 공격력'),
-  N('greenPow', 'attune', 'attack', '녹림 숙련', '녹', 'attr_green', 0.08, 25, [8, 1.2], 'pct', '그린 용병 공격력'),
+  // 룰 v2 (2026-11-20): 속성 노드 → 마나·전열·후열
+  N('attune', 'atk', 'attack', '마나 수련', '마', 'manaGain', 1, 5, [15, 1.35], 'count', '공격당 마나'),
+  N('redPow', 'attune', 'attack', '전열 훈련', '전', 'frontline', 0.08, 25, [8, 1.2], 'pct', '바깥 줄(전열) 용병 공격력'),
+  N('bluePow', 'attune', 'attack', '후열 훈련', '후', 'backline', 0.08, 25, [8, 1.2], 'pct', '가운데(후열) 용병 공격력'),
+  N('greenPow', 'attune', 'attack', '마나 정수', '정', 'startMana', 0.1, 5, [20, 1.4], 'pct', '시작 마나 (최대 마나 대비)'),
 
   // 경제 (오른쪽)
   N('funds', 'origin', 'economy', '군자금', '금', 'startGold', 20, 25, [2, 1.2], 'gold', '시작 골드'),
   N('bounty', 'funds', 'economy', '현상금', '현', 'bounty', 0.05, 25, [5, 1.2], 'pct', '처치 골드'),
   N('interest', 'bounty', 'economy', '이자 수익', '이', 'interest', 0.01, 10, [20, 1.35], 'pct', '웨이브마다 보유 골드 이자 (최대 웨이브×20G)'),
   N('stipend', 'bounty', 'economy', '군량 보급', '보', 'waveGold', 5, 20, [6, 1.22], 'gold', '웨이브 시작 시 골드'),
-  N('network', 'funds', 'economy', '용병 인맥', '인', 'hireDiscount', 1, 10, [6, 1.3], 'goldMinus', '고용 비용'),
-  N('pedigree', 'network', 'economy', '명문가 출신', '명', 'lv2Chance', 0.02, 10, [12, 1.3], 'pct', 'Lv2 고용 확률'),
-  N('noble', 'pedigree', 'economy', '기사 가문', '기', 'lv3Chance', 0.01, 5, [40, 1.5], 'pct', 'Lv3 고용 확률'),
-  N('refund', 'network', 'economy', '깔끔한 정산', '환', 'sellRefund', 0.05, 8, [6, 1.3], 'pctp', '판매 환급 (기본 50%)'),
+  // 룰 v2: 고용 노드 → 상점·영지
+  N('network', 'funds', 'economy', '상인 인맥', '인', 'rerollDiscount', 2, 5, [6, 1.3], 'goldMinus', '리롤 값'),
+  N('pedigree', 'network', 'economy', '영지 개발', '개', 'estateDiscount', 0.03, 10, [10, 1.3], 'pctMinus', '영지 레벨 업 값'),
+  N('noble', 'pedigree', 'economy', '정찰대', '찰', 'waveFreeReroll', 1, 1, [60, 1], 'count', '웨이브마다 무료 리롤'),
+  N('refund', 'network', 'economy', '깔끔한 정산', '환', 'sellRefund', 0.05, 6, [6, 1.3], 'pctp', '판매 환급 (기본 70%)'),
   N('renown', 'funds', 'economy', '명성 관리', '성', 'fameMult', 0.05, 20, [10, 1.25], 'pct', '명성 획득'),
   N('legend', 'renown', 'economy', '전설의 용병단', '전', 'bossFame', 2, 10, [25, 1.3], 'count', '보스 처치 명성'),
 
   // 전술 (아래)
   N('tower', 'origin', 'tactics', '망루', '망', 'range', 0.03, 15, [4, 1.25], 'pct', '사거리'),
-  N('manual', 'tower', 'tactics', '전술 교범', '교', 'cdr', 0.02, 15, [6, 1.25], 'pctMinus', '스킬 쿨타임'),
+  N('manual', 'tower', 'tactics', '전술 교범', '교', 'cdr', 0.02, 15, [6, 1.25], 'pctMinus', '최대 마나 (스킬을 더 자주)'),
   N('arcana', 'manual', 'tactics', '비전 연구', '비', 'skillDmg', 0.08, 25, [8, 1.22], 'pct', '스킬 피해'),
   N('vault', 'manual', 'tactics', '유물 보관함', '함', 'relicSlots', 1, 2, [40, 3], 'count', '유물 활성 슬롯'),
   N('appraise', 'vault', 'tactics', '유물 감정', '감', 'relicPow', 0.1, 10, [20, 1.3], 'pct', '유물 효과'),
-  N('merger', 'tower', 'tactics', '합병 협약', '합', 'mergeDiscount', 0.03, 10, [8, 1.28], 'pctMinus', '레벨 업 비용'),
-  N('rareLuck', 'merger', 'tactics', '인재 발굴', '발', 'rareChance', 0.005, 10, [20, 1.3], 'pctp', '레어 고용 확률 (기본 11%)'),
-  N('uniqueLuck', 'rareLuck', 'tactics', '전설의 계보', '설', 'uniqueChance', 0.001, 10, [30, 1.3], 'pctp1', '유니크 고용 확률 (기본 1%)'),
+  N('merger', 'tower', 'tactics', '영지 기틀', '기', 'startEstate', 1, 2, [40, 3], 'count', '시작 영지 레벨'),
+  N('rareLuck', 'merger', 'tactics', '인재 발굴', '발', 'rareChance', 0.005, 10, [20, 1.3], 'pctp', '상점 레어 확률 (나올 수 있는 영지 레벨부터)'),
+  N('uniqueLuck', 'rareLuck', 'tactics', '전설의 계보', '설', 'uniqueChance', 0.003, 10, [30, 1.3], 'pctp1', '상점 유니크 확률 (나올 수 있는 영지 레벨부터)'),
   N('drill', 'tower', 'tactics', '범위 훈련', '범', 'splash', 0.06, 10, [8, 1.25], 'pct', '범위 공격 반경'),
   // 등급별 단련 (2026-11-17: 병과 폐지 → 등급별 공격력)
   N('commonPow', 'drill', 'tactics', '신병 훈련', '신', 'grade_1', 0.1, 20, [6, 1.2], 'pct', '커먼 공격력'),
@@ -74,11 +76,11 @@ export const UPGRADES = [
   N('ward', 'wall', 'defense', '수호 부적', '부', 'debuffDur', 0.05, 10, [10, 1.25], 'pctMinus', '보스 디버프 지속 시간'),
   N('purify', 'ward', 'defense', '정화 의식', '화', 'debuffTargets', 1, 2, [60, 3], 'countMinus', '보스 디버프 대상 수'),
   N('conscript', 'wall', 'defense', '징집령', '징', 'conscripts', 1, 3, [15, 2], 'count', '시작 시 무료 용병'),
-  N('veteran', 'conscript', 'defense', '노련한 신병', '노', 'veteran', 1, 1, [80, 1], 'flag', '무료 용병이 Lv2로 시작')
+  N('veteran', 'conscript', 'defense', '노련한 신병', '노', 'veteran', 1, 1, [80, 1], 'flag', '무료 용병이 언커먼')
 ];
 
 // 판을 시작할 때만 쓰는 효과 — 판 도중(성탑)에 사면 다음 판부터 적용
-export const START_ONLY = new Set(['funds', 'conscript', 'veteran']);
+export const START_ONLY = new Set(['funds', 'conscript', 'veteran', 'merger']);
 
 export const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 export const childrenOf = (id) => UPGRADES.filter((u) => u.parent === id);

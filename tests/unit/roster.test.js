@@ -1,50 +1,64 @@
 import { describe, it, expect } from 'vitest';
-import { ROSTER, GRADES, DECK_POINTS, DEFAULT_DECK, deckPoints, deckValid, rollHire, skillLevels } from '../../src/data/roster.js';
+import { ROSTER, ROSTER_BY_ID, GRADES, DECK_RULES, DEFAULT_DECK, deckValid } from '../../src/data/roster.js';
+import { STAR_STAT, starSkill, maxMana, MANA, regradeSkill } from '../../src/data/stars.js';
+import { STYLES } from '../../src/data/roster.js';
 
-// 2026-11-17 사용자 결정: 캐릭터 96명(속성 3 × 커먼 13·언커먼 9·레어 6·유니크 4), 병과 폐지, 덱 40포인트, 유니크 고용 1%
-// + 시안 출신 8명(original) 을 게임에서도 쓰도록 추가 → 104명 (사용자 요청 2026-11-17)
-describe('캐릭터 104명(기본 96 + 시안 8) · 등급 · 덱', () => {
-  it('기본 96명은 속성마다 커먼 13 · 언커먼 9 · 레어 6 · 유니크 4, 시안 출신 8명 추가, id·이름 중복 없음, 스킬 4개씩', () => {
-    expect(ROSTER).toHaveLength(104);
-    const base = ROSTER.filter((c) => !c.original);
-    expect(base).toHaveLength(96);
-    for (const a of ['red', 'blue', 'green'])
-      expect([1, 2, 3, 4].map((g) => base.filter((c) => c.attr === a && c.grade === g).length)).toEqual([13, 9, 6, 4]);
-    expect(ROSTER.filter((c) => c.original).map((c) => c.id)).toEqual(['kaira', 'verona', 'brock', 'elin', 'thorn', 'adel', 'serena', 'nix']);
-    expect(new Set(ROSTER.map((c) => c.id)).size).toBe(104);
-    expect(new Set(ROSTER.map((c) => c.name)).size).toBe(104);
-    for (const c of ROSTER) expect(c.skills).toHaveLength(4);
+// 룰 v2 (2026-11-20 사용자 결정): 70명 = 언커먼 이상 64명 + 커먼 6명 (34명 삭제), 등급 재배분 커먼 22·언커먼 20·레어 16·유니크 12,
+// 계열 6 × 출신 6, 덱 최대 30명(레어 9·유니크 3), 스킬 1개(마나 시전) + 별마다 강해짐
+describe('캐릭터 70명 · 등급 재배분 · 덱 30', () => {
+  it('70명, 등급 22·20·16·12, 출신마다 유니크 2명, id·이름 중복 없음', () => {
+    expect(ROSTER).toHaveLength(70);
+    expect([1, 2, 3, 4].map((g) => ROSTER.filter((c) => c.grade === g).length)).toEqual([22, 20, 16, 12]);
+    for (const o of ['north', 'knight', 'tower', 'grove', 'lake', 'guild']) expect(ROSTER.filter((c) => c.origin === o && c.grade === 4)).toHaveLength(2);
+    expect(new Set(ROSTER.map((c) => c.id)).size).toBe(70);
+    expect(new Set(ROSTER.map((c) => c.name)).size).toBe(70);
+    // 빠진 캐릭터는 없다 (예: 에릭·로빈·브록)
+    for (const id of ['eric', 'robin', 'brock']) expect(ROSTER_BY_ID[id]).toBeUndefined();
   });
 
-  it('등급 포인트 1·2·3·4, 덱 40포인트, 고용 확률 60·28·11·1%', () => {
-    expect([1, 2, 3, 4].map((g) => GRADES[g].pt)).toEqual([1, 2, 3, 4]);
-    expect(DECK_POINTS).toBe(40);
-    expect([1, 2, 3, 4].map((g) => GRADES[g].hire)).toEqual([60, 28, 11, 1]);
+  it('계열 6·출신 6이 모두 있고, 캐릭터마다 스킬 1개(예전 마지막 스킬)', () => {
+    expect(new Set(ROSTER.map((c) => c.cls)).size).toBe(6);
+    expect(new Set(ROSTER.map((c) => c.origin)).size).toBe(6);
+    for (const c of ROSTER) {
+      expect(c.skill.name).toBe(c.skills[c.skills.length - 1].name);
+      expect(c.skill.id).toBe(`${c.id}_${c.skills.length - 1}`);
+    }
+  });
+
+  it('등급 배율 1·1.35·1.8·2.5, 상점 값 1·2·3·5단위', () => {
+    expect([1, 2, 3, 4].map((g) => GRADES[g].mult)).toEqual([1, 1.35, 1.8, 2.5]);
+    expect([1, 2, 3, 4].map((g) => GRADES[g].price)).toEqual([1, 2, 3, 5]);
+  });
+
+  it('덱: 1~30명, 레어 9명·유니크 3명까지, 기본 덱은 30명', () => {
+    expect(DECK_RULES).toEqual({ max: 30, rare: 9, unique: 3 });
+    expect(DEFAULT_DECK).toHaveLength(30);
     expect(deckValid(DEFAULT_DECK)).toBe(true);
-    expect(deckPoints(DEFAULT_DECK)).toBeLessThanOrEqual(40);
-    expect(deckValid([...ROSTER.filter((c) => c.grade === 4).map((c) => c.id)])).toBe(false); // 13명 × 4 = 52 > 40
     expect(deckValid([])).toBe(false);
+    expect(deckValid(ROSTER.filter((c) => c.grade === 4).slice(0, 4).map((c) => c.id))).toBe(false); // 유니크 4명
+    expect(deckValid(ROSTER.filter((c) => c.grade === 3).slice(0, 10).map((c) => c.id))).toBe(false); // 레어 10명
+    expect(deckValid(ROSTER.filter((c) => c.grade === 1).map((c) => c.id).concat(ROSTER.filter((c) => c.grade === 2).slice(0, 9).map((c) => c.id)))).toBe(false); // 31명
+  });
+});
+
+describe('별 승급 · 스킬 1개 · 마나', () => {
+  it('별 능력 배율 1·1.8·3.2, 스킬 피해 1성 = Lv5 의 절반 → 1 : 1.6 : 2.6', () => {
+    expect(STAR_STAT).toEqual([1, 1.8, 3.2]);
+    const def = { name: 't', cd: 10, area: { type: 'multi', n: 3 }, fx: { dmg: 4 } };
+    expect([1, 2, 3].map((n) => starSkill(def, n).fx.dmg)).toEqual([2, 3.2, 5.2]);
+    expect([1, 2, 3].map((n) => starSkill(def, n).area.n)).toEqual([3, 4, 5]);
   });
 
-  it('높은 등급일수록 기본 공격력 배율이 크다', () => {
-    expect(GRADES[1].mult).toBeLessThan(GRADES[2].mult);
-    expect(GRADES[2].mult).toBeLessThan(GRADES[3].mult);
-    expect(GRADES[3].mult).toBeLessThan(GRADES[4].mult);
+  it('최대 마나 = 쿨타임의 60% 동안 공격 수 × 10 (40~150)', () => {
+    expect(MANA.perAttack).toBe(10);
+    expect(maxMana(STYLES.rapid, {}, { cd: 10 })).toBe(130); // 10 × 0.6 × 2.2 × 10 = 132 → 130
+    expect(maxMana(STYLES.heavy, {}, { cd: 10 })).toBe(40); // 최소 40
+    expect(maxMana(STYLES.rapid, {}, { cd: 30 })).toBe(150); // 최대 150
   });
 
-  it('스킬은 레벨마다 하나씩: 커먼~레어 Lv2·3·4·5, 유니크 Lv1·2·3·4', () => {
-    expect(skillLevels(ROSTER.find((c) => c.grade === 1))).toEqual([2, 3, 4, 5]);
-    expect(skillLevels(ROSTER.find((c) => c.grade === 4))).toEqual([1, 2, 3, 4]);
-  });
-
-  it('고용: 등급을 굴려 덱의 그 등급에서 뽑고, 없으면 아래 등급 → 위 등급', () => {
-    const seq = (vals) => { let i = 0; return () => vals[i++ % vals.length]; };
-    const deck = ['eric', 'bridget', 'elva', 'ragnar'];
-    expect(rollHire(deck, {}, seq([0.005, 0])).id).toBe('ragnar'); // 1% 미만 → 유니크
-    expect(rollHire(deck, {}, seq([0.05, 0])).id).toBe('elva'); // 1~12% → 레어
-    expect(rollHire(deck, {}, seq([0.3, 0])).id).toBe('bridget'); // 12~40% → 언커먼
-    expect(rollHire(deck, {}, seq([0.9, 0])).id).toBe('eric'); // 나머지 커먼
-    expect(rollHire(['eric'], {}, seq([0.005, 0])).id).toBe('eric'); // 덱에 유니크가 없으면 아래 등급
-    expect(rollHire(['ragnar'], {}, seq([0.9, 0])).id).toBe('ragnar'); // 아래 등급도 없으면 위 등급
+  it('등급이 바뀐 캐릭터는 스킬 % 를 새/옛 등급 세기 비율만큼', () => {
+    const def = { fx: { dmg: 4.45 } };
+    expect(regradeSkill(def, 2, 4).fx.dmg).toBeCloseTo(7.2, 1);
+    expect(regradeSkill(def, 3, 3)).toBe(def);
   });
 });

@@ -22,3 +22,14 @@ describe('등급 받침 고리 + 레벨 방패', () => {
     expect(levelPixels(4, 1).some((p) => p[2] === GRADE_COLORS[4][0])).toBe(true);
   });
 });
+
+import { starPixels } from '../../src/ui/gradeMark.js';
+describe('별 패 (룰 v2)', () => {
+  it('별 수만큼 작은 별, 3성은 금빛', () => {
+    const stars = (n) => starPixels(2, n).filter((p) => p[2] === 0xffffff || p[2] === 0x9fe0ff || p[2] === 0xffe066).length;
+    expect(stars(1)).toBe(5);
+    expect(stars(2)).toBe(10);
+    expect(stars(3)).toBe(15);
+    expect(starPixels(2, 3).some((p) => p[2] === 0xffe066)).toBe(true);
+  });
+});

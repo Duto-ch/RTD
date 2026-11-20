@@ -1,18 +1,21 @@
-// ── 캐릭터 104명 (2026-11-17 사용자 결정: 병과 폐지·속성만 유지·등급 4단계) ──────────
-// 기본: 속성 3 × (커먼 13 · 언커먼 9 · 레어 6 · 유니크 4) = 96명 + 시안 출신 8명(ORIGINALS, 맨 아래).
-// 캐릭터 = 기본 공격(스타일 + 고유 특성) + 레벨마다 하나씩 열리는 확정 스킬 4개.
-//   커먼·언커먼·레어: Lv2·3·4·5 에 하나씩 / 유니크: 고용으로만 나와 합성이 드물어 Lv1·2·3·4 (Lv1 = 대표 스킬)
-// 스킬 형식은 data/skills.js 와 같다 (area·fx·buff·gold). 새 효과(특성)는 아래 TRAITS 설명 참고.
-// look: ChatGPT 그림 프롬프트에 들어갈 외형 (영어). STYLE_PROMPT 와 합쳐 쓴다.
+import { regradeSkill } from './stars.js';
 
-/** 등급: 포인트(덱 40포인트 안에서 편성) · 기본 능력치 배율 · 고용 확률(%) */
+// ── 캐릭터 70명 (룰 v2, 2026-11-20 사용자 결정) ──────────
+// 104명 중 언커먼 이상 64명 + 커먼 6명만 남기고 나머지 34명은 삭제. 속성(레드·블루·그린)은 그림 색으로만 남고 규칙에서는 없다.
+// 캐릭터 = 계열(공격 방식) 1개 + 출신(세력) 1개 → 시너지 (data/synergy.js), 기본 공격(스타일 + 고유 특성) + 스킬 1개(마나 시전, 별마다 강해짐).
+// 등급은 재배분(아래 V2) — 정의 줄의 등급 숫자는 예전 등급이고, 스킬 수치는 새/옛 등급 비율로 고쳐 쓴다 (data/stars.js regradeSkill).
+// 스킬 형식은 data/skills.js 와 같다 (area·fx·buff·gold). 대표 스킬 = 정의의 마지막(예전 Lv5) 스킬.
+// look: 그림 프롬프트에 들어갈 외형 (영어). attr: 그림·이펙트 색만.
+
+/** 등급: 기본 능력치 배율 · 상점 값(단위, BALANCE.shop.unit 골드) · 색 (2026-11-20 재배분: 커먼 22·언커먼 20·레어 16·유니크 12) */
 export const GRADES = {
-  1: { id: 'common', name: '커먼', pt: 1, mult: 1, hire: 60, color: '#9aa7a4' },
-  2: { id: 'uncommon', name: '언커먼', pt: 2, mult: 1.6, hire: 28, color: '#4fb06a' },
-  3: { id: 'rare', name: '레어', pt: 3, mult: 2.5, hire: 11, color: '#3f8fe0' },
-  4: { id: 'unique', name: '유니크', pt: 4, mult: 4, hire: 1, color: '#f2b530' }
+  1: { id: 'common', name: '커먼', mult: 1, price: 1, color: '#9aa7a4' },
+  2: { id: 'uncommon', name: '언커먼', mult: 1.35, price: 2, color: '#4fb06a' },
+  3: { id: 'rare', name: '레어', mult: 1.8, price: 3, color: '#3f8fe0' },
+  4: { id: 'unique', name: '유니크', mult: 2.5, price: 5, color: '#f2b530' }
 };
-export const DECK_POINTS = 40;
+/** 덱 (2026-11-20 룰 v2): 최대 30명, 레어 최대 9명, 유니크 최대 3명 */
+export const DECK_RULES = { max: 30, rare: 9, unique: 3 };
 
 /** 기본 공격 스타일 — 1레벨 기본 능력치 (등급 배율 전) */
 export const STYLES = {
@@ -68,45 +71,9 @@ const C = (attr, grade, id, name, style, title, look, trait, skills) => ({ attr,
 // ══════════════════════════════ 레드 — 불·전쟁·대장간·사막 ══════════════════════════════
 const RED = [
   // ── 커먼 13 ──
-  C('red', 1, 'eric', '에릭', 'bow', '불화살 견습 궁수', 'red-haired teen archer with a short bow and leather vest', { dot: [0.3, 2] }, [
-    S('불화살 연발', 6, { area: many(3), ...hit(1.5) }), S('불꽃 화살비', 9, { area: ring(60), ...hit(2) }),
-    S('타오르는 집중', 12, { buff: { scope: 'self', rate: 0.5, dur: 5 } }), S('화염 일제 사격', 14, { area: many(8), ...hit(2.5) })]),
-  C('red', 1, 'rowan', '로완', 'rapid', '골목 소매치기', 'sly street thief boy with red bandana and twin daggers', { crit: 0.2, bounty: 0.1 }, [
-    S('빠른 손', 10, { gold: 4, goldPerWave: 0.2 }), S('뒷골목 찌르기', 6, { area: one, ...hit(4) }),
-    S('연기 폭탄', 10, { area: ring(60), fx: { slow: [0.4, 2] } }), S('한탕', 20, { area: one, fx: { dmg: 6 }, gold: 15 })]),
   C('red', 1, 'helga', '헬가', 'hex', '불씨 주술사', 'old fire witch with ember lantern and patched red shawl', { dot: [0.6, 3] }, [
     S('불씨 저주', 6, { area: one, fx: { dot: [1, 4] } }), S('잿불 장판', 9, { area: ring(70), fx: { dot: [0.8, 4] } }),
     S('화로의 축복', 14, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('대화재', 18, { area: all, fx: { dot: [1.2, 5] } })]),
-  C('red', 1, 'gunnar', '군나르', 'heavy', '화승총 사냥꾼', 'bearded hunter with a long matchlock rifle and fur cap', { bossMult: 1.4 }, [
-    S('화약 장전', 7, { area: one, ...hit(4) }), S('철갑탄', 8, { area: one, fx: { dmg: 2.5, vuln: [0.2, 4] } }),
-    S('표적 사냥', 12, { pick: 'strongest', area: one, ...hit(6) }), S('대구경 한 발', 18, { pick: 'strongest', area: one, fx: { dmg: 14, bossMult: 1.5 } })]),
-  C('red', 1, 'toby', '토비', 'blast', '불장난 꼬마 마법사', 'small apprentice mage kid with oversized red hat and smoking wand', { splash: 10 }, [
-    S('불꽃 구슬', 6, { area: ring(50), ...hit(2) }), S('어설픈 폭발', 9, { area: ring(70), ...hit(2.5) }),
-    S('주문 연습', 12, { buff: { scope: 'self', rate: 0.6, dur: 4 } }), S('대폭발(실수)', 16, { area: ring(110), ...hit(3.5) })]),
-  C('red', 1, 'bran', '브랜', 'brawl', '대장간 견습생', 'stocky blacksmith apprentice with a big hammer and soot-stained apron', { stun: [0.1, 0.6] }, [
-    S('망치 내려찍기', 6, { area: ring(50), fx: { dmg: 2, stun: 0.5 } }), S('달군 쇠', 8, { area: one, fx: { dmg: 3, dot: [0.5, 3] } }),
-    S('풀무질', 14, { buff: { scope: 'adjacent', rate: 0.15, dur: 6 } }), S('모루 던지기', 16, { area: ring(70), fx: { dmg: 4, stun: 1 } })]),
-  C('red', 1, 'miles', '마일스', 'bow', '성벽 석궁병', 'young crossbowman in a red tabard with a steel helmet', { targets: 2 }, [
-    S('2연발 볼트', 6, { area: many(2), ...hit(2) }), S('관통 볼트', 8, { area: many(4), ...hit(1.8) }),
-    S('성벽 수비', 14, { buff: { scope: 'self', range: 0.3, dur: 8 } }), S('일제 사격', 14, { area: many(10), ...hit(2) })]),
-  C('red', 1, 'kale', '케이티', 'blast', '투석병', 'freckled slinger girl with a leather sling and pouch of rocks', { push: 12 }, [
-    S('돌팔매', 5, { area: ring(40), fx: { dmg: 2, push: 30 } }), S('불붙은 돌', 8, { area: ring(60), fx: { dmg: 2, dot: [0.6, 3] } }),
-    S('연속 투석', 10, { area: many(5), ...hit(1.8) }), S('바위 굴리기', 18, { area: all, fx: { dmg: 1.5, push: 60 } })]),
-  C('red', 1, 'yvonne', '이본', 'aid', '횃불 파수꾼', 'night watch woman holding a tall torch and a horn', { aura: { range: 0.1 } }, [
-    S('경계 나팔', 12, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('횃불 휘두르기', 7, { area: ring(60), ...hit(2) }),
-    S('밤샘 경계', 16, { buff: { scope: 'adjacent', range: 0.25, dur: 8 } }), S('봉화', 20, { buff: { scope: 'all', dmg: 0.15, dur: 6 } })]),
-  C('red', 1, 'derek', '데릭', 'brawl', '도끼 나무꾼', 'burly lumberjack with a double-bit axe and plaid shirt', { dmgMul: 1.15 }, [
-    S('장작 패기', 6, { area: one, ...hit(4) }), S('휘두르기', 8, { area: ring(60), ...hit(2.5) }),
-    S('나무꾼의 끈기', 14, { buff: { scope: 'self', dmg: 0.4, dur: 6 } }), S('벌목', 15, { pick: 'strongest', area: one, ...hit(10) })]),
-  C('red', 1, 'molly', '베티', 'aid', '야전 요리사', 'cheerful plump cook with a frying pan and steaming pot', { aura: { rate: 0.06 } }, [
-    S('따끈한 스튜', 14, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('프라이팬 일격', 7, { area: one, fx: { dmg: 3, stun: 0.6 } }),
-    S('매운 고추', 12, { area: ring(60), fx: { dot: [0.8, 3] } }), S('잔치', 25, { buff: { scope: 'all', rate: 0.2, dur: 6 } })]),
-  C('red', 1, 'sven', '스벤', 'brawl', '술통 바이킹', 'jolly viking with horned helmet carrying a beer barrel', { splash: 10, push: 10 }, [
-    S('술통 굴리기', 7, { area: ring(60), fx: { dmg: 2, push: 40 } }), S('불붙은 술', 9, { area: ring(70), fx: { dot: [0.8, 4] } }),
-    S('건배', 15, { buff: { scope: 'adjacent', dmg: 0.2, dur: 5 } }), S('폭발 술통', 16, { area: ring(100), ...hit(4) })]),
-  C('red', 1, 'harald', '하랄드', 'heavy', '노병 창던지기', 'grey-bearded veteran spear thrower with a round shield', { bossMult: 1.3, rangeMul: 0.85 }, [
-    S('투창', 6, { area: one, ...hit(3.5) }), S('창 꿰기', 9, { area: many(3), ...hit(2.5) }),
-    S('노련함', 14, { buff: { scope: 'self', dmg: 0.3, rate: 0.2, dur: 6 } }), S('마지막 투창', 18, { pick: 'strongest', area: one, ...hit(12) })]),
 
   // ── 언커먼 9 ──
   C('red', 2, 'bridget', '브리짓', 'blast', '화염 마법사', 'red-haired fire mage woman with a flame staff and crimson robe', { splash: 15 }, [
@@ -175,45 +142,18 @@ const RED = [
 // ══════════════════════════════ 블루 — 물·얼음·바다·기사·학자 ══════════════════════════════
 const BLUE = [
   // ── 커먼 13 ──
-  C('blue', 1, 'finn', '핀', 'rapid', '부두 도둑', 'scrappy dockside thief with blue cap and curved knife', { crit: 0.2, slow: [0.1, 1] }, [
-    S('물결 베기', 5, { area: one, ...hit(3) }), S('그물 던지기', 9, { area: ring(60), fx: { slow: [0.5, 2] } }),
-    S('그림자 걸음', 12, { buff: { scope: 'self', rate: 0.8, dur: 4 } }), S('난도질', 14, { area: many(6), ...hit(3) })]),
   C('blue', 1, 'ingrid', '잉그리드', 'hex', '서리 주술사', 'young frost shaman with snowflake totem and white fur hood', { slow: [0.25, 1.5] }, [
     S('서리 저주', 6, { area: one, fx: { dmg: 1.5, slow: [0.5, 3] } }), S('얼음 수렁', 9, { area: ring(80), fx: { slow: [0.45, 3] } }),
     S('겨울 축복', 14, { buff: { scope: 'adjacent', rate: 0.15, dur: 6 } }), S('혹한', 18, { area: all, fx: { slow: [0.4, 4], dmg: 1 } })]),
-  C('blue', 1, 'edmund', '에드먼드', 'heavy', '해안 저격수', 'calm marksman in navy coat with a long musket and spyglass', { bossMult: 1.3, vuln: [0.1, 3] }, [
-    S('조준 사격', 7, { area: one, ...hit(4) }), S('약점 관측', 9, { area: one, fx: { dmg: 2, vuln: [0.3, 5] } }),
-    S('망원경', 14, { buff: { scope: 'self', range: 0.4, dur: 8 } }), S('수평선 너머', 18, { pick: 'strongest', area: one, ...hit(13) })]),
-  C('blue', 1, 'nils', '닐스', 'bow', '어부 작살꾼', 'young fisherman with a harpoon gun and yellow raincoat', { push: 15 }, [
-    S('작살', 6, { area: one, fx: { dmg: 3, push: 40 } }), S('그물 작살', 9, { area: ring(60), fx: { dmg: 1.5, slow: [0.4, 2] } }),
-    S('만선의 꿈', 16, { gold: 5, goldPerWave: 0.3 }), S('고래잡이', 16, { pick: 'strongest', area: one, fx: { dmg: 9, push: 80 } })]),
-  C('blue', 1, 'harry', '펠릭스', 'blast', '물방울 견습생', 'nerdy apprentice water mage with round glasses and a bubble wand', { slow: [0.15, 1] }, [
-    S('물방울 폭탄', 6, { area: ring(60), fx: { dmg: 1.8, slow: [0.25, 1.5] } }), S('물대포', 8, { area: many(3), fx: { dmg: 2, push: 30 } }),
-    S('복습', 12, { buff: { scope: 'self', dmg: 0.4, dur: 5 } }), S('해일 주문', 18, { area: all, fx: { dmg: 2, push: 50 } })]),
   C('blue', 1, 'emma', '엠마', 'aid', '얼음 약사', 'gentle herbalist girl with ice blue apron and potion basket', { aura: { rate: 0.06 } }, [
     S('청량 물약', 12, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('냉기 병', 8, { area: ring(60), fx: { dmg: 1.5, slow: [0.4, 2] } }),
     S('집중 차', 16, { buff: { scope: 'adjacent', range: 0.2, dur: 8 } }), S('만능 해독제', 22, { buff: { scope: 'all', rate: 0.15, dur: 8 } })]),
-  C('blue', 1, 'percy', '퍼시', 'bow', '수습 기사 궁수', 'squire archer with blue plume helmet and kite shield on back', { targets: 2 }, [
-    S('이중 사격', 6, { area: many(2), ...hit(2.2) }), S('정렬 사격', 9, { area: many(4), ...hit(2) }),
-    S('기사도', 14, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('창공 사격', 16, { area: many(8), ...hit(2.2) })]),
   C('blue', 1, 'aud', '모이라', 'hex', '안개 점술사', 'mysterious fortune teller with crystal ball and starry blue shawl', { vuln: [0.15, 3] }, [
     S('불길한 예언', 7, { area: one, fx: { vuln: [0.35, 5] } }), S('안개', 10, { area: ring(80), fx: { slow: [0.35, 3] } }),
     S('운명 엿보기', 14, { buff: { scope: 'adjacent', dmg: 0.2, dur: 6 } }), S('정해진 파멸', 18, { area: ring(100), fx: { vuln: [0.4, 6], dmg: 1.5 } })]),
   C('blue', 1, 'lucy', '루시', 'rapid', '스케이트 전령', 'speedy messenger girl on ice skates with a satchel and short sword', { rateMul: 1.15 }, [
     S('미끄러지며 베기', 5, { area: many(2), ...hit(2) }), S('빙판 만들기', 10, { area: ring(70), fx: { slow: [0.45, 2.5] } }),
     S('급보', 14, { buff: { scope: 'all', rate: 0.1, dur: 6 } }), S('질풍 연격', 14, { area: many(7), ...hit(2.5) })]),
-  C('blue', 1, 'karl', '칼', 'brawl', '방패 수비병', 'stout shield guard with a tower shield and short spear', { push: 20, stun: [0.08, 0.5] }, [
-    S('방패 밀치기', 6, { area: ring(50), fx: { dmg: 1.5, push: 50 } }), S('방패 강타', 8, { area: one, fx: { dmg: 2.5, stun: 1 } }),
-    S('철벽', 14, { buff: { scope: 'adjacent', range: 0.15, dur: 8 } }), S('밀어내기 진형', 18, { area: all, fx: { push: 70, dmg: 1 } })]),
-  C('blue', 1, 'dag', '구스타프', 'heavy', '빙하 투석기 기사', 'engineer with a mini ice catapult and woolen scarf', { splash: 25, slow: [0.2, 1.5] }, [
-    S('얼음덩이', 7, { area: ring(70), fx: { dmg: 2.5, slow: [0.3, 2] } }), S('빙산 조각', 10, { area: many(4), ...hit(3) }),
-    S('장력 조절', 14, { buff: { scope: 'self', range: 0.3, dmg: 0.2, dur: 8 } }), S('빙하 낙하', 18, { area: ring(120), fx: { dmg: 4, stun: 0.8 } })]),
-  C('blue', 1, 'alan', '앨런', 'aid', '왕립 서기관', 'scholarly scribe with quill, scroll and blue spectacles', { aura: { range: 0.12 } }, [
-    S('전술 기록', 14, { buff: { scope: 'adjacent', dmg: 0.2, dur: 6 } }), S('잉크 뿌리기', 8, { area: ring(60), fx: { slow: [0.35, 2], vuln: [0.1, 3] } }),
-    S('작전 회의', 18, { buff: { scope: 'adjacent', rate: 0.25, dur: 6 } }), S('왕의 칙령', 24, { buff: { scope: 'all', range: 0.15, dmg: 0.15, dur: 8 } })]),
-  C('blue', 1, 'sophie', '소피', 'blast', '눈송이 요정술사', 'tiny girl with fairy wings and a snowflake wand', { slow: [0.2, 1.5], splash: 10 }, [
-    S('눈송이 폭죽', 6, { area: ring(60), fx: { dmg: 1.8, slow: [0.3, 2] } }), S('눈사람 소환', 12, { area: ring(70), fx: { stun: 0.8 } }),
-    S('반짝이 가루', 14, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('함박눈', 18, { area: all, fx: { dmg: 1.5, slow: [0.4, 3] } })]),
 
   // ── 언커먼 9 ──
   C('blue', 2, 'sigrid', '시그리드', 'bow', '빙설 궁수', 'silver-haired archer woman with ice-crystal bow and blue cloak', { slow: [0.2, 1.5], targets: 2 }, [
@@ -282,45 +222,9 @@ const BLUE = [
 // ══════════════════════════════ 그린 — 숲·바람·사냥·드루이드·상인 ══════════════════════════════
 const GREEN = [
   // ── 커먼 13 ──
-  C('green', 1, 'robin', '로빈', 'bow', '숲의 의적', 'cheerful forest outlaw with green feathered cap and longbow', { targets: 2, bounty: 0.1 }, [
-    S('의적의 화살', 6, { area: many(3), ...hit(1.8) }), S('부자 털기', 12, { area: one, fx: { dmg: 2 }, gold: 5 }),
-    S('셔우드의 함성', 14, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('화살비', 15, { area: all, ...hit(2) })]),
   C('green', 1, 'leif', '비다르', 'rapid', '독침 사냥꾼', 'wiry tracker with green hood and poison-tipped knives', { dot: [0.4, 3], crit: 0.15 }, [
     S('독 바르기', 6, { area: one, fx: { dot: [1.5, 3] } }), S('던지는 칼', 7, { area: many(3), fx: { dmg: 2, dot: [0.5, 3] } }),
     S('잠복', 12, { buff: { scope: 'self', dmg: 0.5, dur: 5 } }), S('맹독 연격', 15, { area: many(6), fx: { dmg: 2, dot: [1, 4] } })]),
-  C('green', 1, 'astrid', '아스트리드', 'hex', '사슴뿔 드루이드', 'druid girl with antler headdress and leafy robes', { dot: [0.5, 3] }, [
-    S('가시 덩굴', 7, { area: ring(70), fx: { dot: [1, 4], slow: [0.2, 2] } }), S('숲의 축복', 13, { buff: { scope: 'adjacent', rate: 0.2, dur: 6 } }),
-    S('뿌리 속박', 10, { area: ring(70), fx: { stun: 1 } }), S('숲의 분노', 18, { area: all, fx: { dot: [1.2, 5] } })]),
-  C('green', 1, 'torvald', '토르발드', 'heavy', '산악 장궁수', 'rugged mountain archer with a huge longbow and moss cloak', { bossMult: 1.3, rangeMul: 1.1 }, [
-    S('산바람 사격', 7, { area: one, ...hit(4) }), S('바람 실은 화살', 9, { area: many(3), ...hit(3) }),
-    S('고지대', 15, { buff: { scope: 'self', range: 0.4, rate: 0.2, dur: 8 } }), S('거인 사냥', 17, { pick: 'strongest', area: one, fx: { dmg: 12, bossMult: 1.5 } })]),
-  C('green', 1, 'emmett', '에밋', 'brawl', '양치기 소년', 'shepherd boy with a crook staff and a fluffy sheep companion', { push: 15 }, [
-    S('지팡이 휘두르기', 6, { area: ring(50), fx: { dmg: 2, push: 40 } }), S('양 떼 돌진', 10, { area: many(5), fx: { dmg: 1.5, push: 50 } }),
-    S('피리 소리', 14, { buff: { scope: 'adjacent', rate: 0.15, dur: 6 } }), S('대이동', 18, { area: all, fx: { push: 70, dmg: 1 } })]),
-  C('green', 1, 'kit', '키트', 'rapid', '여우 수인 정찰병', 'fox-eared scout girl with a short sword and green scarf', { crit: 0.2, rateMul: 1.1 }, [
-    S('여우 발톱', 5, { area: one, ...hit(3) }), S('홀리기', 10, { area: ring(70), fx: { slow: [0.4, 2], vuln: [0.15, 3] } }),
-    S('날쌘 발', 12, { buff: { scope: 'self', rate: 0.8, dur: 4 } }), S('여우불', 15, { area: many(6), fx: { dmg: 2.5, dot: [0.6, 3] } })]),
-  C('green', 1, 'holly', '홀리', 'aid', '약초꾼', 'smiling herb gatherer with a wicker basket of flowers', { aura: { rate: 0.06 } }, [
-    S('허브 차', 12, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('쐐기풀 가루', 8, { area: ring(60), fx: { dot: [0.8, 3] } }),
-    S('향기 주머니', 16, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('꽃밭', 22, { buff: { scope: 'all', rate: 0.15, dur: 6 } })]),
-  C('green', 1, 'bart', '바트', 'heavy', '덫 사냥꾼', 'grizzled trapper with bear trap and crossbow, fur vest', { stun: [0.12, 0.8] }, [
-    S('곰덫', 8, { area: one, fx: { dmg: 3, stun: 1.5 } }), S('올가미', 10, { area: ring(60), fx: { slow: [0.5, 3] } }),
-    S('사냥 본능', 14, { buff: { scope: 'self', dmg: 0.4, dur: 6 } }), S('함정 지대', 18, { area: ring(110), fx: { dmg: 2, stun: 1.2 } })]),
-  C('green', 1, 'inga', '잉가', 'hex', '벌꿀 양봉가', 'beekeeper with veil hat and a buzzing hive staff', { dot: [0.4, 3], slow: [0.1, 1] }, [
-    S('벌 떼', 6, { area: many(4), fx: { dot: [0.8, 3] } }), S('끈적한 꿀', 9, { area: ring(70), fx: { slow: [0.45, 3] } }),
-    S('로열 젤리', 14, { buff: { scope: 'adjacent', dmg: 0.15, dur: 6 } }), S('성난 벌집', 18, { area: all, fx: { dot: [1, 4] } })]),
-  C('green', 1, 'owen', '오언', 'bow', '바람개비 소년', 'boy with a pinwheel hat and slingshot, windswept hair', { targets: 2, rateMul: 1.1 }, [
-    S('바람 새총', 5, { area: many(2), ...hit(2) }), S('회오리 구슬', 9, { area: ring(60), fx: { dmg: 2, push: 30 } }),
-    S('순풍', 14, { buff: { scope: 'adjacent', rate: 0.2, dur: 5 } }), S('돌풍', 16, { area: all, fx: { dmg: 1.5, push: 50 } })]),
-  C('green', 1, 'mae', '메이', 'aid', '떠돌이 상인', 'cheery traveling merchant with a huge backpack of goods', { bounty: 0.2 }, [
-    S('흥정', 12, { gold: 4, goldPerWave: 0.3 }), S('수상한 물약', 10, { buff: { scope: 'adjacent', dmg: 0.2, dur: 5 } }),
-    S('물건 던지기', 7, { area: many(3), ...hit(2) }), S('대박 거래', 22, { gold: 15, goldPerWave: 1 })]),
-  C('green', 1, 'britt', '브리트', 'brawl', '버섯 채집꾼', 'mushroom forager with a mushroom cap hat and wooden club', { dot: [0.3, 3], splash: 10 }, [
-    S('곤봉', 6, { area: ring(50), ...hit(2.2) }), S('포자 뿌리기', 9, { area: ring(70), fx: { dot: [0.8, 3], slow: [0.2, 2] } }),
-    S('수상한 버섯', 14, { buff: { scope: 'self', dmg: 0.5, rate: 0.2, dur: 5 } }), S('독버섯 밭', 18, { area: all, fx: { dot: [1, 4] } })]),
-  C('green', 1, 'hailey', '헤일리', 'blast', '풀피리 음유시인', 'bard girl with a leaf flute and patchwork green cloak', { chain: 2 }, [
-    S('풀피리', 6, { area: bolt(3), ...hit(2) }), S('잠의 노래', 12, { area: ring(80), fx: { stun: 1 } }),
-    S('행진곡', 14, { buff: { scope: 'adjacent', rate: 0.25, dur: 5 } }), S('숲의 합창', 18, { area: bolt(10), ...hit(2.5) })]),
 
   // ── 언커먼 9 ──
   C('green', 2, 'freya', '프레야', 'blast', '꽃의 마법사', 'flower mage with petal dress and blooming staff', { splash: 15, dot: [0.4, 3] }, [
@@ -397,9 +301,6 @@ const ORIGINALS = [
   O('red', 3, 'verona', '베로나', 'blast', '화염 마법사', 'blonde fire witch girl with a bent red pointed hat and a flame orb staff', { splash: 24, dot: [0.5, 3] }, [
     S('불덩이', 6, { area: ring(60), fx: { dmg: 3, dot: [0.6, 3] } }), S('화염 고리', 9, { area: ring(90), ...hit(3.2) }),
     S('마력 집중', 14, { buff: { scope: 'self', dmg: 0.4, rate: 0.2, dur: 6 } }), S('메테오', 20, { area: all, fx: { dmg: 5, dot: [1, 4] } })]),
-  O('red', 1, 'brock', '브록', 'brawl', '뿔 투구 도끼 전사', 'stocky horned-helmet axe warrior with a bushy orange beard', { dmgMul: 1.2, splash: 12 }, [
-    S('도끼 내려찍기', 6, { area: ring(45), ...hit(3) }), S('수염 박치기', 8, { area: one, fx: { dmg: 2.5, stun: 0.6 } }),
-    S('전사의 분노', 14, { buff: { scope: 'self', dmg: 0.45, dur: 6 } }), S('대지 가르기', 16, { area: ring(90), fx: { dmg: 3.5, push: 30 } })]),
   O('green', 2, 'elin', '엘린', 'bow', '숲 궁수', 'cheerful ponytail forest archer girl with a leaf hairpin and a wooden bow', { targets: 2, crit: 0.1 }, [
     S('겨냥 사격', 6, { pick: 'strongest', area: one, ...hit(4) }), S('잎사귀 화살비', 9, { area: ring(70), ...hit(2.2) }),
     S('바람 읽기', 12, { buff: { scope: 'self', rate: 0.5, crit: 0.2, dur: 5 } }), S('숲의 일제 사격', 15, { area: many(9), ...hit(2.6) })]),
@@ -417,13 +318,36 @@ const ORIGINALS = [
     S('암살자의 집중', 12, { buff: { scope: 'self', rate: 0.6, crit: 0.25, dur: 5 } }), S('처형', 16, { pick: 'strongest', area: one, ...hit(9) })])
 ];
 
-export const ROSTER = [...RED, ...BLUE, ...GREEN, ...ORIGINALS];
+/**
+ * 룰 v2 표 (2026-11-20, docs/drafts/synergy/assign.py 결과): id → [새 등급, 계열, 출신]
+ * 계열: warrior 전사 · ranger 사수 · assassin 암살자 · gunner 포격수 · hexer 주술사 · support 지원가
+ * 출신: north 북방 부족 · knight 왕국 기사단 · tower 마탑 · grove 숲의 일족 · lake 호수의 성역 · guild 황금 길드
+ */
+const V2 = {
+  helga: [1, 'hexer', 'tower'], bridget: [1, 'gunner', 'tower'], karsten: [1, 'warrior', 'guild'], siri: [2, 'assassin', 'guild'], oscar: [2, 'ranger', 'guild'],
+  greta: [2, 'hexer', 'tower'], leo: [2, 'warrior', 'knight'], bern: [2, 'ranger', 'guild'], claire: [2, 'support', 'knight'], einar: [2, 'warrior', 'north'],
+  elva: [3, 'gunner', 'tower'], thorsten: [3, 'warrior', 'guild'], cecilia: [3, 'ranger', 'guild'], ulf: [3, 'assassin', 'north'], aidan: [3, 'hexer', 'tower'],
+  rosalind: [2, 'support', 'lake'], ragnar: [4, 'warrior', 'north'], isolde: [4, 'gunner', 'tower'], bjorn: [4, 'ranger', 'north'], brynhild: [3, 'assassin', 'north'],
+  ingrid: [1, 'hexer', 'north'], emma: [1, 'support', 'lake'], aud: [2, 'hexer', 'lake'], lucy: [1, 'assassin', 'knight'], sigrid: [1, 'ranger', 'lake'],
+  olaf: [1, 'gunner', 'tower'], henrik: [2, 'warrior', 'knight'], liv: [1, 'hexer', 'lake'], jonathan: [1, 'ranger', 'guild'], agnes: [1, 'support', 'lake'],
+  stein: [1, 'warrior', 'north'], nora: [2, 'assassin', 'guild'], gilbert: [1, 'gunner', 'tower'], kristin: [3, 'ranger', 'knight'], haakon: [2, 'warrior', 'lake'],
+  eleanor: [4, 'support', 'knight'], theodore: [3, 'gunner', 'lake'], asta: [4, 'hexer', 'lake'], winston: [3, 'ranger', 'guild'], arthur: [4, 'warrior', 'knight'],
+  solveig: [4, 'gunner', 'tower'], william: [4, 'ranger', 'lake'], vivian: [3, 'support', 'lake'], leif: [2, 'assassin', 'north'], freya: [1, 'gunner', 'grove'],
+  sigurd: [2, 'warrior', 'knight'], edda: [1, 'hexer', 'grove'], colin: [1, 'ranger', 'guild'], thea: [2, 'support', 'grove'], gareth: [1, 'warrior', 'knight'],
+  marit: [1, 'assassin', 'grove'], fergus: [2, 'ranger', 'grove'], ylva: [1, 'hexer', 'north'], elias: [3, 'ranger', 'grove'], rowena: [3, 'hexer', 'grove'],
+  atle: [2, 'warrior', 'north'], gwen: [3, 'support', 'grove'], ivar: [4, 'assassin', 'guild'], celeste: [2, 'gunner', 'tower'], halvard: [3, 'warrior', 'north'],
+  freydis: [4, 'support', 'grove'], richard: [4, 'ranger', 'guild'], oberon: [4, 'gunner', 'grove'], kaira: [1, 'warrior', 'knight'], verona: [2, 'gunner', 'tower'],
+  elin: [1, 'ranger', 'grove'], thorn: [2, 'hexer', 'grove'], adel: [3, 'warrior', 'knight'], serena: [3, 'support', 'lake'], nix: [1, 'assassin', 'guild']
+};
+
+export const ROSTER = [...RED, ...BLUE, ...GREEN, ...ORIGINALS].map((c) => {
+  const [grade, cls, origin] = V2[c.id];
+  const last = c.skills[c.skills.length - 1];
+  // 대표 스킬 id 는 예전 마지막 스킬 id 그대로 (레어·유니크 전용 이펙트 시트 키)
+  return { ...c, oldGrade: c.grade, grade, cls, origin, skill: { ...regradeSkill(last, c.grade, grade), id: `${c.id}_${c.skills.length - 1}` } };
+});
 export const ROSTER_BY_ID = Object.fromEntries(ROSTER.map((c) => [c.id, c]));
 
-/** 이 캐릭터의 스킬이 열리는 레벨 (유니크는 1레벨부터) */
-export function skillLevels(c) {
-  return c.grade === 4 ? [1, 2, 3, 4] : [2, 3, 4, 5];
-}
 
 /** ChatGPT 그림 프롬프트 — 모든 캐릭터에 공통으로 붙는 스타일 */
 // 공통 규칙 (2026-11-17 사용자 결정): 모든 캐릭터 2등신 + 얼굴(머리) 크기 동일
@@ -442,40 +366,22 @@ export function artPrompt(c) {
   return `${STYLE_PROMPT}. Character: ${c.look}. Main colors: ${ATTR_COLOR[c.attr]}. ${GRADE_DETAIL[c.grade]}.`;
 }
 
-/** 처음 주어지는 덱 (37포인트): 속성마다 커먼 4 · 언커먼 2 · 레어 1 + 유니크 1 */
+/**
+ * 처음 주어지는 덱 (30명): 계열·출신이 고르게 — 커먼 14 · 언커먼 9 · 레어 5 · 유니크 2.
+ * 룰 v2 ③ 술집: 처음에 이 캐릭터들을 가진 채로 시작한다 (가안)
+ */
 export const DEFAULT_DECK = [
-  'eric', 'rowan', 'helga', 'gunnar', 'bridget', 'karsten', 'elva',
-  'finn', 'ingrid', 'edmund', 'percy', 'sigrid', 'olaf', 'kristin',
-  'robin', 'leif', 'astrid', 'torvald', 'freya', 'sigurd', 'elias',
-  'ragnar'
+  'helga', 'bridget', 'karsten', 'ingrid', 'emma', 'lucy', 'sigrid', 'olaf', 'liv', 'jonathan', 'agnes', 'stein', 'freya', 'gareth',
+  'siri', 'leo', 'bern', 'claire', 'einar', 'aud', 'leif', 'thea', 'fergus',
+  'elva', 'thorsten', 'kristin', 'elias', 'vivian',
+  'ragnar', 'eleanor'
 ];
 
-/** 덱 포인트 합계 */
-export function deckPoints(ids) {
-  return ids.reduce((s, id) => s + (ROSTER_BY_ID[id] ? GRADES[ROSTER_BY_ID[id].grade].pt : 0), 0);
-}
-
-/** 쓸 수 있는 덱인가: 1명 이상, 중복 없음, 포인트 DECK_POINTS 이하 */
+/** 쓸 수 있는 덱인가: 1~30명, 중복 없음, 레어 9명·유니크 3명 이하 */
 export function deckValid(ids) {
-  return Array.isArray(ids) && ids.length > 0 && new Set(ids).size === ids.length && ids.every((id) => ROSTER_BY_ID[id]) && deckPoints(ids) <= DECK_POINTS;
-}
-
-/**
- * 고용 등급 굴리기: 등급 확률(유니크 1% 등) + 명성 강화 보정 → 덱에 있는 그 등급 캐릭터 중 무작위.
- * 덱에 그 등급이 없으면 한 단계 아래 등급, 그래도 없으면 위 등급. rand: 0~1 난수 함수 (테스트용)
- */
-export function rollHire(deckIds, bonus = {}, rand = Math.random) {
-  const chars = deckIds.map((id) => ROSTER_BY_ID[id]).filter(Boolean);
-  if (!chars.length) return null;
-  const p = { 4: GRADES[4].hire / 100 + (bonus.uniqueChance || 0), 3: GRADES[3].hire / 100 + (bonus.rareChance || 0), 2: GRADES[2].hire / 100 };
-  const r = rand();
-  const grade = r < p[4] ? 4 : r < p[4] + p[3] ? 3 : r < p[4] + p[3] + p[2] ? 2 : 1;
-  const order = [grade, ...[3, 2, 1].filter((g) => g < grade), ...[2, 3, 4].filter((g) => g > grade)];
-  for (const g of order) {
-    const pool = chars.filter((c) => c.grade === g);
-    if (pool.length) return pool[Math.floor(rand() * pool.length)];
-  }
-  return null;
+  if (!Array.isArray(ids) || !ids.length || ids.length > DECK_RULES.max || new Set(ids).size !== ids.length || !ids.every((id) => ROSTER_BY_ID[id])) return false;
+  const n = (g) => ids.filter((id) => ROSTER_BY_ID[id].grade === g).length;
+  return n(3) <= DECK_RULES.rare && n(4) <= DECK_RULES.unique;
 }
 
 /**
