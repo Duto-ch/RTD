@@ -1,14 +1,17 @@
 import Phaser from 'phaser';
 import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
-import { GRADES, STYLES, skillLevels } from '../data/roster.js';
+import { GRADES, STYLES } from '../data/roster.js';
+import { STAR_STAT, MAX_STAR, starSkill, maxMana } from '../data/stars.js';
+import { TRAITS, RAGE_MAX } from '../data/synergy.js';
 import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
-import { ringPixels, levelPixels, MARK_PX } from '../ui/gradeMark.js';
+import { ringPixels, starPixels, MARK_PX } from '../ui/gradeMark.js';
+import { GRID } from '../config.js';
 
-export const MAX_LEVEL = 5; // 최고 레벨 (2026-11-17: 영웅 승급 폐지 — 유니크는 고용으로만)
-
-/** 필드 위 유닛 = 캐릭터 104명(data/roster.js) 중 하나. 등급·속성·레벨·고유 특성·확정 스킬 */
+/** 필드 위 유닛 = 캐릭터 70명(data/roster.js) 중 하나 (룰 v2, 2026-11-20).
+ *  등급·별(1~3, 같은 캐릭터 3장 → 승급)·계열·출신·고유 특성·스킬 1개(마나가 차면 시전) */
 const NO_BONUS = {};
+const NO_SYN = { tiers: {} };
 
 // 아직 전용 그림이 없는 캐릭터의 임시 그림 (ChatGPT 그림을 manifest 에 `char_<id>` 로 넣으면 그게 우선)
 const OLD_SPRITE = {
@@ -41,31 +44,31 @@ export function charImage(scene, x, y, c, base) {
   return img;
 }
 
-/** 캐릭터 스킬 → 게임 스킬 정의 (id·습득 레벨·속성). 유니크 Lv1 대표 스킬은 영웅 궁극기 연출(level 6) */
-export function skillDefs(c) {
-  const lv = skillLevels(c);
-  return c.skills.map((s, i) => ({ ...s, id: `${c.id}_${i}`, unlock: lv[i], level: c.grade === 4 && i === 0 ? MAX_LEVEL + 1 : lv[i], attr: c.attr }));
+/** 캐릭터 스킬 → 게임 스킬 정의 (별 단계 수치). level: 연출·효과음 세기 (유니크는 궁극기 연출 6, 나머지는 별+2) */
+export function skillDef(c, star) {
+  return { ...starSkill(c.skill, star), id: c.skill.id, level: c.grade === 4 ? 6 : Math.min(5, star + 2), attr: c.attr, star };
 }
 
 export class Mercenary extends Phaser.GameObjects.Container {
   /** @param {object} char data/roster.js 의 캐릭터 */
-  constructor(scene, col, row, char) {
+  constructor(scene, col, row, char, star = 1) {
     const c = cellCenter(col, row);
     super(scene, c.x, c.y);
     this.char = char;
-    this.attr = char.attr;
+    this.attr = char.attr; // 그림·이펙트 색만 (규칙에서 속성은 없다)
     this.grade = char.grade;
-    this.level = 1;
-    this.defs = skillDefs(char);
-    this.skills = []; // { def, cd }
+    this.star = star;
+    this.def = skillDef(char, star);
+    this.mana = 0;
+    this.rage = 0; // 북방 부족 분노 중첩
+    this.attacks = 0; // 공격 횟수 (전사 베기 주기)
     this.buffs = []; // { dmg, rate, range, crit, until }
     this.debuffs = []; // 보스 디버프 { def, until }
     this.col = col;
     this.row = row;
     this.cooldown = Math.random() * 0.5;
-    this.invested = 0;
+    this.invested = 0; // 이 유닛에 들어간 골드 (판매 환급 기준)
     this.kills = 0;
-    this.learnUpTo(1);
 
     // 몸통이 칸 가운데에 오도록 (그림의 몸 중심 = manifest pivotX/pivotY, 없으면 그림 가운데)
     this.sprite = setArt(scene.add.sprite(0, 0, this.textureKey), this.textureKey, UNIT_PX);
@@ -96,7 +99,22 @@ export class Mercenary extends Phaser.GameObjects.Container {
     return GRADES[this.grade].name;
   }
   get roleName() {
-    return `${GRADES[this.grade].name} ${STYLES[this.char.style].name}`;
+    return `${TRAITS[this.char.cls].name} · ${TRAITS[this.char.origin].name}`;
+  }
+  get cls() {
+    return this.char.cls;
+  }
+  get origin() {
+    return this.char.origin;
+  }
+  /** 바깥 16칸 = 전열 (전사 효과 1.5배) / 가운데 3×3 = 후열 (사수 사거리 +1칸) */
+  get isFront() {
+    return this.row === 0 || this.col === 0 || this.row === GRID - 1 || this.col === GRID - 1;
+  }
+  /** 최대 마나 (명성 강화 '전술 교범'만큼 줄어든다) */
+  get maxMana() {
+    const mb = this.scene?.bonus || NO_BONUS;
+    return Math.max(20, Math.round(maxMana(STYLES[this.char.style], this.char.trait, this.char.skill) * (1 - (mb.cdr || 0))));
   }
   get kind() {
     return STYLE_KIND[this.char.style];
@@ -104,21 +122,21 @@ export class Mercenary extends Phaser.GameObjects.Container {
   get trait() {
     return this.char.trait;
   }
-  /** 1레벨 기본 능력치 = 공격 스타일 × 등급 배율 */
+  /** 기본 능력치 = 공격 스타일 × 등급 배율 × 별 배율 */
   get baseStats() {
     const st = STYLES[this.char.style];
-    return { ...st, dmg: st.dmg * GRADES[this.grade].mult };
+    return { ...st, dmg: st.dmg * GRADES[this.grade].mult * STAR_STAT[this.star - 1] };
   }
 
   drawPips() {
-    // 등급 = 발밑 받침 고리(등급색 + 진한 외곽선), 레벨 = 고리 아래쪽 가운데 패 숫자 (2026-11-18)
+    // 등급 = 발밑 받침 고리(등급색 + 진한 외곽선), 별 = 고리 아래쪽 가운데 패 안 별 (2026-11-20)
     const P = MARK_PX;
     const paint = (g, list) => list.forEach(([x, y, c]) => g.fillStyle(c).fillRect(x * P, y * P, P, P));
     this.ringBack.clear();
     this.pips.clear();
     paint(this.ringBack, ringPixels(this.grade, 'back'));
     paint(this.pips, ringPixels(this.grade, 'front'));
-    paint(this.pips, levelPixels(this.grade, this.level));
+    paint(this.pips, starPixels(this.grade, this.star));
   }
 
   preDestroy() {
@@ -131,46 +149,30 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.setPosition(c.x, c.y);
   }
 
-  /** 같은 속성 + 같은 등급 + 같은 레벨끼리 합친다 (2026-11-17). 최고 레벨이면 더 못 합친다 */
-  canMergeWith(other) {
-    return !!other && other !== this && other.attr === this.attr && other.grade === this.grade && other.level === this.level && this.level < MAX_LEVEL;
+  /** 별 승급 (같은 캐릭터 3장 → 다음 별). 스킬 수치도 그 별로 */
+  starUp() {
+    if (this.star >= MAX_STAR) return false;
+    this.star += 1;
+    this.def = skillDef(this.char, this.star);
+    this.drawPips();
+    return true;
   }
 
-  /** 다른 캐릭터로 바꾼다 (테스트·디버그용): 지금 레벨까지의 스킬을 다시 익히고 그림을 바꾼다 */
-  setChar(char) {
+  /** 다른 캐릭터로 바꾼다 (테스트·디버그용) */
+  setChar(char, star = this.star) {
     this.char = char;
     this.attr = char.attr;
     this.grade = char.grade;
-    this.defs = skillDefs(char);
-    this.skills = [];
-    this.learnUpTo(this.level);
+    this.star = star;
+    this.def = skillDef(char, star);
     setArt(this.sprite, this.textureKey, UNIT_PX);
     playBase(this.sprite, 'idle');
     this.drawPips();
     return this;
   }
 
-  /** level 까지 열리는 확정 스킬을 모두 익힌다 (이미 익힌 것은 건너뛴다) */
-  learnUpTo(level) {
-    const out = [];
-    for (const def of this.defs) {
-      if (def.unlock > level || this.skills.some((s) => s.def.id === def.id)) continue;
-      this.skills.push({ def, cd: def.cd * 0.5 });
-      out.push(def);
-    }
-    return out;
-  }
-
-  /** 레벨 업 → 그 레벨에 열리는 스킬을 익힌다. 새로 익힌 스킬 목록을 돌려준다 */
-  levelUp() {
-    this.level += 1;
-    const learned = this.learnUpTo(this.level);
-    this.drawPips();
-    return learned;
-  }
-
-  addBuff(b, now) {
-    this.buffs.push({ dmg: b.dmg || 0, rate: b.rate || 0, range: b.range || 0, crit: b.crit || 0, until: now + b.dur });
+  addBuff(b, now, durMult = 1) {
+    this.buffs.push({ dmg: b.dmg || 0, rate: b.rate || 0, range: b.range || 0, crit: b.crit || 0, until: now + b.dur * durMult });
   }
 
   addDebuff(def, now, durMult = 1) {
@@ -195,7 +197,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     return s;
   }
 
-  /** 유물·버프·디버프 반영 최종 능력치 */
+  /** 유물·버프·디버프·시너지·명성 강화 반영 최종 능력치 */
   getStats(relics, now) {
     const base = this.baseStats;
     const t = this.trait;
@@ -217,29 +219,50 @@ export class Mercenary extends Phaser.GameObjects.Container {
       aura.range += a.range || 0;
     }
 
+    // 시너지 (data/synergy.js) — 내 계열·출신 단계 + 팀 전체 효과
+    const syn = this.scene?.syn || NO_SYN;
+    const my = syn.tiers[this.cls] || {};
+    const org = syn.tiers[this.origin] || {};
+    const front = this.cls === 'warrior' && this.isFront ? 1.5 : 1; // 전사는 전열에서 1.5배
+    const rageOn = !!syn.tiers.north && this.origin === 'north';
+    const rage = rageOn ? this.rage : 0;
+    const synDmg = (my.dmg || 0) * front + (org.dmg || 0) + (syn.tiers.warrior?.teamDmg || 0) + (rageOn && rage >= RAGE_MAX ? org.rageDmg || 0 : 0);
+    const synRate = (syn.tiers.support?.teamRate || 0) + rage * (org.rage || 0);
+    const synRange = (my.range || 0) * front;
+
     const deb = this.debuffState(now);
     // 명성 강화(영구) — 유물·버프와 따로 곱한다. 유물 효과는 '유물 감정'만큼 커진다
     const mb = this.scene?.bonus || NO_BONUS;
     const v = (k) => mb[k] || 0;
     const rp = 1 + v('relicPow');
-    const dmgBonus = (0.2 * n('hero_sword') + 0.4 * n(`${this.attr}_orb`)) * rp + buff.dmg + aura.dmg + deb.dmg;
-    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + aura.rate + deb.rate;
-    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range + aura.range;
-    // 속성·등급 전용 강화
-    const special = 1 + v(`attr_${this.attr}`) + v(`grade_${this.grade}`);
-    const lv = Math.min(this.level, MAX_LEVEL);
+    const dmgBonus = 0.2 * n('hero_sword') * rp + buff.dmg + aura.dmg + deb.dmg + synDmg;
+    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + aura.rate + deb.rate + synRate;
+    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range + aura.range + synRange;
+    // 등급·자리 전용 강화
+    const special = 1 + v(`grade_${this.grade}`) + (this.isFront ? v('frontline') : v('backline'));
+    const backRange = this.cls === 'ranger' && syn.tiers.ranger && !this.isFront ? 56 : 0; // 사수 후열: 사거리 +1칸
 
     return {
-      damage: base.dmg * (t.dmgMul || 1) * BALANCE.levelDamage[lv - 1] * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
+      damage: base.dmg * (t.dmgMul || 1) * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
       rate: base.rate * (t.rateMul || 1) * (1 + v('rate')) * Math.max(0.1, 1 + rateBonus),
-      range: base.range * (t.rangeMul || 1) * (1 + v('range')) * (1 + rangeBonus),
-      crit: Math.min(1, (t.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit') + buff.crit),
-      critMult: 2 + v('critDmg'),
+      range: base.range * (t.rangeMul || 1) * (1 + v('range')) * (1 + rangeBonus) + backRange,
+      crit: Math.min(1, (t.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit') + buff.crit + (my.crit || 0)),
+      critMult: 2 + v('critDmg') + (my.critDmg || 0),
+      critExtra: my.critExtra || 0,
       targets: (t.targets || 1) + v('targets'),
-      splash: ((base.splash || 0) + (t.splash || 0)) * (1 + v('splash')),
+      splash: ((base.splash || 0) + (t.splash || 0)) * (1 + v('splash') + (my.splash || 0)),
+      burn: my.burn || 0,
+      doubleBlast: !!my.double,
+      cleaveEvery: my.cleaveEvery || 0,
+      pierce: my.pierce || 0,
+      eliteDmg: my.eliteDmg || 0,
+      hex: 1 + (my.hex || 0),
       chain: t.chain || 0,
       slow: t.slow ? t.slow[0] : 0,
       slowDur: t.slow ? t.slow[1] : 0,
+      manaGain: 10 + (org.mana || 0) + v('manaGain'),
+      skillDmg: (org.skillDmg || 0) + v('skillDmg'),
+      doubleCast: org.doubleCast || 0,
       buffed: this.buffs.length > 0,
       aura: aura.dmg + aura.rate + aura.range > 0,
       debuff: deb

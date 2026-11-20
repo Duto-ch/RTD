@@ -6,7 +6,7 @@ import { panel, uiText, drawIcon, CSS, C } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
-import { ROSTER_BY_ID, GRADES, DECK_POINTS, deckPoints } from '../data/roster.js';
+import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
 
 // 로비 = 용병단 영지 (2026-11-17, 시안 A '영지 지도형'). 건물이 곧 메뉴:
@@ -154,7 +154,6 @@ export class LobbyScene extends Phaser.Scene {
   /** 아래: 출전 덱 (병영으로) + 출전 버튼 */
   createDeckStrip() {
     const ids = meta.deck;
-    const pts = deckPoints(ids);
     const per = WIDE ? 22 : 11; // 한 줄에 놓는 수
     const step = WIDE ? 33 : 46;
     const rows = Math.ceil(ids.length / per);
@@ -164,7 +163,7 @@ export class LobbyScene extends Phaser.Scene {
     const py = WIDE ? GAME_H - 16 - ph : GAME_H - 108 - ph;
     panel(this, px, py, pw, ph, 'card');
     uiText(this, px + 16, py + 10, `출전 덱 ${ids.length}명`, 13, CSS.ink, 'bold');
-    uiText(this, px + pw - 16, py + 10, `${pts} / ${DECK_POINTS} 포인트 · 병영에서 편성`, 11, CSS.sub, '600').setOrigin(1, 0);
+    uiText(this, px + pw - 16, py + 10, `${ids.length} / ${DECK_RULES.max}명 · 병영에서 편성`, 11, CSS.sub, '600').setOrigin(1, 0);
     ids.forEach((id, i) => {
       const ch = ROSTER_BY_ID[id];
       const x = px + 12 + (i % per) * step + step / 2;

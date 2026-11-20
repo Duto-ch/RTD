@@ -1,6 +1,6 @@
-// 유닛 등급·레벨 표시 (2026-11-18, 시안 A + C — docs/drafts/grade-level/)
+// 유닛 등급·별 표시 (2026-11-18 시안 A + C — docs/drafts/grade-level/, 2026-11-20 룰 v2: 레벨 → 별)
 //  - 등급: 발밑 탑뷰 받침 고리(등급색). 뒤쪽 반은 캐릭터 뒤, 앞쪽 반은 앞
-//  - 레벨: 고리 아래쪽 가운데 둥근 패 안 숫자 (Lv5 금빛) — 방패 모양은 캐릭터가 방패를 찬 것처럼 보여 바꿈
+//  - 별: 고리 아래쪽 가운데 둥근 패 안 작은 별 1~3개 (1성 흰색 · 2성 하늘색 · 3성 금빛)
 //  - 석판(회색)과 확연히 갈리도록 고리는 채도 높은 색 + 진한 외곽선
 // Phaser 없이 도트 목록만 만든다 (칸 중심 = 0,0 · 아트 1px = 화면 MARK_PX)
 export const MARK_PX = 2;
@@ -53,5 +53,25 @@ export function levelPixels(grade, level) {
   }
   const lv = Math.min(level, MAX_LEVEL);
   DIGIT[lv].forEach((row, j) => [...row].forEach((ch, i) => ch === 'w' && out.push([x0 + 2 + i, y0 + 2 + j, lv >= MAX_LEVEL ? LV5 : 0xffffff])));
+  return out;
+}
+
+// 별 3x3 (가운데 + 십자)
+const STAR_DOT = ['.w.', 'www', '.w.'];
+const STAR_COLOR = { 1: 0xffffff, 2: 0x9fe0ff, 3: 0xffe066 };
+
+/** 별 패 도트 [[x, y, color]] — 고리 아래쪽 가운데 둥근 패(진한 등급색) 안 별 star 개 */
+export function starPixels(grade, star) {
+  const g = GRADE_COLORS[grade], out = [];
+  const n = Math.max(1, Math.min(3, star));
+  const W = n * 4 + 3, H = 7, x0 = -Math.floor(W / 2), y0 = 10;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if ((x === 0 || x === W - 1) && (y === 0 || y === H - 1)) continue;
+      const edge = x === 0 || x === W - 1 || y === 0 || y === H - 1;
+      out.push([x0 + x, y0 + y, edge ? OUT : g[0]]);
+    }
+  }
+  for (let k = 0; k < n; k++) STAR_DOT.forEach((row, j) => [...row].forEach((ch, i) => ch === 'w' && out.push([x0 + 2 + k * 4 + i, y0 + 2 + j, STAR_COLOR[n]])));
   return out;
 }

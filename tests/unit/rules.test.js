@@ -1,26 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { BALANCE } from '../../src/config.js';
-import { elementMultiplier, BEATS, ATTRS } from '../../src/data/elements.js';
+import { ATTRS } from '../../src/data/elements.js';
 import { MERC_CLASS_IDS, HEROES } from '../../src/data/heroes.js';
 import { skillOptions, describeSkill } from '../../src/data/skills.js';
 import { RELICS } from '../../src/data/relics.js';
 import { BOSS_ABILITIES } from '../../src/data/bossAbilities.js';
 
-describe('상성', () => {
-  it('블루 > 레드 > 그린 > 블루', () => {
-    expect(BEATS).toEqual({ blue: 'red', green: 'blue', red: 'green' });
-    expect(elementMultiplier('blue', 'red')).toBe(BALANCE.elementAdvantage);
-    expect(elementMultiplier('red', 'blue')).toBe(BALANCE.elementDisadvantage);
-    expect(elementMultiplier('red', 'red')).toBe(1);
-  });
-});
-
-describe('비용', () => {
-  it('레벨 업 비용 Lv3부터 2배, 영웅 승급 1800G', () => {
-    expect(BALANCE.mergeCost).toEqual({ 2: 20, 3: 100, 4: 240, 5: 600 });
-    expect(BALANCE.promoteCost).toBe(1800);
+describe('유물', () => {
+  it('동시에 켤 수 있는 유물 4개', () => {
     expect(BALANCE.maxActiveRelics).toBe(4);
-    expect(BALANCE.hireLv2Chance).toBe(0.05);
   });
 });
 

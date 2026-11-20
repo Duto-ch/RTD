@@ -3,9 +3,13 @@
 import { UPGRADE_BY_ID, upgradeCost, metaBonus } from '../data/upgrades.js';
 import { DEFAULT_DECK, deckValid } from '../data/roster.js';
 
-// v2 (2026-11-17): 캐릭터·덱 개편과 함께 저장 초기화 (사용자 결정). 예전 v1 저장은 읽지 않는다
-const KEY = 'rtd_meta_v2';
-const fresh = () => ({ fame: 0, totalFame: 0, levels: {}, best: { normal: 0 }, tutorial: { seen: {}, off: false }, deck: [...DEFAULT_DECK] });
+// v3 (2026-11-20 룰 v2): 상점·시너지·술집·유물 공방으로 바뀌면서 저장 초기화 (사용자 결정). 예전 v2 저장은 읽지 않는다
+const KEY = 'rtd_meta_v3';
+// owned: 가진 캐릭터 id → 강화 단계(술집에서 같은 캐릭터를 다시 고용하면 +1). 처음에는 기본 덱 30명을 가진 채로 시작
+const fresh = () => ({
+  fame: 0, totalFame: 0, levels: {}, best: { normal: 0 }, tutorial: { seen: {}, off: false },
+  deck: [...DEFAULT_DECK], owned: Object.fromEntries(DEFAULT_DECK.map((id) => [id, 0]))
+});
 
 export const meta = {
   data: fresh(),
@@ -50,12 +54,22 @@ export const meta = {
     this.save();
   },
 
-  // ── 덱 (등급 포인트 합 40 이하) ──
+  // ── 가진 캐릭터 (룰 v2 ③ 술집) ──
+  owns(id) {
+    return this.data.owned?.[id] != null;
+  },
+  /** 강화 단계 (가지지 않았으면 0) */
+  enhance(id) {
+    return this.data.owned?.[id] || 0;
+  },
+
+  // ── 덱 (가진 캐릭터 중 최대 30명 · 레어 9 · 유니크 3) ──
   get deck() {
-    return deckValid(this.data.deck) ? this.data.deck : [...DEFAULT_DECK];
+    const d = (this.data.deck || []).filter((id) => this.owns(id));
+    return deckValid(d) ? d : DEFAULT_DECK.filter((id) => this.owns(id));
   },
   setDeck(ids) {
-    if (!deckValid(ids)) return false;
+    if (!deckValid(ids) || !ids.every((id) => this.owns(id))) return false;
     this.data.deck = [...ids];
     this.save();
     return true;

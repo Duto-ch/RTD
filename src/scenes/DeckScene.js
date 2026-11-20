@@ -5,14 +5,14 @@ import { Button } from '../ui/Button.js';
 import { panel, uiText, CSS } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
-import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_POINTS, DEFAULT_DECK, TRAIT_TEXT, deckPoints, skillLevels } from '../data/roster.js';
+import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_RULES, DEFAULT_DECK, TRAIT_TEXT, deckValid } from '../data/roster.js';
 import { describeSkill } from '../data/skills.js';
-import { ATTR_INFO } from '../data/elements.js';
+import { starSkill } from '../data/stars.js';
+import { TRAITS } from '../data/synergy.js';
 import { charImage } from '../objects/Mercenary.js';
 
-// 병영 = 덱 편성 (2026-11-17). 캐릭터 104명 중 등급 포인트 합 40 이하로 출전 덱을 짠다 (커먼 1·언커먼 2·레어 3·유니크 4).
-// 카드를 누르면 오른쪽(세로는 아래) 정보 창에 특성·레벨별 스킬, '덱에 넣기/빼기'. 3색 조합 자유.
-// 지금은 모든 캐릭터를 쓸 수 있다 — 가챠(3단계)가 들어오면 가진 캐릭터만
+// 병영 = 덱 편성 (룰 v2, 2026-11-20). 가진 캐릭터(술집에서 고용) 중 최대 30명 — 레어 9명·유니크 3명까지.
+// 판 안 상점은 이 덱의 캐릭터만 내놓는다. 카드를 누르면 정보 창에 계열·출신·특성·스킬(별마다), '덱에 넣기/빼기'.
 
 const L = WIDE
   ? { grid: { x: 16, y: 128, w: 840, h: 576 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 } }
@@ -28,7 +28,7 @@ export class DeckScene extends Phaser.Scene {
     hiRes(this);
     meta.load();
     this.deck = [...meta.deck];
-    this.filter = { attr: 'all', grade: 0 };
+    this.filter = { show: 'all', grade: 0 };
     this.selected = ROSTER_BY_ID[this.deck[0]] || ROSTER[0];
     this.scrollY = 0;
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x123b3a).setOrigin(0);
@@ -42,8 +42,8 @@ export class DeckScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
   }
 
-  get points() {
-    return deckPoints(this.deck);
+  owned(id) {
+    return meta.owns(id);
   }
 
   createHeader() {
@@ -56,7 +56,7 @@ export class DeckScene extends Phaser.Scene {
   createFilters() {
     const y = WIDE ? 92 : 82;
     const chips = [
-      ['all', '전체'], ['red', '레드'], ['blue', '블루'], ['green', '그린']
+      ['all', '전체'], ['owned', '보유'], ['deck', '덱']
     ];
     const grades = [[0, '전 등급'], [1, '커먼'], [2, '언커먼'], [3, '레어'], [4, '유니크']];
     this.chipBtns = [];
@@ -64,11 +64,11 @@ export class DeckScene extends Phaser.Scene {
     for (const [v, label] of chips) {
       const w = 64;
       const b = new Button(this, x + w / 2, y, w, 30, label, () => {
-        this.filter.attr = v;
+        this.filter.show = v;
         this.scrollY = 0;
         this.refresh();
       }, { variant: 'outline', fontSize: 12 });
-      b.kind = ['attr', v];
+      b.kind = ['show', v];
       this.chipBtns.push(b);
       x += w + 6;
     }
@@ -133,8 +133,9 @@ export class DeckScene extends Phaser.Scene {
   drawGrid() {
     const G = L.grid;
     this.gridC.removeAll(true);
-    const list = ROSTER.filter((c) => (this.filter.attr === 'all' || c.attr === this.filter.attr) && (!this.filter.grade || c.grade === this.filter.grade))
-      .sort((a, b) => b.grade - a.grade || ['red', 'blue', 'green'].indexOf(a.attr) - ['red', 'blue', 'green'].indexOf(b.attr));
+    const f = this.filter.show;
+    const list = ROSTER.filter((c) => (f === 'all' || (f === 'owned' ? this.owned(c.id) : this.deck.includes(c.id))) && (!this.filter.grade || c.grade === this.filter.grade))
+      .sort((a, b) => (this.owned(b.id) ? 1 : 0) - (this.owned(a.id) ? 1 : 0) || b.grade - a.grade || a.cls.localeCompare(b.cls) || a.origin.localeCompare(b.origin));
     this.visible = list;
     const cw = G.w / L.cols;
     list.forEach((c, i) => {
@@ -142,24 +143,27 @@ export class DeckScene extends Phaser.Scene {
       const y = G.y + 6 + Math.floor(i / L.cols) * (L.cardH + 8);
       const w = cw - 8;
       const inDeck = this.deck.includes(c.id);
+      const own = this.owned(c.id);
       const sel = this.selected === c;
       const g = this.add.graphics();
       g.fillStyle(inDeck ? 0xfff6dc : 0xe7dcbb, 1).fillRoundedRect(x, y, w, L.cardH, 12);
       g.lineStyle(sel ? 4 : 3, sel ? 0xf2c14e : GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, w, L.cardH, 12);
-      if (!inDeck) g.fillStyle(0x0b2f2e, 0.28).fillRoundedRect(x, y, w, L.cardH, 12);
-      g.fillStyle(ATTR_INFO[c.attr].color, 1).fillCircle(x + 12, y + 12, 6);
+      if (!inDeck) g.fillStyle(0x0b2f2e, own ? 0.22 : 0.5).fillRoundedRect(x, y, w, L.cardH, 12);
       const img = charImage(this, x + 28, y + L.cardH / 2 + 2, c, 2.5);
+      if (!own) img.setTint(0x30403c);
       const nm = uiText(this, x + 52, y + 14, c.name, 13, CSS.ink, 'bold');
       const gr = uiText(this, x + 52, y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
-      const st = uiText(this, x + 52, y + 52, STYLES[c.style].name, 11, CSS.sub, '600');
+      const st = uiText(this, x + 52, y + 52, own ? `${TRAITS[c.cls].name}·${TRAITS[c.origin].name}` : '술집에서 고용', 11, CSS.sub, '600');
+      this.fit(st, w - 56);
       this.gridC.add([g, img, nm, gr, st]);
+      const enh = meta.enhance(c.id);
+      if (enh) this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `+${enh}`, 11, CSS.primary, 'bold').setOrigin(1, 1));
       if (inDeck) {
         const chk = this.add.graphics();
         chk.fillStyle(0x3f9a5a, 1).fillCircle(x + w - 14, y + 14, 10);
         chk.lineStyle(3, 0xffffff, 1).beginPath().moveTo(x + w - 19, y + 14).lineTo(x + w - 15, y + 18).lineTo(x + w - 8, y + 10).strokePath();
         this.gridC.add(chk);
       }
-      this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `${GRADES[c.grade].pt}pt`, 11, CSS.sub, '600').setOrigin(1, 1));
     });
     this.contentH = Math.ceil(list.length / L.cols) * (L.cardH + 8) + 8;
     this.setScroll(this.scrollY);
@@ -177,8 +181,10 @@ export class DeckScene extends Phaser.Scene {
       if (this.deck.length <= 1) return this.toast('덱에는 1명 이상 있어야 합니다');
       this.deck.splice(i, 1);
     } else {
-      const pt = GRADES[c.grade].pt;
-      if (this.points + pt > DECK_POINTS) return this.toast(`포인트가 모자랍니다 (${this.points} + ${pt} > ${DECK_POINTS})`);
+      if (!this.owned(c.id)) return this.toast('아직 고용하지 않은 캐릭터예요 — 영지의 술집에서 고용하세요');
+      const next = [...this.deck, c.id];
+      if (next.length > DECK_RULES.max) return this.toast(`덱은 최대 ${DECK_RULES.max}명입니다`);
+      if (!deckValid(next)) return this.toast(`레어는 최대 ${DECK_RULES.rare}명, 유니크는 최대 ${DECK_RULES.unique}명입니다`);
       this.deck.push(c.id);
     }
     this.refresh();
@@ -189,11 +195,11 @@ export class DeckScene extends Phaser.Scene {
     const c = this.selected;
     this.info.removeAll(true);
     this.info.add(panel(this, I.x, I.y, I.w, I.h, 'card'));
-    const lv = skillLevels(c);
-    const col = c.grade === 4 ? '#b47a12' : ATTR_INFO[c.attr].css;
+    const col = c.grade === 4 ? '#b47a12' : CSS.primary;
     const head = charImage(this, I.x + 34, I.y + 36, c, 3);
     const nm = uiText(this, I.x + 64, I.y + 14, `${c.name}  ·  ${c.title}`, 16.5, col, 'bold');
-    const sub = uiText(this, I.x + 64, I.y + 38, `${GRADES[c.grade].name} ${GRADES[c.grade].pt}pt · ${ATTR_INFO[c.attr].name} · ${STYLES[c.style].name} (공격력 ${+(STYLES[c.style].dmg * GRADES[c.grade].mult).toFixed(1)} · 공속 ${STYLES[c.style].rate} · 사거리 ${STYLES[c.style].range})`, 11, CSS.sub, '600');
+    const enh = meta.enhance(c.id);
+    const sub = uiText(this, I.x + 64, I.y + 38, `${GRADES[c.grade].name} · ${TRAITS[c.cls].name} · ${TRAITS[c.origin].name} · ${STYLES[c.style].name} (공격력 ${+(STYLES[c.style].dmg * GRADES[c.grade].mult).toFixed(1)} · 공속 ${STYLES[c.style].rate} · 사거리 ${STYLES[c.style].range})${enh ? ` · 강화 +${enh}` : ''}`, 11, CSS.sub, '600');
     this.fit(nm, I.w - 80);
     this.fit(sub, I.w - 80);
     this.info.add([head, nm, sub]);
@@ -205,12 +211,10 @@ export class DeckScene extends Phaser.Scene {
       y += t.height + gap;
     };
     line(`특성 — ${TRAIT_TEXT(c.trait)}`, 12, CSS.ink, 'bold', 6);
-    c.skills.forEach((s, i) => {
-      line(`Lv${lv[i]} ${s.name} (${s.cd}초)`, 12, CSS.primary, 'bold', 0);
-      line(describeSkill(s), 11, CSS.ink, '600', WIDE ? 5 : 3);
-    });
+    line(`스킬 「${c.skill.name}」 — 마나가 가득 차면 시전`, 12, CSS.primary, 'bold', 2);
+    [1, 2, 3].forEach((n) => line(`${'★'.repeat(n)} ${describeSkill(starSkill(c.skill, n))}`, 11, CSS.ink, '600', WIDE ? 4 : 2));
     const inDeck = this.deck.includes(c.id);
-    const btn = new Button(this, I.x + I.w - 86, I.y + I.h - 28, 152, 36, inDeck ? '덱에서 빼기' : `덱에 넣기 (+${GRADES[c.grade].pt})`, () => this.toggle(c), {
+    const btn = new Button(this, I.x + I.w - 86, I.y + I.h - 28, 152, 36, inDeck ? '덱에서 빼기' : this.owned(c.id) ? '덱에 넣기' : '미보유', () => this.toggle(c), {
       variant: inDeck ? 'outline' : 'primary',
       fontSize: 12
     });
@@ -226,7 +230,7 @@ export class DeckScene extends Phaser.Scene {
     this.deckBox.add(uiText(this, D.x + 16, D.y + 10, `출전 덱 ${this.deck.length}명`, 13, CSS.ink, 'bold'));
     const step = 40;
     const per = Math.floor((D.w - 24) / step);
-    const sorted = [...this.deck].map((id) => ROSTER_BY_ID[id]).sort((a, b) => b.grade - a.grade || a.attr.localeCompare(b.attr));
+    const sorted = [...this.deck].map((id) => ROSTER_BY_ID[id]).sort((a, b) => b.grade - a.grade || a.cls.localeCompare(b.cls));
     sorted.forEach((c, i) => {
       const x = D.x + 12 + (i % per) * step + step / 2;
       const y = D.y + 34 + Math.floor(i / per) * step + step / 2;
@@ -251,31 +255,31 @@ export class DeckScene extends Phaser.Scene {
   }
 
   resetDeck() {
-    this.deck = [...DEFAULT_DECK];
+    this.deck = DEFAULT_DECK.filter((id) => this.owned(id));
     this.refresh();
   }
 
   leave() {
-    if (!meta.setDeck(this.deck)) return this.toast('덱을 저장할 수 없습니다 (1명 이상 · 40포인트 이하)');
+    if (!meta.setDeck(this.deck)) return this.toast(`덱을 저장할 수 없습니다 (1~${DECK_RULES.max}명 · 레어 ${DECK_RULES.rare} · 유니크 ${DECK_RULES.unique} 이하)`);
     audio.init();
     this.scene.start('Lobby');
   }
 
   refresh() {
-    const pts = this.points;
-    this.ptText.setText(`${pts} / ${DECK_POINTS} 포인트`).setColor(pts > DECK_POINTS ? '#ff8a7a' : '#fff3c4');
-    const by = [1, 2, 3, 4].map((g) => `${GRADES[g].name} ${this.deck.filter((id) => ROSTER_BY_ID[id].grade === g).length}`).join(' · ');
-    const attrs = ['red', 'blue', 'green'].filter((a) => this.deck.some((id) => ROSTER_BY_ID[id].attr === a)).map((a) => ATTR_INFO[a].name).join('·');
-    this.ptSub.setText(`${this.deck.length}명 (${by}) · ${attrs || '-'}`);
-    // 포인트 막대
+    const n = this.deck.length;
+    const cnt = (g) => this.deck.filter((id) => ROSTER_BY_ID[id].grade === g).length;
+    this.ptText.setText(`${n} / ${DECK_RULES.max}명`).setColor(n > DECK_RULES.max ? '#ff8a7a' : '#fff3c4');
+    const by = [1, 2, 3, 4].map((g) => `${GRADES[g].name} ${cnt(g)}${g === 3 ? `/${DECK_RULES.rare}` : g === 4 ? `/${DECK_RULES.unique}` : ''}`).join(' · ');
+    this.ptSub.setText(`${by} · 보유 ${ROSTER.filter((c) => this.owned(c.id)).length}명`);
+    // 인원 막대
     const bx = WIDE ? 560 : GAME_W - 200;
     const bw = WIDE ? 160 : 180;
     const byy = WIDE ? 30 : 56;
     this.ptBar.clear().fillStyle(0x0b2f2e, 1).fillRoundedRect(bx, byy, bw, 10, 5);
-    this.ptBar.fillStyle(pts >= DECK_POINTS ? 0xf2c14e : 0x58c096, 1).fillRoundedRect(bx, byy, Math.max(10, (bw * Math.min(pts, DECK_POINTS)) / DECK_POINTS), 10, 5);
+    this.ptBar.fillStyle(n >= DECK_RULES.max ? 0xf2c14e : 0x58c096, 1).fillRoundedRect(bx, byy, Math.max(10, (bw * Math.min(n, DECK_RULES.max)) / DECK_RULES.max), 10, 5);
     for (const b of this.chipBtns) {
       const [k, v] = b.kind;
-      const on = k === 'attr' ? this.filter.attr === v : this.filter.grade === v;
+      const on = k === 'show' ? this.filter.show === v : this.filter.grade === v;
       b.setAlpha(on ? 1 : 0.62);
       b.bg.setTint(on ? 0xd9f0c8 : 0xffffff);
     }

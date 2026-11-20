@@ -9,32 +9,47 @@ import { Button } from './Button.js';
 
 /** 단계: 제목 · 본문 · 비출 영역(게임 좌표 사각형, 없으면 가운데 말풍선만) */
 export const TUTORIAL_STEPS = {
-  hire: {
-    title: '용병 고용',
-    text: '골드로 용병을 고용하면 빈 칸에 랜덤 용병이 배치됩니다.\n몬스터를 처치하면 골드를 얻어요.',
-    rect: (s) => btnRect(s.hud.hireBtn)
+  shop: {
+    title: '상점',
+    text: '덱의 용병 6명이 상점에 나와요. 눌러서 사면 빈 칸에 놓입니다.\n웨이브가 시작할 때마다 새로 채워지고, 리롤로 바로 바꿀 수 있어요.',
+    rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
+  },
+  star: {
+    title: '별 승급',
+    text: '같은 용병 3명이 모이면 자동으로 합쳐져 별이 오릅니다 (최대 3성).\n별이 오르면 능력치와 스킬이 크게 강해져요.',
+    rect: (s) => {
+      const u = s.mercs?.find((m) => m.star >= 2);
+      return u ? cellsRect([u]) : null;
+    }
+  },
+  estate: {
+    title: '영지 레벨',
+    text: '영지 레벨을 올리면 놓을 수 있는 인원이 늘고(최대 12명)\n상점에 높은 등급 용병이 더 자주 나와요.',
+    rect: (s) => btnRect(s.hud.estateBtn)
+  },
+  lock: {
+    title: '잠금',
+    text: '잠근 칸은 리롤·웨이브 갱신에도 남아요.\n대신 잠근 용병의 등급·수만큼 리롤 값이 오릅니다.',
+    rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
+  },
+  synergy: {
+    title: '시너지',
+    text: '용병마다 계열(공격 방식) 1개와 출신(세력) 1개가 있어요.\n서로 다른 용병을 모으면 시너지가 켜집니다 — 계열 2·5·8명, 출신 3·6·9명.',
+    rect: () => (WIDE ? { x: HUD.syn.x - 4, y: HUD.syn.y - 4, w: HUD.syn.w + 8, h: 200 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w - 140, h: 40 })
   },
   wave: {
     title: '웨이브 시작',
-    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n몬스터가 한 바퀴 돌 때마다 성벽 체력이 깎이고, 0이 되면 패배!\n상성: 블루 > 레드 > 그린 > 블루',
+    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n몬스터가 한 바퀴 돌 때마다 성벽 체력이 깎이고, 0이 되면 패배!',
     rect: () => (WIDE ? { x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 } : { x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
   },
   select: {
     title: '용병 정보',
-    text: '선택한 용병의 능력치가 여기에 나옵니다.\n「스킬 정보」로 스킬을 보고, 판매는 S 키로도 할 수 있어요.',
-    rect: (s) => (s.hud.infoBox ? { x: s.hud.infoBox.px, y: s.hud.infoBox.py, w: s.hud.infoBox.pw, h: s.hud.infoBox.ph } : null)
-  },
-  merge: {
-    title: '머지로 레벨 업',
-    text: '같은 속성·같은 등급·같은 레벨 용병을 드래그해서 겹치면\n놓여 있던 쪽이 레벨 업! 레벨마다 정해진 스킬이 열립니다.',
-    rect: (s) => {
-      const pair = s.mergePair?.();
-      return pair ? cellsRect(pair) : null;
-    }
+    text: '선택한 용병의 능력치가 상점 자리에 나옵니다.\n「스킬 정보」로 스킬을 보고, 판매는 S 키로도 할 수 있어요.\n드래그해서 자리를 바꿀 수 있어요 — 바깥 줄은 전열, 가운데는 후열.',
+    rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   skill: {
     title: '스킬',
-    text: '스킬은 쿨타임마다 자동으로 시전됩니다.\n캐릭터마다 레벨별 스킬이 정해져 있어, 레벨을 올리면 하나씩 열려요.',
+    text: '용병마다 스킬이 1개 있어요. 공격할 때마다 마나가 차고,\n가득 차면 스킬을 씁니다. 별이 오르면 스킬도 강해져요.',
     rect: () => null
   },
   next: {
@@ -57,7 +72,7 @@ export const TUTORIAL_STEPS = {
   },
   hero: {
     title: '유니크 등장',
-    text: '유니크는 고용할 때 1% 확률로만 나오는 최상위 등급이에요.\n대표 스킬을 처음부터 쓰고, 같은 유니크끼리 합치면 더 강해집니다.',
+    text: '유니크는 최상위 등급이에요. 영지 레벨이 높을수록\n상점에 자주 나옵니다 (Lv10 25%).',
     rect: (s) => {
       const u = s.mercs?.find((m) => m.isHero);
       return u ? cellsRect([u]) : null;

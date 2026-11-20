@@ -3,14 +3,16 @@ import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, WIDE, PX, UNIT_PX, UI_PX, BG_PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, FONT, DEPTH, BALANCE } from '../config.js';
 import { TILE_KEYS } from '../art/textures.js';
 import { Monster } from '../objects/Monster.js';
-import { Mercenary, MAX_LEVEL } from '../objects/Mercenary.js';
+import { Mercenary } from '../objects/Mercenary.js';
 import { Button } from '../ui/Button.js';
 import { Tutorial } from '../ui/Tutorial.js';
 import { Hud } from '../ui/Hud.js';
 import { panel, panelImage, titleTab, uiText, drawIcon, C, CSS } from '../ui/theme.js';
-import { ATTRS, ATTR_INFO, elementMultiplier } from '../data/elements.js';
-import { isDamaging } from '../data/skills.js';
-import { rollHire, ROSTER_BY_ID } from '../data/roster.js';
+import { ATTRS, ATTR_INFO } from '../data/elements.js';
+import { ROSTER_BY_ID } from '../data/roster.js';
+import { MAX_STAR } from '../data/stars.js';
+import { SHOP, priceOf, rerollCost, levelUpCost, refillShop, findStarUp } from '../data/shop.js';
+import { countTraits, activeTier, TRAIT_IDS, RAGE_MAX } from '../data/synergy.js';
 import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
@@ -55,9 +57,16 @@ export class GameScene extends Phaser.Scene {
     this.spawnInterval = 0;
     this.monsters = [];
     this.grid = Array.from({ length: GRID }, () => Array(GRID).fill(null));
+    // 룰 v2 (2026-11-20): 상점 6칸 · 영지 레벨(놓을 수 있는 인원·상점 확률) · 시너지
+    this.estate = Math.min(SHOP.maxLevel, 1 + (this.bonus.startEstate || 0));
+    this.shop = [];
+    this.freeRerolls = 0; // 황금 길드 9: 웨이브마다 무료 리롤
+    this.syn = { counts: {}, tiers: {} };
+    this.rootTimer = 0; // 숲의 일족: 덩굴 속박 주기
+    this.lakeRevived = false; // 호수의 성역 9: 성벽 부활 1회
     this.ownedRelics = []; // { id, active } — 활성 유물만 효과 (최대 BALANCE.maxActiveRelics + 명성 강화)
     this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
-    this.waveAttrs = ATTRS;
+    this.waveAttrs = ATTRS; // 몬스터 그림 색만 (룰 v2: 속성 상성 없음)
     this.relicChoice = null;
     this.selected = null;
     this.totalKills = 0;
@@ -78,12 +87,15 @@ export class GameScene extends Phaser.Scene {
     this.watchUpgrades();
     this.hud = new Hud(this);
     this.tut = new Tutorial(this);
-    this.time.delayedCall(400, () => this.tut.show('hire'));
+    this.time.delayedCall(400, () => this.tut.show('shop'));
     this.setupInput();
+    this.shop = refillShop([], this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
+    this.conscript();
+    this.recomputeSynergy();
+    this.refreshShop();
     this.refreshHud();
     this.refreshInfo();
-    this.showBanner('용병단 디펜스', `${BALANCE.prepTime}초 후 1웨이브 시작`);
-    this.conscript();
+    this.showBanner('용병단 디펜스', `${BALANCE.prepTime}초 후 1웨이브 시작 · 상점에서 용병을 사서 시너지를 맞추세요`);
   }
 
   // ───────────────────────── 명성 강화 (2026-11-18: 필드 성탑 삭제 → 하단 '강화' 버튼, Hud) ─────────────────────────
@@ -126,9 +138,13 @@ export class GameScene extends Phaser.Scene {
     this.refreshInfo();
   }
 
-  /** 명성 강화 '징집령': 시작할 때 무료 용병 배치 */
+  /** 명성 강화 '징집령': 시작할 때 덱에서 무료 용병 배치 ('노련한 신병'이면 언커먼 이상) */
   conscript() {
-    for (let i = 0; i < this.bonus.conscripts; i++) this.hire({ free: true, minLevel: this.bonus.veteran ? 2 : 1 });
+    for (let i = 0; i < (this.bonus.conscripts || 0); i++) {
+      const pool = this.deck.filter((id) => ROSTER_BY_ID[id] && ROSTER_BY_ID[id].grade === (this.bonus.veteran ? 2 : 1));
+      const id = Phaser.Utils.Array.GetRandom(pool.length ? pool : this.deck);
+      if (id) this.placeChar(ROSTER_BY_ID[id], 0, true);
+    }
   }
 
   // ───────────────────────── 루프 ─────────────────────────
@@ -143,7 +159,7 @@ export class GameScene extends Phaser.Scene {
       this.updateWaves(dt);
       // 이동 속도: 서리 왕관(유물) + 명성 강화(서릿길·늪지 함정·족쇄)
       const b = this.bonus;
-      const relicSlow = 0.1 * (this.relics.frost_crown || 0) * (1 + b.relicPow);
+      const relicSlow = 0.1 * (this.relics.frost_crown || 0) * (1 + b.relicPow) + (this.syn.tiers.grove?.slow || 0); // 숲의 일족: 이동 속도 -
       const mul = {
         normal: Math.max(0.4, 1 - relicSlow - b.monsterSlow),
         elite: Math.max(0.4, 1 - relicSlow - b.monsterSlow - b.eliteSlow),
@@ -152,6 +168,7 @@ export class GameScene extends Phaser.Scene {
       for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, mul[m.kind] ?? mul.normal);
       this.checkLaps();
       this.updateBosses(dt);
+      this.updateRoots(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
     }
@@ -165,6 +182,14 @@ export class GameScene extends Phaser.Scene {
       this.refreshHud();
     }
 
+    // 호수의 성역 9: 성벽이 0이 되면 한 판에 한 번 50% 로 되살아남
+    const lake = this.syn.tiers.lake;
+    if (this.wallHp <= 0 && lake?.revive && !this.lakeRevived) {
+      this.lakeRevived = true;
+      this.wallHp = Math.round(this.wallMax * lake.revive);
+      this.showBanner('호수의 성역', `성벽이 ${Math.round(lake.revive * 100)}% 로 되살아났습니다`, '#3a8fb0');
+      this.cameras.main.flash(300, 120, 200, 255);
+    }
     if (this.wallHp <= 0) {
       this.refreshHud(); // 성벽 체력 0 을 화면에 반영하고 끝낸다
       this.endGame(false, '성벽이 무너졌습니다');
@@ -186,6 +211,7 @@ export class GameScene extends Phaser.Scene {
   hitWall(m) {
     const D = BALANCE.wall.dmg;
     let dmg = m.isBoss ? (m.isFinal ? D.final : m.milestone ? D.milestone : D.boss) : D[m.kind] ?? D.normal;
+    dmg *= 1 - (this.syn.tiers.knight?.wallDmg || 0); // 왕국 기사단: 성벽 피해 -
     if (this.wallShield > 0) {
       const used = Math.min(this.wallShield, dmg);
       this.wallShield -= used;
@@ -230,11 +256,15 @@ export class GameScene extends Phaser.Scene {
     }
     // 명성 강화 '성벽 수리': 웨이브마다 성벽 회복
     if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
+    this.waveSynergy(w);
+    // 상점: 웨이브가 시작할 때마다 잠그지 않은 칸을 새로 채운다
+    this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
+    this.refreshShop();
     this.wave = w;
     const info = waveInfo(w);
     const list = spawnList(w);
     this.spawnQueue.push(...list);
-    // 이번 웨이브 몬스터 속성: 최대 attrsPerWave 종류
+    // 몬스터 그림 색 (룰 v2: 속성 상성 없음 — 색만 섞는다)
     this.waveAttrs = Phaser.Utils.Array.Shuffle([...ATTRS]).slice(0, BALANCE.monster.attrsPerWave);
     this.spawnInterval = BALANCE.spawnWindow / list.length;
     this.spawnTimer = 0;
@@ -242,12 +272,11 @@ export class GameScene extends Phaser.Scene {
     this.changeBiome(biomeForWave(w));
     const sub =
       info.type === 'final' ? `최종 보스 출현! 쓰러뜨려도 한 번 되살아납니다` :
-      info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노·속성 변환 주의` :
+      info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
-    const attrNames = this.waveAttrs.map((a) => ATTR_INFO[a].name).join('·');
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
-    this.showBanner(`WAVE ${w}`, `${sub} · ${attrNames}`, color);
+    this.showBanner(`WAVE ${w}`, `${sub} · 상점 새로 고침`, color);
     if (w === 1) this.tut.show('wave');
   }
 
@@ -350,18 +379,6 @@ export class GameScene extends Phaser.Scene {
       if (deb.stun) continue; // 공포: 공격·스킬·쿨타임 모두 정지
       const inRange = this.monstersInRange(merc.x, merc.y, st.range);
 
-      // 스킬: 쿨타임이 끝나면 자동 시전 (침묵 중엔 시전 불가, 시간 부식은 쿨타임 회복 저하)
-      // 시전 동작(공격 애니메이션)을 재생하고, 타격·발사 프레임에 효과가 나간다 (2026-11-20)
-      for (const s of merc.skills) {
-        s.cd -= dt * deb.cdRate;
-        if (deb.silence || s.cd > 0 || !this.canCast(s.def, inRange)) continue;
-        s.cd = s.def.cd * (1 - this.bonus.cdr);
-        this.atHitFrame(merc, st, () => {
-          const now2 = merc.getStats(this.relics, this.gameTime);
-          if (!this.castSkill(merc, s.def, now2, this.monstersInRange(merc.x, merc.y, now2.range))) s.cd = 0; // 그사이 대상이 사라지면 쿨타임 돌려줌
-        });
-      }
-
       // 기본 공격 — 휘두름·발사 전에 노린 몬스터가 모두 죽으면 공격 동작을 끊고 바로 다음 대상을 노린다 (2026-11-20)
       const p = merc.pendingHit;
       if (p && p.targets.every((m) => !m.alive)) {
@@ -378,14 +395,35 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
       merc.cooldown = 1 / st.rate;
-      const picked = live.slice(0, st.targets);
       // 대상 쪽을 바라본다 (거의 위·아래에 있으면 방향 유지)
       const dx = live[0].x - merc.x;
       if (Math.abs(dx) > 8) setFacing(merc.sprite, dx < 0);
+      // 스킬: 마나가 가득 차면 이번 공격 대신 스킬 (룰 v2, TFT 식 — 침묵 중엔 못 쓰고 마나는 그대로)
+      if (merc.mana >= merc.maxMana && !deb.silence && this.canCast(merc.def, inRange)) {
+        merc.mana = 0;
+        this.atHitFrame(merc, st, () => {
+          const st2 = merc.getStats(this.relics, this.gameTime);
+          const inR = this.monstersInRange(merc.x, merc.y, st2.range);
+          if (!this.castSkill(merc, merc.def, st2, inR)) return;
+          // 마탑 9: 확률로 스킬 두 번
+          if (st2.doubleCast && Math.random() < st2.doubleCast) this.time.delayedCall(250, () => this.mercs.includes(merc) && this.castSkill(merc, merc.def, st2, this.monstersInRange(merc.x, merc.y, st2.range)));
+        });
+        continue;
+      }
+      const picked = live.slice(0, st.targets);
       // 피해·투사체는 휘두름·발사 프레임에 나간다 (2026-11-20). 노린 대상 중 살아 있는 것만 — 모두 죽으면 위에서 공격 취소
       const timer = this.atHitFrame(merc, st, () => {
         if (merc.pendingHit?.timer === timer) merc.pendingHit = null;
-        for (const m of picked) if (m.alive) this.basicAttack(merc, st, m);
+        let hitAny = false;
+        for (const m of picked) {
+          if (!m.alive) continue;
+          this.basicAttack(merc, st, m);
+          hitAny = true;
+        }
+        if (!hitAny) return;
+        merc.attacks += 1;
+        merc.mana = Math.min(merc.maxMana, merc.mana + st.manaGain * deb.cdRate); // 마나 (시간 부식 디버프면 덜 찬다)
+        if (merc.origin === 'north' && this.syn.tiers.north) merc.rage = Math.min(RAGE_MAX, merc.rage + 1); // 북방 부족 분노
       });
       if (timer) merc.pendingHit = { timer, targets: picked };
     }
@@ -435,17 +473,6 @@ export class GameScene extends Phaser.Scene {
           audio.bossAppear();
         }
       }
-      if (boss.milestone) {
-        // 속성 변환: 주기마다 다른 속성으로
-        boss.shiftTimer -= dt;
-        if (boss.shiftTimer <= 0) {
-          boss.shiftTimer = MS.shiftEvery;
-          const next = Phaser.Utils.Array.GetRandom(ATTRS.filter((a) => a !== boss.attr));
-          boss.setAttr(next);
-          this.vfx.burst(next, boss.x, boss.y, 24);
-          this.floatText(boss.x, boss.y - 56, `속성 변환: ${ATTR_INFO[next].name}`, ATTR_INFO[next].css, 22, true);
-        }
-      }
       for (const a of boss.abilities) {
         a.cd -= dt;
         if (a.cd > 0) continue;
@@ -470,10 +497,9 @@ export class GameScene extends Phaser.Scene {
     const b = this.bonus;
     // 보스·정예: 기본 피해 배율 + 거인 사냥꾼, 그리고 왕/정예 사냥꾼
     const giant = target.kind === 'normal' ? 1 : (BALANCE.bossDamageMult + b.bossDmg) * (1 + (target.isBoss ? b.bossOnly : b.eliteOnly));
-    let elem = elementMultiplier(merc.attr, target.attr);
-    if (elem > 1) elem += b.advantage; // 속성 공명: 상성 우위 피해
     const slayer = target.kind !== 'normal' && merc.trait?.bossMult ? merc.trait.bossMult : 1; // 특성: 보스·정예 특화
-    const dmg = st.damage * mult * giant * elem * slayer;
+    const elite = target.kind !== 'normal' ? 1 + (st.eliteDmg || 0) : 1; // 사수 시너지: 정예·보스 피해
+    const dmg = st.damage * mult * giant * slayer * elite;
     const need = carry && target.kind === 'normal' ? target.hp / target.damageTakenMult(this.gameTime) : Infinity;
     this.damageMonster(target, dmg, { source: merc, crit });
     if (dmg > need) this.carryDamage(merc, target, dmg - need);
@@ -515,24 +541,45 @@ export class GameScene extends Phaser.Scene {
     audio.shoot(this.kindOf(merc));
     const crit = Math.random() < st.crit;
     const now = this.gameTime;
-    if (st.slow) target.applySlow(st.slow, st.slowDur, now);
-    // 고유 특성 (data/roster.js): 지속 피해·약화·밀치기·확률 기절·처형
+    if (st.slow) target.applySlow(Math.min(0.85, st.slow * st.hex), st.slowDur, now);
+    // 고유 특성 (data/roster.js): 지속 피해·약화·밀치기·확률 기절·처형 — 주술 효과는 주술사 시너지만큼 세진다
     const t = merc.trait || {};
     if (t.execute && target.kind === 'normal' && target.hp / target.maxHp <= t.execute) {
       this.killMonster(target, merc);
       return;
     }
-    if (t.dot) target.applyDot(st.damage * t.dot[0] * elementMultiplier(merc.attr, target.attr), t.dot[1], now, merc);
-    if (t.vuln) target.applyVuln(t.vuln[0], t.vuln[1], now);
+    if (t.dot) target.applyDot(st.damage * t.dot[0] * st.hex, t.dot[1], now, merc);
+    if (t.vuln) target.applyVuln(t.vuln[0] * st.hex, t.vuln[1], now);
+    const teamVuln = this.syn.tiers.hexer?.teamVuln; // 주술사 8: 모든 아군 공격에 약화
+    if (teamVuln) target.applyVuln(teamVuln, 2, now);
     if (t.push) target.push(t.push);
     if (t.stun && Math.random() < t.stun[0]) target.applyStun(t.stun[1], now);
     const pos = { x: target.x, y: target.y };
     this.hit(merc, st, target, crit ? st.critMult : 1, crit);
+    // 암살자 8: 치명타 때 확률로 한 번 더
+    if (crit && st.critExtra && Math.random() < st.critExtra && target.alive) this.hit(merc, st, target, st.critMult, true);
     if (st.splash) {
-      for (const o of this.monsters) {
-        if (o.alive && o !== target && d2(o, pos) <= st.splash ** 2) this.hit(merc, st, o, 1, false, false);
-      }
-      this.circleFx(pos.x, pos.y, st.splash, ATTR_INFO[merc.attr].color);
+      const blast = () => {
+        for (const o of this.monsters) {
+          if (o.alive && o !== target && d2(o, pos) <= st.splash ** 2) {
+            this.hit(merc, st, o, 1, false, false);
+            if (st.burn) o.applyDot(st.damage * 0.3, st.burn, this.gameTime, merc); // 포격수 5: 불길
+          }
+        }
+        this.circleFx(pos.x, pos.y, st.splash, ATTR_INFO[merc.attr].color);
+      };
+      blast();
+      if (st.doubleBlast) this.time.delayedCall(180, () => !this.over && blast()); // 포격수 8: 두 번 터짐
+    }
+    // 전사 5·8: N번째 공격마다 주변 베기 (반경 44, 60% 피해)
+    if (st.cleaveEvery && (merc.attacks + 1) % st.cleaveEvery === 0) {
+      for (const o of this.monsters) if (o.alive && o !== target && d2(o, pos) <= 44 * 44) this.hit(merc, st, o, 0.6, false, false);
+      this.circleFx(pos.x, pos.y, 44, 0xc0563c);
+    }
+    // 사수: 관통 — 대상 뒤 가까운 몬스터 n마리에 60% 피해
+    if (st.pierce) {
+      const near = this.monsters.filter((o) => o.alive && o !== target && d2(o, pos) <= 56 * 56).sort((a, b) => d2(a, pos) - d2(b, pos));
+      for (const o of near.slice(0, st.pierce)) this.hit(merc, st, o, 0.6, false, false);
     }
     if (st.chain) {
       const chain = this.chainFrom(target, st.chain + 1);
@@ -583,22 +630,20 @@ export class GameScene extends Phaser.Scene {
     }
     // 레어·유니크는 캐릭터 전용 이펙트, 커먼·언커먼은 공용 세트 이펙트 (2026-11-18). 시트가 없으면 예전 연출
     if (!this.vfx.sigSkill(merc, def, targets, primary) && !this.vfx.setSkill(merc, def, targets, primary)) this.vfx.skill(merc, def, this.kindOf(merc), targets, primary, st.range);
-    if (def.level > MAX_LEVEL) audio.ult();
+    if (def.level > 5) audio.ult();
     else audio.skill(def.level, merc.attr);
 
     const fx = def.fx || {};
-    const damaging = isDamaging(def);
-    const flavorMul = (damaging && merc.attr === 'red' ? 1.25 : 1) * (1 + this.bonus.skillDmg); // 비전 연구: 스킬 피해
+    // 스킬 피해: 마탑·호수 시너지 + 명성 강화 '비전 연구' (룰 v2: 속성 추가 효과 없음)
+    const flavorMul = 1 + (st.skillDmg || 0);
+    const hex = st.hex || 1; // 주술사 시너지: 지속 피해·약화·감속 강화
     for (const t of targets) {
       if (!t.alive) continue;
       if (fx.stun) t.applyStun(fx.stun, now);
-      if (fx.slow) t.applySlow(fx.slow[0], fx.slow[1], now);
-      if (fx.vuln) t.applyVuln(fx.vuln[0], fx.vuln[1], now);
+      if (fx.slow) t.applySlow(Math.min(0.85, fx.slow[0] * hex), fx.slow[1], now);
+      if (fx.vuln) t.applyVuln(fx.vuln[0] * hex, fx.vuln[1], now);
       if (fx.push) t.push(fx.push);
-      const elem = elementMultiplier(merc.attr, t.attr);
-      if (fx.dot) t.applyDot(st.damage * fx.dot[0] * elem * flavorMul, fx.dot[1], now, merc);
-      if (damaging && merc.attr === 'blue') t.applySlow(0.2, 1.2, now);
-      if (damaging && merc.attr === 'green') t.applyDot(st.damage * 0.4 * elem, 2, now, merc);
+      if (fx.dot) t.applyDot(st.damage * fx.dot[0] * flavorMul * hex, fx.dot[1], now, merc);
 
       let mult = fx.dmg || 0;
       if (fx.execute) {
@@ -619,8 +664,9 @@ export class GameScene extends Phaser.Scene {
         b.scope === 'self' ? [merc] :
         b.scope === 'all' ? this.mercs :
         this.mercs.filter((o) => Math.abs(o.col - merc.col) <= 1 && Math.abs(o.row - merc.row) <= 1);
+      const durMult = this.syn.tiers.support?.buffDur || 1; // 지원가 5: 버프 지속 1.5배
       for (const o of who) {
-        o.addBuff(b, now);
+        o.addBuff(b, now, durMult);
         o.buffFlashUntil = now + 0.25;
       }
     }
@@ -629,7 +675,7 @@ export class GameScene extends Phaser.Scene {
       this.gold += g;
       this.floatText(merc.x, merc.y - 40, `+${g}G`, '#f2c14e');
     }
-    if (def.level <= MAX_LEVEL) this.floatText(merc.x, merc.y - 40 - (merc.col % 2) * 20, def.name, ATTR_INFO[merc.attr].css, def.level >= 4 ? 22 : 16, def.level >= 4);
+    if (def.level <= 5) this.floatText(merc.x, merc.y - 40 - (merc.col % 2) * 20, def.name, ATTR_INFO[merc.attr].css, def.level >= 4 ? 22 : 16, def.level >= 4);
     return true;
   }
 
@@ -649,7 +695,13 @@ export class GameScene extends Phaser.Scene {
     this.totalKills += 1;
     // 물량: 일반 몬스터 골드는 소수 → 모았다가 정수가 될 때마다 지급
     const bounty = source?.trait?.bounty || 0; // 특성: 처치 골드 증가
-    this.goldFrac += m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty + bounty);
+    const guild = this.syn.tiers.guild?.gold || 0; // 황금 길드: 처치 골드 +
+    this.goldFrac += m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty + bounty + guild);
+    // 주술사 5: 지속 피해가 걸린 적이 죽으면 가장 가까운 적에게 옮는다
+    if (this.syn.tiers.hexer?.spread && m.dots?.length) {
+      const next = this.monsters.find((o) => o.alive && o !== m && d2(o, m) <= 80 * 80);
+      if (next) for (const d of m.dots) next.applyDot(d.dps, Math.max(1, d.until - this.gameTime), this.gameTime, d.source);
+    }
     const gold = Math.floor(this.goldFrac + 1e-9);
     this.goldFrac -= gold;
     if (source && source.active) source.kills += 1;
@@ -702,11 +754,6 @@ export class GameScene extends Phaser.Scene {
   /** 성벽 최대 체력 (명성 강화 '성벽 보강') */
   get wallMax() {
     return BALANCE.wall.hp + (this.bonus.wallHp || 0);
-  }
-
-  /** 판매 환급 비율 (명성 강화 '깔끔한 정산') */
-  get sellRefund() {
-    return BALANCE.sellRefund + this.bonus.sellRefund;
   }
 
   /** 활성 유물 최대 수 (명성 강화 '유물 보관함'으로 늘어남) */
@@ -792,64 +839,189 @@ export class GameScene extends Phaser.Scene {
     this.refreshInfo();
   }
 
-  // ───────────────────────── 용병 ─────────────────────────
-  get hireCost() {
-    // 용병 계약서는 중복 효과 없음 (예전엔 중복될수록 계속 싸져서 버그처럼 보였음)
-    return Math.max(1, Math.round((BALANCE.hireCost - this.bonus.hireDiscount) * (this.relics.contract ? 0.8 : 1)));
+  // ───────────────────────── 상점 · 영지 레벨 · 별 승급 (룰 v2, 2026-11-20) ─────────────────────────
+  /** 놓을 수 있는 인원 (영지 레벨) */
+  get cap() {
+    return SHOP.cap(this.estate);
   }
 
-  /** level 의 유닛을 합칠 때 드는 골드 (최고 레벨이면 null — 영웅 승급은 2026-11-17 폐지) */
-  mergeCostFor(level) {
-    if (level >= MAX_LEVEL) return null;
-    return Math.round(BALANCE.mergeCost[level + 1] * (1 - this.bonus.mergeDiscount));
+  /** 영지 레벨 업 값 (최고 레벨이면 null) */
+  get estateCost() {
+    return levelUpCost(this.estate, this.bonus.estateDiscount || 0);
   }
 
-  /** free: 명성 강화 '징집령'으로 시작 시 무료 배치 (minLevel: '노련한 신병'이면 2) */
-  hire({ free = false, minLevel = 1 } = {}) {
-    if (this.over) return;
-    const cost = free ? 0 : this.hireCost;
-    if (this.gold < cost) return this.toast('골드가 부족합니다');
-    const empty = [];
-    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) if (!this.grid[r][c]) empty.push({ c, r });
-    if (!empty.length) return this.toast('빈 자리가 없습니다');
-    const { c, r } = Phaser.Utils.Array.GetRandom(empty);
-    // 덱에서 등급을 굴려 뽑는다 (커먼 60·언커먼 28·레어 11·유니크 1% + 명성 강화)
-    const char = rollHire(this.deck, this.bonus);
-    if (!char) return this.toast('덱이 비어 있습니다');
-    const attr = char.attr;
+  /** 지금 리롤 값 (무료 리롤이 남았으면 0) */
+  get rerollPrice() {
+    if (this.freeRerolls > 0) return 0;
+    return Math.max(0, rerollCost(this.shop) - (this.bonus.rerollDiscount || 0));
+  }
+
+  /** 판매 환급 비율 (명성 강화 '깔끔한 정산') */
+  get sellRefund() {
+    return SHOP.sellRefund + (this.bonus.sellRefund || 0);
+  }
+
+  /** 이미 3성인 캐릭터 (상점에 더 나오지 않는다) */
+  maxedIds() {
+    return new Set(this.mercs.filter((m) => m.star >= MAX_STAR).map((m) => m.char.id));
+  }
+
+  /** 이 캐릭터를 사면 별 승급이 되는가 (같은 캐릭터 1성 2장이 이미 있으면) — 인원이 꽉 차도 살 수 있다 */
+  completesStar(id) {
+    return this.mercs.filter((m) => m.char.id === id && m.star === 1).length >= 2;
+  }
+
+  /** 빈 칸 (후열·가운데부터, 전사는 전열 먼저) */
+  emptyCell(char) {
+    const cells = [];
+    for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) if (!this.grid[r][c]) cells.push({ c, r });
+    if (!cells.length) return null;
+    const front = (p) => p.r === 0 || p.c === 0 || p.r === GRID - 1 || p.c === GRID - 1;
+    const want = char?.cls === 'warrior' ? cells.filter(front) : cells.filter((p) => !front(p));
+    return (want.length ? want : cells)[0];
+  }
+
+  /** 상점 칸 사기 */
+  buy(i) {
+    if (this.over) return null;
+    const slot = this.shop[i];
+    if (!slot || slot.sold) return null;
+    const char = ROSTER_BY_ID[slot.id];
+    const cost = priceOf(char);
+    if (this.gold < cost) {
+      this.toast('골드가 부족합니다');
+      return null;
+    }
+    if (this.mercs.length >= this.cap && !this.completesStar(char.id)) {
+      this.toast(`놓을 수 있는 인원이 가득 찼어요 (${this.cap}명) — 영지 레벨을 올리세요`, '#ff9a7a');
+      this.tut.show('estate');
+      return null;
+    }
+    const merc = this.placeChar(char, cost);
+    if (!merc) return null;
     this.gold -= cost;
-    const merc = new Mercenary(this, c, r, char);
-    merc.invested = cost;
-    this.grid[r][c] = merc;
-    merc.sprite.setY(-40).setAlpha(0);
-    this.tweens.add({ targets: merc.sprite, y: 0, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
-    // 낮은 확률로 2·3레벨 용병 (그 레벨까지 열리는 확정 스킬을 익힌다). 명성 강화로 확률 증가
-    const roll = Math.random();
-    const lucky = roll < this.bonus.lv3Chance ? 3 : roll < this.bonus.lv3Chance + BALANCE.hireLv2Chance + this.bonus.lv2Chance ? 2 : 1;
-    const target = Math.max(lucky, minLevel);
-    const learned = [];
-    while (merc.level < target) learned.push(...merc.levelUp().map((d) => d.name));
-    if (merc.isHero) {
-      // 유니크 (1%): 금빛 연출 + 대표 스킬 안내
-      this.levelUpFx(merc, '유니크!', true);
-      this.showBanner(`유니크 ${merc.heroName} 합류!`, `${merc.char.title} · 대표 스킬 「${merc.defs[0].name}」`, '#f2c14e');
-      audio.promote();
-      this.tut.show('hero');
-      this.refreshHud();
-      return merc;
-    }
-    if (free) {
-      this.toast(`징집: ${merc.gradeName} ${merc.heroName} (Lv.${merc.level}) 합류!`, ATTR_INFO[attr].css);
-    } else if (lucky > 1) {
-      this.levelUpFx(merc, `행운! Lv.${merc.level}`);
-      this.toast(`행운! Lv.${merc.level} ${merc.gradeName} ${merc.heroName} 합류${learned.length ? ` — 스킬 「${learned.join('」「')}」` : ''}`, '#f2c14e');
-      audio.levelUp();
-    } else {
-      this.toast(`${merc.gradeName} ${merc.heroName} 합류!`, ATTR_INFO[attr].css);
-      audio.coin();
-    }
+    slot.sold = true;
+    slot.locked = false;
+    audio.coin();
+    this.refreshShop();
     this.refreshHud();
     return merc;
+  }
+
+  /** 캐릭터를 빈 칸에 놓고 별 승급을 확인한다. cost: 들어간 골드 */
+  placeChar(char, cost, free = false) {
+    let cell = this.emptyCell(char);
+    if (!cell) {
+      // 칸이 없어도 별 승급이 되면 놓을 수 있게: 승급 재료 한 장 자리를 잠깐 쓴다
+      if (!this.completesStar(char.id)) {
+        this.toast('빈 칸이 없습니다');
+        return null;
+      }
+      const m0 = this.mercs.find((m) => m.char.id === char.id && m.star === 1);
+      cell = { c: m0.col, r: m0.row };
+      return this.starUpWith(m0, char, cost);
+    }
+    const merc = new Mercenary(this, cell.c, cell.r, char);
+    merc.invested = cost;
+    merc.mana = Math.round(merc.maxMana * (this.bonus.startMana || 0)); // 명성 강화 '마나 정수'
+    this.grid[cell.r][cell.c] = merc;
+    merc.sprite.setY(-40).setAlpha(0);
+    this.tweens.add({ targets: merc.sprite, y: 0, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
+    if (free) this.toast(`징집: ${merc.gradeName} ${merc.heroName} 합류!`, '#f2c14e');
+    else if (merc.isHero) {
+      this.levelUpFx(merc, '유니크!', true);
+      this.showBanner(`유니크 ${merc.heroName} 합류!`, `${merc.char.title} · 스킬 「${merc.def.name}」`, '#f2c14e');
+      audio.promote();
+      this.tut.show('hero');
+    }
+    const up = this.checkStarUps();
+    this.recomputeSynergy();
+    return up || merc;
+  }
+
+  /** 칸이 꽉 찼을 때: 같은 캐릭터 1성에 바로 합쳐 승급 */
+  starUpWith(base, char, cost) {
+    base.invested += cost;
+    const up = this.checkStarUps(char.id) || base;
+    this.recomputeSynergy();
+    return up;
+  }
+
+  /**
+   * 같은 캐릭터·같은 별 3장 → 별 승급 (연쇄로 2성 3장 → 3성까지). 칸이 꽉 차서 바로 합칠 때는 extraId 1장을 더해 센다
+   * @returns 승급한 유닛 (없으면 null)
+   */
+  checkStarUps(extraId) {
+    let last = null;
+    for (;;) {
+      let group = findStarUp(this.mercs, MAX_STAR);
+      if (!group && extraId) {
+        const ones = this.mercs.filter((m) => m.char.id === extraId && m.star === 1);
+        if (ones.length >= 2) group = [ones[0], ones[1], null];
+        extraId = null;
+      }
+      if (!group) return last;
+      // 남는 쪽: 아이템·위치는 가장 먼저 놓인(왼쪽 위) 유닛
+      const [keep, ...rest] = group;
+      for (const o of rest) {
+        if (!o) continue;
+        keep.invested += o.invested;
+        keep.kills += o.kills;
+        this.grid[o.row][o.col] = null;
+        if (this.selected === o) this.selected = keep;
+        o.destroy();
+      }
+      keep.starUp();
+      keep.mana = 0;
+      audio.levelUp();
+      this.levelUpFx(keep, keep.star >= MAX_STAR ? '★★★' : '★★', keep.star >= MAX_STAR);
+      this.toast(`${keep.heroName} ${keep.star}성 승급! 스킬 「${keep.def.name}」 강화`, '#f2c14e');
+      this.tut.show('star');
+      last = keep;
+    }
+  }
+
+  /** 리롤: 잠그지 않은 칸을 새로 굴린다 */
+  reroll() {
+    if (this.over) return false;
+    const cost = this.rerollPrice;
+    if (this.gold < cost) {
+      this.toast(`골드가 부족합니다 (리롤 ${cost}G)`);
+      return false;
+    }
+    if (this.freeRerolls > 0) this.freeRerolls -= 1;
+    else this.gold -= cost;
+    this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
+    audio.coin();
+    this.refreshShop();
+    this.refreshHud();
+    return true;
+  }
+
+  /** 칸 잠금 켜고 끄기 (잠근 칸은 리롤·웨이브 갱신에도 남고, 잠근 등급·수만큼 리롤 값이 오른다) */
+  toggleLock(i) {
+    const slot = this.shop[i];
+    if (!slot || slot.sold) return;
+    slot.locked = !slot.locked;
+    this.tut.show('lock');
+    this.refreshShop();
+  }
+
+  /** 영지 레벨 업: 놓을 수 있는 인원 +1, 상점 고급 확률 오름 */
+  levelUpEstate() {
+    const cost = this.estateCost;
+    if (cost == null || this.over) return false;
+    if (this.gold < cost) {
+      this.toast(`골드가 부족합니다 (영지 레벨 업 ${cost}G)`);
+      return false;
+    }
+    this.gold -= cost;
+    this.estate += 1;
+    audio.promote();
+    this.showBanner(`영지 Lv.${this.estate}`, `놓을 수 있는 인원 ${this.cap}명 · 상점 확률 ${SHOP.odds[this.estate - 1].map((p, g) => (p ? `${['커먼', '언커먼', '레어', '유니크'][g]} ${p}%` : '')).filter(Boolean).join(' · ')}`, '#f2c14e');
+    this.refreshShop();
+    this.refreshHud();
+    return true;
   }
 
   sell(merc) {
@@ -859,30 +1031,54 @@ export class GameScene extends Phaser.Scene {
     this.floatText(merc.x, merc.y - 20, `+${refund}G`, '#f2c14e');
     merc.destroy();
     this.select(null);
+    this.recomputeSynergy();
+    this.refreshShop();
     this.refreshHud();
   }
 
-  /** 합성: src 를 dst(놓여 있는 쪽)에 겹치면 dst 가 레벨 업하고 그 레벨의 확정 스킬을 익힌다 */
-  merge(src, dst) {
-    const cost = this.mergeCostFor(dst.level);
-    if (cost == null) return false;
-    if (this.gold < cost) {
-      this.toast(`골드 부족 (레벨 업 ${cost}G 필요)`);
-      return false;
+  /** 시너지 다시 세기 (필드가 바뀔 때마다) */
+  recomputeSynergy() {
+    const counts = countTraits(this.mercs.filter((m) => !m.dragging));
+    const tiers = {};
+    for (const k of TRAIT_IDS) {
+      const t = activeTier(k, counts[k]);
+      if (t) tiers[k] = t;
     }
-    this.gold -= cost;
-    dst.invested += src.invested + cost;
-    dst.kills += src.kills;
-    this.grid[src.row][src.col] = null;
-    if (this.selected === src) this.selected = null;
-    src.destroy();
-    const learned = dst.levelUp();
-    audio.levelUp();
-    this.levelUpFx(dst, dst.level >= MAX_LEVEL ? 'MAX LEVEL!' : 'LEVEL UP!', dst.level >= MAX_LEVEL);
-    this.toast(`Lv.${dst.level} ${dst.heroName}${learned.length ? ` — 스킬 「${learned.map((d) => d.name).join('」「')}」 해금` : ''}`, '#f2c14e');
-    this.select(dst);
-    this.refreshHud();
-    return true;
+    const before = this.syn?.tiers || {};
+    this.syn = { counts, tiers };
+    // 새로 켜진 시너지 알림
+    for (const k of TRAIT_IDS) if (tiers[k] && tiers[k] !== before[k]) this.tut.show('synergy');
+    this.hud?.refreshSynergy?.();
+  }
+
+  /** 웨이브 시작 때 시너지 효과: 기사단 실드 · 호수 성벽 회복 · 지원가 골드 · 길드 이자·무료 리롤 · 북방 분노 초기화 */
+  waveSynergy(w) {
+    const T = this.syn.tiers;
+    if (T.knight?.shield) this.wallShield = Math.max(this.wallShield, T.knight.shield);
+    if (w >= 2 && T.lake?.wallHeal) this.wallHp = Math.min(this.wallMax, this.wallHp + T.lake.wallHeal);
+    let gold = 0;
+    if (w >= 2 && T.support?.waveGold) gold += T.support.waveGold;
+    if (w >= 2 && T.guild?.interest) gold += Math.min(T.guild.interestMax, Math.floor(this.gold * T.guild.interest));
+    if (gold) {
+      this.gold += gold;
+      this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 150 : 120, `+${gold}G 시너지`, '#f2c14e');
+    }
+    this.freeRerolls = (T.guild?.freeReroll || 0) + (this.bonus.waveFreeReroll || 0);
+    if (!T.north?.keepRage) for (const m of this.mercs) m.rage = 0;
+  }
+
+  /** 숲의 일족 6·9: 주기마다 무작위 지점 덩굴 속박 */
+  updateRoots(dt) {
+    const root = this.syn.tiers.grove?.root;
+    if (!root) return;
+    this.rootTimer -= dt;
+    if (this.rootTimer > 0) return;
+    this.rootTimer = root.every;
+    const live = this.monsters.filter((m) => m.alive && !m.isBoss);
+    if (!live.length) return;
+    const c = Phaser.Utils.Array.GetRandom(live);
+    for (const m of live) if ((root.elite || m.kind === 'normal') && d2(m, c) <= root.r * root.r) m.applyStun(root.dur, this.gameTime);
+    this.circleFx(c.x, c.y, root.r, 0x3e8a50);
   }
 
   handleDrop(merc, x, y) {
@@ -895,13 +1091,10 @@ export class GameScene extends Phaser.Scene {
       merc.col = cell.col;
       merc.row = cell.row;
       this.grid[merc.row][merc.col] = merc;
-      return merc.snapToCell();
+      merc.snapToCell();
+      return this.recomputeSynergy();
     }
-    if (merc.canMergeWith(other)) {
-      if (!this.merge(merc, other)) merc.snapToCell();
-      return;
-    }
-    // 합칠 수 없으면 자리 교체
+    // 자리 교체 (룰 v2: 합성 없음 — 별 승급은 상점에서 3장째를 살 때 자동)
     const { col, row } = merc;
     merc.col = other.col;
     merc.row = other.row;
@@ -911,6 +1104,7 @@ export class GameScene extends Phaser.Scene {
     this.grid[other.row][other.col] = other;
     merc.snapToCell();
     other.snapToCell();
+    this.recomputeSynergy();
   }
 
   setupInput() {
@@ -939,7 +1133,6 @@ export class GameScene extends Phaser.Scene {
       if (!(obj instanceof Mercenary) || this.over) return;
       obj.dragging = true;
       obj.setDepth(DEPTH.drag);
-      this.drawMergeHints(obj);
     });
     this.input.on('drag', (_p, obj, dx, dy) => {
       if (obj.dragging) obj.setPosition(dx, dy);
@@ -948,7 +1141,6 @@ export class GameScene extends Phaser.Scene {
       if (!obj.dragging) return;
       obj.dragging = false;
       obj.setDepth(DEPTH.merc);
-      this.hintGfx.clear();
       this.handleDrop(obj, p.worldX, p.worldY);
     });
   }
@@ -959,31 +1151,12 @@ export class GameScene extends Phaser.Scene {
     if (merc) this.tut.show('select');
   }
 
-  /** 머지할 수 있는 용병 한 쌍 (level 을 주면 그 레벨만) — 튜토리얼이 비출 곳 */
-  mergePair(level) {
-    for (const a of this.mercs) {
-      if (level && a.level !== level) continue;
-      const b = this.mercs.find((o) => a.canMergeWith(o));
-      if (b) return [a, b];
-    }
-    return null;
-  }
-
   /** 상황이 처음 생겼을 때 튜토리얼 (HUD 를 새로 그릴 때마다 확인) */
   checkTutorials() {
     if (!this.tut?.enabled || this.over) return;
-    if (this.mergePair()) this.tut.show('merge');
+    if (this.wave >= 2 && this.estateCost != null && this.gold >= this.estateCost) this.tut.show('estate');
     if (this.wave >= 1 && this.canCallNextWave) this.tut.show('next');
     if (this.canUpgrade && this.wave >= 1) this.tut.show('tower');
-  }
-
-  drawMergeHints(merc) {
-    const g = this.hintGfx;
-    g.clear();
-    for (const o of this.mercs) {
-      if (!merc.canMergeWith(o)) continue;
-      g.lineStyle(4, 0xf2c14e, 1).strokeRect(FIELD_X + o.col * CELL + 2, FIELD_Y + o.row * CELL + 2, CELL - 4, CELL - 4);
-    }
   }
 
   drawRange() {
@@ -1001,6 +1174,14 @@ export class GameScene extends Phaser.Scene {
   drawHpBars() {
     const g = this.hpGfx;
     g.clear();
+    // 용병 마나 막대 (머리 위, 마나가 있을 때만)
+    for (const u of this.mercs) {
+      if (u.dragging || u.mana <= 0) continue;
+      const w = 26, x = Math.round(u.x - w / 2), y = Math.round(u.y - 34);
+      const full = u.mana >= u.maxMana;
+      g.fillStyle(0x1b1b26, 0.85).fillRect(x - 1, y - 1, w + 2, 5);
+      g.fillStyle(full ? 0x9fe0ff : 0x4a8fe8).fillRect(x, y, Math.round((w * Math.min(u.mana, u.maxMana)) / u.maxMana), 3);
+    }
     for (const m of this.monsters) {
       // 물량: 일반 몬스터는 체력 막대 없음 (정예·보스만)
       if (!m.alive || m.kind === 'normal' || (m.hp >= m.maxHp && !m.isBoss)) continue;
@@ -1089,6 +1270,10 @@ export class GameScene extends Phaser.Scene {
 
   refreshRelics() {
     this.hud.refreshRelics();
+  }
+
+  refreshShop() {
+    this.hud?.refreshShop?.();
   }
 
   refreshInfo() {
