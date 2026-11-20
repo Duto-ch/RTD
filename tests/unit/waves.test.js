@@ -6,13 +6,20 @@ import { BALANCE } from '../../src/config.js';
 
 // 사용자가 확정한 웨이브 규칙 (CLAUDE.md "확정 규칙 — 전투")
 describe('웨이브 규칙', () => {
-  it('1웨이브 50기 → 70웨이브 200기 → 이후 200기 고정', () => {
-    // 물량 ×5 (2026-11-17): 기준 수(50→200)에 BALANCE.horde.mult 를 곱한다
+  it('1웨이브 50기 → 70웨이브 200기 → 이후 200기 고정 (× 물량 5 × 출현 배율 2/3)', () => {
+    // 물량 ×5 (2026-11-17) + 출현 수 1/3 감소 (2026-11-20, countScale 2/3): 1웨이브 167기 · 70웨이브부터 667기
     expect(BALANCE.horde.mult).toBe(5);
-    expect(normalCount(1)).toBe(50 * 5);
-    expect(normalCount(70)).toBe(200 * 5);
-    expect(normalCount(100)).toBe(200 * 5);
+    expect(BALANCE.horde.countScale).toBeCloseTo(2 / 3);
+    expect(normalCount(1)).toBe(167);
+    expect(normalCount(70)).toBe(667);
+    expect(normalCount(100)).toBe(667);
     for (let w = 2; w <= 70; w++) expect(normalCount(w)).toBeGreaterThanOrEqual(normalCount(w - 1));
+    // countScale 은 출현 수만 바꾼다 — 마리당 체력은 그대로
+    const hp = monsterStats('normal', 10).hp;
+    BALANCE.horde.countScale = 1;
+    expect(normalCount(1)).toBe(250);
+    expect(monsterStats('normal', 10).hp).toBe(hp);
+    BALANCE.horde.countScale = 2 / 3;
   });
 
   it('정예 5·15… / 보스 10·20… / 강화 보스 30의 배수 / 최종 보스 100의 배수 (무한 웨이브)', () => {
@@ -24,7 +31,7 @@ describe('웨이브 규칙', () => {
     for (const w of [100, 200, 300]) expect(waveInfo(w).type).toBe('final');
     expect(isFinalWave(150)).toBe(false);
     expect(waveInfo(7).type).toBe('normal');
-    expect(waveInfo(250).normal).toBe(200 * 5);
+    expect(waveInfo(250).normal).toBe(667);
   });
 
   it('무한 웨이브: 지역·몬스터 디자인은 100웨이브마다 한 바퀴 돈다', () => {

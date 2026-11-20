@@ -112,6 +112,14 @@ export function playAnim(sprite, name, ignoreIfPlaying = true) {
   return true;
 }
 
+/**
+ * 애니메이션 실제 길이(ms). Phaser 의 anim.duration 은 frameRate 만 보고 프레임별 길이(manifest ms)를 빼먹는다
+ * — 한 프레임 = msPerFrame + frame.duration
+ */
+export function animMs(anim) {
+  return anim.frames.reduce((t, f) => t + anim.msPerFrame + (f.duration || 0), 0);
+}
+
 /** 텍스처가 바뀐 뒤 기본 동작(대기/걷기)으로 맞춘다 */
 export function playBase(sprite, name) {
   if (!playAnim(sprite, name)) {
@@ -122,7 +130,7 @@ export function playBase(sprite, name) {
 
 /**
  * 공격처럼 한 번 재생하고 기본 동작으로 돌아가는 애니메이션.
- * maxMs 를 주면 그 시간 안에 끝나도록 빠르게 재생한다 (다음 공격 전에 끝나게).
+ * maxMs 를 주면 그 길이에 맞춰 재생한다 (공속에 맞춤 — 더 짧으면 빠르게, 길면 최대 1.6배까지 천천히).
  * 이미 같은 애니메이션이 재생 중이면 새로 시작하지 않는다 (true 반환).
  */
 export function playOnce(sprite, name, back, maxMs) {
@@ -130,7 +138,8 @@ export function playOnce(sprite, name, back, maxMs) {
   if (!sprite.scene || !sprite.scene.anims.exists(key)) return false;
   if (sprite.anims.isPlaying && sprite.anims.currentAnim?.key === key) return true;
   const anim = sprite.scene.anims.get(key);
-  sprite.anims.timeScale = maxMs && anim.duration > maxMs ? anim.duration / maxMs : 1;
+  // 공속에 맞춤: 빠르면 빨리, 느리면 천천히 (너무 굼뜨지 않게 최대 1.6배까지만 늘림)
+  sprite.anims.timeScale = maxMs ? Math.max(0.6, animMs(anim) / maxMs) : 1;
   sprite.play(key);
   sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
     sprite.anims.timeScale = 1;

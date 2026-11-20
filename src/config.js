@@ -24,15 +24,16 @@ export const GRID = 5;
 export const UI_PX = 3;
 // 필드 배경(땅·길·성벽·석판) 도트 굵기 — 아트 1px = 화면 2px (2026-11-17 시안). 칸 64px = 32 아트 px 로 나누어떨어진다
 export const BG_PX = 2;
-// 칸 48px (2026-11-17 사용자 결정, 이전 64) = 캐릭터 캔버스 24 아트 px × 2px. 길·성벽도 같은 비율로 줄이고 길 폭만 1.5배
-export const CELL = 48;
+// 칸 56px (2026-11-19 사용자 결정 — 캐릭터 사이를 조금 넓게, 이전 48·64). 캐릭터 그림(48px)은 그대로라 칸 사이가 8px 벌어진다.
+// 석판 28 아트 px. 성벽 두께도 함께 늘리고 길 폭은 그대로
+export const CELL = 56;
 // 코드로 그린 임시 유닛·성탑 그림 배율 (16x16 → 칸 크기에 맞춤, 칸 64 일 때 PX 4)
-export const UNIT_PX = (PX * CELL) / 64;
-export const FIELD_SIZE = GRID * CELL; // 240
-export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 세로 152 · 가로 520 (가운데)
-export const FIELD_Y = WIDE ? (GAME_H - FIELD_SIZE) / 2 : 360; // 세로는 필드 가운데가 y 480 (칸 64 시절과 같은 자리), 가로는 위아래 가운데 (240)
-export const WALL = 18; // 성벽 두께 (칸 64 시절 24 × 0.75)
-export const PATH_OFF = 56; // 필드 가장자리 → 몬스터 이동 경로 중심선 거리 (성벽 18 + 틈 6 + 길 반폭 32)
+export const UNIT_PX = (PX * 48) / 64; // 칸 48 때 배율 3 그대로 (정수 배율이어야 도트가 번지지 않는다)
+export const FIELD_SIZE = GRID * CELL; // 280
+export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 세로 132 · 가로 500 (가운데)
+export const FIELD_Y = WIDE ? (GAME_H - FIELD_SIZE) / 2 : 480 - FIELD_SIZE / 2; // 세로는 필드 가운데가 y 480, 가로는 위아래 가운데
+export const WALL = 20; // 성벽 두께 (칸 48 때 18, 칸 56 에 맞춰 10 아트 px)
+export const PATH_OFF = 58; // 필드 가장자리 → 몬스터 이동 경로 중심선 거리 (성벽 20 + 틈 6 + 길 반폭 32)
 export const PATH_WIDTH = 64; // 칸 48 비율(42)의 1.5배 — 몬스터가 더 넓게 퍼져 걷는다 (사용자 결정)
 
 export const FONT = 'Galmuri11';
@@ -72,6 +73,8 @@ export const DEPTH = {
 
 // ── 밸런스 (플레이테스트하며 조정) ────────────────
 export const BALANCE = {
+  // 공격 모션: 공격 간격 중 이 비율 동안 한 번 휘두른다 (공속에 맞춤, 2026-11-19)
+  attackAnim: { share: 0.85 },
   startGold: 120,
   hireCost: 30,
   hireLv2Chance: 0.05, // 고용 시 2레벨 용병이 나올 확률
@@ -139,6 +142,7 @@ export const BALANCE = {
   // 일반 몬스터 수 ×mult, 마리당 체력·골드 ÷mult (웨이브 전체 체력·골드 총량은 그대로). 정예·보스는 그대로
   horde: {
     mult: 5,
+    countScale: 2 / 3, // 출현 수 배율 (2026-11-20 사용자 결정: 1/3 줄임 → 1웨이브 167기). 마리당 체력·골드는 그대로 — 봇 W61·W62 로 도달 웨이브는 같고 후반 골드가 덜 쌓인다
     normalScale: 2, // 일반 몬스터 그림 배율 (정예 4·보스 5) — 작은 몬스터가 길 폭 전체에 퍼져 걷는다
     laneSpread: 24, // 길 가운데에서 좌우로 퍼지는 최대 거리(px) — 길 폭 64 에 맞춰 넓힘 (이전 18)
     carryRadius: 52, // 관통: 일반 몬스터를 죽이고 남은 피해가 이 거리 안의 다음 일반 몬스터로 넘어간다

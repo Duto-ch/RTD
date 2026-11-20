@@ -6240,6 +6240,36 @@
      ]
     }
    }
+  },
+  "relic_war_drum": {
+   "file": "relics/war_drum.png"
+  },
+  "relic_hero_sword": {
+   "file": "relics/hero_sword.png"
+  },
+  "relic_hawk_eye": {
+   "file": "relics/hawk_eye.png"
+  },
+  "relic_golden_grail": {
+   "file": "relics/golden_grail.png"
+  },
+  "relic_red_orb": {
+   "file": "relics/red_orb.png"
+  },
+  "relic_blue_orb": {
+   "file": "relics/blue_orb.png"
+  },
+  "relic_green_orb": {
+   "file": "relics/green_orb.png"
+  },
+  "relic_frost_crown": {
+   "file": "relics/frost_crown.png"
+  },
+  "relic_contract": {
+   "file": "relics/contract.png"
+  },
+  "relic_lucky_coin": {
+   "file": "relics/lucky_coin.png"
   }
  }
 }

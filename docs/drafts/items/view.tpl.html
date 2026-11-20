@@ -1,0 +1,117 @@
+<title>용병단 아이템 조합표</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sunflower:wght@500;700&family=Gowun+Dodum&display=swap">
+<style>
+/* 레이아웃: 위 — 재료 7칸(누르면 2개 골라 조합 결과) / 가운데 — 7×7 조합표(행·열 = 재료, 칸 = 결과) / 아래 — 규칙·정할 것 */
+:root { --bg: #e9e2cf; --card: #fbf7ec; --ink: #3a2e22; --sub: #7d6e5a; --line: #d9cdb2; --sage: #7a9a5c; --hl: #fff1c4;
+  --display: 'Sunflower', 'Gowun Dodum', sans-serif; --body: 'Gowun Dodum', 'Sunflower', sans-serif; color-scheme: light }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --hl: #4a3f22; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --hl: #4a3f22; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.55 }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px }
+h1 { font-family: var(--display); font-size: 1.9rem; margin: 0 }
+h2 { font-family: var(--display); font-size: 1.2rem; margin: 0 0 8px }
+.lead { color: var(--sub); max-width: 74ch; margin: 4px 0 0 }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px }
+.mats { display: flex; flex-wrap: wrap; gap: 8px }
+.mat { display: flex; align-items: center; gap: 8px; border: 2px solid var(--line); border-radius: 12px; background: transparent; color: var(--ink); padding: 6px 10px 6px 6px; font: 700 14px var(--display); cursor: pointer; text-align: left }
+.mat small { display: block; font: 400 12px var(--body); color: var(--sub) }
+.mat[aria-pressed="true"] { border-color: #c9a227; background: var(--hl) }
+.mat:focus-visible, td button:focus-visible { outline: 3px solid #ffd36a; outline-offset: 2px }
+.ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; font: 700 14px var(--display); flex: none; box-shadow: inset 0 -3px 0 rgba(0,0,0,.25) }
+.ic.sm { width: 22px; height: 22px; font-size: 11px; border-radius: 6px }
+.result { margin-top: 10px; min-height: 48px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: .95rem }
+.result b { font-family: var(--display); font-size: 1.1rem }
+.table-wrap { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; min-width: 860px }
+th, td { border: 1px solid var(--line); padding: 4px; vertical-align: top; font-size: .82rem }
+th { font-family: var(--display); background: color-mix(in srgb, var(--card) 80%, var(--line)) }
+th .ic { margin: 0 auto 2px }
+td button { width: 100%; min-height: 74px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); text-align: left; padding: 4px; cursor: pointer; font: inherit }
+td button b { font-family: var(--display); display: block; font-size: .88rem }
+td button span { color: var(--sub) }
+td button.on { background: var(--hl) }
+td.mirror button { opacity: .45 }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px }
+.rules div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: .88rem }
+.rules b { font-family: var(--display); display: block }
+.q { color: #b0562a; font-weight: 700 }
+ul { margin: 0; padding-left: 1.2em }
+</style>
+<div class="wrap">
+  <header>
+    <h1>아이템 조합 — 캐릭터 강화 가안</h1>
+    <p class="lead">판 안에서 모으는 캐릭터 한 명 강화 수단이에요. 정예·보스를 잡아 <b>재료</b>를 얻고, 캐릭터에게 끼우면 작은 효과, 같은 캐릭터에 재료 2개가 모이면 자동으로 <b>조합 아이템</b>이 돼요. 재료 6종으로 21가지, 왕실 인장을 섞으면 시너지를 +1 해 주는 <b>문장</b>이 나와요. 골드로 재료를 사는 대장장이, 아이템을 빼는 「해제 도구」도 있어요. 수치는 가안이에요.</p>
+  </header>
+
+  <section class="panel" aria-label="조합해 보기">
+    <h2>조합해 보기 — 재료 2개를 누르세요</h2>
+    <div class="mats" id="mats"></div>
+    <div class="result" id="result" aria-live="polite"></div>
+  </section>
+
+  <section class="panel" aria-label="조합표">
+    <h2>조합표 (7 × 7)</h2>
+    <div class="table-wrap"><table id="grid"></table></div>
+  </section>
+
+  <section aria-label="규칙">
+    <h2>규칙</h2>
+    <div class="rules" id="rules"></div>
+  </section>
+
+</div>
+<script>
+const D = __DATA__;
+const M = { ...D.mats, seal: D.seal };
+const KEYS = [...Object.keys(D.mats), 'seal'];
+const icon = (k, sm = '') => `<span class="ic ${sm}" style="background:${M[k].color}" aria-hidden="true">${M[k].glyph}</span>`;
+function combo(a, b) {
+  if (a === 'seal' && b === 'seal') return { name: '출신 문장', fx: '만들 때 출신 하나를 골라 그 출신으로도 셈 (시너지 +1)', fit: '출신 9단계 노릴 때' };
+  if (a === 'seal' || b === 'seal') {
+    const m = a === 'seal' ? b : a;
+    const e = D.emblems.find((x) => x.mat === m);
+    return { name: e.name, fx: `장착한 캐릭터가 ${e.name.replace(' 문장', '')} 계열로도 셈 (시너지 +1)`, fit: '계열 8단계 노릴 때' };
+  }
+  return D.combos.find((c) => (c.a === a && c.b === b) || (c.a === b && c.b === a));
+}
+// 재료 고르기
+const picked = [];
+const matsEl = document.getElementById('mats');
+for (const k of KEYS) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'mat'; b.setAttribute('aria-pressed', 'false'); b.dataset.k = k;
+  b.innerHTML = `${icon(k)}<span>${M[k].name}<small>${M[k].fx}</small></span>`;
+  b.onclick = () => {
+    if (picked.length === 2) picked.length = 0;
+    picked.push(k);
+    show();
+  };
+  matsEl.appendChild(b);
+}
+function show() {
+  matsEl.querySelectorAll('.mat').forEach((b) => b.setAttribute('aria-pressed', String(picked.includes(b.dataset.k))));
+  const r = document.getElementById('result');
+  document.querySelectorAll('td button').forEach((x) => x.classList.remove('on'));
+  if (picked.length < 2) { r.innerHTML = picked.length ? `${icon(picked[0], 'sm')} ${M[picked[0]].name} + ? — 하나 더 고르세요 (같은 재료 2개도 돼요)` : '<span style="color:var(--sub)">예: 숫돌 + 깃털 → 쌍날 단검</span>'; return; }
+  const c = combo(picked[0], picked[1]);
+  r.innerHTML = `${icon(picked[0], 'sm')} + ${icon(picked[1], 'sm')} → <b>${c.name}</b> <span>${c.fx}</span> <span style="color:var(--sub)">· ${c.fit}</span>`;
+  document.querySelectorAll(`td button[data-a="${picked[0]}"][data-b="${picked[1]}"], td button[data-a="${picked[1]}"][data-b="${picked[0]}"]`).forEach((x) => x.classList.add('on'));
+}
+show();
+// 조합표
+let h = '<thead><tr><th></th>' + KEYS.map((k) => `<th>${icon(k)}${M[k].name}</th>`).join('') + '</tr></thead><tbody>';
+KEYS.forEach((a, i) => {
+  h += `<tr><th>${icon(a)}${M[a].name}</th>`;
+  KEYS.forEach((b, j) => {
+    const c = combo(a, b);
+    h += `<td class="${j < i ? 'mirror' : ''}"><button type="button" data-a="${a}" data-b="${b}"><b>${c.name}</b><span>${c.fx}</span></button></td>`;
+  });
+  h += '</tr>';
+});
+const grid = document.getElementById('grid');
+grid.innerHTML = h + '</tbody>';
+grid.querySelectorAll('td button').forEach((x) => x.onclick = () => { picked.length = 0; picked.push(x.dataset.a, x.dataset.b); show(); document.getElementById('result').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+document.getElementById('rules').innerHTML = D.rules.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join('');
+
+</script>

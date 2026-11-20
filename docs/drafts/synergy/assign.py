@@ -1,0 +1,98 @@
+"""시너지 시안 데이터 (2026-11-20) — 60명 = 계열 1 + 출신 1. 결과: synergy.json"""
+import json, os, subprocess
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+roster = json.loads(subprocess.check_output(['node', '-e', "import('./src/data/roster.js').then(({ROSTER})=>console.log(JSON.stringify(ROSTER.map(r=>({id:r.id,name:r.name,grade:r.grade,style:r.style,title:r.title,original:!!r.original})))))"], cwd=ROOT))
+# 2026-11-20: 60 → 70명 (사용자 결정). 언커먼 이상 64명 전원 + 커먼 6명 — 암살자·주술사·지원가가 얇아서 그 계열에서 고름
+DROP = []
+ADD_COMMON = ['leif', 'lucy', 'ingrid', 'helga', 'aud', 'emma']
+PROMOTE = ['leif', 'aud']   # 2026-11-20: 커먼 6명 중 2명만 언커먼으로 (암살자·주술사 한 명씩, 그림은 언커먼 12색으로 다시 그림)
+ORIGIN = {
+    'north': ['ragnar', 'brynhild', 'halvard', 'bjorn', 'ulf', 'atle', 'einar', 'stein', 'ylva', 'ingrid', 'leif'],
+    'knight': ['arthur', 'eleanor', 'kristin', 'adel', 'claire', 'henrik', 'leo', 'kaira', 'sigurd', 'gareth', 'lucy'],
+    'tower': ['isolde', 'solveig', 'elva', 'verona', 'celeste', 'aidan', 'bridget', 'olaf', 'gilbert', 'greta', 'helga'],
+    'grove': ['oberon', 'freydis', 'rowena', 'elias', 'gwen', 'thorn', 'freya', 'thea', 'elin', 'marit', 'edda', 'fergus'],
+    'lake': ['vivian', 'serena', 'william', 'rosalind', 'haakon', 'theodore', 'asta', 'liv', 'agnes', 'sigrid', 'aud', 'emma'],
+    'guild': ['richard', 'winston', 'thorsten', 'ivar', 'cecilia', 'oscar', 'jonathan', 'colin', 'siri', 'nora', 'nix', 'karsten', 'bern'],
+}
+CLASS_OF_STYLE = {'brawl': 'warrior', 'bow': 'ranger', 'heavy': 'ranger', 'rapid': 'assassin', 'blast': 'gunner', 'hex': 'hexer', 'aid': 'support'}
+o_of = {cid: o for o, ids in ORIGIN.items() for cid in ids}
+from collections import Counter
+chars = []
+for r in roster:
+    if (r['grade'] < 2 and r['id'] not in ADD_COMMON) or r['id'] in DROP:
+        continue
+    assert r['id'] in o_of, r['id']
+    if r['id'] in PROMOTE:
+        r = {**r, 'grade': 2, 'promoted': True}
+    chars.append({**r, 'cls': CLASS_OF_STYLE[r['style']], 'origin': o_of[r['id']]})
+assert len(chars) == 70, len(chars)
+
+# ── 등급 재배분 (2026-11-20 사용자 결정) ──
+# 70명 = 커먼 22 · 언커먼 20 · 레어 16 · 유니크 12. 출신마다 유니크 2명씩 + 나머지 등급도 고르게 →
+# 어떤 시너지든 초반(커먼·언커먼)부터 후반(레어·유니크)까지 이어서 키울 수 있다 (TFT 처럼 특성이 여러 가격대에 걸침).
+# 출신 안에서는 지금 등급이 높은 순으로 위 등급을 채우고, 같은 등급끼리는 그 등급에 적게 들어간 계열을 먼저 고른다.
+QUOTA = {  # 출신: (유니크, 레어, 언커먼, 커먼)
+    'north': (2, 3, 3, 3), 'knight': (2, 2, 4, 3), 'tower': (2, 2, 3, 4),
+    'grove': (2, 3, 3, 4), 'lake': (2, 3, 3, 4), 'guild': (2, 3, 4, 4),
+}
+order = {r['id']: i for i, r in enumerate(roster)}
+for o, q in QUOTA.items():
+    mem = [c for c in chars if c['origin'] == o]
+    assert sum(q) == len(mem), (o, sum(q), len(mem))
+cls_at = {g: {} for g in (1, 2, 3, 4)}
+FORCE = {'asta': 4, 'leif': 2, 'aud': 2}   # 아스타: 주술사에도 유니크가 하나는 있게 · 비다르·모이라: 사용자가 언커먼으로 올린 2명 유지
+for cid, g in FORCE.items():
+    c = next(c for c in chars if c['id'] == cid)
+    c['new'] = g
+    cls_at[g][c['cls']] = cls_at[g].get(c['cls'], 0) + 1
+for g, qi in ((4, 0), (3, 1), (2, 2)):
+    for o, q in QUOTA.items():
+        have = sum(1 for c in chars if c['origin'] == o and c.get('new') == g)
+        for _ in range(q[qi] - have):
+            pool = [c for c in chars if c['origin'] == o and 'new' not in c]
+            pick = max(pool, key=lambda c: (c['grade'], -cls_at[g].get(c['cls'], 0), -order[c['id']]))
+            pick['new'] = g
+            cls_at[g][pick['cls']] = cls_at[g].get(pick['cls'], 0) + 1
+for c in chars:
+    c.setdefault('new', 1)
+    c['old'] = c['grade']
+    c['grade'] = c['new']
+print('새 등급', Counter(c['grade'] for c in chars), '바뀜', sum(c['grade'] != c['old'] for c in chars))
+for cl in CLASS_OF_STYLE.values():
+    pass
+print({k: dict(Counter(c['grade'] for c in chars if c['cls'] == k)) for k in set(CLASS_OF_STYLE.values())})
+sk = json.loads(subprocess.check_output(['node', os.path.join(HERE, 'skillstar.mjs'), *[f"{c['id']}:{c['grade']}" for c in chars]], cwd=ROOT))
+for c in chars:
+    c['skill'] = sk[c['id']]
+print(Counter(c['cls'] for c in chars), Counter(c['origin'] for c in chars), Counter(c['grade'] for c in chars))
+TRAITS = {
+    # 2026-11-20 이름·수치 정리 (수치는 가안). 계열 = 공격 방식(단계 2·5·8, 그 계열만 강해짐, 8단계만 팀 전체에도),
+    # 출신 = 세력(단계 3·6·9, 그 출신만 또는 성벽·골드 같은 팀 효과). 단계마다 대략 ×1 → ×2.3 → ×4 로 커지게 맞춤.
+    'warrior': {'kind': 'class', 'name': '전사', 'color': '#c0563c', 'glyph': '검', 'desc': '길 가까이에서 베는 근접 계열. 바깥 줄(전열)에 있으면 효과 1.5배',
+                'tiers': [[2, '전사 공격력 +15%'], [5, '전사 공격력 +35%, 3번째 공격마다 주변 베기'], [8, '전사 공격력 +60%, 모든 공격이 주변 베기 + 팀 전체 공격력 +10%']]},
+    'ranger': {'kind': 'class', 'name': '사수', 'color': '#5f8f3e', 'glyph': '활', 'desc': '활·석궁·총. 멀리서 한 마리씩 정확하게. 가운데 3×3(후열)이면 사거리 +1칸',
+               'tiers': [[2, '사수 사거리 +15%, 관통 +1'], [5, '사거리 +30%, 관통 +2, 정예·보스 피해 +20%'], [8, '사거리 +45%, 관통 +4, 정예·보스 피해 +50%']]},
+    'assassin': {'kind': 'class', 'name': '암살자', 'color': '#6b4a8f', 'glyph': '단', 'desc': '단검·쌍검으로 빠르게. 치명타가 핵심',
+                 'tiers': [[2, '암살자 치명타 확률 +15%, 치명 피해 +30%'], [5, '치명타 +30%, 치명 피해 +60%'], [8, '치명타 +45%, 치명 피해 +100%, 치명타 때 40% 확률로 한 번 더 공격']]},
+    'gunner': {'kind': 'class', 'name': '포격수', 'color': '#d9822b', 'glyph': '폭', 'desc': '폭발·범위 공격. 몰려오는 물량 담당',
+               'tiers': [[2, '포격수 폭발 범위 +15%'], [5, '폭발 범위 +35%, 터진 자리에 불길 1초'], [8, '폭발 범위 +60%, 폭발이 두 번 터짐']]},
+    'hexer': {'kind': 'class', 'name': '주술사', 'color': '#3f7f86', 'glyph': '술', 'desc': '지속 피해·약화·감속을 거는 계열',
+              'tiers': [[2, '주술 효과(지속 피해·약화·감속) +30%'], [5, '주술 효과 +70%, 걸린 적이 죽으면 옆 적에게 옮음'], [8, '주술 효과 +120%, 모든 아군 공격에 약화(받는 피해 +15%)']]},
+    'support': {'kind': 'class', 'name': '지원가', 'color': '#c9a227', 'glyph': '깃', 'desc': '오라·버프·골드. 혼자 약하지만 팀을 키움',
+                'tiers': [[2, '팀 전체 공격 속도 +8%'], [5, '팀 전체 공격 속도 +18%, 버프 지속 1.5배'], [8, '팀 전체 공격 속도 +30%, 웨이브마다 골드 +10']]},
+    # 출신 6가지 — 단계 3·6·9 (계열 이름과 겹치지 않게 '전사단' → '부족', 숲·길드 이름도 정리)
+    'north': {'kind': 'origin', 'name': '북방 부족', 'color': '#a8432f', 'glyph': '북', 'desc': '뿔투구·도끼·곰가죽. 싸울수록 분노가 쌓인다',
+              'tiers': [[3, '공격할 때마다 분노 1중첩(최대 10), 중첩당 공격 속도 +2%'], [6, '중첩당 공격 속도 +3%, 10중첩이면 공격력 +20%'], [9, '중첩당 +4%, 10중첩이면 공격력 +40%, 분노가 웨이브 사이에도 유지']]},
+    'knight': {'kind': 'origin', 'name': '왕국 기사단', 'color': '#4a6fa8', 'glyph': '방', 'desc': '판금·방패·창. 성벽을 지킨다',
+               'tiers': [[3, '성벽이 받는 피해 -15%'], [6, '성벽 피해 -30%, 웨이브 시작 때 성벽 실드 10'], [9, '성벽 피해 -45%, 실드 25, 기사단 공격력 +25%']]},
+    'tower': {'kind': 'origin', 'name': '마탑', 'color': '#8a4fb5', 'glyph': '탑', 'desc': '로브·지팡이·연금술. 마나가 빨리 차서 스킬이 자주 터진다',
+              'tiers': [[3, '마탑 공격당 마나 +3'], [6, '공격당 마나 +6, 스킬 피해 +20%'], [9, '공격당 마나 +10, 스킬 피해 +40%, 25% 확률로 스킬 두 번 시전']]},
+    'grove': {'kind': 'origin', 'name': '숲의 일족', 'color': '#3e8a50', 'glyph': '숲', 'desc': '엘프·드루이드·요정. 길을 덩굴로 묶는다',
+              'tiers': [[3, '길 위 모든 몬스터 이동 속도 -6%'], [6, '이동 속도 -12%, 8초마다 무작위 지점 덩굴 속박 1.5초'], [9, '이동 속도 -18%, 속박 범위 2배, 정예도 묶임']]},
+    'lake': {'kind': 'origin', 'name': '호수의 성역', 'color': '#3a8fb0', 'glyph': '물', 'desc': '물·얼음·성녀. 성벽을 회복시킨다',
+             'tiers': [[3, '웨이브를 깰 때 성벽 체력 +2'], [6, '성벽 체력 +5, 성역 캐릭터 스킬 피해 +20%'], [9, '성벽 체력 +10, 성벽이 0이 되면 한 판에 한 번 50%로 되살아남']]},
+    'guild': {'kind': 'origin', 'name': '황금 길드', 'color': '#9a7a3a', 'glyph': '금', 'desc': '총·석궁·도적·상인. 돈을 번다',
+              'tiers': [[3, '처치 골드 +10%'], [6, '처치 골드 +25%, 웨이브 끝에 가진 골드의 5% 이자(최대 20)'], [9, '처치 골드 +50%, 이자 10%(최대 50), 웨이브마다 상점 리롤 1회 무료']]},
+}
+json.dump({'chars': chars, 'drop': DROP, 'traits': TRAITS}, open(os.path.join(HERE, 'synergy.json'), 'w'), ensure_ascii=False, indent=1)

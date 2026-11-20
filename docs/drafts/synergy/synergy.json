@@ -1,0 +1,3341 @@
+{
+ "chars": [
+  {
+   "id": "helga",
+   "name": "헬가",
+   "grade": 1,
+   "style": "hex",
+   "title": "불씨 주술사",
+   "original": false,
+   "cls": "hexer",
+   "origin": "tower",
+   "new": 1,
+   "old": 1,
+   "skill": {
+    "name": "대화재",
+    "cd": 18,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 5초간 초당 60% 피해",
+     "사거리 내 모든 적에게 5초간 초당 96% 피해",
+     "사거리 내 모든 적에게 5초간 초당 156% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "불씨 저주",
+     "잿불 장판",
+     "화로의 축복"
+    ]
+   }
+  },
+  {
+   "id": "bridget",
+   "name": "브리짓",
+   "grade": 1,
+   "style": "blast",
+   "title": "화염 마법사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "메테오",
+    "cd": 16,
+    "mana": 80,
+    "desc": [
+     "대상 주변(반경 120)에게 219% 피해",
+     "대상 주변(반경 132)에게 350% 피해",
+     "대상 주변(반경 144)에게 569% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "화염구",
+     "불기둥",
+     "마나 과열"
+    ]
+   }
+  },
+  {
+   "id": "karsten",
+   "name": "카르스텐",
+   "grade": 1,
+   "style": "brawl",
+   "title": "용광로 대장장이",
+   "original": false,
+   "cls": "warrior",
+   "origin": "guild",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "명검 단조",
+    "cd": 22,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +14% (8초)",
+     "모든 아군 공격력 +21% (9초)",
+     "모든 아군 공격력 +31% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 13,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "담금질",
+     "불꽃 망치",
+     "쇳물 붓기"
+    ]
+   }
+  },
+  {
+   "id": "siri",
+   "name": "셀마",
+   "grade": 2,
+   "style": "rapid",
+   "title": "화염 무희",
+   "original": false,
+   "cls": "assassin",
+   "origin": "guild",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "불새의 춤",
+    "cd": 16,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 125% 피해",
+     "사거리 내 모든 적에게 200% 피해",
+     "사거리 내 모든 적에게 325% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 15,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 26,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "불꽃 회전",
+     "부채춤",
+     "열정"
+    ]
+   }
+  },
+  {
+   "id": "oscar",
+   "name": "오스카",
+   "grade": 2,
+   "style": "heavy",
+   "title": "대포 공병",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "대포 일제사격",
+    "cd": 18,
+    "mana": 50,
+    "desc": [
+     "대상 주변(반경 130)에게 250% 피해",
+     "대상 주변(반경 143)에게 400% 피해",
+     "대상 주변(반경 156)에게 650% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 38,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 68,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 121,
+      "rate": 0.45,
+      "range": 320
+     }
+    ],
+    "dropped": [
+     "포탄",
+     "확산탄",
+     "조준경 보정"
+    ]
+   }
+  },
+  {
+   "id": "greta",
+   "name": "그레타",
+   "grade": 2,
+   "style": "hex",
+   "title": "재의 마녀",
+   "original": false,
+   "cls": "hexer",
+   "origin": "tower",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "불타는 묘지",
+    "cd": 18,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 5초간 초당 75% 피해",
+     "사거리 내 모든 적에게 5초간 초당 120% 피해",
+     "사거리 내 모든 적에게 5초간 초당 195% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 15,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 26,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "재의 저주",
+     "잿빛 안개",
+     "타락"
+    ]
+   }
+  },
+  {
+   "id": "leo",
+   "name": "레오",
+   "grade": 2,
+   "style": "brawl",
+   "title": "사자 갈기 검투사",
+   "original": false,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "투기장의 왕",
+    "cd": 16,
+    "mana": 110,
+    "desc": [
+     "체력이 가장 많은 적에게 600% 피해",
+     "체력이 가장 많은 적에게 960% 피해",
+     "체력이 가장 많은 적에게 1560% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 19,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 35,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 62,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "검투",
+     "사자후",
+     "관중의 환호"
+    ]
+   }
+  },
+  {
+   "id": "bern",
+   "name": "베른",
+   "grade": 2,
+   "style": "bow",
+   "title": "사막 낙타 기병",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "사막 폭풍",
+    "cd": 18,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 100% 피해, 30% 감속 3초",
+     "사거리 내 모든 적에게 160% 피해, 35% 감속 4초",
+     "사거리 내 모든 적에게 260% 피해, 40% 감속 5초"
+    ],
+    "stats": [
+     {
+      "atk": 11,
+      "rate": 1.4,
+      "range": 242
+     },
+     {
+      "atk": 19,
+      "rate": 1.4,
+      "range": 242
+     },
+     {
+      "atk": 35,
+      "rate": 1.4,
+      "range": 242
+     }
+    ],
+    "dropped": [
+     "기마 사격",
+     "모래 화살",
+     "질주"
+    ]
+   }
+  },
+  {
+   "id": "claire",
+   "name": "클레어",
+   "grade": 2,
+   "style": "aid",
+   "title": "전장 성기사 견습",
+   "original": false,
+   "cls": "support",
+   "origin": "knight",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "일출",
+    "cd": 24,
+    "mana": 140,
+    "desc": [
+     "모든 아군 공격력 +15%, 공격 속도 +9% (6초)",
+     "모든 아군 공격력 +23%, 공격 속도 +14% (7초)",
+     "모든 아군 공격력 +34%, 공격 속도 +20% (8초)"
+    ],
+    "stats": [
+     {
+      "atk": 7,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 12,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 22,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "태양의 축복",
+     "정화의 빛",
+     "수호 맹세"
+    ]
+   }
+  },
+  {
+   "id": "einar",
+   "name": "에이나르",
+   "grade": 2,
+   "style": "brawl",
+   "title": "광전사",
+   "original": false,
+   "cls": "warrior",
+   "origin": "north",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "끝없는 분노",
+    "cd": 18,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 150% 피해",
+     "사거리 내 모든 적에게 240% 피해",
+     "사거리 내 모든 적에게 390% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 18,
+      "rate": 1.38,
+      "range": 150
+     },
+     {
+      "atk": 32,
+      "rate": 1.38,
+      "range": 150
+     },
+     {
+      "atk": 56,
+      "rate": 1.38,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "광폭화",
+     "쌍도끼 회전",
+     "피의 함성"
+    ]
+   }
+  },
+  {
+   "id": "elva",
+   "name": "엘바",
+   "grade": 3,
+   "style": "blast",
+   "title": "용의 피 마도사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "용염 강림",
+    "cd": 22,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 250% 피해, 4초간 초당 50% 피해",
+     "사거리 내 모든 적에게 400% 피해, 4초간 초당 80% 피해",
+     "사거리 내 모든 적에게 650% 피해, 4초간 초당 130% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 16,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 52,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "용의 숨결",
+     "비늘 방패",
+     "용암 분출"
+    ]
+   }
+  },
+  {
+   "id": "thorsten",
+   "name": "토르스텐",
+   "grade": 3,
+   "style": "brawl",
+   "title": "용병단 부단장",
+   "original": false,
+   "cls": "warrior",
+   "origin": "guild",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "부단장의 일갈",
+    "cd": 20,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 200% 피해, 1초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 320% 피해, 1.25초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 520% 피해, 1.5초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 75,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "대검 베기",
+     "돌격 명령",
+     "갑옷 파쇄"
+    ]
+   }
+  },
+  {
+   "id": "cecilia",
+   "name": "세실리아",
+   "grade": 3,
+   "style": "heavy",
+   "title": "불사조 사수",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "불사조 강하",
+    "cd": 20,
+    "mana": 50,
+    "desc": [
+     "대상 주변(반경 100)에게 700% 피해, 보스에게 1.5배",
+     "대상 주변(반경 110)에게 1120% 피해, 보스에게 1.5배",
+     "대상 주변(반경 120)에게 1820% 피해, 보스에게 1.5배"
+    ],
+    "stats": [
+     {
+      "atk": 50,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 91,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 161,
+      "rate": 0.45,
+      "range": 320
+     }
+    ],
+    "dropped": [
+     "불사조 깃",
+     "타오르는 궤적",
+     "재생의 불꽃"
+    ]
+   }
+  },
+  {
+   "id": "ulf",
+   "name": "울프",
+   "grade": 3,
+   "style": "rapid",
+   "title": "늑대 기사",
+   "original": false,
+   "cls": "assassin",
+   "origin": "north",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "달빛 사냥",
+    "cd": 16,
+    "mana": 150,
+    "desc": [
+     "대상에게 체력 35% 이하면 즉사, 아니면 100% 피해 (보스는 800% 피해)",
+     "대상에게 체력 35% 이하면 즉사, 아니면 100% 피해 (보스는 800% 피해)",
+     "대상에게 체력 35% 이하면 즉사, 아니면 100% 피해 (보스는 800% 피해)"
+    ],
+    "stats": [
+     {
+      "atk": 11,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 19,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 35,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "물어뜯기",
+     "무리 사냥",
+     "늑대의 울부짖음"
+    ]
+   }
+  },
+  {
+   "id": "aidan",
+   "name": "아이단",
+   "grade": 3,
+   "style": "hex",
+   "title": "연금술사",
+   "original": false,
+   "cls": "hexer",
+   "origin": "tower",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "현자의 돌",
+    "cd": 26,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +18% (8초) / 골드 +10",
+     "모든 아군 공격력 +27% (9초) / 골드 +16",
+     "모든 아군 공격력 +41% (10초) / 골드 +26"
+    ],
+    "stats": [
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 35,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "산성 플라스크",
+     "금 변환",
+     "폭발 물약"
+    ]
+   }
+  },
+  {
+   "id": "rosalind",
+   "name": "로잘린",
+   "grade": 2,
+   "style": "aid",
+   "title": "홍염 성녀",
+   "original": false,
+   "cls": "support",
+   "origin": "lake",
+   "new": 2,
+   "old": 3,
+   "skill": {
+    "name": "성스러운 불길",
+    "cd": 22,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 180% 피해, 받는 피해 +17% 5초",
+     "사거리 내 모든 적에게 288% 피해, 받는 피해 +25% 6초",
+     "사거리 내 모든 적에게 468% 피해, 받는 피해 +38% 7초"
+    ],
+    "stats": [
+     {
+      "atk": 7,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 12,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 22,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "성화 봉헌",
+     "정화의 불",
+     "기도"
+    ]
+   }
+  },
+  {
+   "id": "ragnar",
+   "name": "라그나르",
+   "grade": 4,
+   "style": "brawl",
+   "title": "전쟁군주",
+   "original": false,
+   "cls": "warrior",
+   "origin": "north",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "왕의 처형",
+    "cd": 14,
+    "mana": 90,
+    "desc": [
+     "체력이 가장 많은 적에게 1000% 피해, 보스에게 1.5배",
+     "체력이 가장 많은 적에게 1600% 피해, 보스에게 1.5배",
+     "체력이 가장 많은 적에게 2600% 피해, 보스에게 1.5배"
+    ],
+    "stats": [
+     {
+      "atk": 36,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 64,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 114,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "라그나로크",
+     "전쟁의 함성",
+     "대지 분쇄"
+    ]
+   }
+  },
+  {
+   "id": "isolde",
+   "name": "이졸데",
+   "grade": 4,
+   "style": "blast",
+   "title": "태양의 대마법사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "초신성",
+    "cd": 26,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 500% 피해, 4초간 초당 75% 피해",
+     "사거리 내 모든 적에게 800% 피해, 4초간 초당 120% 피해",
+     "사거리 내 모든 적에게 1300% 피해, 4초간 초당 195% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 23,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 41,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 72,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "태양 낙하",
+     "홍염 연쇄",
+     "태양의 가호"
+    ]
+   }
+  },
+  {
+   "id": "bjorn",
+   "name": "비요른",
+   "grade": 4,
+   "style": "bow",
+   "title": "불새의 사냥꾼",
+   "original": false,
+   "cls": "ranger",
+   "origin": "north",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "불새 강림",
+    "cd": 22,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 300% 피해",
+     "사거리 내 모든 적에게 480% 피해",
+     "사거리 내 모든 적에게 780% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 20,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 36,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 64,
+      "rate": 1.4,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "불새의 깃",
+     "관통하는 불길",
+     "사냥꾼의 눈"
+    ]
+   }
+  },
+  {
+   "id": "brynhild",
+   "name": "브륀힐드",
+   "grade": 3,
+   "style": "rapid",
+   "title": "전장의 발키리",
+   "original": false,
+   "cls": "assassin",
+   "origin": "north",
+   "new": 3,
+   "old": 4,
+   "skill": {
+    "name": "신들의 황혼",
+    "cd": 24,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 310% 피해, 1.5초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 495% 피해, 1.75초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 805% 피해, 2초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 11,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 19,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 35,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "발키리의 창",
+     "전사자의 인도",
+     "불꽃 날개"
+    ]
+   }
+  },
+  {
+   "id": "ingrid",
+   "name": "잉그리드",
+   "grade": 1,
+   "style": "hex",
+   "title": "서리 주술사",
+   "original": false,
+   "cls": "hexer",
+   "origin": "north",
+   "new": 1,
+   "old": 1,
+   "skill": {
+    "name": "혹한",
+    "cd": 18,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 50% 피해, 40% 감속 4초",
+     "사거리 내 모든 적에게 80% 피해, 45% 감속 5초",
+     "사거리 내 모든 적에게 130% 피해, 50% 감속 6초"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "서리 저주",
+     "얼음 수렁",
+     "겨울 축복"
+    ]
+   }
+  },
+  {
+   "id": "emma",
+   "name": "엠마",
+   "grade": 1,
+   "style": "aid",
+   "title": "얼음 약사",
+   "original": false,
+   "cls": "support",
+   "origin": "lake",
+   "new": 1,
+   "old": 1,
+   "skill": {
+    "name": "만능 해독제",
+    "cd": 22,
+    "mana": 130,
+    "desc": [
+     "모든 아군 공격 속도 +9% (8초)",
+     "모든 아군 공격 속도 +14% (9초)",
+     "모든 아군 공격 속도 +20% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 5,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 9,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "청량 물약",
+     "냉기 병",
+     "집중 차"
+    ]
+   }
+  },
+  {
+   "id": "aud",
+   "name": "모이라",
+   "grade": 2,
+   "style": "hex",
+   "title": "안개 점술사",
+   "original": false,
+   "promoted": true,
+   "cls": "hexer",
+   "origin": "lake",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "정해진 파멸",
+    "cd": 18,
+    "mana": 110,
+    "desc": [
+     "대상 주변(반경 100)에게 86% 피해, 받는 피해 +27% 6초",
+     "대상 주변(반경 110)에게 137% 피해, 받는 피해 +40% 7초",
+     "대상 주변(반경 120)에게 222% 피해, 받는 피해 +60% 8초"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 15,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 26,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "불길한 예언",
+     "안개",
+     "운명 엿보기"
+    ]
+   }
+  },
+  {
+   "id": "lucy",
+   "name": "루시",
+   "grade": 1,
+   "style": "rapid",
+   "title": "스케이트 전령",
+   "original": false,
+   "cls": "assassin",
+   "origin": "knight",
+   "new": 1,
+   "old": 1,
+   "skill": {
+    "name": "질풍 연격",
+    "cd": 14,
+    "mana": 150,
+    "desc": [
+     "적 최대 7명에게 125% 피해",
+     "적 최대 8명에게 200% 피해",
+     "적 최대 9명에게 325% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 2.53,
+      "range": 180
+     },
+     {
+      "atk": 11,
+      "rate": 2.53,
+      "range": 180
+     },
+     {
+      "atk": 19,
+      "rate": 2.53,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "미끄러지며 베기",
+     "빙판 만들기",
+     "급보"
+    ]
+   }
+  },
+  {
+   "id": "sigrid",
+   "name": "시그리드",
+   "grade": 1,
+   "style": "bow",
+   "title": "빙설 궁수",
+   "original": false,
+   "cls": "ranger",
+   "origin": "lake",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "눈보라 화살비",
+    "cd": 16,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 88% 피해, 35% 감속 3초",
+     "사거리 내 모든 적에게 140% 피해, 40% 감속 4초",
+     "사거리 내 모든 적에게 228% 피해, 45% 감속 5초"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 14,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 26,
+      "rate": 1.4,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "얼음 화살",
+     "빙결 화살",
+     "설원의 시선"
+    ]
+   }
+  },
+  {
+   "id": "olaf",
+   "name": "에스벤",
+   "grade": 1,
+   "style": "blast",
+   "title": "눈보라 마법사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "블리자드",
+    "cd": 20,
+    "mana": 100,
+    "desc": [
+     "사거리 내 모든 적에게 132% 피해, 40% 감속 4초",
+     "사거리 내 모든 적에게 210% 피해, 45% 감속 5초",
+     "사거리 내 모든 적에게 342% 피해, 50% 감속 6초"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "냉기 폭발",
+     "얼음 감옥",
+     "마나 순환"
+    ]
+   }
+  },
+  {
+   "id": "henrik",
+   "name": "헨릭",
+   "grade": 2,
+   "style": "brawl",
+   "title": "창기병 교관",
+   "original": false,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "기병 돌격",
+    "cd": 18,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 125% 피해, 90만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 200% 피해, 99만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 325% 피해, 108만큼 뒤로 밀침 (보스 면역)"
+    ],
+    "stats": [
+     {
+      "atk": 19,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 35,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 62,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "돌진",
+     "창술 시범",
+     "꿰뚫기"
+    ]
+   }
+  },
+  {
+   "id": "liv",
+   "name": "리브",
+   "grade": 1,
+   "style": "hex",
+   "title": "조류 마녀",
+   "original": false,
+   "cls": "hexer",
+   "origin": "lake",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "대조류",
+    "cd": 20,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 받는 피해 +17% 5초, 80만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 받는 피해 +25% 6초, 88만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 받는 피해 +38% 7초, 96만큼 뒤로 밀침 (보스 면역)"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "밀물",
+     "해초 휘감기",
+     "바다의 노래"
+    ]
+   }
+  },
+  {
+   "id": "jonathan",
+   "name": "조너선",
+   "grade": 1,
+   "style": "heavy",
+   "title": "왕실 총사",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "왕을 위하여",
+    "cd": 18,
+    "mana": 50,
+    "desc": [
+     "체력이 가장 많은 적에게 658% 피해",
+     "체력이 가장 많은 적에게 1052% 피해",
+     "체력이 가장 많은 적에게 1710% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 28,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 50,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 90,
+      "rate": 0.45,
+      "range": 320
+     }
+    ],
+    "dropped": [
+     "명예의 한 발",
+     "결투 신청",
+     "총사의 맹세"
+    ]
+   }
+  },
+  {
+   "id": "agnes",
+   "name": "아그네스",
+   "grade": 1,
+   "style": "aid",
+   "title": "수도원 치유사",
+   "original": false,
+   "cls": "support",
+   "origin": "lake",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "기적",
+    "cd": 26,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +11%, 공격 속도 +11% (8초)",
+     "모든 아군 공격력 +17%, 공격 속도 +17% (9초)",
+     "모든 아군 공격력 +26%, 공격 속도 +26% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 5,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 9,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "성수 뿌리기",
+     "정화의 물결",
+     "침묵 기도"
+    ]
+   }
+  },
+  {
+   "id": "stein",
+   "name": "하겐",
+   "grade": 1,
+   "style": "brawl",
+   "title": "빙벽 수호자",
+   "original": false,
+   "cls": "warrior",
+   "origin": "north",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "빙하 붕괴",
+    "cd": 20,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 110% 피해, 1.2초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 175% 피해, 1.45초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 285% 피해, 1.7초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 13,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "빙벽",
+     "서리 망치",
+     "굳건함"
+    ]
+   }
+  },
+  {
+   "id": "nora",
+   "name": "노라",
+   "grade": 2,
+   "style": "rapid",
+   "title": "얼음 쌍검사",
+   "original": false,
+   "cls": "assassin",
+   "origin": "guild",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "결빙 난무",
+    "cd": 15,
+    "mana": 150,
+    "desc": [
+     "적 최대 8명에게 150% 피해, 30% 감속 2초",
+     "적 최대 9명에게 240% 피해, 35% 감속 3초",
+     "적 최대 10명에게 390% 피해, 40% 감속 4초"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 15,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 26,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "빙결 연참",
+     "서리 회전",
+     "냉정"
+    ]
+   }
+  },
+  {
+   "id": "gilbert",
+   "name": "길버트",
+   "grade": 1,
+   "style": "blast",
+   "title": "시계탑 학자",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "시간 정지",
+    "cd": 22,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 2초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 2.25초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 2.5초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "시간 지연",
+     "태엽 폭발",
+     "가속 장치"
+    ]
+   }
+  },
+  {
+   "id": "kristin",
+   "name": "크리스틴",
+   "grade": 3,
+   "style": "heavy",
+   "title": "빙하 저격 기사",
+   "original": false,
+   "cls": "ranger",
+   "origin": "knight",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "절대 영도 저격",
+    "cd": 20,
+    "mana": 50,
+    "desc": [
+     "체력이 가장 많은 적에게 800% 피해, 2초 기절 (보스 절반)",
+     "체력이 가장 많은 적에게 1280% 피해, 2.25초 기절 (보스 절반)",
+     "체력이 가장 많은 적에게 2080% 피해, 2.5초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 50,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 91,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 161,
+      "rate": 0.45,
+      "range": 320
+     }
+    ],
+    "dropped": [
+     "빙결탄",
+     "결정 관통",
+     "얼어붙은 호흡"
+    ]
+   }
+  },
+  {
+   "id": "haakon",
+   "name": "하콘",
+   "grade": 2,
+   "style": "brawl",
+   "title": "바다의 왕자",
+   "original": false,
+   "cls": "warrior",
+   "origin": "lake",
+   "new": 2,
+   "old": 3,
+   "skill": {
+    "name": "해신의 분노",
+    "cd": 22,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 180% 피해, 30% 감속 3초, 100만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 288% 피해, 35% 감속 4초, 110만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 468% 피해, 40% 감속 5초, 120만큼 뒤로 밀침 (보스 면역)"
+    ],
+    "stats": [
+     {
+      "atk": 18,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 32,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 56,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "삼지창 찌르기",
+     "파도 타기",
+     "왕자의 위엄"
+    ]
+   }
+  },
+  {
+   "id": "eleanor",
+   "name": "엘리너",
+   "grade": 4,
+   "style": "aid",
+   "title": "푸른 기사단장",
+   "original": false,
+   "cls": "support",
+   "origin": "knight",
+   "new": 4,
+   "old": 3,
+   "skill": {
+    "name": "불굴의 깃발",
+    "cd": 26,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +22%, 사거리 +11% (8초)",
+     "모든 아군 공격력 +32%, 사거리 +16% (9초)",
+     "모든 아군 공격력 +49%, 사거리 +24% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 13,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 23,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 40,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "진형 정비",
+     "돌격 나팔",
+     "기사단의 검"
+    ]
+   }
+  },
+  {
+   "id": "theodore",
+   "name": "테오도르",
+   "grade": 3,
+   "style": "blast",
+   "title": "심해 소환사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "lake",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "크라켄의 촉수",
+    "cd": 22,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 250% 피해, 1.5초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 400% 피해, 1.75초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 650% 피해, 2초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 16,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 52,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "해파리 소환",
+     "심연의 손",
+     "수압"
+    ]
+   }
+  },
+  {
+   "id": "asta",
+   "name": "아스타",
+   "grade": 4,
+   "style": "hex",
+   "title": "오로라 무녀",
+   "original": false,
+   "cls": "hexer",
+   "origin": "lake",
+   "new": 4,
+   "old": 3,
+   "skill": {
+    "name": "하늘의 커튼",
+    "cd": 22,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 218% 피해, 1.2초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 349% 피해, 1.45초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 567% 피해, 1.7초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 15,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 27,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 48,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "오로라 장막",
+     "별방울",
+     "극광 낙인"
+    ]
+   }
+  },
+  {
+   "id": "winston",
+   "name": "윈스턴",
+   "grade": 3,
+   "style": "bow",
+   "title": "폭풍 함대 제독",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "폭풍 함대",
+    "cd": 22,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 200% 피해, 60만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 320% 피해, 66만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 520% 피해, 72만큼 뒤로 밀침 (보스 면역)"
+    ],
+    "stats": [
+     {
+      "atk": 14,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 26,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 46,
+      "rate": 1.4,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "함포 사격",
+     "작살 견인",
+     "제독의 명령"
+    ]
+   }
+  },
+  {
+   "id": "arthur",
+   "name": "아서",
+   "grade": 4,
+   "style": "brawl",
+   "title": "호수의 기사왕",
+   "original": false,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "아발론",
+    "cd": 26,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +18%, 공격 속도 +18%, 사거리 +9% (8초)",
+     "모든 아군 공격력 +27%, 공격 속도 +27%, 사거리 +14% (9초)",
+     "모든 아군 공격력 +41%, 공격 속도 +41%, 사거리 +20% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 33,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 59,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 104,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "호수의 검",
+     "원탁의 맹세",
+     "성검 일섬"
+    ]
+   }
+  },
+  {
+   "id": "solveig",
+   "name": "솔베이그",
+   "grade": 4,
+   "style": "blast",
+   "title": "절대영도의 마녀",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "영원한 겨울",
+    "cd": 26,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 400% 피해, 받는 피해 +20% 6초",
+     "사거리 내 모든 적에게 640% 피해, 받는 피해 +30% 7초",
+     "사거리 내 모든 적에게 1040% 피해, 받는 피해 +45% 8초"
+    ],
+    "stats": [
+     {
+      "atk": 23,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 41,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 72,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "절대영도",
+     "얼음꽃",
+     "빙결 왕관"
+    ]
+   }
+  },
+  {
+   "id": "william",
+   "name": "윌리엄",
+   "grade": 4,
+   "style": "bow",
+   "title": "조류의 명궁",
+   "original": false,
+   "cls": "ranger",
+   "origin": "lake",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "해일 관통",
+    "cd": 18,
+    "mana": 150,
+    "desc": [
+     "적 최대 15명에게 300% 피해, 40% 감속 3초",
+     "적 최대 16명에게 480% 피해, 45% 감속 4초",
+     "적 최대 17명에게 780% 피해, 50% 감속 5초"
+    ],
+    "stats": [
+     {
+      "atk": 20,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 36,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 64,
+      "rate": 1.4,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "조류의 화살",
+     "파도 연사",
+     "바다의 눈"
+    ]
+   }
+  },
+  {
+   "id": "vivian",
+   "name": "비비안",
+   "grade": 3,
+   "style": "aid",
+   "title": "호수의 여인",
+   "original": false,
+   "cls": "support",
+   "origin": "lake",
+   "new": 3,
+   "old": 4,
+   "skill": {
+    "name": "성검 하사",
+    "cd": 30,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +25%, 공격 속도 +10%, 사거리 +10% (10초)",
+     "모든 아군 공격력 +37%, 공격 속도 +15%, 사거리 +15% (11초)",
+     "모든 아군 공격력 +55%, 공격 속도 +23%, 사거리 +23% (12초)"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "호수의 축복",
+     "물의 감옥",
+     "시간의 샘"
+    ]
+   }
+  },
+  {
+   "id": "leif",
+   "name": "비다르",
+   "grade": 2,
+   "style": "rapid",
+   "title": "독침 사냥꾼",
+   "original": false,
+   "promoted": true,
+   "cls": "assassin",
+   "origin": "north",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "맹독 연격",
+    "cd": 15,
+    "mana": 150,
+    "desc": [
+     "적 최대 6명에게 114% 피해, 4초간 초당 57% 피해",
+     "적 최대 7명에게 182% 피해, 4초간 초당 91% 피해",
+     "적 최대 8명에게 296% 피해, 4초간 초당 148% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 15,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 26,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "독 바르기",
+     "던지는 칼",
+     "잠복"
+    ]
+   }
+  },
+  {
+   "id": "freya",
+   "name": "프레야",
+   "grade": 1,
+   "style": "blast",
+   "title": "꽃의 마법사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "grove",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "대지의 정원",
+    "cd": 20,
+    "mana": 100,
+    "desc": [
+     "사거리 내 모든 적에게 132% 피해, 4초간 초당 35% 피해",
+     "사거리 내 모든 적에게 210% 피해, 4초간 초당 56% 피해",
+     "사거리 내 모든 적에게 342% 피해, 4초간 초당 91% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "꽃잎 폭풍",
+     "넝쿨 감옥",
+     "만개"
+    ]
+   }
+  },
+  {
+   "id": "sigurd",
+   "name": "시구르드",
+   "grade": 2,
+   "style": "brawl",
+   "title": "용 사냥 전사",
+   "original": false,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "용살자의 일격",
+    "cd": 18,
+    "mana": 120,
+    "desc": [
+     "체력이 가장 많은 적에게 700% 피해, 보스에게 1.5배",
+     "체력이 가장 많은 적에게 1120% 피해, 보스에게 1.5배",
+     "체력이 가장 많은 적에게 1820% 피해, 보스에게 1.5배"
+    ],
+    "stats": [
+     {
+      "atk": 19,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 35,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 62,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "용살 베기",
+     "비늘 쪼개기",
+     "용의 피"
+    ]
+   }
+  },
+  {
+   "id": "edda",
+   "name": "에다",
+   "grade": 1,
+   "style": "hex",
+   "title": "룬 새김꾼",
+   "original": false,
+   "cls": "hexer",
+   "origin": "grove",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "룬 폭발",
+    "cd": 18,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 132% 피해, 받는 피해 +13% 5초",
+     "사거리 내 모든 적에게 210% 피해, 받는 피해 +20% 6초",
+     "사거리 내 모든 적에게 342% 피해, 받는 피해 +30% 7초"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "약화의 룬",
+     "속박의 룬",
+     "힘의 룬"
+    ]
+   }
+  },
+  {
+   "id": "colin",
+   "name": "콜린",
+   "grade": 1,
+   "style": "bow",
+   "title": "연사 석궁 장인",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "탄창 비우기",
+    "cd": 16,
+    "mana": 150,
+    "desc": [
+     "적 최대 12명에게 110% 피해",
+     "적 최대 13명에게 175% 피해",
+     "적 최대 14명에게 285% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 1.54,
+      "range": 220
+     },
+     {
+      "atk": 14,
+      "rate": 1.54,
+      "range": 220
+     },
+     {
+      "atk": 26,
+      "rate": 1.54,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "연사 장치",
+     "독 볼트",
+     "기어 조정"
+    ]
+   }
+  },
+  {
+   "id": "thea",
+   "name": "테아",
+   "grade": 2,
+   "style": "aid",
+   "title": "숲의 정령 소환사",
+   "original": false,
+   "cls": "support",
+   "origin": "grove",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "정령왕 강림",
+    "cd": 24,
+    "mana": 140,
+    "desc": [
+     "모든 아군 공격력 +15% (8초)",
+     "모든 아군 공격력 +23% (9초)",
+     "모든 아군 공격력 +34% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 7,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 12,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 22,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "정령의 속삭임",
+     "반딧불 무리",
+     "올빼미의 눈"
+    ]
+   }
+  },
+  {
+   "id": "gareth",
+   "name": "가레스",
+   "grade": 1,
+   "style": "brawl",
+   "title": "떡갈나무 수호기사",
+   "original": false,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "천년 떡갈나무",
+    "cd": 20,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 88% 피해, 1.2초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 140% 피해, 1.45초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 228% 피해, 1.7초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 13,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "나무 방패 강타",
+     "뿌리 내리기",
+     "가지 휘두르기"
+    ]
+   }
+  },
+  {
+   "id": "marit",
+   "name": "마리트",
+   "grade": 1,
+   "style": "rapid",
+   "title": "바람 칼날 무희",
+   "original": false,
+   "cls": "assassin",
+   "origin": "grove",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "폭풍의 춤",
+    "cd": 16,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 132% 피해",
+     "사거리 내 모든 적에게 210% 피해",
+     "사거리 내 모든 적에게 342% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 11,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 19,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "바람 칼날",
+     "회오리 춤",
+     "산들바람"
+    ]
+   }
+  },
+  {
+   "id": "fergus",
+   "name": "퍼거스",
+   "grade": 2,
+   "style": "heavy",
+   "title": "켈트 투창 사냥꾼",
+   "original": false,
+   "cls": "ranger",
+   "origin": "grove",
+   "new": 2,
+   "old": 2,
+   "skill": {
+    "name": "멧돼지 사냥",
+    "cd": 17,
+    "mana": 50,
+    "desc": [
+     "체력이 가장 많은 적에게 700% 피해",
+     "체력이 가장 많은 적에게 1120% 피해",
+     "체력이 가장 많은 적에게 1820% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 38,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 68,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 121,
+      "rate": 0.45,
+      "range": 320
+     }
+    ],
+    "dropped": [
+     "사냥 창",
+     "세 갈래 창",
+     "사냥꾼의 직감"
+    ]
+   }
+  },
+  {
+   "id": "ylva",
+   "name": "일바",
+   "grade": 1,
+   "style": "hex",
+   "title": "늑대 무녀",
+   "original": false,
+   "cls": "hexer",
+   "origin": "north",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "늑대 무리",
+    "cd": 18,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 110% 피해, 4초간 초당 27% 피해",
+     "사거리 내 모든 적에게 175% 피해, 4초간 초당 42% 피해",
+     "사거리 내 모든 적에게 285% 피해, 4초간 초당 69% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "울음 소리",
+     "늑대 소환",
+     "달의 가호"
+    ]
+   }
+  },
+  {
+   "id": "elias",
+   "name": "엘리아스",
+   "grade": 3,
+   "style": "bow",
+   "title": "엘프 명사수",
+   "original": false,
+   "cls": "ranger",
+   "origin": "grove",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "천 개의 잎",
+    "cd": 20,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 200% 피해",
+     "사거리 내 모든 적에게 320% 피해",
+     "사거리 내 모든 적에게 520% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 14,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 26,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 46,
+      "rate": 1.4,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "엘프의 연사",
+     "달빛 화살",
+     "숲의 고요"
+    ]
+   }
+  },
+  {
+   "id": "rowena",
+   "name": "로웨나",
+   "grade": 3,
+   "style": "hex",
+   "title": "고목의 대드루이드",
+   "original": false,
+   "cls": "hexer",
+   "origin": "grove",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "세계수의 숨결",
+    "cd": 24,
+    "mana": 140,
+    "desc": [
+     "사거리 내 모든 적에게 5초간 초당 100% 피해, 받는 피해 +13% 5초",
+     "사거리 내 모든 적에게 5초간 초당 160% 피해, 받는 피해 +20% 6초",
+     "사거리 내 모든 적에게 5초간 초당 260% 피해, 받는 피해 +30% 7초"
+    ],
+    "stats": [
+     {
+      "atk": 11,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 19,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 35,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "고목의 저주",
+     "숲의 맹약",
+     "대지의 손아귀"
+    ]
+   }
+  },
+  {
+   "id": "atle",
+   "name": "아틀레",
+   "grade": 2,
+   "style": "brawl",
+   "title": "곰 변신 전사",
+   "original": false,
+   "cls": "warrior",
+   "origin": "north",
+   "new": 2,
+   "old": 3,
+   "skill": {
+    "name": "대지 강타",
+    "cd": 20,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 180% 피해, 1초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 288% 피해, 1.25초 기절 (보스 절반)",
+     "사거리 내 모든 적에게 468% 피해, 1.5초 기절 (보스 절반)"
+    ],
+    "stats": [
+     {
+      "atk": 18,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 32,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 56,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "곰 발톱",
+     "포효",
+     "야성 해방"
+    ]
+   }
+  },
+  {
+   "id": "gwen",
+   "name": "그웬",
+   "grade": 3,
+   "style": "aid",
+   "title": "바람의 노래꾼",
+   "original": false,
+   "cls": "support",
+   "origin": "grove",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "전설의 서사시",
+    "cd": 26,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격력 +18%, 공격 속도 +12% (8초)",
+     "모든 아군 공격력 +27%, 공격 속도 +18% (9초)",
+     "모든 아군 공격력 +41%, 공격 속도 +27% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "영웅의 노래",
+     "질풍가",
+     "불협화음"
+    ]
+   }
+  },
+  {
+   "id": "ivar",
+   "name": "이바르",
+   "grade": 4,
+   "style": "rapid",
+   "title": "그림자 도적왕",
+   "original": false,
+   "cls": "assassin",
+   "origin": "guild",
+   "new": 4,
+   "old": 3,
+   "skill": {
+    "name": "천 개의 칼날",
+    "cd": 16,
+    "mana": 150,
+    "desc": [
+     "적 최대 12명에게 체력 30% 이하면 즉사, 아니면 100% 피해 (보스는 400% 피해)",
+     "적 최대 13명에게 체력 30% 이하면 즉사, 아니면 100% 피해 (보스는 400% 피해)",
+     "적 최대 14명에게 체력 30% 이하면 즉사, 아니면 100% 피해 (보스는 400% 피해)"
+    ],
+    "stats": [
+     {
+      "atk": 15,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 27,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 48,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "그림자 단검",
+     "왕의 몫",
+     "급소 간파"
+    ]
+   }
+  },
+  {
+   "id": "celeste",
+   "name": "셀레스트",
+   "grade": 2,
+   "style": "blast",
+   "title": "바람의 정령술사",
+   "original": false,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 2,
+   "old": 3,
+   "skill": {
+    "name": "대폭풍",
+    "cd": 22,
+    "mana": 110,
+    "desc": [
+     "사거리 내 모든 적에게 180% 피해, 80만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 288% 피해, 88만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 468% 피해, 96만큼 뒤로 밀침 (보스 면역)"
+    ],
+    "stats": [
+     {
+      "atk": 12,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 22,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 39,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "돌개바람",
+     "번개 바람",
+     "바람의 가호"
+    ]
+   }
+  },
+  {
+   "id": "halvard",
+   "name": "할바르드",
+   "grade": 3,
+   "style": "brawl",
+   "title": "세계수의 수호자",
+   "original": false,
+   "cls": "warrior",
+   "origin": "north",
+   "new": 3,
+   "old": 4,
+   "skill": {
+    "name": "라그나 숲",
+    "cd": 24,
+    "mana": 150,
+    "desc": [
+     "사거리 내 모든 적에게 275% 피해, 받는 피해 +20% 6초",
+     "사거리 내 모든 적에게 440% 피해, 받는 피해 +30% 7초",
+     "사거리 내 모든 적에게 715% 피해, 받는 피해 +45% 8초"
+    ],
+    "stats": [
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 75,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "세계수의 분노",
+     "뿌리 감옥",
+     "대지의 맹세"
+    ]
+   }
+  },
+  {
+   "id": "freydis",
+   "name": "프레이디스",
+   "grade": 4,
+   "style": "aid",
+   "title": "대지의 여신 사제",
+   "original": false,
+   "cls": "support",
+   "origin": "grove",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "봄의 귀환",
+    "cd": 28,
+    "mana": 150,
+    "desc": [
+     "모든 아군 공격 속도 +24%, 사거리 +12% (10초)",
+     "모든 아군 공격 속도 +36%, 사거리 +18% (11초)",
+     "모든 아군 공격 속도 +54%, 사거리 +27% (12초)"
+    ],
+    "stats": [
+     {
+      "atk": 13,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 23,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 40,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "대지의 축복",
+     "풍요",
+     "꽃의 심판"
+    ]
+   }
+  },
+  {
+   "id": "richard",
+   "name": "리처드",
+   "grade": 4,
+   "style": "heavy",
+   "title": "황금 사냥의 왕",
+   "original": false,
+   "cls": "ranger",
+   "origin": "guild",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "최후의 사냥",
+    "cd": 22,
+    "mana": 60,
+    "desc": [
+     "적 최대 20명에게 체력 40% 이하면 즉사, 아니면 100% 피해 (보스는 1200% 피해)",
+     "적 최대 21명에게 체력 40% 이하면 즉사, 아니면 100% 피해 (보스는 1200% 피해)",
+     "적 최대 22명에게 체력 40% 이하면 즉사, 아니면 100% 피해 (보스는 1200% 피해)"
+    ],
+    "stats": [
+     {
+      "atk": 70,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 126,
+      "rate": 0.45,
+      "range": 320
+     },
+     {
+      "atk": 224,
+      "rate": 0.45,
+      "range": 320
+     }
+    ],
+    "dropped": [
+     "황금 사냥",
+     "왕실 사냥단",
+     "사자의 심장"
+    ]
+   }
+  },
+  {
+   "id": "oberon",
+   "name": "오베론",
+   "grade": 4,
+   "style": "blast",
+   "title": "요정왕",
+   "original": false,
+   "cls": "gunner",
+   "origin": "grove",
+   "new": 4,
+   "old": 4,
+   "skill": {
+    "name": "요정 왕국",
+    "cd": 26,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 450% 피해, 4초간 초당 75% 피해",
+     "사거리 내 모든 적에게 720% 피해, 4초간 초당 120% 피해",
+     "사거리 내 모든 적에게 1170% 피해, 4초간 초당 195% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 23,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 41,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 72,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "요정의 장난",
+     "꿈의 연쇄",
+     "한여름 밤의 꿈"
+    ]
+   }
+  },
+  {
+   "id": "kaira",
+   "name": "카이라",
+   "grade": 1,
+   "style": "brawl",
+   "title": "불꽃 검사",
+   "original": true,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "화염 회전 베기",
+    "cd": 16,
+    "mana": 110,
+    "desc": [
+     "대상 주변(반경 95)에게 176% 피해, 4초간 초당 35% 피해",
+     "대상 주변(반경 105)에게 281% 피해, 4초간 초당 56% 피해",
+     "대상 주변(반경 114)에게 456% 피해, 4초간 초당 91% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 13,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 150
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 150
+     }
+    ],
+    "dropped": [
+     "불꽃 베기",
+     "방패 밀치기",
+     "전투의 함성"
+    ]
+   }
+  },
+  {
+   "id": "verona",
+   "name": "베로나",
+   "grade": 2,
+   "style": "blast",
+   "title": "화염 마법사",
+   "original": true,
+   "cls": "gunner",
+   "origin": "tower",
+   "new": 2,
+   "old": 3,
+   "skill": {
+    "name": "메테오",
+    "cd": 20,
+    "mana": 100,
+    "desc": [
+     "사거리 내 모든 적에게 225% 피해, 4초간 초당 45% 피해",
+     "사거리 내 모든 적에게 359% 피해, 4초간 초당 72% 피해",
+     "사거리 내 모든 적에게 584% 피해, 4초간 초당 117% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 12,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 22,
+      "rate": 0.8,
+      "range": 200
+     },
+     {
+      "atk": 39,
+      "rate": 0.8,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "불덩이",
+     "화염 고리",
+     "마력 집중"
+    ]
+   }
+  },
+  {
+   "id": "elin",
+   "name": "엘린",
+   "grade": 1,
+   "style": "bow",
+   "title": "숲 궁수",
+   "original": true,
+   "cls": "ranger",
+   "origin": "grove",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "숲의 일제 사격",
+    "cd": 15,
+    "mana": 130,
+    "desc": [
+     "적 최대 9명에게 114% 피해",
+     "적 최대 10명에게 182% 피해",
+     "적 최대 11명에게 296% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 14,
+      "rate": 1.4,
+      "range": 220
+     },
+     {
+      "atk": 26,
+      "rate": 1.4,
+      "range": 220
+     }
+    ],
+    "dropped": [
+     "겨냥 사격",
+     "잎사귀 화살비",
+     "바람 읽기"
+    ]
+   }
+  },
+  {
+   "id": "thorn",
+   "name": "토른",
+   "grade": 2,
+   "style": "hex",
+   "title": "숲의 드루이드",
+   "original": true,
+   "cls": "hexer",
+   "origin": "grove",
+   "new": 2,
+   "old": 3,
+   "skill": {
+    "name": "대지의 분노",
+    "cd": 20,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 135% 피해, 4초간 초당 45% 피해, 50% 감속 3초",
+     "사거리 내 모든 적에게 216% 피해, 4초간 초당 72% 피해, 55% 감속 4초",
+     "사거리 내 모든 적에게 351% 피해, 4초간 초당 117% 피해, 60% 감속 5초"
+    ],
+    "stats": [
+     {
+      "atk": 8,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 15,
+      "rate": 1,
+      "range": 210
+     },
+     {
+      "atk": 26,
+      "rate": 1,
+      "range": 210
+     }
+    ],
+    "dropped": [
+     "가시 덩굴",
+     "포자 구름",
+     "숲의 가호"
+    ]
+   }
+  },
+  {
+   "id": "adel",
+   "name": "아델",
+   "grade": 3,
+   "style": "brawl",
+   "title": "푸른 기사",
+   "original": true,
+   "cls": "warrior",
+   "origin": "knight",
+   "new": 3,
+   "old": 3,
+   "skill": {
+    "name": "창의 벽",
+    "cd": 18,
+    "mana": 120,
+    "desc": [
+     "사거리 내 모든 적에게 125% 피해, 50만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 200% 피해, 55만큼 뒤로 밀침 (보스 면역)",
+     "사거리 내 모든 적에게 325% 피해, 60만큼 뒤로 밀침 (보스 면역)"
+    ],
+    "stats": [
+     {
+      "atk": 23,
+      "rate": 1.1,
+      "range": 188
+     },
+     {
+      "atk": 42,
+      "rate": 1.1,
+      "range": 188
+     },
+     {
+      "atk": 75,
+      "rate": 1.1,
+      "range": 188
+     }
+    ],
+    "dropped": [
+     "창 찌르기",
+     "돌진",
+     "기사의 맹세"
+    ]
+   }
+  },
+  {
+   "id": "serena",
+   "name": "세레나",
+   "grade": 3,
+   "style": "aid",
+   "title": "얼음 사제",
+   "original": true,
+   "cls": "support",
+   "origin": "lake",
+   "new": 3,
+   "old": 4,
+   "skill": {
+    "name": "영원한 겨울",
+    "cd": 22,
+    "mana": 130,
+    "desc": [
+     "사거리 내 모든 적에게 207% 피해, 60% 감속 5초 / 모든 아군 공격 속도 +13% (8초)",
+     "사거리 내 모든 적에게 330% 피해, 65% 감속 6초 / 모든 아군 공격 속도 +19% (9초)",
+     "사거리 내 모든 적에게 537% 피해, 70% 감속 7초 / 모든 아군 공격 속도 +28% (10초)"
+    ],
+    "stats": [
+     {
+      "atk": 9,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 16,
+      "rate": 1,
+      "range": 200
+     },
+     {
+      "atk": 29,
+      "rate": 1,
+      "range": 200
+     }
+    ],
+    "dropped": [
+     "얼음 성역",
+     "서리 축복",
+     "빙결의 기도"
+    ]
+   }
+  },
+  {
+   "id": "nix",
+   "name": "닉스",
+   "grade": 1,
+   "style": "rapid",
+   "title": "두건 도적",
+   "original": true,
+   "cls": "assassin",
+   "origin": "guild",
+   "new": 1,
+   "old": 2,
+   "skill": {
+    "name": "처형",
+    "cd": 16,
+    "mana": 150,
+    "desc": [
+     "체력이 가장 많은 적에게 395% 피해",
+     "체력이 가장 많은 적에게 631% 피해",
+     "체력이 가장 많은 적에게 1026% 피해"
+    ],
+    "stats": [
+     {
+      "atk": 6,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 11,
+      "rate": 2.2,
+      "range": 180
+     },
+     {
+      "atk": 19,
+      "rate": 2.2,
+      "range": 180
+     }
+    ],
+    "dropped": [
+     "그림자 찌르기",
+     "연막",
+     "암살자의 집중"
+    ]
+   }
+  }
+ ],
+ "drop": [],
+ "traits": {
+  "warrior": {
+   "kind": "class",
+   "name": "전사",
+   "color": "#c0563c",
+   "glyph": "검",
+   "desc": "길 가까이에서 베는 근접 계열. 바깥 줄(전열)에 있으면 효과 1.5배",
+   "tiers": [
+    [
+     2,
+     "전사 공격력 +15%"
+    ],
+    [
+     5,
+     "전사 공격력 +35%, 3번째 공격마다 주변 베기"
+    ],
+    [
+     8,
+     "전사 공격력 +60%, 모든 공격이 주변 베기 + 팀 전체 공격력 +10%"
+    ]
+   ]
+  },
+  "ranger": {
+   "kind": "class",
+   "name": "사수",
+   "color": "#5f8f3e",
+   "glyph": "활",
+   "desc": "활·석궁·총. 멀리서 한 마리씩 정확하게. 가운데 3×3(후열)이면 사거리 +1칸",
+   "tiers": [
+    [
+     2,
+     "사수 사거리 +15%, 관통 +1"
+    ],
+    [
+     5,
+     "사거리 +30%, 관통 +2, 정예·보스 피해 +20%"
+    ],
+    [
+     8,
+     "사거리 +45%, 관통 +4, 정예·보스 피해 +50%"
+    ]
+   ]
+  },
+  "assassin": {
+   "kind": "class",
+   "name": "암살자",
+   "color": "#6b4a8f",
+   "glyph": "단",
+   "desc": "단검·쌍검으로 빠르게. 치명타가 핵심",
+   "tiers": [
+    [
+     2,
+     "암살자 치명타 확률 +15%, 치명 피해 +30%"
+    ],
+    [
+     5,
+     "치명타 +30%, 치명 피해 +60%"
+    ],
+    [
+     8,
+     "치명타 +45%, 치명 피해 +100%, 치명타 때 40% 확률로 한 번 더 공격"
+    ]
+   ]
+  },
+  "gunner": {
+   "kind": "class",
+   "name": "포격수",
+   "color": "#d9822b",
+   "glyph": "폭",
+   "desc": "폭발·범위 공격. 몰려오는 물량 담당",
+   "tiers": [
+    [
+     2,
+     "포격수 폭발 범위 +15%"
+    ],
+    [
+     5,
+     "폭발 범위 +35%, 터진 자리에 불길 1초"
+    ],
+    [
+     8,
+     "폭발 범위 +60%, 폭발이 두 번 터짐"
+    ]
+   ]
+  },
+  "hexer": {
+   "kind": "class",
+   "name": "주술사",
+   "color": "#3f7f86",
+   "glyph": "술",
+   "desc": "지속 피해·약화·감속을 거는 계열",
+   "tiers": [
+    [
+     2,
+     "주술 효과(지속 피해·약화·감속) +30%"
+    ],
+    [
+     5,
+     "주술 효과 +70%, 걸린 적이 죽으면 옆 적에게 옮음"
+    ],
+    [
+     8,
+     "주술 효과 +120%, 모든 아군 공격에 약화(받는 피해 +15%)"
+    ]
+   ]
+  },
+  "support": {
+   "kind": "class",
+   "name": "지원가",
+   "color": "#c9a227",
+   "glyph": "깃",
+   "desc": "오라·버프·골드. 혼자 약하지만 팀을 키움",
+   "tiers": [
+    [
+     2,
+     "팀 전체 공격 속도 +8%"
+    ],
+    [
+     5,
+     "팀 전체 공격 속도 +18%, 버프 지속 1.5배"
+    ],
+    [
+     8,
+     "팀 전체 공격 속도 +30%, 웨이브마다 골드 +10"
+    ]
+   ]
+  },
+  "north": {
+   "kind": "origin",
+   "name": "북방 부족",
+   "color": "#a8432f",
+   "glyph": "북",
+   "desc": "뿔투구·도끼·곰가죽. 싸울수록 분노가 쌓인다",
+   "tiers": [
+    [
+     3,
+     "공격할 때마다 분노 1중첩(최대 10), 중첩당 공격 속도 +2%"
+    ],
+    [
+     6,
+     "중첩당 공격 속도 +3%, 10중첩이면 공격력 +20%"
+    ],
+    [
+     9,
+     "중첩당 +4%, 10중첩이면 공격력 +40%, 분노가 웨이브 사이에도 유지"
+    ]
+   ]
+  },
+  "knight": {
+   "kind": "origin",
+   "name": "왕국 기사단",
+   "color": "#4a6fa8",
+   "glyph": "방",
+   "desc": "판금·방패·창. 성벽을 지킨다",
+   "tiers": [
+    [
+     3,
+     "성벽이 받는 피해 -15%"
+    ],
+    [
+     6,
+     "성벽 피해 -30%, 웨이브 시작 때 성벽 실드 10"
+    ],
+    [
+     9,
+     "성벽 피해 -45%, 실드 25, 기사단 공격력 +25%"
+    ]
+   ]
+  },
+  "tower": {
+   "kind": "origin",
+   "name": "마탑",
+   "color": "#8a4fb5",
+   "glyph": "탑",
+   "desc": "로브·지팡이·연금술. 마나가 빨리 차서 스킬이 자주 터진다",
+   "tiers": [
+    [
+     3,
+     "마탑 공격당 마나 +3"
+    ],
+    [
+     6,
+     "공격당 마나 +6, 스킬 피해 +20%"
+    ],
+    [
+     9,
+     "공격당 마나 +10, 스킬 피해 +40%, 25% 확률로 스킬 두 번 시전"
+    ]
+   ]
+  },
+  "grove": {
+   "kind": "origin",
+   "name": "숲의 일족",
+   "color": "#3e8a50",
+   "glyph": "숲",
+   "desc": "엘프·드루이드·요정. 길을 덩굴로 묶는다",
+   "tiers": [
+    [
+     3,
+     "길 위 모든 몬스터 이동 속도 -6%"
+    ],
+    [
+     6,
+     "이동 속도 -12%, 8초마다 무작위 지점 덩굴 속박 1.5초"
+    ],
+    [
+     9,
+     "이동 속도 -18%, 속박 범위 2배, 정예도 묶임"
+    ]
+   ]
+  },
+  "lake": {
+   "kind": "origin",
+   "name": "호수의 성역",
+   "color": "#3a8fb0",
+   "glyph": "물",
+   "desc": "물·얼음·성녀. 성벽을 회복시킨다",
+   "tiers": [
+    [
+     3,
+     "웨이브를 깰 때 성벽 체력 +2"
+    ],
+    [
+     6,
+     "성벽 체력 +5, 성역 캐릭터 스킬 피해 +20%"
+    ],
+    [
+     9,
+     "성벽 체력 +10, 성벽이 0이 되면 한 판에 한 번 50%로 되살아남"
+    ]
+   ]
+  },
+  "guild": {
+   "kind": "origin",
+   "name": "황금 길드",
+   "color": "#9a7a3a",
+   "glyph": "금",
+   "desc": "총·석궁·도적·상인. 돈을 번다",
+   "tiers": [
+    [
+     3,
+     "처치 골드 +10%"
+    ],
+    [
+     6,
+     "처치 골드 +25%, 웨이브 끝에 가진 골드의 5% 이자(최대 20)"
+    ],
+    [
+     9,
+     "처치 골드 +50%, 이자 10%(최대 50), 웨이브마다 상점 리롤 1회 무료"
+    ]
+   ]
+  }
+ }
+}

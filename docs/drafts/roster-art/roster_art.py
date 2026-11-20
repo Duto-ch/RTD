@@ -4,7 +4,7 @@
 외형은 roster.json 의 look(영어 설명) 키워드로 정한다: 머리 모양·머리 색·머리 장식·수염·망토·날개·무기·방패.
 실행: python3 docs/drafts/roster-art/roster_art.py  →  sheets/<id>.png (대기 8 + 공격 프레임), bodies/<id>.png, roster-art.json(열람용)
 """
-import os, sys, json, hashlib, math, io, base64
+import os, sys, json, hashlib, math, io, base64, re
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +42,7 @@ GRADE_ACCENT = {1: '#f0e0c0', 2: '#ffffff', 3: '#dfe6ee', 4: '#f5c542'}  # 칼�
 SKIN = ['#ffe2c8', '#f6d2b0', '#ecc09a', '#d9a27a']
 HAIR = {
     'red': ('#c0392b', '#862518'), 'silver': ('#d4d8e0', '#9aa0ac'), 'white': ('#f2f2f2', '#c4c8d0'),
-    'golden': ('#f5c542', '#c98f2a'), 'blonde': ('#ffd66b', '#e0a83a'), 'grey': ('#a8acb4', '#7a7e88'),
+    'golden': ('#f5c542', '#c98f2a'), 'bright_blonde': ('#ffe69a', '#e6b450'), 'blonde': ('#ffd66b', '#e0a83a'), 'grey': ('#a8acb4', '#7a7e88'),
     'black': ('#3a2a3a', '#241826'), 'brown': ('#6b3a2a', '#4a2418'), 'auburn': ('#a0502a', '#70361c'),
     'ginger': ('#e8a25a', '#b8702e'), 'green': ('#5a8a3a', '#3c5c26'), 'blue': ('#5a7ac8', '#3a5296'),
 }
@@ -56,6 +56,8 @@ def pick_hair(c):
         return HAIR['silver']
     if has(L, 'white hair', 'long white', 'white fur', 'white wolf'):
         return HAIR['white']
+    if has(L, 'bright blonde'):
+        return HAIR['bright_blonde']
     if has(L, 'golden', 'sun crown'):
         return HAIR['golden']
     if has(L, 'grey', 'old ', 'elder'):
@@ -203,7 +205,7 @@ def headgear(G, c, pal, female):
         else:
             G.row(8, 7, 'O...O...O'), G.row(9, 7, 'GO.OGO.OG'), G.row(10, 7, 'G' + jewel + 'GGGGG' + jewel + 'G'), G.row(11, 7, 'OGGGGGGGO')
         return 0
-    if has(L, 'cap', 'feathered hat', 'tricorn', 'fur cap', 'raincoat'):
+    if re.search(r'\bcap\b', L) or has(L, 'feathered hat', 'tricorn', 'fur cap', 'raincoat'):   # 'cap' 은 낱말로만 — cape·captain 에 모자 씌우지 않게 (2026-11-20)
         hat = '#f0c040' if has(L, 'raincoat') else ('#8a5a2e' if has(L, 'fur cap') else pal['C'])
         pal['P'], pal['p'] = hat, A.rgba(hat) and D_shade(hat)
         G.row(9, 8, 'OOOOOOO'), G.row(10, 7, 'OPPPPPPPO'), G.row(11, 6, 'OPPPPPPPPPO'), G.row(12, 3, 'OOOOpppppppppppO')
@@ -310,6 +312,15 @@ def body(c):
                 G.row(13, 6, 'UUUUUQUUUUU')
             else:
                 G.row(8, 7, 'O...O...O'), G.row(9, 7, 'GO.OGO.OG'), G.row(10, 7, 'GQGGGGGQG'), G.row(11, 7, 'OGGGGGGGO')
+    if has(L, 'royal mantle'):   # 왕의 망토 (2026-11-20 사용자 요청: 아서 = 왕관 + 망토) — 담비털 깃 + 몸 양옆으로 길게 늘어진 망토, 금 테두리
+        pal['m'], pal['n'], pal['X'], pal['x'] = '#2848b8', '#182c78', '#f4f0e6', '#3a2a3a'   # 짙은 왕실 파랑 망토 (2026-11-20 사용자 요청: 빨강 → 파랑)
+        G.row(17, 5, 'Om'), G.row(17, 16, 'mO')
+        G.row(18, 4, 'OmXXxXXDXXxXXmO')
+        for y in (19, 20):
+            G.row(y, 4, 'Omm'), G.row(y, 16, 'mmO')
+        for y in (21, 22):
+            G.row(y, 3, 'Ommnn'), G.row(y, 15, 'nnmmO')
+        G.row(23, 3, 'OGGGO'), G.row(23, 15, 'OGGGO')
     pal['U'] = {1: '#c9d3e0', 2: '#c9d3e0', 3: '#dfe6ee', 4: '#f5c542'}[grade]
     pal['Q'] = {'red': '#ff4a5a', 'blue': '#4ab0ff', 'green': '#5ae07a'}[attr]
     over = G.over()

@@ -1,0 +1,108 @@
+<title>28프레임 공격 모션</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sunflower:wght@500;700&family=Gowun+Dodum&display=swap">
+<style>
+/* 레이아웃: 무기 6종 카드 — 카드마다 지금(8~10프레임) / 28프레임 나란히 재생 + 프레임 띠 */
+:root { --bg: #e9e2cf; --card: #fbf7ec; --ink: #3a2e22; --sub: #7d6e5a; --line: #d9cdb2; --sage: #7a9a5c; --sage-d: #4f6b3a; --field: #6d8f4e; --tile: #9a9c98;
+  --display: 'Sunflower', 'Gowun Dodum', sans-serif; --body: 'Gowun Dodum', 'Sunflower', sans-serif; color-scheme: light }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage: #8fb36c; --sage-d: #c7e0ac; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage: #8fb36c; --sage-d: #c7e0ac; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.55 }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+h1 { font-family: var(--display); font-size: 1.9rem; margin: 0 0 6px }
+.lead { color: var(--sub); max-width: 70ch; margin: 0 0 16px }
+.ctl { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-bottom: 18px }
+.ctl label { display: flex; gap: 8px; align-items: center; font-family: var(--display) }
+.ctl output { font-variant-numeric: tabular-nums; min-width: 6ch; color: var(--sage-d) }
+button { font-family: var(--display); font-weight: 700; border: 0; border-radius: 10px; background: var(--sage); color: #fff; padding: 7px 14px; cursor: pointer }
+button:focus-visible, input:focus-visible { outline: 3px solid #ffd36a; outline-offset: 2px }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+.card h2 { font-family: var(--display); font-size: 1.1rem; margin: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.card h2 small { font-family: var(--body); font-size: .8rem; color: var(--sub) }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.pair figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0 }
+.pair figcaption { font-size: .78rem; color: var(--sub); text-align: center }
+canvas.big { width: 100%; max-width: 224px; aspect-ratio: 56 / 40; image-rendering: pixelated; background: var(--field); border-radius: 10px }
+.strip { overflow-x: auto; border-radius: 8px; background: var(--field) }
+.strip canvas { display: block; image-rendering: pixelated; height: 60px }
+.note { font-size: .82rem; color: var(--sub); margin: 0 }
+@media (prefers-reduced-motion: reduce) { .ctl::after { content: '움직임 줄이기 설정 — 재생 버튼으로만 돌아갑니다'; font-size: .8rem; color: var(--sub) } }
+</style>
+<div class="wrap">
+  <h1>공격 모션 28프레임 시안</h1>
+  <p class="lead">검·지팡이·총·활·도끼·창을 쓰는 캐릭터를 한 명씩 골라 공격 동작을 28프레임으로 다시 짰어요. 왼쪽이 지금 게임(8~10프레임, 긴 정지 프레임으로 리듬), 오른쪽이 28프레임(프레임당 40ms, 예비 동작·휘두름·타격 멈춤·회복을 사이 프레임으로 채움)이에요. 게임처럼 아트 1px = 화면 4px 로 크게 보여요.</p>
+  <div class="ctl">
+    <label for="rate">공격 속도 <input id="rate" type="range" min="0.4" max="3" step="0.1" value="1"><output id="rateOut">1.0회/초</output></label>
+    <label for="sync"><input id="sync" type="checkbox" checked> 공속에 맞춰 모션 길이 조절 (간격의 85%)</label>
+    <button id="play" type="button">일시정지</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <p class="note" style="margin-top:18px">공속 동기화: 이번 작업에서 게임에도 넣었어요 — 공격 간격의 85% 동안 한 번 휘두르고, 공속이 느리면 최대 1.6배까지만 천천히(굼떠 보이지 않게).</p>
+</div>
+<script>
+const D = __DATA__;
+const NAMES = { sword: '검', staff: '지팡이', gun: '총', bow: '활', axe: '도끼', spear: '창' };
+const GR = { 1: '커먼', 2: '언커먼', 3: '레어', 4: '유니크' };
+const Z = 4;
+const grid = document.getElementById('grid');
+const players = [];
+let rate = 1, sync = true, playing = true;
+for (const c of D.chars) {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.innerHTML = `<h2>${NAMES[c.weapon]} · ${c.name} <small>${GR[c.grade]} · 지금 ${c.old.n}프레임 → 28프레임</small></h2>
+    <div class="pair"><figure><canvas class="big"></canvas><figcaption>지금 (${c.old.n}프레임)</figcaption></figure>
+    <figure><canvas class="big"></canvas><figcaption>28프레임</figcaption></figure></div>
+    <div class="strip"><canvas></canvas></div>`;
+  grid.appendChild(card);
+  const [cvOld, cvNew] = card.querySelectorAll('canvas.big');
+  const strip = card.querySelector('.strip canvas');
+  const imOld = new Image(), imNew = new Image();
+  imOld.src = c.old.src; imNew.src = c.src;
+  const mk = (cv, img, first, ms) => ({ cv, img, first, ms, total: ms.reduce((a, b) => a + b, 0) });
+  const pOld = mk(cvOld, imOld, 0, c.old.ms), pNew = mk(cvNew, imNew, c.idle.n, c.attack.ms);
+  pNew.idle = c.idle; pOld.idle = c.idle; pOld.idleImg = imNew;
+  for (const cv of [cvOld, cvNew]) { cv.width = D.W * Z; cv.height = D.H * Z; }
+  imNew.onload = () => {
+    strip.width = 28 * D.W; strip.height = D.H; strip.style.width = (28 * D.W * 1.5) + 'px';
+    const g = strip.getContext('2d');
+    for (let k = 0; k < 28; k++) g.drawImage(imNew, (c.idle.n + k) * D.W, 0, D.W, D.H, k * D.W, 0, D.W, D.H);
+  };
+  players.push(pOld, pNew);
+}
+function frameAt(p, t) {
+  let acc = 0;
+  for (let i = 0; i < p.ms.length; i++) { acc += p.ms[i]; if (t < acc) return i; }
+  return p.ms.length - 1;
+}
+let t0 = performance.now(), paused = 0;
+function draw(now) {
+  const interval = 1000 / rate;
+  const tt = (playing ? now - t0 : paused) % interval;
+  for (const p of players) {
+    if (!p.img.complete) continue;
+    const scale = sync ? Math.max(0.6, p.total / (0.85 * interval)) : 1;
+    const len = p.total / scale;
+    const g = p.cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, p.cv.width, p.cv.height);
+    if (tt < len) {
+      const f = frameAt(p, tt * scale);
+      g.drawImage(p.img, (p.first + f) * D.W, 0, D.W, D.H, 0, 0, D.W * Z, D.H * Z);
+    } else {
+      const src = p.idleImg || p.img;
+      const ti = Math.floor((now / 150) % p.idle.n);
+      g.drawImage(src, ti * D.W, 0, D.W, D.H, 0, 0, D.W * Z, D.H * Z);
+    }
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+const rateEl = document.getElementById('rate'), out = document.getElementById('rateOut');
+rateEl.oninput = () => { rate = +rateEl.value; out.textContent = rate.toFixed(1) + '회/초'; };
+document.getElementById('sync').onchange = (e) => { sync = e.target.checked; };
+const pb = document.getElementById('play');
+pb.onclick = () => { if (playing) { paused = performance.now() - t0; playing = false; pb.textContent = '재생'; } else { t0 = performance.now() - paused; playing = true; pb.textContent = '일시정지'; } };
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) pb.click();
+</script>

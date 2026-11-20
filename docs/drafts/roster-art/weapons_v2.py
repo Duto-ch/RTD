@@ -71,7 +71,23 @@ def geo(name, deg, silhouette=None):
     gem = m['gem']
 
     if name == 'sword':
-        if v == 'great':           # 대검: 3px 넓은 날, 큰 막이
+        if v == 'excalibur':       # 아서 전용 성검 (2026-11-20 시험): 칼날 쪽으로 휘어 오르는 금 날개 막이 + 푸른 보석 + 빛나는 홈
+            band(-1, 0, 0, 0, '#c98f2a'); f[P(-2)] = '#4ab0ff'; f[P(-2.5)] = '#f5c542'
+            band(1, 1.5, -2, 2, '#f5c542')
+            for kk in (-1, 1):
+                for tt, kd in ((1.5, 3), (2.5, 4), (3.5, 4.5), (4.5, 4.5)):
+                    f[P(tt, kk * kd)] = '#f5c542' if tt < 4 else '#c98f2a'
+                f[P(2, kk * 3)] = '#f5c542'
+            f[P(1, 0)] = '#4ab0ff'; f[P(1.5, 0)] = '#4ab0ff'
+            def blade(t, k):            # 날 아랫부분 가운데 = 금 장식(2026-11-20 사용자 요청), 그 위로 빛나는 푸른 홈
+                if abs(k) < 0.4 and t <= 5:
+                    return '#f5c542' if t < 4.5 else '#c98f2a'
+                if abs(k) < 0.4 and t <= 11:
+                    return '#4ab0ff'
+                return '#ffffff' if k < 0 else '#bfe6ff'
+            band(2, 13, -1, 1, blade)
+            band(13.5, 14, -0.5, 0.5, '#ffffff')
+        elif v == 'great':           # 대검: 3px 넓은 날, 큰 막이
             band(-1, 0, 0, 0, m['grip']); f[P(-2)] = m['guard']
             band(1, 1.5, -3.5, 3.5, m['guard'])
             band(2, 13, -1, 1, lambda t, k: m['L'] if k < -0.4 else (m['M'] if k < 0.6 else m['D']))
@@ -174,7 +190,25 @@ def geo(name, deg, silhouette=None):
     elif name in ('staff', 'staff_ice', 'staff_leaf'):
         shaft(-3, 6, m['wood']); f[P(-3)] = m['guard']; f[P(6)] = m['guard']
         lit, mid, dark = A.ORB[name]
-        if v == 'lantern':         # 등불·향로: 사각 틀 안의 불꽃
+        if v == 'sun':             # 이졸데 전용 태양 지팡이 (2026-11-20 시험): 금 원반 + 빛살 8개 + 붉은 보석
+            disc(9, 2.2, lambda dx, dy: '#fff3a0' if -0.7 * dx - 0.7 * dy > 0.8 else ('#ff9a2a' if -0.7 * dx - 0.7 * dy < -0.8 else '#ffd23a'))
+            for ang in range(0, 360, 45):
+                r = math.radians(ang)
+                for rr, col in ((3.4, '#ffb030'), (4.4, '#ff7a1a')):
+                    if ang % 90 and rr > 4: continue        # 대각선 빛살은 짧게
+                    f[(round(u[0] * 9 + math.cos(r) * rr), round(u[1] * 9 + math.sin(r) * rr))] = col
+            f[(round(u[0] * 9), round(u[1] * 9))] = '#ff3a3a'
+            band(5.5, 6, -1.5, 1.5, '#f5c542')
+        elif v == 'fairy':         # 오베론 전용 요정 홀 (2026-11-20 시험): 나비 날개 꽃머리 + 덩굴 잎
+            for kk in (-1, 1):
+                for tt, w in ((8, 1), (9, 3), (10, 3), (11, 2), (12, 1)):
+                    for j in range(1, w + 1):
+                        f[P(tt, kk * j)] = '#ffd0e4' if j < w else '#ff8ab0'   # 몸 뒤 날개(민트)와 구분되게 분홍 꽃잎 날개
+                f[P(10, kk * 2)] = '#ffffff'
+            disc(10, 1, '#5ae07a'); f[P(10)] = '#ffffff'; f[P(13)] = '#ffe066'
+            for tt, kk in ((1, 1), (3, -1), (5, 1)):
+                f[P(tt, kk)] = '#7fd05a'
+        elif v == 'lantern':         # 등불·향로: 사각 틀 안의 불꽃
             band(6.5, 11, -2, 2, m['trim'])
             band(7.5, 10, -1, 1, lambda t, k: lit if t > 9 else mid)
         elif v == 'skull':         # 뼈 지팡이: 해골 머리
@@ -243,7 +277,7 @@ def geo(name, deg, silhouette=None):
     return A._render(f, silhouette)
 
 
-GEO_LEN_V = {('sword', 'great'): 14, ('sword', 'rapier'): 13, ('spear', 'lance'): 16, ('spear', 'trident'): 13, ('gun', 'cannon'): 9,
+GEO_LEN_V = {('sword', 'excalibur'): 14, ('staff', 'sun'): 9, ('staff_leaf', 'fairy'): 10, ('sword', 'great'): 14, ('sword', 'rapier'): 13, ('spear', 'lance'): 16, ('spear', 'trident'): 13, ('gun', 'cannon'): 9,
              ('hammer', 'mace'): 11, ('hammer', 'club'): 10, ('hammer', 'pan'): 11}
 
 

@@ -149,7 +149,7 @@ export const MERC_SPRITES = {
       '................'
     ]
   },
-  mage_blue: { // 올라프: 별 고깔모자, 흰 수염, 수정 지팡이
+  mage_blue: { // 에스벤: 별 고깔모자, 흰 수염, 수정 지팡이
     palette: {},
     rows: [
       '.......k........',
@@ -318,7 +318,7 @@ export const MERC_SPRITES = {
       '................'
     ]
   },
-  rogue_green: { // 레이프: 뾰족 귀, 금발, 어두운 망토, 휜 단검 둘
+  rogue_green: { // 비다르: 뾰족 귀, 금발, 어두운 망토, 휜 단검 둘
     palette: { h: '#e8c060' },
     rows: [
       '................',

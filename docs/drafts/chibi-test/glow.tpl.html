@@ -1,0 +1,151 @@
+<title>고등급 빛 번짐 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sunflower:wght@500;700&family=Gowun+Dodum&display=swap">
+<style>
+/* 레이아웃: 위 설명 · 효과 켜고 끄기 / 가운데 실제 게임 엔진(Phaser 3.90) 화면 / 아래 효과별 설명 */
+:root { --bg: #e9e2cf; --card: #fbf7ec; --ink: #3a2e22; --sub: #7d6e5a; --line: #d9cdb2; --sage: #7a9a5c; --sage-d: #4f6b3a;
+  --display: 'Sunflower', 'Gowun Dodum', sans-serif; --body: 'Gowun Dodum', 'Sunflower', sans-serif; color-scheme: light }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage-d: #c7e0ac; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage-d: #c7e0ac; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.55 }
+.wrap { max-width: 1100px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 16px }
+h1 { font-family: var(--display); font-size: 1.9rem; margin: 0 }
+.lead { color: var(--sub); max-width: 74ch; margin: 4px 0 0 }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px }
+.ctl label { display: flex; gap: 6px; align-items: center; font: 700 13px var(--display); border: 1.5px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer }
+.ctl label:has(input:checked) { border-color: #c9a227; background: color-mix(in srgb, #ffd23a 18%, transparent) }
+.ctl .sep { width: 1px; align-self: stretch; background: var(--line) }
+button { font-family: var(--display); font-weight: 700; border: 0; border-radius: 10px; background: var(--sage); color: #fff; padding: 6px 12px; cursor: pointer }
+button.ghost { background: transparent; color: var(--sage-d); border: 1.5px solid var(--sage) }
+button:focus-visible, input:focus-visible { outline: 3px solid #ffd36a; outline-offset: 2px }
+#game { width: 100%; aspect-ratio: 960 / 520; border-radius: 16px; overflow: hidden; background: #2b3d24 }
+#game canvas { width: 100% !important; height: 100% !important }
+.fxlist { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none }
+.fxlist li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: .85rem }
+.fxlist b { font-family: var(--display); display: block }
+.note { font-size: .85rem; color: var(--sub) }
+</style>
+<div class="wrap">
+  <header>
+    <h1>고등급 빛 번짐 — 게임 엔진 실제 화면</h1>
+    <p class="lead">도트가 아닌 부드러운 빛도 됩니다. 지금 게임이 쓰는 Phaser 3.90 의 WebGL 효과(외곽 발광·반짝임·블룸)와 더하기 합성 빛으로 만든 시안이에요. 캐릭터는 도트 그대로 두고, 빛만 부드럽게 번지게 했어요. 브륀힐드는 레어(보라), 나머지는 유니크(금)예요.</p>
+  </header>
+  <div class="ctl" id="ctl">
+    <label><input type="checkbox" data-fx="glow" checked> 외곽 발광</label>
+    <label><input type="checkbox" data-fx="halo" checked> 후광</label>
+    <label><input type="checkbox" data-fx="motes" checked> 빛 입자</label>
+    <label><input type="checkbox" data-fx="shine" checked> 반짝임</label>
+    <label><input type="checkbox" data-fx="bloom"> 화면 블룸</label>
+    <span class="sep"></span>
+    <button type="button" id="rec">추천 조합</button>
+    <button type="button" class="ghost" id="none">모두 끄기</button>
+    <button type="button" class="ghost" id="dark">어두운 지역</button>
+  </div>
+  <div id="game" role="img" aria-label="빛 번짐 효과를 씌운 캐릭터 6명이 움직이는 게임 화면"></div>
+  <ul class="fxlist">
+    <li><b>외곽 발광</b>그림 모양을 따라 등급색 빛이 번짐 (preFX Glow). 세기가 천천히 숨 쉬듯 변함</li>
+    <li><b>후광</b>몸 뒤 부드러운 빛 덩어리 + 발밑 빛 웅덩이 (더하기 합성). 유니크는 광선 무늬가 천천히 돎</li>
+    <li><b>빛 입자</b>발밑에서 흐릿한 빛 알갱이가 떠올라 사라짐 (파티클 + 더하기 합성)</li>
+    <li><b>반짝임</b>빛줄기가 몸을 훑고 지나감 (preFX Shine) — 유니크만</li>
+    <li><b>화면 블룸</b>밝은 곳이 화면 전체로 번짐 (카메라 postFX Bloom). 가장 화려하지만 화면 전체에 걸려 UI·몬스터도 번짐 — 보스전·궁극기 순간에만 켜는 용도 추천</li>
+  </ul>
+  <p class="note">비용: 외곽 발광·반짝임은 캐릭터마다 셰이더 한 번 — 필드 최대 12명이면 가벼움. 블룸은 화면 전체라 상시보다 순간 연출로. WebGL 이 없는 기기(아주 오래된 기기)에서는 자동으로 빠지고 도트 그림만 보임.</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+<script>
+const D = __DATA__;
+const GOLD = 0xffd23a, VIOLET = 0xb36cff;
+const fx = { glow: true, halo: true, motes: true, shine: true, bloom: false };
+let scene, dark = false;
+const imgs = {};
+function up4(img) {   // 도트를 4배로 (가장 가까운 픽셀)
+  const c = document.createElement('canvas'); c.width = img.width * 4; c.height = img.height * 4;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(img, 0, 0, c.width, c.height); return c;
+}
+function loadImg(src) { return new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = src; }); }
+function softTex(s, key, size, stops) {   // 부드러운 원형 빛 텍스처 (그라데이션)
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'); const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  stops.forEach(([o, col]) => gr.addColorStop(o, col)); g.fillStyle = gr; g.fillRect(0, 0, size, size);
+  s.textures.addCanvas(key, c);
+}
+function rayTex(s, key, size) {           // 광선 무늬 (가운데서 퍼지는 부드러운 줄)
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'); g.translate(size / 2, size / 2);
+  for (let i = 0; i < 12; i++) {
+    g.rotate(Math.PI / 6);
+    const gr = g.createLinearGradient(0, 0, size / 2, 0);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.beginPath(); g.moveTo(0, 0); g.lineTo(size / 2, -size * (i % 2 ? 0.03 : 0.06)); g.lineTo(size / 2, size * (i % 2 ? 0.03 : 0.06)); g.closePath(); g.fill();
+  }
+  s.textures.addCanvas(key, c);
+}
+class Demo extends Phaser.Scene {
+  create() {
+    scene = this;
+    softTex(this, 'soft', 128, [[0, 'rgba(255,255,255,1)'], [0.25, 'rgba(255,255,255,0.55)'], [1, 'rgba(255,255,255,0)']]);
+    softTex(this, 'dot', 16, [[0, 'rgba(255,255,255,1)'], [0.4, 'rgba(255,255,255,0.6)'], [1, 'rgba(255,255,255,0)']]);
+    rayTex(this, 'rays', 128);
+    this.bg = this.add.rectangle(480, 260, 960, 520, 0x6d8f4e);
+    this.units = [];
+    D.chars.forEach((c, i) => {
+      // 도트를 미리 4배로 키운 텍스처 — 효과(발광·반짝임)가 화면 해상도에서 계산돼 도트가 번지지 않는다
+      this.textures.addSpriteSheet('c_' + c.id, up4(imgs[c.id]), { frameWidth: 56 * 4, frameHeight: 40 * 4 });
+      const frames = c.idle.map((ms, k) => ({ key: 'c_' + c.id, frame: k, duration: ms }));
+      this.anims.create({ key: 'idle_' + c.id, frames, frameRate: 1000, repeat: -1 });
+      const atk = c.attack.map((ms, k) => ({ key: 'c_' + c.id, frame: c.idle.length + k, duration: ms }));
+      this.anims.create({ key: 'atk_' + c.id, frames: atk, frameRate: 1000 });
+      const x = 170 + (i % 3) * 310, y = 150 + Math.floor(i / 3) * 240, S = 1;
+      const col = c.grade >= 4 ? GOLD : VIOLET;
+      const u = { c, col, x, y };
+      // 발밑 빛 웅덩이 + 몸 뒤 후광 (더하기 합성)
+      u.pool = this.add.image(x, y + 34, 'soft').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(1.1, 0.3).setAlpha(0.6);
+      u.halo = this.add.image(x, y - 8, 'soft').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(1.1).setAlpha(0.32);
+      u.rays = c.grade >= 4 ? this.add.image(x, y - 20, 'rays').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(1.2).setAlpha(0.2) : null;
+      this.tweens.add({ targets: u.halo, scale: 1.25, alpha: 0.18, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.tweens.add({ targets: u.pool, alpha: 0.3, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      if (u.rays) this.tweens.add({ targets: u.rays, angle: 360, duration: 14000, repeat: -1 });
+      // 빛 입자
+      u.motes = this.add.particles(x, y + 30, 'dot', {
+        x: { min: -44, max: 44 }, speedY: { min: -60, max: -30 }, speedX: { min: -6, max: 6 }, lifespan: { min: 1100, max: 1700 },
+        scale: { start: c.grade >= 4 ? 0.9 : 0.7, end: 0 }, alpha: { start: 1, end: 0 }, tint: col, blendMode: 'ADD', frequency: c.grade >= 4 ? 160 : 320,
+      });
+      // 캐릭터 (도트 그대로) + 외곽 발광 · 반짝임
+      u.spr = this.add.sprite(x, y, 'c_' + c.id).setScale(S).play('idle_' + c.id);
+      if (u.spr.preFX) {
+        u.glow = u.spr.preFX.addGlow(col, 1.6, 0, false, 0.1, 14);
+        this.tweens.add({ targets: u.glow, outerStrength: 3.2, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        u.shine = c.grade >= 4 ? u.spr.preFX.addShine(0.45, 0.25, 3) : null;
+      }
+      this.add.text(x, y + 74, `${c.name} · ${c.grade >= 4 ? '유니크' : '레어'}`, { fontFamily: 'Sunflower, sans-serif', fontSize: '18px', color: '#fbf7ec', stroke: '#2b1d2f', strokeThickness: 4 }).setOrigin(0.5);
+      this.units.push(u);
+      // 가끔 공격
+      this.time.addEvent({ delay: 2600 + i * 450, loop: true, callback: () => { u.spr.play('atk_' + c.id); u.spr.once('animationcomplete', () => u.spr.play('idle_' + c.id)); } });
+    });
+    this.bloom = this.cameras.main.postFX ? this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.1, 1.3, 4) : null;
+    apply();
+  }
+}
+function apply() {
+  if (!scene) return;
+  for (const u of scene.units) {
+    if (u.glow) u.glow.active = fx.glow;
+    if (u.shine) u.shine.active = fx.shine;
+    u.halo.setVisible(fx.halo); u.pool.setVisible(fx.halo); if (u.rays) u.rays.setVisible(fx.halo);
+    u.motes.emitting = fx.motes; if (!fx.motes) u.motes.killAll();
+  }
+  if (scene.bloom) scene.bloom.active = fx.bloom;
+  scene.bg.setFillStyle(dark ? 0x1e2a22 : 0x6d8f4e);
+}
+(async () => {
+  for (const c of D.chars) imgs[c.id] = await loadImg(c.src);
+  new Phaser.Game({ type: Phaser.AUTO, parent: 'game', width: 960, height: 520, backgroundColor: '#2b3d24', pixelArt: true, antialias: true,
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: Demo });
+})();
+const boxes = [...document.querySelectorAll('#ctl input')];
+boxes.forEach((b) => b.onchange = () => { fx[b.dataset.fx] = b.checked; apply(); });
+const setFx = (o) => { Object.assign(fx, o); boxes.forEach((b) => b.checked = fx[b.dataset.fx]); apply(); };
+document.getElementById('rec').onclick = () => setFx({ glow: true, halo: true, motes: true, shine: true, bloom: false });
+document.getElementById('none').onclick = () => setFx({ glow: false, halo: false, motes: false, shine: false, bloom: false });
+document.getElementById('dark').onclick = (e) => { dark = !dark; e.target.textContent = dark ? '밝은 지역' : '어두운 지역'; apply(); };
+</script>
