@@ -32,6 +32,11 @@ export const TUTORIAL_STEPS = {
     text: '잠근 칸은 리롤·웨이브 갱신에도 남아요.\n대신 잠근 용병의 등급·수만큼 리롤 값이 오릅니다.',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
+  item: {
+    title: '아이템 조합',
+    text: '정예·보스를 잡거나 대장장이에서 사면 재료가 아이템 띠에 들어와요.\n캐릭터에게 끌어다 놓고, 같은 캐릭터에 재료 2개가 모이면 자동 조합!\n장착한 아이템은 「해제 도구」로만 뺄 수 있어요.',
+    rect: () => ({ x: HUD.bench.x - 4, y: HUD.bench.y - 4, w: HUD.bench.w + 8, h: HUD.bench.h + 8 })
+  },
   synergy: {
     title: '시너지',
     text: '용병마다 계열(공격 방식) 1개와 출신(세력) 1개가 있어요.\n서로 다른 용병을 모으면 시너지가 켜집니다 — 계열 2·5·8명, 출신 3·6·9명.',

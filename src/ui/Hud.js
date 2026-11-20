@@ -12,6 +12,7 @@ import { STYLES, TRAIT_TEXT, GRADES, ROSTER_BY_ID } from '../data/roster.js';
 import { starSkill, MAX_STAR } from '../data/stars.js';
 import { TRAITS, tierIndex, sortedTraits } from '../data/synergy.js';
 import { SHOP, priceOf } from '../data/shop.js';
+import { ITEM_RULES, ITEM_BY_ID, isComponent, recipesWith } from '../data/items.js';
 import { RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
@@ -24,7 +25,7 @@ const RING = { x0: FIELD_X - PATH_OFF - PATH_WIDTH / 2, y0: FIELD_Y - PATH_OFF -
 //  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
 //  가로(B-2): 위 알약 바(y 16~68)와 위쪽 길 사이 / 아래쪽 길과 아래 독(y 643~) 사이
 const TOP_BAND = WIDE ? [68, RING.y0] : [180, RING.y0];
-const BOTTOM_BAND = WIDE ? [RING.y1 - 8, 616] : [RING.y1, 776];
+const BOTTOM_BAND = WIDE ? [RING.y1 - 8, 616] : [RING.y1, 730]; // 세로: 아래 길과 아이템 띠 사이
 export const BANNER_Y = (TOP_BAND[0] + TOP_BAND[1]) / 2;
 export const TOAST_Y = (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2;
 /** 배너·토스트 최대 너비: 세로는 화면 폭, 가로는 몬스터 길 사각형 폭 (가로 토스트는 독 바로 위) */
@@ -42,7 +43,8 @@ export const HUD = WIDE
       estate: { x: 871, y: 645, w: 150, h: 42 }, // 버튼 가운데
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
-      syn: { x: 16, y: 84, w: 210, h: 520 } // 시너지 목록 (왼쪽 세로)
+      syn: { x: 16, y: 84, w: 210, h: 372 }, // 시너지 목록 (왼쪽 세로)
+      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 490, w: 96, h: 30 }, tool: { x: 121, y: 590 } } // 아이템 띠 (5×2)
     }
   : {
       top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
@@ -55,7 +57,8 @@ export const HUD = WIDE
       shop: { x: 12, y: 786, w: GAME_W - 24, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
       estate: { x: 290, y: 914, w: 188, h: 56 }, // 버튼 가운데
       reroll: { x: 462, y: 914, w: 140, h: 56 },
-      small: { y: 914, xs: [40, 98, 156], w: 52, h: 56 } // 배속(→정지) · 메뉴 · 강화
+      small: { y: 914, xs: [40, 98, 156], w: 52, h: 56 }, // 배속(→정지) · 메뉴 · 강화
+      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 58, y: 752, w: 88, h: 30 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래)
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = WIDE ? 520 : GAME_W;
@@ -71,6 +74,7 @@ export class Hud {
     this.bannerObj = null;
     this.createTop();
     this.createBottom();
+    this.createBench();
   }
 
   // ───────────────────────── 잠깐 뜨는 알림 ─────────────────────────
@@ -435,6 +439,117 @@ export class Hud {
     this.refreshShopButtons();
   }
 
+  // ───────────────────────── 아이템 띠 (룰 v2 ②, 2026-11-20) ─────────────────────────
+  /** 아이템 띠: 세로는 아래쪽 몬스터 길과 하단 시트 사이, 가로는 왼쪽 시너지 목록 아래 */
+  createBench() {
+    const s = this.s;
+    const D = DEPTH.ui;
+    const B = HUD.bench;
+    panel(s, B.x, B.y, B.w, B.h, WIDE ? 'card' : 'strip').setDepth(D - 1);
+    if (WIDE) uiText(s, B.x + 18, B.y + 16, '아이템', 15, CSS.primary, 'bold').setDepth(D);
+    const sb = B.smith;
+    this.smithBtn = new Button(s, sb.x, sb.y, sb.w, sb.h, '', () => s.smithBuy(), { variant: 'gold', icon: 'anvil', fontSize: 11 });
+    this.toolText = uiText(s, B.tool.x, B.tool.y, '', 11, CSS.ink, 'bold').setOrigin(0.5).setDepth(D);
+    this.benchRow = s.add.container(0, 0).setDepth(D + 1);
+    this.refreshBench();
+  }
+
+  benchPos(i) {
+    const B = HUD.bench;
+    if (WIDE) return { x: B.x + 29 + (i % 5) * 38, y: B.y + 52 + Math.floor(i / 5) * 38 };
+    return { x: B.x + 118 + i * 36, y: B.y + B.h / 2 };
+  }
+
+  /** 아이템 그림: 재료는 색 칸 + 글자, 조합품은 두 재료 색 반반 + 금 테두리, 문장은 시너지 색 방패 */
+  itemIcon(id, x, y, size = 30) {
+    const s = this.s;
+    const it = ITEM_BY_ID[id];
+    const c = s.add.container(x, y);
+    const g = s.add.graphics();
+    const col = (hex) => Phaser.Display.Color.HexStringToColor(hex).color;
+    const h = size / 2;
+    if (it.kind === 'combo') {
+      const [a, b] = it.parts.map((p) => col(ITEM_BY_ID[p].color));
+      g.fillStyle(a, 1).fillRoundedRect(-h, -h, size, size, 7);
+      g.fillStyle(b, 1).fillTriangle(h, -h + 4, h, h - 4, -h + 4, h);
+      g.lineStyle(2.5, 0xffd36a, 1).strokeRoundedRect(-h, -h, size, size, 7);
+      c.add([g, uiText(s, 0, 0, it.name[0], 13, CSS.white, 'bold').setOrigin(0.5).setStroke('#2b1d2f', 3)]);
+    } else if (it.kind === 'emblem') {
+      g.fillStyle(col(TRAITS[it.trait].color), 1).fillRoundedRect(-h, -h, size, size, { tl: 4, tr: 4, bl: h, br: h });
+      g.lineStyle(2.5, 0xffd36a, 1).strokeRoundedRect(-h, -h, size, size, { tl: 4, tr: 4, bl: h, br: h });
+      c.add([g, uiText(s, 0, -2, TRAITS[it.trait].glyph, 13, CSS.white, 'bold').setOrigin(0.5)]);
+    } else {
+      g.fillStyle(col(it.color), 1).fillRoundedRect(-h, -h, size, size, 7);
+      g.lineStyle(2, 0x2b1d2f, 1).strokeRoundedRect(-h, -h, size, size, 7);
+      c.add([g, uiText(s, 0, 0, it.glyph, 13, CSS.white, 'bold').setOrigin(0.5)]);
+    }
+    return c;
+  }
+
+  refreshBench() {
+    const s = this.s;
+    if (!this.benchRow) return;
+    this.benchRow.removeAll(true);
+    for (let i = 0; i < ITEM_RULES.bench; i++) {
+      const p = this.benchPos(i);
+      this.benchRow.add(panelImage(s, p.x, p.y, 'soft', 32, 32));
+    }
+    s.bench.forEach((id, i) => {
+      const p = this.benchPos(i);
+      const ic = this.itemIcon(id, p.x, p.y, 28);
+      ic.setSize(32, 32).setInteractive({ draggable: true, useHandCursor: true });
+      ic.on('pointerover', () => this.showItemTip(id, p.x, p.y));
+      ic.on('pointerout', () => this.hideRelicTip());
+      ic.on('dragstart', () => {
+        this.hideRelicTip();
+        ic.setDepth(DEPTH.drag);
+        this.benchRow.remove(ic);
+        ic.setDepth(DEPTH.drag);
+        s.add.existing(ic);
+      });
+      ic.on('drag', (_p, x, y) => ic.setPosition(x, y));
+      ic.on('dragend', (ptr) => {
+        const m = s.mercs.find((u) => Math.abs(u.x - ptr.worldX) < 28 && Math.abs(u.y - ptr.worldY) < 28);
+        ic.destroy();
+        if (!m || !s.equip(i, m)) this.refreshBench();
+      });
+      this.benchRow.add(ic);
+    });
+    this.smithBtn?.setLabel(`재료 ${s.smithCost}G`).setEnabled(s.gold >= s.smithCost && s.bench.length < ITEM_RULES.bench);
+    this.toolText?.setText(WIDE ? `해제 도구 ${s.tools}개` : `해제 도구\n${s.tools}개`);
+  }
+
+  /** 아이템 툴팁: 이름·효과 (재료는 조합표) */
+  showItemTip(id, x, y) {
+    const s = this.s;
+    this.hideRelicTip();
+    const it = ITEM_BY_ID[id];
+    const c = s.add.container(0, 0).setDepth(DEPTH.overlay - 0.5);
+    const lines = [uiText(s, 0, 0, it.name, 15, CSS.ink, 'bold'), uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 300 } })];
+    if (isComponent(id)) {
+      lines.push(uiText(s, 0, 0, '같은 캐릭터에 재료 2개 → 자동 조합', 11, CSS.sub, '600'));
+      for (const r of recipesWith(id)) {
+        const res = ITEM_BY_ID[r.result];
+        lines.push(uiText(s, 0, 0, `+ ${ITEM_BY_ID[r.with].name} → ${res ? res.name : '출신 문장(출신을 고름)'}`, 11, CSS.ink, '600'));
+      }
+    }
+    const pad = 12;
+    const w = Math.ceil((Math.max(...lines.map((l) => l.width)) + pad * 2) / UI_PX) * UI_PX;
+    let h = pad;
+    for (const l of lines) h += l.height + 4;
+    h += pad - 4;
+    const left = Phaser.Math.Clamp(WIDE ? x + 30 : x - w / 2, 8, GAME_W - 8 - w);
+    const top = WIDE ? Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8) : y - 24 - h;
+    c.add(panel(s, left, top, w, h, 'card'));
+    let cy = top + pad;
+    for (const l of lines) {
+      l.setPosition(left + pad, cy);
+      cy += l.height + 4;
+      c.add(l);
+    }
+    this.relicTip = { index: -1, x, y, container: c };
+  }
+
   /** 영지·리롤 버튼 글자·활성 */
   refreshShopButtons() {
     const s = this.s;
@@ -445,6 +560,7 @@ export class Hud {
     const rc = s.rerollPrice;
     this.rerollBtn.setLabel(rc === 0 ? '리롤 무료' : `리롤 ${rc}G`);
     this.rerollBtn.setEnabled(s.gold >= rc);
+    this.smithBtn?.setLabel(`재료 ${s.smithCost}G`).setEnabled(s.gold >= s.smithCost && s.bench.length < ITEM_RULES.bench);
   }
 
   /** 시너지 칩: 세로는 위 줄 왼쪽, 가로는 왼쪽 목록. 누르면 단계별 효과 */
@@ -552,7 +668,9 @@ export class Hud {
     const bx = B.x + B.w - 64;
     this.skillBtn = new Button(s, bx, B.y + B.h / 2 - 20, 108, 32, '스킬 정보', () => s.selected && this.showSkillPopup(s.selected), { variant: 'primary', fontSize: 12 });
     this.sellBtn = new Button(s, bx, B.y + B.h / 2 + 20, 108, 32, '판매', () => s.selected && s.sell(s.selected), { variant: 'outline', fontSize: 12 });
-    c.add([this.infoAvatar, this.infoPortrait, this.infoTitle, this.infoSub, this.infoBody, this.manaBar, this.skillBtn, this.sellBtn]);
+    this.toolBtn = new Button(s, bx - 108, B.y + B.h / 2 - 20, 92, 32, '해제 도구', () => s.selected && s.useTool(s.selected), { variant: 'gold', fontSize: 11 });
+    this.itemRow = s.add.container(0, 0);
+    c.add([this.infoAvatar, this.infoPortrait, this.infoTitle, this.infoSub, this.infoBody, this.manaBar, this.skillBtn, this.sellBtn, this.toolBtn, this.itemRow]);
   }
 
   /** 배속 버튼 표시: 정지 중이면 '정지'(정지 아이콘), 아니면 'x1~x3' */
@@ -595,6 +713,16 @@ export class Hud {
     this.manaText.setPosition(mx + mw + 8, my + 4).setText(`${Math.floor(m.mana)}/${m.maxMana} 「${m.def.name}」`);
     this.fitText(this.manaText, textW - mw - 8);
     this.sellBtn.setLabel(`판매 +${Math.floor(m.invested * s.sellRefund)}G`);
+    // 아이템 칸 (최대 3) — 마우스를 올리면 효과
+    this.itemRow.removeAll(true);
+    m.items.forEach((id, i) => {
+      const ic = this.itemIcon(id, this.infoTitle.x + this.infoTitle.width + 18 + i * 26, B.y + 21, 22);
+      ic.setSize(24, 24).setInteractive();
+      ic.on('pointerover', () => this.showItemTip(id, ic.x, ic.y + 40));
+      ic.on('pointerout', () => this.hideRelicTip());
+      this.itemRow.add(ic);
+    });
+    this.toolBtn.setVisible(s.tools > 0 && m.items.length > 0);
   }
 
   // ───────────────────────── 창 ─────────────────────────

@@ -12,7 +12,8 @@ import { ATTRS, ATTR_INFO } from '../data/elements.js';
 import { ROSTER_BY_ID } from '../data/roster.js';
 import { MAX_STAR } from '../data/stars.js';
 import { SHOP, priceOf, rerollCost, levelUpCost, refillShop, findStarUp } from '../data/shop.js';
-import { countTraits, activeTier, TRAIT_IDS, RAGE_MAX } from '../data/synergy.js';
+import { countTraits, activeTier, TRAIT_IDS, RAGE_MAX, ORIGIN_IDS, TRAITS } from '../data/synergy.js';
+import { ITEM_RULES, ITEM_BY_ID, MAT_IDS, isComponent, combine } from '../data/items.js';
 import { RELICS, RELIC_BY_ID } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
@@ -64,6 +65,10 @@ export class GameScene extends Phaser.Scene {
     this.syn = { counts: {}, tiers: {} };
     this.rootTimer = 0; // 숲의 일족: 덩굴 속박 주기
     this.lakeRevived = false; // 호수의 성역 9: 성벽 부활 1회
+    // 아이템 조합 (룰 v2 ②): 아이템 띠 · 해제 도구 · 판 안 대장장이
+    this.bench = [];
+    this.tools = 0;
+    this.smithBought = 0;
     this.ownedRelics = []; // { id, active } — 활성 유물만 효과 (최대 BALANCE.maxActiveRelics + 명성 강화)
     this.relics = {}; // 활성 유물 id → 개수 (능력치 계산용, recomputeRelics 가 갱신)
     this.waveAttrs = ATTRS; // 몬스터 그림 색만 (룰 v2: 속성 상성 없음)
@@ -257,6 +262,7 @@ export class GameScene extends Phaser.Scene {
     // 명성 강화 '성벽 수리': 웨이브마다 성벽 회복
     if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
     this.waveSynergy(w);
+    this.waveItems(w);
     // 상점: 웨이브가 시작할 때마다 잠그지 않은 칸을 새로 채운다
     this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
     this.refreshShop();
@@ -410,7 +416,7 @@ export class GameScene extends Phaser.Scene {
         });
         continue;
       }
-      const picked = live.slice(0, st.targets);
+      const picked = st.item.strongest ? [...live].sort((a, b) => b.hp - a.hp).slice(0, st.targets) : live.slice(0, st.targets); // 공성 조준기
       // 피해·투사체는 휘두름·발사 프레임에 나간다 (2026-11-20). 노린 대상 중 살아 있는 것만 — 모두 죽으면 위에서 공격 취소
       const timer = this.atHitFrame(merc, st, () => {
         if (merc.pendingHit?.timer === timer) merc.pendingHit = null;
@@ -498,8 +504,9 @@ export class GameScene extends Phaser.Scene {
     // 보스·정예: 기본 피해 배율 + 거인 사냥꾼, 그리고 왕/정예 사냥꾼
     const giant = target.kind === 'normal' ? 1 : (BALANCE.bossDamageMult + b.bossDmg) * (1 + (target.isBoss ? b.bossOnly : b.eliteOnly));
     const slayer = target.kind !== 'normal' && merc.trait?.bossMult ? merc.trait.bossMult : 1; // 특성: 보스·정예 특화
-    const elite = target.kind !== 'normal' ? 1 + (st.eliteDmg || 0) : 1; // 사수 시너지: 정예·보스 피해
-    const dmg = st.damage * mult * giant * slayer * elite;
+    const elite = target.kind !== 'normal' ? 1 + (st.eliteDmg || 0) + (target.isBoss ? st.bossDmg || 0 : 0) : 1; // 사수 시너지·아이템: 정예·보스 피해
+    const far = st.item?.farDmg ? 1 + st.item.farDmg * Math.min(1, Math.sqrt(d2(target, merc)) / st.range) : 1; // 명사수 조준경
+    const dmg = st.damage * mult * giant * slayer * elite * far;
     const need = carry && target.kind === 'normal' ? target.hp / target.damageTakenMult(this.gameTime) : Infinity;
     this.damageMonster(target, dmg, { source: merc, crit });
     if (dmg > need) this.carryDamage(merc, target, dmg - need);
@@ -544,7 +551,9 @@ export class GameScene extends Phaser.Scene {
     if (st.slow) target.applySlow(Math.min(0.85, st.slow * st.hex), st.slowDur, now);
     // 고유 특성 (data/roster.js): 지속 피해·약화·밀치기·확률 기절·처형 — 주술 효과는 주술사 시너지만큼 세진다
     const t = merc.trait || {};
-    if (t.execute && target.kind === 'normal' && target.hp / target.maxHp <= t.execute) {
+    const ix = st.item || {};
+    const exe = Math.max(t.execute || 0, ix.execute || 0); // 특성·현상금 표식: 처형
+    if (exe && target.kind === 'normal' && target.hp / target.maxHp <= exe) {
       this.killMonster(target, merc);
       return;
     }
@@ -558,6 +567,13 @@ export class GameScene extends Phaser.Scene {
     this.hit(merc, st, target, crit ? st.critMult : 1, crit);
     // 암살자 8: 치명타 때 확률로 한 번 더
     if (crit && st.critExtra && Math.random() < st.critExtra && target.alive) this.hit(merc, st, target, st.critMult, true);
+    // 아이템: 쌍날 단검(2번마다 한 번 더) · 산탄 장치(주변 30px) · 불꽃 화살통(3번마다 폭발)
+    if (ix.extraEvery && (merc.attacks + 1) % ix.extraEvery === 0 && target.alive) this.hit(merc, st, target, 0.5, false);
+    if (ix.scatter) for (const o of this.monsters) if (o.alive && o !== target && d2(o, pos) <= ix.scatter ** 2) this.hit(merc, st, o, 0.5, false, false);
+    if (ix.burstEvery && (merc.attacks + 1) % ix.burstEvery === 0) {
+      for (const o of this.monsters) if (o.alive && d2(o, pos) <= 40 * 40) this.hit(merc, st, o, 0.8, false, false);
+      this.circleFx(pos.x, pos.y, 40, 0xd9822b);
+    }
     if (st.splash) {
       const blast = () => {
         for (const o of this.monsters) {
@@ -612,6 +628,7 @@ export class GameScene extends Phaser.Scene {
   /** 스킬 시전. 대상이 없어 시전하지 못하면 false (쿨타임 유지, 다음 프레임 재시도) */
   castSkill(merc, def, st, inRange) {
     const now = this.gameTime;
+    if (st.skillArea && def.area?.r) def = { ...def, area: { ...def.area, r: Math.round(def.area.r * (1 + st.skillArea)) } }; // 별빛 망원경
     const live = inRange.filter((m) => m.alive);
     let targets = [];
     let primary = null;
@@ -655,7 +672,8 @@ export class GameScene extends Phaser.Scene {
         mult = t.isBoss ? fx.execute[1] : 1;
       }
       if (fx.bossMult && t.isBoss) mult *= fx.bossMult;
-      if (mult) this.hit(merc, st, t, mult * flavorMul, false, targets.length <= 3); // 범위 스킬은 관통 없음 (이미 여럿을 때린다)
+      const sc = st.item?.skillCrit && Math.random() < st.crit; // 룬 각인 검: 스킬 치명타
+      if (mult) this.hit(merc, st, t, mult * flavorMul * (sc ? st.critMult : 1), sc, targets.length <= 3); // 범위 스킬은 관통 없음 (이미 여럿을 때린다)
     }
 
     if (def.buff) {
@@ -669,6 +687,19 @@ export class GameScene extends Phaser.Scene {
         o.addBuff(b, now, durMult);
         o.buffFlashUntil = now + 0.25;
       }
+    }
+    // 아이템: 폭주 마도서(같은 자리 한 번 더 폭발) · 연금술 플라스크(골드)
+    if (st.item?.afterBlast && primary) {
+      const at = { x: primary.x, y: primary.y };
+      this.time.delayedCall(300, () => {
+        if (this.over) return;
+        for (const o of this.monsters) if (o.alive && d2(o, at) <= 60 * 60) this.hit(merc, st, o, st.item.afterBlast, false, false);
+        this.circleFx(at.x, at.y, 60, 0x8a4fb5);
+      });
+    }
+    if (st.item?.skillGold) {
+      this.gold += st.item.skillGold;
+      this.floatText(merc.x + 14, merc.y - 30, `+${st.item.skillGold}G`, '#f2c14e');
     }
     if (def.gold) {
       const g = def.gold + Math.floor(this.wave * (def.goldPerWave || 0));
@@ -685,10 +716,10 @@ export class GameScene extends Phaser.Scene {
     m.hp -= amount;
     if (!silent) m.flashUntil = this.gameTime + 0.06;
     if (crit) this.floatText(m.x, m.y - 20, `${Math.round(amount)}!`, '#ffd84a');
-    if (m.hp <= 0) this.killMonster(m, source);
+    if (m.hp <= 0) this.killMonster(m, source, crit);
   }
 
-  killMonster(m, source) {
+  killMonster(m, source, crit = false) {
     if (!m.alive) return;
     if (m.isFinal && !m.revived) return this.reviveFinalBoss(m);
     m.alive = false;
@@ -696,7 +727,11 @@ export class GameScene extends Phaser.Scene {
     // 물량: 일반 몬스터 골드는 소수 → 모았다가 정수가 될 때마다 지급
     const bounty = source?.trait?.bounty || 0; // 특성: 처치 골드 증가
     const guild = this.syn.tiers.guild?.gold || 0; // 황금 길드: 처치 골드 +
-    this.goldFrac += m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty + bounty + guild);
+    const ix = source?.items?.length ? source.ifx : {};
+    this.goldFrac += m.gold * (1 + 0.25 * (this.relics.golden_grail || 0) * (1 + this.bonus.relicPow) + this.bonus.bounty + bounty + guild + (ix.gold || 0));
+    // 아이템: 행운의 편자(치명타 처치 10% +1G) · 보물 폭탄(10% +3G)
+    if ((crit && ix.critGold && Math.random() < ix.critGold) || (ix.treasure && Math.random() < ix.treasure)) this.goldFrac += ix.treasure && !crit ? 3 : 1;
+    if (source) source.waveKills = (source.waveKills || 0) + 1;
     // 주술사 5: 지속 피해가 걸린 적이 죽으면 가장 가까운 적에게 옮는다
     if (this.syn.tiers.hexer?.spread && m.dots?.length) {
       const next = this.monsters.find((o) => o.alive && o !== m && d2(o, m) <= 80 * 80);
@@ -708,6 +743,7 @@ export class GameScene extends Phaser.Scene {
     this.gold += gold;
     this.deathFx(m);
     this.vfx.coinDrop(m.x, m.y);
+    this.dropItems(m);
     if (m.isBoss) {
       this.earnFame((m.isFinal ? FAME.finalBoss : m.milestone ? FAME.milestoneBoss : FAME.boss) + this.bonus.bossFame);
       audio.bossKill();
@@ -973,6 +1009,11 @@ export class GameScene extends Phaser.Scene {
       const [keep, ...rest] = group;
       for (const o of rest) {
         if (!o) continue;
+        // 아이템도 남는 쪽으로 — 3칸을 넘으면 띠로
+        for (const id of o.items) {
+          if (keep.items.length < ITEM_RULES.slots) keep.items.push(id);
+          else this.returnItems([id]);
+        }
         keep.invested += o.invested;
         keep.kills += o.kills;
         this.grid[o.row][o.col] = null;
@@ -1033,6 +1074,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   sell(merc) {
+    this.returnItems(merc.items); // 아이템은 띠로 돌아온다 (조합품은 그대로)
+    merc.items = [];
     const refund = Math.floor(merc.invested * this.sellRefund);
     this.gold += refund;
     this.grid[merc.row][merc.col] = null;
@@ -1042,6 +1085,138 @@ export class GameScene extends Phaser.Scene {
     this.recomputeSynergy();
     this.refreshShop();
     this.refreshHud();
+  }
+
+  // ───────────────────────── 아이템 조합 (룰 v2 ②, 2026-11-20) ─────────────────────────
+  /** 아이템을 띠에 더한다 (가득 차면 false) */
+  giveItem(id, x, y) {
+    if (this.bench.length >= ITEM_RULES.bench) {
+      this.toast('아이템 띠가 가득 찼어요 — 캐릭터에게 장착하세요', '#ff9a7a');
+      return false;
+    }
+    this.bench.push(id);
+    if (x != null) this.floatText(x, y - 30, ITEM_BY_ID[id].name, '#d6a8ff', 16, true);
+    this.tut.show('item');
+    this.hud?.refreshBench?.();
+    return true;
+  }
+
+  returnItems(ids) {
+    for (const id of ids) this.giveItem(id);
+  }
+
+  /**
+   * 띠의 아이템을 캐릭터에게 장착: 재료끼리는 같은 캐릭터에서 자동 조합, 그 밖엔 빈 칸(3칸)에.
+   * 인장 2개(출신 문장)는 그 캐릭터 출신이 아닌 출신 중 지금 가장 많이 모인 출신으로 (origin 을 주면 그것)
+   */
+  equip(benchIndex, merc, origin = null) {
+    const id = this.bench[benchIndex];
+    if (!id || !merc || !this.mercs.includes(merc)) return false;
+    let result = null;
+    let slot = -1;
+    if (isComponent(id)) {
+      slot = merc.items.findIndex((x) => isComponent(x));
+      if (slot >= 0) {
+        const other = merc.items[slot];
+        let org = origin;
+        if (id === 'seal' && other === 'seal' && !org) {
+          org = ORIGIN_IDS.filter((k) => k !== merc.origin && !merc.extraTraits.includes(k)).sort((a, b) => (this.syn.counts[b] || 0) - (this.syn.counts[a] || 0))[0];
+        }
+        result = combine(other, id, org);
+      }
+    }
+    const emblemOf = (rid) => ITEM_BY_ID[rid]?.kind === 'emblem' && ITEM_BY_ID[rid].trait;
+    const trait = emblemOf(result || id);
+    if (trait && (trait === merc.cls || trait === merc.origin || merc.extraTraits.includes(trait))) {
+      this.toast(`${merc.heroName}는 이미 ${TRAITS[trait].name}이에요`, '#ff9a7a');
+      return false;
+    }
+    if (result) merc.items[slot] = result;
+    else if (merc.items.length < ITEM_RULES.slots) merc.items.push(id);
+    else {
+      this.toast(`${merc.heroName}의 아이템 칸(${ITEM_RULES.slots})이 가득 찼어요`, '#ff9a7a');
+      return false;
+    }
+    this.bench.splice(benchIndex, 1);
+    if (ITEM_BY_ID[id].kind === 'mat' && !result) merc.mana = Math.max(merc.mana, merc.ifx.startMana || 0); // 마력석: 시작 마나
+    merc.drawPips();
+    audio.coin();
+    if (result) {
+      this.levelUpFx(merc, ITEM_BY_ID[result].name);
+      this.toast(`조합: ${ITEM_BY_ID[result].name} — ${ITEM_BY_ID[result].text}`, '#f2c14e');
+    }
+    this.recomputeSynergy();
+    this.hud?.refreshBench?.();
+    if (this.selected === merc) this.refreshInfo();
+    return true;
+  }
+
+  /** 판 안 대장장이: 골드로 무작위 재료 1개 (값은 살 때마다 오른다) */
+  get smithCost() {
+    return ITEM_RULES.smith.base + ITEM_RULES.smith.step * this.smithBought;
+  }
+  smithBuy() {
+    const cost = this.smithCost;
+    if (this.gold < cost) {
+      this.toast(`골드가 부족합니다 (재료 ${cost}G)`);
+      return false;
+    }
+    if (this.bench.length >= ITEM_RULES.bench) return this.giveItem(null) && false;
+    this.gold -= cost;
+    this.smithBought += 1;
+    this.giveItem(Phaser.Utils.Array.GetRandom(MAT_IDS));
+    this.refreshHud();
+    return true;
+  }
+
+  /** 해제 도구: 캐릭터의 아이템을 모두 띠로 */
+  useTool(merc) {
+    if (this.tools <= 0 || !merc?.items.length) return false;
+    if (this.bench.length + merc.items.length > ITEM_RULES.bench) {
+      this.toast('아이템 띠에 자리가 모자라요', '#ff9a7a');
+      return false;
+    }
+    this.tools -= 1;
+    this.returnItems(merc.items);
+    merc.items = [];
+    merc.mana = Math.min(merc.mana, merc.maxMana);
+    merc.drawPips();
+    this.recomputeSynergy();
+    this.refreshInfo();
+    return true;
+  }
+
+  /** 처치 보상 아이템: 정예 확률 재료 · 보스 재료 2(+인장·해제 도구 확률) · 강화 보스 인장·해제 도구 확정 */
+  dropItems(m) {
+    const R = ITEM_RULES;
+    const mat = () => Phaser.Utils.Array.GetRandom(MAT_IDS);
+    if (m.kind === 'elite' && Math.random() < R.eliteMat) this.giveItem(mat(), m.x, m.y);
+    if (!m.isBoss) return;
+    for (let i = 0; i < R.bossMats; i++) this.giveItem(mat(), m.x, m.y);
+    const big = m.milestone || m.isFinal;
+    if (big || Math.random() < R.bossSeal) this.giveItem('seal', m.x, m.y);
+    if (big || Math.random() < R.bossTool) {
+      this.tools += 1;
+      this.floatText(m.x, m.y - 50, '해제 도구 +1', '#d6a8ff', 16, true);
+      this.hud?.refreshBench?.();
+    }
+  }
+
+  /** 웨이브 시작 때 아이템: 5웨이브마다 재료 · 상인의 저울 · 길드 금고 · 시작 마나 */
+  waveItems(w) {
+    if (w > 1 && w % ITEM_RULES.waveMatEvery === 1) this.giveItem(Phaser.Utils.Array.GetRandom(MAT_IDS));
+    let gold = 0;
+    for (const m of this.mercs) {
+      const ix = m.ifx;
+      if (w >= 2 && ix.killWaveGold) gold += Math.floor((m.waveKills || 0) * ix.killWaveGold);
+      if (w >= 2 && ix.vault) gold += ix.vault * (1 + Math.floor(w / 10));
+      if (ix.startMana) m.mana = Math.max(m.mana, ix.startMana);
+      m.waveKills = 0;
+    }
+    if (gold) {
+      this.gold += gold;
+      this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 170 : 140, `+${gold}G 아이템`, '#f2c14e');
+    }
   }
 
   /** 시너지 다시 세기 (필드가 바뀔 때마다) */

@@ -85,7 +85,8 @@ export function countTraits(units, extra = {}) {
   const seen = {};
   for (const u of units) {
     const c = u.char || u;
-    for (const k of [c.cls, c.origin]) (seen[k] ||= new Set()).add(c.id);
+    // 문장 아이템(u.extraTraits)으로 그 계열·출신으로도 센다
+    for (const k of [c.cls, c.origin, ...(u.extraTraits || [])]) (seen[k] ||= new Set()).add(c.id);
   }
   const out = {};
   for (const k of TRAIT_IDS) out[k] = (seen[k]?.size || 0) + (extra[k] || 0);

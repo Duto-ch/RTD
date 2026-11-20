@@ -228,6 +228,58 @@ test('시너지: 서로 다른 캐릭터 수로 단계가 켜지고 효과가 �
   expect(errors).toEqual([]);
 });
 
+test('아이템 조합: 대장장이에서 재료 구매 → 끌어다 장착 → 같은 캐릭터에 재료 2개면 자동 조합 · 문장으로 시너지 +1 · 해제 도구 · 판매하면 띠로', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 1000;
+    const leo = g.hire('leo');
+    const helga = g.hire('helga');
+    const gold0 = g.gold;
+    g.smithBuy(); g.smithBuy();
+    const spent = gold0 - g.gold; // 30 + 45
+    g.bench = ['whet', 'whet', 'seal', 'seal'];
+    g.hud.refreshBench();
+    return { spent, at: { x: leo.x, y: leo.y }, helgaAt: { x: helga.x, y: helga.y } };
+  });
+  expect(r.spent).toBe(30 + 45);
+  // 띠의 첫 아이템(숫돌)을 레오에게 실제로 끌어다 놓는다
+  const slot = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
+  for (let i = 0; i < 2; i++) {
+    await page.mouse.move(slot.x, slot.y);
+    await page.mouse.down();
+    await page.mouse.move(r.at.x, r.at.y, { steps: 10 });
+    await page.mouse.up();
+  }
+  const s = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const [leo, helga] = g.mercs;
+    const knightBefore = g.syn.counts.knight;
+    // 인장 2개 → 출신 문장 (기사단으로 골라서) — 헬가(마탑)가 기사단으로도 셈
+    g.equip(g.bench.indexOf('seal'), helga, 'knight'); g.equip(g.bench.indexOf('seal'), helga, 'knight');
+    const st = leo.getStats(g.relics, g.gameTime);
+    const out = { leo: leo.items, helga: helga.items, knight: [knightBefore, g.syn.counts.knight], bench: g.bench.length, dmgItem: st.item.dmg };
+    // 해제 도구: 아이템이 띠로
+    g.tools = 1;
+    out.tool = g.useTool(leo);
+    out.afterTool = { leo: leo.items.length, bench: [...g.bench] };
+    // 판매: 아이템은 띠로
+    g.sell(helga);
+    out.afterSell = [...g.bench];
+    return out;
+  });
+  expect(s.leo).toEqual(['giant_sword']);
+  expect(s.helga).toEqual(['emblem_knight']);
+  expect(s.knight).toEqual([1, 2]);
+  expect(s.dmgItem).toBeCloseTo(0.4);
+  expect(s.tool).toBe(true);
+  expect(s.afterTool).toEqual({ leo: 0, bench: ['giant_sword'] });
+  expect(s.afterSell).toEqual(['giant_sword', 'emblem_knight']);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT('07-items') });
+  expect(errors).toEqual([]);
+});
+
 test('캐릭터마다 그림 + 등급 받침 고리(뒤·앞)와 별 패', async ({ page }) => {
   const errors = await startGame(page);
   const info = await game(page, () => {

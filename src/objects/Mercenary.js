@@ -3,6 +3,7 @@ import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
 import { GRADES, STYLES } from '../data/roster.js';
 import { STAR_STAT, MAX_STAR, starSkill, maxMana } from '../data/stars.js';
 import { TRAITS, RAGE_MAX } from '../data/synergy.js';
+import { ITEM_BY_ID, itemFx, emblemTraits } from '../data/items.js';
 import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
 import { ringPixels, starPixels, MARK_PX } from '../ui/gradeMark.js';
@@ -69,6 +70,8 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.cooldown = Math.random() * 0.5;
     this.invested = 0; // 이 유닛에 들어간 골드 (판매 환급 기준)
     this.kills = 0;
+    this.waveKills = 0; // 이번 웨이브 처치 수 (상인의 저울)
+    this.items = []; // 아이템 id (최대 3칸, data/items.js)
 
     // 몸통이 칸 가운데에 오도록 (그림의 몸 중심 = manifest pivotX/pivotY, 없으면 그림 가운데)
     this.sprite = setArt(scene.add.sprite(0, 0, this.textureKey), this.textureKey, UNIT_PX);
@@ -111,10 +114,18 @@ export class Mercenary extends Phaser.GameObjects.Container {
   get isFront() {
     return this.row === 0 || this.col === 0 || this.row === GRID - 1 || this.col === GRID - 1;
   }
-  /** 최대 마나 (명성 강화 '전술 교범'만큼 줄어든다) */
+  /** 최대 마나 (명성 강화 '전술 교범'·대마법사의 구슬만큼 줄어든다) */
   get maxMana() {
     const mb = this.scene?.bonus || NO_BONUS;
-    return Math.max(20, Math.round(maxMana(STYLES[this.char.style], this.char.trait, this.char.skill) * (1 - (mb.cdr || 0))));
+    return Math.max(20, Math.round(maxMana(STYLES[this.char.style], this.char.trait, this.char.skill) * (1 - (mb.cdr || 0) - (this.ifx.maxMana || 0))));
+  }
+  /** 아이템 효과 합계 */
+  get ifx() {
+    return itemFx(this.items);
+  }
+  /** 문장으로 더해진 계열·출신 (자기 계열·출신과 같은 문장은 효과 없음) */
+  get extraTraits() {
+    return emblemTraits(this.items).filter((k) => k !== this.char.cls && k !== this.char.origin);
   }
   get kind() {
     return STYLE_KIND[this.char.style];
@@ -137,6 +148,15 @@ export class Mercenary extends Phaser.GameObjects.Container {
     paint(this.ringBack, ringPixels(this.grade, 'back'));
     paint(this.pips, ringPixels(this.grade, 'front'));
     paint(this.pips, starPixels(this.grade, this.star));
+    // 아이템: 고리 오른쪽 아래에 작은 칸 (재료는 테두리만)
+    this.items.forEach((id, i) => {
+      const it = ITEM_BY_ID[id];
+      const col = Phaser.Display.Color.HexStringToColor(it?.color || TRAITS[it?.trait]?.color || '#ffffff').color;
+      const x = 7 + i * 4, y = 11;
+      this.pips.fillStyle(0x2b1d2f).fillRect(x * P, y * P, 4 * P, 4 * P);
+      this.pips.fillStyle(col).fillRect((x + 1) * P, (y + 1) * P, 2 * P, 2 * P);
+      if (it?.kind !== 'mat' && it?.kind !== 'seal') this.pips.fillStyle(0xffe066).fillRect((x + 1) * P, (y + 1) * P, P, P);
+    });
   }
 
   preDestroy() {
@@ -231,37 +251,41 @@ export class Mercenary extends Phaser.GameObjects.Container {
     const synRange = (my.range || 0) * front;
 
     const deb = this.debuffState(now);
+    const ix = this.ifx; // 아이템 (data/items.js)
     // 명성 강화(영구) — 유물·버프와 따로 곱한다. 유물 효과는 '유물 감정'만큼 커진다
     const mb = this.scene?.bonus || NO_BONUS;
     const v = (k) => mb[k] || 0;
     const rp = 1 + v('relicPow');
-    const dmgBonus = 0.2 * n('hero_sword') * rp + buff.dmg + aura.dmg + deb.dmg + synDmg;
-    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + aura.rate + deb.rate + synRate;
-    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range + aura.range + synRange;
+    const dmgBonus = 0.2 * n('hero_sword') * rp + buff.dmg + aura.dmg + deb.dmg + synDmg + (ix.dmg || 0);
+    const rateBonus = 0.15 * n('war_drum') * rp + buff.rate + aura.rate + deb.rate + synRate + (ix.rate || 0);
+    const rangeBonus = 0.15 * n('hawk_eye') * rp + buff.range + aura.range + synRange + (ix.range || 0);
     // 등급·자리 전용 강화
     const special = 1 + v(`grade_${this.grade}`) + (this.isFront ? v('frontline') : v('backline'));
-    const backRange = this.cls === 'ranger' && syn.tiers.ranger && !this.isFront ? 56 : 0; // 사수 후열: 사거리 +1칸
+    const backRange = (this.cls === 'ranger' && syn.tiers.ranger && !this.isFront ? 56 : 0) + (!this.isFront ? ix.backRange || 0 : 0); // 사수 후열·독수리 망원경: 사거리 +1칸
 
     return {
       damage: base.dmg * (t.dmgMul || 1) * BALANCE.baseDamageMult * (1 + v('dmg')) * special * Math.max(0.1, 1 + dmgBonus),
       rate: base.rate * (t.rateMul || 1) * (1 + v('rate')) * Math.max(0.1, 1 + rateBonus),
       range: base.range * (t.rangeMul || 1) * (1 + v('range')) * (1 + rangeBonus) + backRange,
-      crit: Math.min(1, (t.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit') + buff.crit + (my.crit || 0)),
+      crit: Math.min(1, (t.crit || 0) + 0.1 * n('lucky_coin') * rp + v('crit') + buff.crit + (my.crit || 0) + (ix.crit || 0)),
       critMult: 2 + v('critDmg') + (my.critDmg || 0),
       critExtra: my.critExtra || 0,
-      targets: (t.targets || 1) + v('targets'),
-      splash: ((base.splash || 0) + (t.splash || 0)) * (1 + v('splash') + (my.splash || 0)),
+      targets: (t.targets || 1) + v('targets') + (ix.targets || 0),
+      splash: ((base.splash || 0) + (t.splash || 0)) * (1 + v('splash') + (my.splash || 0) + (ix.area || 0)),
       burn: my.burn || 0,
       doubleBlast: !!my.double,
       cleaveEvery: my.cleaveEvery || 0,
       pierce: my.pierce || 0,
-      eliteDmg: my.eliteDmg || 0,
+      eliteDmg: (my.eliteDmg || 0) + (ix.eliteDmg || 0),
+      bossDmg: ix.bossDmg || 0,
       hex: 1 + (my.hex || 0),
       chain: t.chain || 0,
       slow: t.slow ? t.slow[0] : 0,
       slowDur: t.slow ? t.slow[1] : 0,
-      manaGain: 10 + (org.mana || 0) + v('manaGain'),
-      skillDmg: (org.skillDmg || 0) + v('skillDmg'),
+      manaGain: 10 + (org.mana || 0) + v('manaGain') + (ix.manaGain || 0),
+      skillDmg: (org.skillDmg || 0) + v('skillDmg') + (ix.skillDmg || 0),
+      skillArea: ix.skillArea || 0,
+      item: ix,
       doubleCast: org.doubleCast || 0,
       buffed: this.buffs.length > 0,
       aura: aura.dmg + aura.rate + aura.range > 0,
