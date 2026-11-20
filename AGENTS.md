@@ -27,6 +27,7 @@
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)`. `window.__rtd` 에 ROSTER·audio·setArt·setFacing·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 - 작업을 끝낼 때 Stop 훅(`.claude/hooks/missed-changes.py`)이 빠뜨린 후속 작업을 알린다 — 수동 확인 `python3 .claude/hooks/missed-changes.py --print`
 - `/graphify .` — 코드베이스 지식 그래프(`graphify-out/`, 커밋 안 함) · `/verify` — 작업 루프 한 번에
+- 음악 생성: 스킬 `acestep`(`.claude/skills/acestep/`) — 사용자 컴퓨터에서 `uv run acestep-api`(포트 8001)로 띄운 ACE-Step 1.5 를 부른다. 그 컴퓨터의 Claude Code 세션에서만 동작(클라우드 세션은 그 localhost 에 닿지 않음). 시안은 `docs/drafts/music/`
 
 ## 작업 규칙
 - 이 프로젝트 폴더 밖의 파일(다른 프로젝트)은 수정하지 않는다.
