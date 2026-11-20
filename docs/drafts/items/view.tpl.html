@@ -41,7 +41,7 @@ ul { margin: 0; padding-left: 1.2em }
 <div class="wrap">
   <header>
     <h1>아이템 조합 — 캐릭터 강화 가안</h1>
-    <p class="lead">판 안에서 모으는 캐릭터 한 명 강화 수단이에요. 정예·보스를 잡아 <b>재료</b>를 얻고, 캐릭터에게 끼우면 작은 효과, 같은 캐릭터에 재료 2개가 모이면 자동으로 <b>조합 아이템</b>이 돼요. 재료 6종으로 21가지, 왕실 인장을 섞으면 시너지를 +1 해 주는 <b>문장</b>이 나와요. 수치는 가안이에요.</p>
+    <p class="lead">판 안에서 모으는 캐릭터 한 명 강화 수단이에요. 정예·보스를 잡아 <b>재료</b>를 얻고, 캐릭터에게 끼우면 작은 효과, 같은 캐릭터에 재료 2개가 모이면 자동으로 <b>조합 아이템</b>이 돼요. 재료 6종으로 21가지, 왕실 인장을 섞으면 시너지를 +1 해 주는 <b>문장</b>이 나와요. 골드로 재료를 사는 대장장이, 아이템을 빼는 「해제 도구」도 있어요. 수치는 가안이에요.</p>
   </header>
 
   <section class="panel" aria-label="조합해 보기">
@@ -60,10 +60,6 @@ ul { margin: 0; padding-left: 1.2em }
     <div class="rules" id="rules"></div>
   </section>
 
-  <section class="panel" aria-label="정할 것">
-    <h2>정할 것</h2>
-    <ul id="qs"></ul>
-  </section>
 </div>
 <script>
 const D = __DATA__;
@@ -117,5 +113,5 @@ const grid = document.getElementById('grid');
 grid.innerHTML = h + '</tbody>';
 grid.querySelectorAll('td button').forEach((x) => x.onclick = () => { picked.length = 0; picked.push(x.dataset.a, x.dataset.b); show(); document.getElementById('result').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
 document.getElementById('rules').innerHTML = D.rules.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join('');
-document.getElementById('qs').innerHTML = D.questions.map((q) => `<li><span class="q">❓</span> ${q}</li>`).join('');
+
 </script>

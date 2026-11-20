@@ -1,0 +1,128 @@
+<title>용병단 캐릭터 v2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sunflower:wght@500;700&family=Gowun+Dodum&display=swap">
+<style>
+/* 레이아웃: 요약 수치 → 키 컬러 16색 → 70명 한눈에(예전/새 토글) → 캐릭터 카드(움직임) → 무기 도감 */
+:root { --bg: #e9e2cf; --card: #fbf7ec; --ink: #3a2e22; --sub: #7d6e5a; --line: #d9cdb2; --sage: #7a9a5c; --sage-d: #4f6b3a; --field: #6d8f4e;
+  --display: 'Sunflower', 'Gowun Dodum', sans-serif; --body: 'Gowun Dodum', 'Sunflower', sans-serif; color-scheme: light }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage-d: #c7e0ac; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1f1b16; --card: #2c2620; --ink: #f1e8d6; --sub: #b8a98f; --line: #4a4033; --sage-d: #c7e0ac; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: 1.55 }
+.wrap { max-width: 1200px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px }
+h1 { font-family: var(--display); font-size: 1.9rem; margin: 0 }
+h2 { font-family: var(--display); font-size: 1.25rem; margin: 0 0 10px }
+.lead { color: var(--sub); max-width: 74ch; margin: 4px 0 0 }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px }
+.stat b { font-family: var(--display); font-size: 1.6rem; font-variant-numeric: tabular-nums }
+.stat small { display: block; color: var(--sub) }
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px }
+.key { display: flex; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; font-size: .85rem }
+.sw { width: 26px; height: 26px; border-radius: 6px; flex: none; box-shadow: inset -6px -6px 0 var(--shade) }
+.key small { color: var(--sub) }
+button { font-family: var(--display); font-weight: 700; border: 0; border-radius: 10px; background: var(--sage); color: #fff; padding: 6px 12px; cursor: pointer }
+button.ghost { background: transparent; color: var(--sage-d); border: 1.5px solid var(--sage) }
+button:focus-visible { outline: 3px solid #ffd36a; outline-offset: 2px }
+.bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px }
+.overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 4px; background: var(--field); border-radius: 14px; padding: 8px }
+.ov { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #f3f7ea }
+.ov img { width: 72px; image-rendering: pixelated }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.card h3 { font-family: var(--display); margin: 0; font-size: 1rem; display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
+.dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block }
+.card .meta { font-size: .78rem; color: var(--sub) }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
+figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px }
+figcaption { font-size: .72rem; color: var(--sub) }
+canvas { width: 100%; max-width: 168px; aspect-ratio: 56 / 40; image-rendering: pixelated; background: var(--field); border-radius: 8px }
+.wtype { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px }
+.wtype h3 { font-family: var(--display); margin: 0 0 8px }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px }
+.wi { border: 1px solid var(--line); border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 4px }
+.wi .imgs { display: flex; gap: 4px; align-items: flex-end; justify-content: center; background: var(--field); border-radius: 6px; padding: 6px; min-height: 76px }
+.wi img { image-rendering: pixelated; height: auto }
+.wi b { font-family: var(--display); font-size: .9rem }
+.wi small { color: var(--sub); font-size: .75rem }
+.pairs { font-size: .85rem; color: var(--sub) }
+</style>
+<div class="wrap">
+  <header>
+    <h1>캐릭터 v2 — 키 컬러 16색 · 생김새 · 무기</h1>
+    <p class="lead">속성(레드·블루·그린)이 없어져서 옷 주색을 16색으로 넓히고, 캐릭터 설명에 어울리는 색을 고르되 같은 무기·출신·계열끼리는 색이 겹치지 않게 나눴어요. 머리 모양·머리 색·작은 장식(머리띠·꽃핀·깃털·뿔·뾰족귀·안대·흉터 등)과 무기 모양도 '얼핏 비슷한' 캐릭터끼리 겹치지 않게 골랐어요. 등급은 재배분된 새 등급, 시안 출신 7명은 사용자 그림이라 그대로예요.</p>
+  </header>
+  <section class="stats" id="stats"></section>
+  <section><h2>키 컬러 16색</h2><div class="keys" id="keys"></div></section>
+  <section>
+    <h2>70명 한눈에</h2>
+    <div class="bar"><button id="tNew" type="button">새 그림</button><button id="tOld" class="ghost" type="button">예전 그림</button><span class="pairs" id="pairs"></span></div>
+    <div class="overview" id="ov"></div>
+  </section>
+  <section><h2>캐릭터별 — 예전 / 새 (대기 → 공격)</h2><div class="cards" id="cards"></div></section>
+  <section><h2>무기 도감 — 종류별 모양 (커먼 · 레어 · 유니크 재질)</h2><div id="cat"></div></section>
+</div>
+<script>
+const D = __DATA__;
+const GR = { 1: '커먼', 2: '언커먼', 3: '레어', 4: '유니크' };
+const S = D.stats;
+document.getElementById('stats').innerHTML = [
+  [`${S.similarBefore} → ${S.similarAfter}`, '얼핏 비슷한 쌍', '대기 그림끼리 색·모양 차이가 아주 작은 쌍 (예전 그림 기준 가장 비슷한 2.5% 문턱)'],
+  [`${S.weaponsBefore} → ${S.weaponsAfter}`, '무기 디자인 종류', '70명이 쓰는 서로 다른 무기 모양 수'],
+  ['3 → 16', '키 컬러', '한 색 최대 5명'],
+  [D.chars.filter((c) => !c.original).length + '명', '다시 그림', '시안 출신 7명은 그대로'],
+].map(([v, t, s]) => `<div class="stat"><b>${v}</b><small>${t}</small><small>${s}</small></div>`).join('');
+const cnt = {}; D.chars.forEach((c) => cnt[c.key] = (cnt[c.key] || 0) + 1);
+document.getElementById('keys').innerHTML = Object.entries(D.keys).map(([k, v]) => `<div class="key"><span class="sw" style="background:${v.color};--shade:${v.shade}"></span><span>${v.name}<br><small>${cnt[k] || 0}명</small></span></div>`).join('');
+// 한눈에
+const ov = document.getElementById('ov');
+function crop(src) {
+  return new Promise((res) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = 36; c.height = 34; c.getContext('2d').drawImage(im, 10, 2, 36, 34, 0, 0, 36, 34); res(c.toDataURL()); }; im.src = src; });
+}
+const thumbs = {};
+async function overview(field) {
+  ov.innerHTML = '';
+  for (const c of D.chars) {
+    thumbs[c.id + field] ??= await crop(c[field]);
+    ov.insertAdjacentHTML('beforeend', `<div class="ov"><img src="${thumbs[c.id + field]}" alt="">${c.name}</div>`);
+  }
+}
+const tNew = document.getElementById('tNew'), tOld = document.getElementById('tOld');
+tNew.onclick = () => { overview('src'); tNew.className = ''; tOld.className = 'ghost'; };
+tOld.onclick = () => { overview('oldSrc'); tOld.className = ''; tNew.className = 'ghost'; };
+overview('src');
+document.getElementById('pairs').textContent = `가장 비슷했던 쌍(예전): ${S.topBefore.slice(0, 5).map((p) => p.join('·')).join(', ')} … → 지금 남은 쌍: ${S.topAfter.slice(0, 5).map((p) => p.join('·')).join(', ') || '없음'}`;
+// 카드
+const Z = 3, players = [];
+const cardsEl = document.getElementById('cards');
+for (const c of [...D.chars].sort((a, b) => b.grade - a.grade)) {
+  const el = document.createElement('section');
+  el.className = 'card';
+  el.innerHTML = `<h3><span class="dot" style="background:${c.keyColor}"></span>${c.name} <small style="color:var(--sub);font-family:var(--body)">${GR[c.grade]}</small></h3>
+    <div class="meta">${c.original ? '시안 출신 — 그림 그대로' : `${c.keyName} · ${c.wname || '기본'} ${({ sword: '검', axe: '도끼', hammer: '망치', spear: '창', dagger: '단검', staff: '지팡이', bow: '활', gun: '총', crossbow: '석궁' })[c.wtype]}${c.acc && c.acc !== 'none' ? ' · 장식 ' + ({ circlet: '보석줄', flower: '꽃핀', feather: '깃털', horns: '뿔', ears: '뾰족귀', eyepatch: '안대', scar: '흉터', band: '머리띠', freckles: '주근깨' })[c.acc] : ''}`}</div>
+    <div class="pair"><figure><canvas></canvas><figcaption>예전</figcaption></figure><figure><canvas></canvas><figcaption>새</figcaption></figure></div>`;
+  cardsEl.appendChild(el);
+  el.querySelectorAll('canvas').forEach((cv, i) => {
+    cv.width = D.W * Z; cv.height = D.H * Z;
+    const img = new Image(); img.src = i ? c.src : c.oldSrc;
+    const idle = c.idle, atk = c.attack;
+    const ms = [...idle, ...idle, ...atk], idx = [...idle.keys(), ...idle.keys(), ...atk.map((_, j) => idle.length + j)];
+    players.push({ cv, img, ms, idx, total: ms.reduce((s, x) => s + x, 0) });
+  });
+}
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function draw(now) {
+  for (const p of players) {
+    if (!p.img.complete) continue;
+    let t = reduce ? 0 : now % p.total, k = 0;
+    while (t >= p.ms[k]) { t -= p.ms[k]; k++; }
+    const g = p.cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, p.cv.width, p.cv.height);
+    g.drawImage(p.img, p.idx[k] * D.W, 0, D.W, D.H, 0, 0, D.W * Z, D.H * Z);
+  }
+  if (!reduce) requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+// 무기 도감
+document.getElementById('cat').innerHTML = D.catalog.map((t) => `<div class="wtype"><h3>${t.name} · ${t.items.length}가지</h3><div class="wgrid">${t.items.map((it) => `
+  <div class="wi"><div class="imgs">${it.imgs.map((s) => `<img src="${s}" alt="" onload="this.style.width=(this.naturalWidth*3)+'px'">`).join('')}</div>
+  <b>${it.name}</b><small>${it.users.length ? it.users.join(' · ') : '아직 쓰는 캐릭터 없음'}</small></div>`).join('')}</div></div>`).join('');
+</script>
