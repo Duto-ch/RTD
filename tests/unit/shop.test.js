@@ -10,6 +10,7 @@ describe('상점 · 영지 레벨', () => {
     expect([1, 2, 3, 4].map((g) => priceOf({ grade: g }))).toEqual([10, 20, 30, 50]);
     expect(SHOP.cap(1)).toBe(3);
     expect(SHOP.cap(10)).toBe(12);
+    expect(SHOP.reserve).toBe(8); // 대기석 8칸 (2026-11-21 사용자 결정)
     expect(levelUpCost(1)).toBe(20);
     expect(levelUpCost(10)).toBe(null);
     expect(levelUpCost(9)).toBeGreaterThan(levelUpCost(5));

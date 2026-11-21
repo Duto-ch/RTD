@@ -25,9 +25,10 @@ const RING = { x0: FIELD_X - PATH_OFF - PATH_WIDTH / 2, y0: FIELD_Y - PATH_OFF -
 //  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
 //  가로(B-2): 위 알약 바(y 16~68)와 위쪽 길 사이 / 아래쪽 길과 아래 독(y 643~) 사이
 const TOP_BAND = WIDE ? [68, RING.y0] : [180, RING.y0];
-const BOTTOM_BAND = WIDE ? [RING.y1 - 8, 616] : [RING.y1, 730]; // 세로: 아래 길과 아이템 띠 사이
+const BOTTOM_BAND = WIDE ? [RING.y1 - 8, 616] : null;
 export const BANNER_Y = (TOP_BAND[0] + TOP_BAND[1]) / 2;
-export const TOAST_Y = (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2;
+// 세로 토스트 (2026-11-21): 아래 길 밑은 대기석 자리라 위 알림 띠(배너와 같은 줄)에 — 토스트가 떠 있는 동안 배너는 잠깐 숨는다
+export const TOAST_Y = BOTTOM_BAND ? (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2 : BANNER_Y;
 /** 배너·토스트 최대 너비: 세로는 화면 폭, 가로는 몬스터 길 사각형 폭 (가로 토스트는 독 바로 위) */
 const NOTICE_W = WIDE ? RING.x1 - RING.x0 + 24 : GAME_W - 24;
 
@@ -50,8 +51,8 @@ export const HUD = WIDE
   : {
       top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
       // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
-      line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 76 : 88, subY: 112,
-      hp: { x: 236, y: 62, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
+      line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 80 : 88, info: [34, 53], // 안내 두 줄 (남은 시간 알약 왼쪽, 2026-11-21)
+      hp: { x: 236, y: 66, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
       timer: { x: GAME_W - 198, w: 86, h: 24 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 작게 (Stitch 점검 뒤 76x30 으로 키웠다가 사용자 결정으로 다시 작게, 글자 12 유지)
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
       // 2026-11-21 사용자 요청: 아래 시트 폭 = 위 카드 폭(12~532), 버튼 줄 높이 56 → 46 (위아래 여백 12)
@@ -60,7 +61,9 @@ export const HUD = WIDE
       estate: { x: 280, y: 917, w: 188, h: 46 }, // 버튼 가운데
       reroll: { x: 453, y: 917, w: 142, h: 46 },
       small: { y: 917, xs: [45, 99, 153], w: 50, h: 46 }, // 배속(→정지) · 메뉴 · 강화
-      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 60, y: 752, w: 76, h: 26 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래) — 재료 버튼 88x30 → 76x26 (띠 안 여백)
+      // 아이템 띠 (2026-11-21 사용자 결정: 위 카드 안 골드 줄 밑으로 — 원래 자리 몬스터 길 아래는 대기석)
+      bench: { x: 12, y: 94, w: GAME_W - 24, h: 40, inCard: true, smith: { x: 60, y: 114, w: 76, h: 26 }, tool: { x: 502, y: 114 } },
+      reserve: { x: 12, y: 712, w: GAME_W - 24, h: 58, slot: { x0: 64, step: 58, w: 54, h: 50 } } // 대기석 8칸 (몬스터 길 아래)
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = WIDE ? 520 : GAME_W;
@@ -80,6 +83,7 @@ export class Hud {
     this.createTop();
     this.createBottom();
     this.createBench();
+    this.createReserve();
   }
 
   // ───────────────────────── 잠깐 뜨는 알림 ─────────────────────────
@@ -107,14 +111,26 @@ export class Hud {
     const bg = panelImage(s, 0, 0, 'dark', w, 36);
     const c = s.add.container(GAME_W / 2, TOAST_Y, [bg, t]).setDepth(DEPTH.overlay - 1);
     this.toastObj = c;
+    const shared = TOAST_Y === BANNER_Y;
+    if (shared && this.bannerObj?.active) this.bannerObj.setVisible(false); // 같은 띠: 토스트 동안 배너 숨김
     c.setAlpha(0);
     s.tweens.add({ targets: c, alpha: 1, duration: 120 });
-    s.tweens.add({ targets: c, alpha: 0, delay: 1700, duration: 300, onComplete: () => c.destroy() });
+    s.tweens.add({
+      targets: c,
+      alpha: 0,
+      delay: 1700,
+      duration: 300,
+      onComplete: () => {
+        c.destroy();
+        if (shared && this.toastObj === c && this.bannerObj?.active) this.bannerObj.setVisible(true);
+      }
+    });
   }
 
   showBanner(title, sub, color = '#ffffff') {
     const s = this.s;
     if (this.bannerObj) this.bannerObj.destroy();
+    if (TOAST_Y === BANNER_Y) this.toastObj?.destroy(); // 같은 띠: 새 배너가 앞선 토스트를 밀어낸다
     const w = NOTICE_W;
     const h = 40; // 테두리 그림자 포함 48px → 띠(52px) 안에 들어간다
     // 얇은 테두리(strip): 두꺼운 card 테두리는 안쪽이 16px 뿐이라 글자가 테두리에 걸쳤다 (2026-11-15)
@@ -165,7 +181,9 @@ export class Hud {
     if (COZY) {
       // 포근한 카드형: 제목 탭 대신 창 안 왼쪽 위에 큰 WAVE 글자, 안내 줄은 맨 아래
       this.waveText = uiText(s, T.x + 20, HUD.line1, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
-      this.waveTypeText = uiText(s, T.x + 20, HUD.subY, '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
+      // 안내 두 줄 (2026-11-21 사용자 결정): 남은 시간 알약 왼쪽에 붙여 두 줄, 글자는 왼쪽 정렬 — 자리는 refresh 에서 맞춘다
+      this.waveTypeText = uiText(s, 0, HUD.info[0], '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
+      this.waveTypeText2 = uiText(s, 0, HUD.info[1], '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
     } else {
       const [tabImg, tabText] = titleTab(s, T.x + T.w / 2, T.y, 'WAVE 0', 220);
       tabImg.setDepth(D);
@@ -240,10 +258,10 @@ export class Hud {
     this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, B.w - HP_LINE * 2, B.h - HP_LINE * 2, (B.h - HP_LINE * 2) / 2);
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
-    this.hpPill = s.add.graphics();
     this.hpHeart = s.add.graphics();
-    this.countText = uiText(s, 0, 0, '', fontSize, CSS.ink, 'bold').setOrigin(0, 0.5);
-    this.hpLabel.add([this.hpPill, this.hpHeart, this.countText]);
+    // 수치 = 흰 글자 + 진한 외곽 (2026-11-21 사용자 요청: 숫자를 감싸던 크림 알약은 없앰 — 막대 색이 바뀌어도 외곽선으로 읽힌다)
+    this.countText = uiText(s, 0, 0, '', fontSize, '#ffffff', 'bold').setOrigin(0, 0.5).setStroke('#2b1d12', 4);
+    this.hpLabel.add([this.hpHeart, this.countText]);
   }
 
   /** 막대 다시 그리기 (refresh 에서) */
@@ -274,9 +292,6 @@ export class Hud {
     this.hpHeart.clear();
     drawIcon(this.hpHeart, 'heart', left + hw / 2, 1, 14, 0xd2473a);
     this.countText.setPosition(left + hw + gap, 0);
-    // 크림 알약 (2026-11-21 Stitch 시안): 막대가 어떤 색이든 수치가 읽힌다
-    const ph = B.h - 8;
-    this.hpPill.clear().fillStyle(0xfbf7ec, 0.96).fillRoundedRect(left - 8, -ph / 2, total + 16, ph, ph / 2);
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */
@@ -304,15 +319,28 @@ export class Hud {
     const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
     // 보스가 있으면 왼쪽 안내 줄을 보스 상태(빨강)로 바꾼다 — 예전엔 오른쪽 몬스터 수 위에 겹쳐 떴다 (2026-11-15)
     const boss = s.monsters.find((m) => m.isBoss && m.alive);
+    let lines;
     if (boss) {
       const debuffs = boss.abilities.length > 2 ? `디버프 ${boss.abilities.length}종` : boss.abilities.map((a) => a.def.name).join(', ');
-      this.waveTypeText
-        .setText(`${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}% · ${debuffs}`)
-        .setColor(CSS.red);
+      lines = [`${boss.revived ? '부활 ' : ''}${boss.enraged ? '분노 ' : ''}보스 ${Math.floor(Math.max(0, boss.dist / PATH_LENGTH) * 100)}%`, debuffs];
     } else {
-      this.waveTypeText.setText(`${s.biome.name} · 필드 ${s.monsters.length}기 · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
+      lines = [`${s.biome.name} · 필드 ${s.monsters.length}기`, `다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`];
     }
-    this.fitText(this.waveTypeText, WIDE ? 210 : COZY ? GAME_W - 64 : GAME_W - 236 - 48);
+    const col = boss ? CSS.red : CSS.sub;
+    if (this.waveTypeText2) {
+      // 세로: 두 줄 블록을 남은 시간 알약 왼쪽(8px)에 붙이고, 줄은 왼쪽 정렬. WAVE 글자와는 8px 이상
+      this.waveTypeText.setText(lines[0]).setColor(col);
+      this.waveTypeText2.setText(lines[1]).setColor(col);
+      const right = HUD.timer.x - 8;
+      const minX = this.waveText.x + this.waveText.width + 8;
+      for (const t of [this.waveTypeText, this.waveTypeText2]) this.fitText(t, right - minX);
+      const x = Math.round(right - Math.max(this.waveTypeText.width, this.waveTypeText2.width));
+      this.waveTypeText.setX(x);
+      this.waveTypeText2.setX(x);
+    } else {
+      this.waveTypeText.setText(lines.join(' · ')).setColor(col);
+      this.fitText(this.waveTypeText, WIDE ? 210 : GAME_W - 236 - 48);
+    }
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
     // 가로 알약 바: 골드가 길어지면(수만 G) 체력 막대에 닿지 않게 글자를 줄인다
     if (WIDE) this.goldText.setFontSize(this.goldText.text.length > 8 ? 13 : 16.5);
@@ -474,13 +502,45 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     const B = HUD.bench;
-    panel(s, B.x, B.y, B.w, B.h, WIDE ? 'card' : 'strip').setDepth(D - 1);
+    if (!B.inCard) panel(s, B.x, B.y, B.w, B.h, WIDE ? 'card' : 'strip').setDepth(D - 1);
     if (WIDE) uiText(s, B.x + 18, B.y + 16, '아이템', 15, CSS.primary, 'bold').setDepth(D);
     const sb = B.smith;
     this.smithBtn = new Button(s, sb.x, sb.y, sb.w, sb.h, '', () => s.smithBuy(), { variant: 'gold', icon: 'anvil', fontSize: 12 });
     this.toolText = uiText(s, B.tool.x, B.tool.y, '', 12, CSS.ink, 'bold').setOrigin(0.5).setDepth(D);
     this.benchRow = s.add.container(0, 0).setDepth(D + 1);
     this.refreshBench();
+  }
+
+  // ───────────────────────── 대기석 (2026-11-21 사용자 결정: 필드 아래 8칸) ─────────────────────────
+  /** 대기석 판 + 빈 칸 (세로만 — 가로 배치는 꺼져 있다) */
+  createReserve() {
+    const R = HUD.reserve;
+    if (!R) return;
+    const s = this.s;
+    const D = DEPTH.ui;
+    panel(s, R.x, R.y, R.w, R.h, 'card').setDepth(D - 1);
+    this.reserveLabel = uiText(s, R.x + 28, R.y + R.h / 2, '대기', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
+    for (let i = 0; i < SHOP.reserve; i++) {
+      const p = this.reservePos(i);
+      panelImage(s, p.x, p.y, 'soft', R.slot.w, R.slot.h).setDepth(D);
+    }
+  }
+
+  /** 대기석 i 칸 가운데 */
+  reservePos(i) {
+    const R = HUD.reserve;
+    return { x: R.slot.x0 + i * R.slot.step + R.slot.w / 2, y: R.y + R.h / 2 };
+  }
+
+  /** (x, y) 가 대기석 몇 번 칸 위인지 (아니면 -1) */
+  reserveSlotAt(x, y) {
+    const R = HUD.reserve;
+    if (!R || y < R.y || y > R.y + R.h) return -1;
+    for (let i = 0; i < SHOP.reserve; i++) {
+      const p = this.reservePos(i);
+      if (Math.abs(x - p.x) <= R.slot.step / 2) return i;
+    }
+    return -1;
   }
 
   benchPos(i) {
@@ -525,7 +585,7 @@ export class Hud {
       });
       ic.on('drag', (_p, x, y) => ic.setPosition(x, y));
       ic.on('dragend', (ptr) => {
-        const m = s.mercs.find((u) => Math.abs(u.x - ptr.worldX) < 28 && Math.abs(u.y - ptr.worldY) < 28);
+        const m = s.allUnits.find((u) => Math.abs(u.x - ptr.worldX) < 28 && Math.abs(u.y - ptr.worldY) < 28); // 대기석 캐릭터에도 장착
         ic.destroy();
         if (!m || !s.equip(i, m)) this.refreshBench();
       });
@@ -735,7 +795,7 @@ export class Hud {
       [m.char.cls, m.char.origin].forEach((k, j) => this.infoBadges.add(traitBadge(s, bx0 + j * 22, by, k, 8)));
       this.infoBox.add(this.infoBadges);
     }
-    this.infoSub.setText(`${m.gradeName} · ${m.roleName} · ${STYLES[m.char.style].name}${m.isFront ? ' · 전열' : ' · 후열'}`);
+    this.infoSub.setText(`${m.gradeName} · ${m.roleName} · ${STYLES[m.char.style].name}${m.reserved ? ' · 대기석' : m.isFront ? ' · 전열' : ' · 후열'}`);
     const textW = B.w - 80 - 128;
     this.fitText(this.infoSub, textW);
     const body = st.debuff.list.length
