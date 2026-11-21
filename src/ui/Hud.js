@@ -240,10 +240,10 @@ export class Hud {
     this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, B.w - HP_LINE * 2, B.h - HP_LINE * 2, (B.h - HP_LINE * 2) / 2);
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
-    this.hpPill = s.add.graphics();
     this.hpHeart = s.add.graphics();
-    this.countText = uiText(s, 0, 0, '', fontSize, CSS.ink, 'bold').setOrigin(0, 0.5);
-    this.hpLabel.add([this.hpPill, this.hpHeart, this.countText]);
+    // 수치 = 흰 글자 + 진한 외곽 (2026-11-21 사용자 요청: 숫자를 감싸던 크림 알약은 없앰 — 막대 색이 바뀌어도 외곽선으로 읽힌다)
+    this.countText = uiText(s, 0, 0, '', fontSize, '#ffffff', 'bold').setOrigin(0, 0.5).setStroke('#2b1d12', 4);
+    this.hpLabel.add([this.hpHeart, this.countText]);
   }
 
   /** 막대 다시 그리기 (refresh 에서) */
@@ -274,9 +274,6 @@ export class Hud {
     this.hpHeart.clear();
     drawIcon(this.hpHeart, 'heart', left + hw / 2, 1, 14, 0xd2473a);
     this.countText.setPosition(left + hw + gap, 0);
-    // 크림 알약 (2026-11-21 Stitch 시안): 막대가 어떤 색이든 수치가 읽힌다
-    const ph = B.h - 8;
-    this.hpPill.clear().fillStyle(0xfbf7ec, 0.96).fillRoundedRect(left - 8, -ph / 2, total + 16, ph, ph / 2);
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */

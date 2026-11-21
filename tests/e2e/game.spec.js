@@ -1291,7 +1291,7 @@ test.skip('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 �
   await page.close();
 });
 
-test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 알약 · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
+test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 흰 글자+외곽(알약 없음) · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1304,7 +1304,8 @@ test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 
       nextColor: h.nextWaveBtn.label.style.color,
       rerollColor: h.rerollBtn.label.style.color,
       sellVariant: h.sellBtn.variant,
-      pill: !!h.hpPill,
+      pill: !!h.hpPill, // 2026-11-21 사용자 요청: 숫자 뒤 크림 알약 없앰 → 흰 글자 + 진한 외곽
+      hpStroke: h.countText.style.stroke,
       prices: texts.filter((t) => /^\d+G$/.test(t)).length,
       namesWithPrice: texts.filter((t) => /\d+G$/.test(t) && !/^\d+G$/.test(t)).length
     };
@@ -1312,7 +1313,8 @@ test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 
   expect(r.nextColor).toBe('#0d2000');
   expect(r.rerollColor).toBe('#0d2000');
   expect(r.sellVariant).toBe('danger');
-  expect(r.pill).toBe(true);
+  expect(r.pill).toBe(false);
+  expect(r.hpStroke).toBe('#2b1d12');
   expect(r.prices).toBe(6); // 6칸 모두 가격이 따로
   expect(r.namesWithPrice).toBe(0);
   await page.waitForTimeout(300);
