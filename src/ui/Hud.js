@@ -45,21 +45,21 @@ export const HUD = WIDE
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       syn: { x: 16, y: 84, w: 210, h: 372 }, // 시너지 목록 (왼쪽 세로)
-      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 490, w: 96, h: 30 }, tool: { x: 121, y: 590 } } // 아이템 띠 (5×2)
+      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 487, w: 96, h: 30 }, tool: { x: 121, y: 590 } } // 아이템 띠 (5×2)
     }
   : {
       top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
       // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
       line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 76 : 88, subY: 112,
       hp: { x: 236, y: 62, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
-      timer: { x: GAME_W - 198, w: 86, h: 24 }, next: { x: GAME_W - 66, w: 76, h: 30 }, // 2026-11-21 작게 → 같은 날 Stitch 시안 점검: 글자 12·높이 30 (자주 누름)
+      timer: { x: GAME_W - 198, w: 86, h: 24 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 작게 (Stitch 점검 뒤 76x30 으로 키웠다가 사용자 결정으로 다시 작게, 글자 12 유지)
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       shop: { x: 12, y: 786, w: GAME_W - 24, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
       estate: { x: 290, y: 914, w: 188, h: 56 }, // 버튼 가운데
       reroll: { x: 462, y: 914, w: 140, h: 56 },
       small: { y: 914, xs: [40, 98, 156], w: 52, h: 56 }, // 배속(→정지) · 메뉴 · 강화
-      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 58, y: 752, w: 88, h: 30 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래)
+      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 64, y: 752, w: 88, h: 30 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래)
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = WIDE ? 520 : GAME_W;
@@ -208,7 +208,7 @@ export class Hud {
     const clock = s.add.graphics().setDepth(D);
     drawIcon(clock, 'clock', T.x + 388, cy, 14, C.sub);
     this.timerText = uiText(s, T.x + 402, cy, '', 12, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, T.x + 512, cy, 74, 30, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 }); // 2026-11-21 작게 (이전 88x32)
+    this.nextWaveBtn = new Button(s, T.x + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 }); // 2026-11-21 작게 (이전 88x32, 74x30 은 되돌림)
     const coin = s.add.graphics().setDepth(D);
     drawIcon(coin, 'coin', T.x + 586, cy, 16, 0x6a4a10);
     this.goldText = uiText(s, T.x + 600, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
@@ -479,7 +479,7 @@ export class Hud {
 
   benchPos(i) {
     const B = HUD.bench;
-    if (WIDE) return { x: B.x + 29 + (i % 5) * 38, y: B.y + 52 + Math.floor(i / 5) * 38 };
+    if (WIDE) return { x: B.x + 29 + (i % 5) * 38, y: B.y + 58 + Math.floor(i / 5) * 38 };
     return { x: B.x + 118 + i * 36, y: B.y + B.h / 2 };
   }
 
@@ -691,8 +691,8 @@ export class Hud {
     c.add(panel(s, B.x, B.y, B.w, B.h, 'soft'));
     this.infoAvatar = panelImage(s, B.x + 40, B.y + B.h / 2, 'soft', 56, 56);
     this.infoPortrait = s.add.sprite(B.x + 40, B.y + B.h / 2, 'pixel').setScale(PX - 1);
-    this.infoTitle = uiText(s, B.x + 80, B.y + 12, '', 15, CSS.ink, 'bold');
-    this.infoSub = uiText(s, B.x + 80, B.y + 33, '', 12, CSS.sub, 'bold');
+    this.infoTitle = uiText(s, B.x + 80, B.y + 10, '', 15, CSS.ink, 'bold');
+    this.infoSub = uiText(s, B.x + 80, B.y + 31, '', 12, CSS.sub, 'bold');
     this.infoBody = uiText(s, B.x + 80, B.y + 52, '', 12, CSS.ink, 'bold');
     this.manaBar = s.add.graphics();
     const bx = B.x + B.w - 64;

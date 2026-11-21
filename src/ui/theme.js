@@ -198,6 +198,7 @@ export function titleTab(scene, cx, cy, label, minW = 160) {
   const w = Math.max(minW, Math.ceil((t.width + 40) / PX) * PX);
   const img = panelImage(scene, cx, cy, 'primary', w, 36);
   scene.children.bringToTop(t); // 글자를 탭 이미지 위로
+  img.gapOk = t.gapOk = true; // 카드 윗변에 일부러 걸친 장식 (ui-audit 여백 검사 제외)
   return [img, t];
 }
 
@@ -213,6 +214,7 @@ export function closeButton(scene, x, y, onClick) {
   }
   c.add([bg, g]);
   c.setSize(28, 28).setInteractive({ useHandCursor: true });
+  c.gapOk = true; // 카드 모서리에 일부러 걸친 장식 (ui-audit 여백 검사 제외)
   c.on('pointerup', onClick);
   return c;
 }
