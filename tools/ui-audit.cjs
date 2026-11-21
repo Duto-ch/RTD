@@ -36,6 +36,16 @@ async function audit(page) {
     const walk = (list, sceneKey) => {
       for (const o of list) {
         if (!visible(o)) continue;
+        if (o.type === 'Container' && o.auditBox && !o.auditOk) {
+          // 도형 배지 컨테이너(시너지 상징 등): 상자 하나로 본다
+          const m0 = o.getWorldTransformMatrix();
+          const p0 = m0.transformPoint(o.auditBox.x, o.auditBox.y);
+          const p1 = m0.transformPoint(o.auditBox.x + o.auditBox.w, o.auditBox.y + o.auditBox.h);
+          const b = new Phaser.Geom.Rectangle(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+          const m = maskBounds(o);
+          if (!m || Phaser.Geom.Rectangle.ContainsRect(m, b)) panels.push({ o, sceneKey, b, mark: true });
+          continue;
+        }
         if (o.type === 'Container') {
           if (o.label && o.bg && o.list?.includes(o.label) && !o.auditOk) buttons.push({ o, sceneKey });
           walk(o.list, sceneKey);
@@ -143,7 +153,12 @@ async function audit(page) {
           // 겹침: 덮는 창(다른 깊이)이면 일부러 — 같은 깊이거나 글자가 패널 위로 걸치면 문제
           const over = A.k === 't' && B.k === 'p' ? da >= db : B.k === 't' && A.k === 'p' ? db >= da : da === db;
           if (!over || da !== db && A.k === B.k) continue;
-          if (A.k === 't' && B.k === 't') continue; // 글자끼리 겹침은 overlap 이 본다
+          if (A.k === 't' && B.k === 't') {
+            // 글자끼리 크게 겹치면 overlap 이 보고, 조금 겹치거나 맞닿은 것은 여기서
+            const it = Phaser.Geom.Rectangle.Intersection(a, c);
+            if (!(it.width > 3 && it.height > 3 && A.o.depth === B.o.depth)) issues.push({ kind: 'gap', at: `${pname(A)} × ${pname(B)} 맞닿음`, box: R(it) });
+            continue;
+          }
           issues.push({ kind: 'gap', at: `${pname(A)} × ${pname(B)} 겹침`, box: R(Phaser.Geom.Rectangle.Intersection(a, c)) });
         } else if (Math.max(dx, dy) < GAP) {
           issues.push({ kind: 'gap', at: `${pname(A)} ↔ ${pname(B)}`, gap: [Math.round(Math.max(dx, dy))], box: R(Phaser.Geom.Rectangle.Union(a, c)) });
