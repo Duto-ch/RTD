@@ -80,7 +80,7 @@ export const DEPTH = {
   projectile: 30,
   hpbar: 35,
   fx: 40,
-  drag: 100,
+  drag: 900, // 끌고 가는 용병·아이템은 UI(200) 위, 창(overlay) 아래 (2026-11-21: UI 아래로 숨던 문제)
   ui: 200,
   overlay: 1000
 };

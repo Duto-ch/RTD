@@ -42,7 +42,7 @@
 2. **구현** — 수치는 `config.js` BALANCE 나 `src/data/` 에.
 3. **검사** — `npm run check`. 실패하면 원인을 고치고 3번을 다시 돈다. 통과할 때까지 반복.
 4. **눈으로 확인** — `test-results/screens/*.png` 를 열어 UI 겹침·잘림·색을 본다. 새 화면이면 e2e 에 스크린샷을 추가한다.
-   **UI 를 바꿨으면 글자 정렬 점검 (2026-11-21 사용자 요청, 항상)**: `node tools/ui-audit.cjs` (빌드 + `npx vite preview --port 4173` 먼저) — 화면 밖·겹침·패널 여백 한쪽 쏠림·버튼 글자 가운데·아이콘과 글자 겹침이 0 이어야 하고, `ui-audit/*.png` 를 열어 좌우·상하 간격을 눈으로도 맞춘다. 스크롤 목록(마스크)은 컨테이너에 `maskRect`, 일부러 비낀 글자·버튼은 `auditOk = true`
+   **UI 를 바꿨으면 글자 정렬 점검 (2026-11-21 사용자 요청, 항상)**: `node tools/ui-audit.cjs` (빌드 + `npx vite preview --port 4173` 먼저) — 화면 밖·겹침·패널 여백 한쪽 쏠림·버튼 글자 가운데·아이콘과 글자 겹침·**요소 사이 여백 4px 미만(`gap`, 필수 규칙)**이 0 이어야 하고, `ui-audit/*.png` 를 열어 좌우·상하 간격을 눈으로도 맞춘다. 스크롤 목록(마스크)은 컨테이너에 `maskRect`, 일부러 비낀 글자·버튼은 `auditOk = true`
 5. **밸런스에 영향**이 있으면 `node tools/balance-sim.cjs` 를 2~3회 돌려 도달 웨이브를 기록한다 (`docs/GDD.md` 밸런스 메모).
 6. **문서** — 결정이 바뀌면 `CLAUDE.md`(해당 줄 고치기)·`docs/GDD.md` 갱신, 진행 기록은 `docs/HISTORY.md` 맨 아래 한 줄. 데이터가 바뀌면 위 문서 생성 명령.
 7. **커밋·푸시** — 작업 브랜치에서. `main` 에 push 하면 GitHub Actions 가 테스트를 통과한 경우에만 배포한다.

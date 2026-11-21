@@ -798,7 +798,7 @@ test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동
     const g = window.game.scene.getScene('Game');
     return ['char_arthur', 'char_isolde', 'char_robin'].map((k) => g.textures.get(k).customData.hitFrame.attack);
   });
-  expect(hits).toEqual([4, 2, 4]); // 검 = 내려친 타격, 지팡이 = 구슬 섬광, 활 = 시위를 놓음
+  expect(hits).toEqual([15, 13, 15]); // 28프레임 공격 (2026-11-21): 검 = 내려친 타격, 지팡이 = 고리가 퍼지는 시전, 활 = 시위를 놓음
   // 발사 전에 노린 몬스터가 모두 죽으면 공격 동작을 끊고 대기로 (피해·투사체도 안 나감, 바로 다음 대상을 노릴 수 있게 쿨타임 0)
   const c = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1192,7 +1192,8 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   expect(await tut()).toBe(null);
   expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v3')).tutorial.seen.shop)).toBe(true);
   // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
+  // 커먼으로 고정 — 무작위 고용이 유니크면 '유니크 합류' 안내가 먼저 떠서 가끔 실패하던 문제 (2026-11-21)
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire('helga'); g.select(g.mercs[0]); });
   expect(await tut()).toBe('select');
   await page.screenshot({ path: SHOT('27-tutorial-select') });
   // 끄기 → 이후 단계는 뜨지 않는다
@@ -1288,4 +1289,138 @@ test.skip('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 �
   await page.screenshot({ path: SHOT('30-wide-battle') });
   expect(errors).toEqual([]);
   await page.close();
+});
+
+test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 알약 · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    const texts = h.shopBox.list.flatMap((c) => c.list || []).filter((o) => o.type === 'Text').map((o) => o.text);
+    g.gold = 999;
+    g.hire('isolde');
+    g.select(g.mercs[0]);
+    return {
+      nextColor: h.nextWaveBtn.label.style.color,
+      rerollColor: h.rerollBtn.label.style.color,
+      sellVariant: h.sellBtn.variant,
+      pill: !!h.hpPill,
+      prices: texts.filter((t) => /^\d+G$/.test(t)).length,
+      namesWithPrice: texts.filter((t) => /\d+G$/.test(t) && !/^\d+G$/.test(t)).length
+    };
+  });
+  expect(r.nextColor).toBe('#0d2000');
+  expect(r.rerollColor).toBe('#0d2000');
+  expect(r.sellVariant).toBe('danger');
+  expect(r.pill).toBe(true);
+  expect(r.prices).toBe(6); // 6칸 모두 가격이 따로
+  expect(r.namesWithPrice).toBe(0);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31-hud-polish') });
+  expect(errors).toEqual([]);
+});
+
+test('UI 여백 (2026-11-21 필수 규칙): 아이콘 버튼은 아이콘·글자 사이와 위아래에 여백 · 병영 카드 체크는 이름과 떨어져 등급 앞 · 아이템 띠 버튼은 띠 안쪽', async ({ page }) => {
+  await startGame(page);
+  await page.waitForTimeout(400);
+  const r = await game(page, () => {
+    const h = window.game.scene.getScene('Game').hud;
+    const btns = [h.estateBtn, h.menuBtn, h.smithBtn];
+    const tile = btns.map((b) => {
+      const lb = b.label.getBounds();
+      const bx = b.getBounds();
+      const ir = b.iconRect;
+      const iconBottom = bx.centerY + ir.y + ir.h;
+      const iconRight = bx.centerX + ir.x + ir.w;
+      return b.iconLeft ? { gap: lb.x - iconRight, top: lb.y - bx.y, bottom: bx.bottom - lb.bottom } : { gap: lb.y - iconBottom, top: bx.centerY + ir.y - bx.y, bottom: bx.bottom - lb.bottom };
+    });
+    const strip = h.smithBtn.getBounds();
+    return { tile, smithLeft: strip.x - 12 };
+  });
+  for (const t of r.tile) {
+    expect(t.gap).toBeGreaterThanOrEqual(4);
+    expect(t.top).toBeGreaterThanOrEqual(2);
+    expect(t.bottom).toBeGreaterThanOrEqual(2);
+  }
+  expect(r.smithLeft).toBeGreaterThanOrEqual(4); // 세로 아이템 띠(x 12) 왼쪽 가장자리와 4px 이상
+  await game(page, () => {
+    for (const s of window.game.scene.getScenes(true)) s.scene.stop();
+    window.game.scene.start('Deck');
+  });
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await page.waitForTimeout(300);
+  const d = await game(page, () => {
+    const g = window.game.scene.getScene('Deck').gridC;
+    const marks = g.list.filter((o) => o.auditBox);
+    const names = g.list.filter((o) => o.type === 'Text');
+    let minGap = 99;
+    for (const m of marks) {
+      const b = m.auditBox;
+      for (const t of names) {
+        const tb = t.getBounds();
+        const dx = Math.max(tb.x - (b.x + b.w), b.x - tb.right);
+        const dy = Math.max(tb.y - (b.y + b.h), b.y - tb.bottom);
+        if (Math.abs(tb.centerY - (b.y + b.h / 2)) < 60 && Math.abs(tb.centerX - (b.x + b.w / 2)) < 120) minGap = Math.min(minGap, Math.max(dx, dy));
+      }
+    }
+    return { marks: marks.length, minGap };
+  });
+  expect(d.marks).toBeGreaterThan(0);
+  expect(d.minGap).toBeGreaterThanOrEqual(4);
+  await page.screenshot({ path: SHOT('46-ui-spacing-deck') });
+});
+
+test('2026-11-21 상점·아이템 다듬기: 상점 상징 배지는 이름 띠와 4px 이상 · 용병 카드에도 상징 배지 · 아이템 그림 뒤 칸 없음 · 끄는 아이템은 UI 위', async ({ page }) => {
+  const errors = await startGame(page);
+  await page.waitForTimeout(400);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    // 상점 카드 0번: 배지(auditBox 컨테이너) 아래와 이름 띠(카드 아래 20px) 사이
+    const card = h.shopBox.list[0];
+    const badges = card.list.filter((o) => o.auditBox);
+    const cardH = 96;
+    const bandGap = Math.min(...badges.map((b) => cardH - 20 - (b.y + b.auditBox.y + b.auditBox.h)));
+    const between = badges.length === 2 ? Math.abs(badges[1].x - badges[0].x) - badges[0].auditBox.w : -1;
+    g.gold = 999;
+    g.bench.push('whet');
+    h.refreshBench();
+    const icon = h.benchRow.list.find((o) => o.input?.draggable);
+    const hasBg = icon.list.some((o) => o.type === 'Graphics');
+    icon.emit('dragstart');
+    const dragDepth = icon.depth;
+    const uiDepth = h.smithBtn.depth;
+    icon.emit('dragend', { worldX: -999, worldY: -999 });
+    g.hire('isolde');
+    g.select(g.mercs[0]);
+    return { badges: badges.length, bandGap, between, hasBg, dragDepth, uiDepth, infoBadges: h.infoBadges?.list.length };
+  });
+  expect(r.badges).toBe(2);
+  expect(r.bandGap).toBeGreaterThanOrEqual(4);
+  expect(r.between).toBeGreaterThanOrEqual(4);
+  expect(r.hasBg).toBe(false);
+  expect(r.dragDepth).toBeGreaterThan(r.uiDepth);
+  expect(r.infoBadges).toBe(2);
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: SHOT('47-shop-badges-info') });
+  expect(errors).toEqual([]);
+});
+
+test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃발, 성벽 두께 안에만', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const cv = window.game.textures.get('field_wall').getSourceImage();
+    const ctx = cv.getContext('2d');
+    const S = cv.width, SZ = S - 1, c = Math.floor(SZ / 2 + 0.5);
+    const px = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data);
+    const wood = (p) => p[3] === 255 && p[0] > p[2] + 30 && p[0] > 80; // 갈색 나무
+    // 문 가운데 (바깥에서 6도트 안쪽): 위 · 아래 · 왼 · 오른
+    const doors = [[c - 3, 6], [c - 3, SZ - 7], [6, c - 3], [SZ - 7, c - 3]].map(([x, y]) => wood(px(x, y)));
+    // 성벽 바깥(텍스처 밖 여백)은 그대로 투명, 바닥 자리 안쪽도 투명
+    return { doors, inner: px(c, c)[3] };
+  });
+  expect(r.doors).toEqual([true, true, true, true]);
+  expect(r.inner).toBe(0);
+  await page.screenshot({ path: SHOT('48-wall-gates'), clip: { x: 40, y: 236, width: 464, height: 488 } });
+  expect(errors).toEqual([]);
 });

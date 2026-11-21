@@ -143,7 +143,7 @@ const COZY_STYLES = {
   strip: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 99 },
   dark: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 99 },
   primary: { fill: '#7a9a5c', line: '#56743f', lip: '#56743f', r: 18 },
-  danger: { fill: '#c8644f', line: '#9a4636', lip: '#9a4636', r: 18 },
+  danger: { fill: '#c2453a', line: '#8e2f26', lip: '#8e2f26', r: 18 },
   gold: { fill: '#e2b54a', line: '#a8801c', lip: '#a8801c', r: 18 },
   outline: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.16)', r: 18 },
   soft: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
@@ -161,9 +161,9 @@ function cozyKey(scene, style, w, h) {
   const ctx = tex.getContext();
   ctx.scale(RES, RES);
   const r = Math.min(S.r, h / 2, w / 2);
-  const shape = (x, y, ww, hh) => {
+  const shape = (x, y, ww, hh, rr = r) => {
     ctx.beginPath();
-    ctx.roundRect(x, y, ww, hh, r);
+    ctx.roundRect(x, y, ww, hh, Math.max(0, rr));
   };
   // 아래로 깔리는 그림자(입술) + 은은한 바깥 그림자
   ctx.shadowColor = 'rgba(60,45,20,0.18)';
@@ -175,14 +175,16 @@ function cozyKey(scene, style, w, h) {
     ctx.fill();
   }
   ctx.shadowColor = 'transparent';
-  ctx.fillStyle = S.fill;
+  // 테두리 = 바깥 모양을 테두리색으로 채우고, 안쪽(lw 만큼 들어가고 반지름도 lw 줄인 모양)을 바탕색으로 채운다.
+  // 예전처럼 바탕 위에 같은 반지름의 선(stroke)을 그리면 모서리에서 선이 바깥선과 어긋나고 가장자리에 바탕색이 비쳐,
+  // 아래 입술과 사이에 밝은 실선·모서리 틈이 생겨 '찐빠'처럼 보였다 (2026-11-21)
+  const lw = S.lw || 2;
+  ctx.fillStyle = S.line;
   shape(pad, pad, w, h);
   ctx.fill();
-  const lw = S.lw || 2;
-  ctx.lineWidth = lw;
-  ctx.strokeStyle = S.line;
-  shape(pad + lw / 2, pad + lw / 2, w - lw, h - lw);
-  ctx.stroke();
+  ctx.fillStyle = S.fill;
+  shape(pad + lw, pad + lw, w - lw * 2, h - lw * 2, r - lw);
+  ctx.fill();
   tex.refresh();
   return key;
 }
@@ -198,6 +200,7 @@ export function titleTab(scene, cx, cy, label, minW = 160) {
   const w = Math.max(minW, Math.ceil((t.width + 40) / PX) * PX);
   const img = panelImage(scene, cx, cy, 'primary', w, 36);
   scene.children.bringToTop(t); // 글자를 탭 이미지 위로
+  img.gapOk = t.gapOk = true; // 카드 윗변에 일부러 걸친 장식 (ui-audit 여백 검사 제외)
   return [img, t];
 }
 
@@ -213,6 +216,7 @@ export function closeButton(scene, x, y, onClick) {
   }
   c.add([bg, g]);
   c.setSize(28, 28).setInteractive({ useHandCursor: true });
+  c.gapOk = true; // 카드 모서리에 일부러 걸친 장식 (ui-audit 여백 검사 제외)
   c.on('pointerup', onClick);
   return c;
 }
