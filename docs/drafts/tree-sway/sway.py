@@ -83,14 +83,43 @@ if __name__ == '__main__':
           'sway', [sway(TOP_Y, i / N) for i in range(N)])
 
 
+# ── 잎 색 변형 (2026-11-21 사용자 요청: 몇 그루는 다른 녹색 계열로) — 잎 3톤(그늘·중간·밝은)만 바꾼다. 외곽선·줄기 그대로 ──
+VARIANTS = {
+    'teal':   [(36, 70, 64), (58, 136, 106), (128, 196, 156)],    # 푸른빛 도는 청록 녹색
+    'spring': [(50, 92, 44), (108, 168, 56), (176, 214, 108)],    # 맑은 연두
+}
+LEAF_ORDER = [(61, 74, 59), (149, 151, 56), (173, 191, 137)]
+
+
+def recolor(img, cols):
+    m = dict(zip(LEAF_ORDER, cols))
+    out = img.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            p = px[x, y]
+            if p[3] and p[:3] in m:
+                px[x, y] = m[p[:3]] + (p[3],)
+    return out
+
+
+sheet_all = Image.open(os.path.join(HERE, 'sheet.png')).convert('RGBA')
+for vn, cols in VARIANTS.items():
+    recolor(sheet_all, cols).save(os.path.join(HERE, f'sheet_{vn}.png'))
+cmp_ = Image.new('RGBA', (W * 6 * 3 + 40, H * 6 + 20), (124, 170, 84, 255))
+for k, im in enumerate([SRC] + [recolor(SRC, c) for c in VARIANTS.values()]):
+    cmp_.alpha_composite(im.resize((W * 6, H * 6), Image.NEAREST), (10 + k * (W * 6 + 10), 10))
+cmp_.convert('RGB').save(os.path.join(HERE, 'colors.png'))
+
 # ── 게임에 넣기 (manifest 의 다른 항목은 그대로) ──
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 dst = os.path.join(ROOT, 'public', 'assets', 'custom', 'deco')
 os.makedirs(dst, exist_ok=True)
-shutil.copyfile(os.path.join(HERE, 'sheet.png'), os.path.join(dst, 'tree_sway.png'))
 mf_path = os.path.join(ROOT, 'public', 'assets', 'custom', 'manifest.json')
 mf = json.load(open(mf_path))
-mf['sprites']['deco_tree'] = {'file': 'deco/tree_sway.png', 'frameWidth': W, 'frameHeight': H, 'scale': 1, 'pivotX': 22, 'pivotY': 46,
-                              'animations': {'sway': {'frames': list(range(N)), 'ms': [MS] * N, 'loop': True}}}
+for key, f in [('deco_tree', 'sheet.png')] + [(f'deco_tree_{vn}', f'sheet_{vn}.png') for vn in VARIANTS]:
+    shutil.copyfile(os.path.join(HERE, f), os.path.join(dst, f.replace('sheet', 'tree_sway')))
+    mf['sprites'][key] = {'file': 'deco/' + f.replace('sheet', 'tree_sway'), 'frameWidth': W, 'frameHeight': H, 'scale': 1, 'pivotX': 22, 'pivotY': 46,
+                          'animations': {'sway': {'frames': list(range(N)), 'ms': [MS] * N, 'loop': True}}}
 json.dump(mf, open(mf_path, 'w'), ensure_ascii=False, indent=1)
-print('installed deco_tree')
+print('installed deco_tree +', list(VARIANTS))
