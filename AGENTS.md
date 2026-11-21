@@ -26,6 +26,7 @@
 - **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (테스트 화면은 Actions 결과의 `test-screens`)
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)`. `window.__rtd` 에 ROSTER·audio·setArt·setFacing·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 - 작업을 끝낼 때 Stop 훅(`.claude/hooks/missed-changes.py`)이 빠뜨린 후속 작업을 알린다 — 수동 확인 `python3 .claude/hooks/missed-changes.py --print`
+- `node tools/ui-audit.cjs [tall|wide|all]` — UI 글자 정렬 점검 (장면별 표 + `ui-audit/` 화면, 문제 글자에 빨간 상자)
 - `/graphify .` — 코드베이스 지식 그래프(`graphify-out/`, 커밋 안 함) · `/verify` — 작업 루프 한 번에
 - 음악 생성: 스킬 `acestep`(`.claude/skills/acestep/`) — 사용자 컴퓨터에서 `uv run acestep-api`(포트 8001)로 띄운 ACE-Step 1.5 를 부른다. 그 컴퓨터의 Claude Code 세션에서만 동작(클라우드 세션은 그 localhost 에 닿지 않음). 시안은 `docs/drafts/music/`
 
@@ -41,6 +42,7 @@
 2. **구현** — 수치는 `config.js` BALANCE 나 `src/data/` 에.
 3. **검사** — `npm run check`. 실패하면 원인을 고치고 3번을 다시 돈다. 통과할 때까지 반복.
 4. **눈으로 확인** — `test-results/screens/*.png` 를 열어 UI 겹침·잘림·색을 본다. 새 화면이면 e2e 에 스크린샷을 추가한다.
+   **UI 를 바꿨으면 글자 정렬 점검 (2026-11-21 사용자 요청, 항상)**: `node tools/ui-audit.cjs` (빌드 + `npx vite preview --port 4173` 먼저) — 화면 밖·겹침·패널 여백 한쪽 쏠림·버튼 글자 가운데·아이콘과 글자 겹침이 0 이어야 하고, `ui-audit/*.png` 를 열어 좌우·상하 간격을 눈으로도 맞춘다. 스크롤 목록(마스크)은 컨테이너에 `maskRect`, 일부러 비낀 글자·버튼은 `auditOk = true`
 5. **밸런스에 영향**이 있으면 `node tools/balance-sim.cjs` 를 2~3회 돌려 도달 웨이브를 기록한다 (`docs/GDD.md` 밸런스 메모).
 6. **문서** — 결정이 바뀌면 `CLAUDE.md`(해당 줄 고치기)·`docs/GDD.md` 갱신, 진행 기록은 `docs/HISTORY.md` 맨 아래 한 줄. 데이터가 바뀌면 위 문서 생성 명령.
 7. **커밋·푸시** — 작업 브랜치에서. `main` 에 push 하면 GitHub Actions 가 테스트를 통과한 경우에만 배포한다.

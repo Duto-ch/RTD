@@ -38,6 +38,7 @@ export const HUD = WIDE
       top: { x: 150, y: 16, w: 980, h: 52 }, // 알약 바
       cy: 42, // 알약 바 가운데 y
       relic: { x: 990, y: 24, w: 132 }, // 유물 칸 4개 자리 (알약 바 오른쪽 끝)
+      hp: { x: 836, y: 29, w: 144, h: 26 }, // 성벽 체력 막대 (골드 오른쪽 ~ 유물 칸 왼쪽)
       dark: { x: 160, y: 616, w: 960, h: 96 }, // 아래 독: 상점 6칸 + 영지·리롤 + 배속·메뉴·강화
       shop: { x: 172, y: 622, w: 612, h: 84 }, // 상점 칸 (선택한 용병이 있으면 그 자리에 용병 카드)
       estate: { x: 871, y: 645, w: 150, h: 42 }, // 버튼 가운데
@@ -49,9 +50,9 @@ export const HUD = WIDE
   : {
       top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
       // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
-      line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 74 : 88, subY: 120,
-      timer: { x: GAME_W - 236, w: 108 }, next: { x: GAME_W - 72, w: 84 },
-      gauge: { x: 32, y: COZY ? 92 : 104, w: GAME_W - 64 },
+      line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 76 : 88, subY: 112,
+      hp: { x: 236, y: 62, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
+      timer: { x: GAME_W - 194, w: 86, h: 22 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 사용자 요청: 남은 시간·바로 시작 작게
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       shop: { x: 12, y: 786, w: GAME_W - 24, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
@@ -170,22 +171,17 @@ export class Hud {
 
     // 타이머 슬롯 + 바로 시작 버튼
     // 타이머 칸과 버튼 사이 14px 띄움 (2026-11-15 간격 확보)
-    panel(s, HUD.timer.x, HUD.line2 - 13, HUD.timer.w, 26, 'soft').setDepth(D);
+    panel(s, HUD.timer.x, HUD.line2 - HUD.timer.h / 2, HUD.timer.w, HUD.timer.h, 'soft').setDepth(D);
     const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', HUD.timer.x + 16, HUD.line2, 12, C.ink);
-    this.timerText = uiText(s, HUD.timer.x + 28, HUD.line2, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
+    drawIcon(clock, 'clock', HUD.timer.x + 15, HUD.line2, 12, C.ink);
+    this.timerText = uiText(s, HUD.timer.x + 27, HUD.line2, '', 11, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, HUD.next.h, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 11 });
 
     // 골드 / 몬스터 수
     const coin = s.add.graphics().setDepth(D);
     drawIcon(coin, 'coin', T.x + 30, HUD.line3, 18, 0x6a4a10);
     this.goldText = uiText(s, T.x + 46, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'heart', R - 140, HUD.line3 + 1, 18, 0xc2453a);
-    this.countText = uiText(s, R - 20, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
-    // 진행 막대: 창 아래 테두리와 띄우고 조금 얇게 (위 숫자와도 간격)
-    panel(s, HUD.gauge.x, HUD.gauge.y, HUD.gauge.w, 15, 'soft').setDepth(D);
-    this.countBar = s.add.graphics().setDepth(D);
+    this.createHpBar(D, 16.5);
 
     // 시너지·유물 줄 (높이 40): 왼쪽 시너지 칩, 오른쪽 유물 4칸 (룰 v2)
     const RL = HUD.relic;
@@ -208,17 +204,15 @@ export class Hud {
     this.waveText = uiText(s, T.x + 28, cy, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.waveTypeText = uiText(s, T.x + 140, cy, '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
     const sep = s.add.graphics().setDepth(D);
-    sep.fillStyle(C.line, 1).fillRect(T.x + 404, cy - 14, 2, 28);
+    sep.fillStyle(C.line, 1).fillRect(T.x + 364, cy - 14, 2, 28);
     const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', T.x + 428, cy, 14, C.sub);
-    this.timerText = uiText(s, T.x + 442, cy, '', 12, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, T.x + 566, cy, 88, 32, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
+    drawIcon(clock, 'clock', T.x + 388, cy, 14, C.sub);
+    this.timerText = uiText(s, T.x + 402, cy, '', 11, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, T.x + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 11 }); // 2026-11-21 작게 (이전 88x32)
     const coin = s.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', T.x + 634, cy, 16, 0x6a4a10);
-    this.goldText = uiText(s, T.x + 648, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    const skull = s.add.graphics().setDepth(D);
-    drawIcon(skull, 'heart', T.x + 752, cy + 1, 16, 0xc2453a);
-    this.countText = uiText(s, T.x + 830, cy, '', 16.5, CSS.ink, 'bold').setOrigin(1, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', T.x + 586, cy, 16, 0x6a4a10);
+    this.goldText = uiText(s, T.x + 600, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.createHpBar(D, 13);
     this.relicLabel = null;
     this.relicRow = s.add.container(0, 0).setDepth(D);
     // 빈 유물 자리 4칸 (점선 대신 옅은 칸)
@@ -230,6 +224,50 @@ export class Hud {
     uiText(s, SY.x + 18, SY.y + 18, '시너지', 15, CSS.primary, 'bold').setDepth(D);
     this.synRow = s.add.container(0, 0).setDepth(D);
     this.noSynText = uiText(s, SY.x + 18, SY.y + 50, '같은 계열·출신을\n모으면 켜져요', 12, CSS.sub, 'bold', { lineSpacing: 4 }).setDepth(D);
+  }
+
+  /** 성벽 체력 막대: 둥근 홈 + 채움(많을수록 초록 → 노랑 → 빨강) + 실드(하늘색 윗줄) + 가운데 하트·수치 */
+  createHpBar(D, fontSize) {
+    const s = this.s;
+    const B = HUD.hp;
+    this.hpBg = s.add.graphics().setDepth(D);
+    this.hpBg.fillStyle(0x6b4e2a, 1).fillRoundedRect(B.x, B.y, B.w, B.h, B.h / 2);
+    this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + 2, B.y + 2, B.w - 4, B.h - 4, (B.h - 4) / 2);
+    this.hpFill = s.add.graphics().setDepth(D);
+    this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
+    this.hpHeart = s.add.graphics();
+    this.countText = uiText(s, 0, 0, '', fontSize, '#ffffff', 'bold').setOrigin(0, 0.5).setStroke('#2b1d12', 4);
+    this.hpLabel.add([this.hpHeart, this.countText]);
+  }
+
+  /** 막대 다시 그리기 (refresh 에서) */
+  drawHpBar(n, max, shield) {
+    const B = HUD.hp;
+    const g = this.hpFill;
+    g.clear();
+    const iw = B.w - 4;
+    const ih = B.h - 4;
+    const pct = Math.max(0, Math.min(1, n / max));
+    const fill = Math.round((iw * pct) / UI_PX) * UI_PX;
+    if (fill > 0) {
+      const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
+      const w = Math.max(ih, fill); // 둥근 끝이 깨지지 않게 최소 높이만큼
+      g.fillStyle(col, 1).fillRoundedRect(B.x + 2, B.y + 2, w, ih, ih / 2);
+      g.fillStyle(0xffffff, 0.28).fillRoundedRect(B.x + 6, B.y + 4, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+    }
+    if (shield > 0) {
+      const sw = Math.round((iw * Math.min(1, shield / max)) / UI_PX) * UI_PX;
+      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(B.x + 2, B.y + 2, Math.max(6, sw), 4, 2);
+    }
+    // 가운데: 하트 + 수치 (함께 가운데 정렬)
+    this.countText.setText(`${Math.ceil(n)}${shield > 0 ? `+${Math.ceil(shield)}` : ''} / ${max}`);
+    const hw = 14; // 하트 7칸 × 2px
+    const gap = 6;
+    const total = hw + gap + this.countText.width;
+    const left = Math.round(-total / 2);
+    this.hpHeart.clear();
+    drawIcon(this.hpHeart, 'heart', left + hw / 2, 1, 14, 0xff6b5e);
+    this.countText.setPosition(left + hw + gap, 0);
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */
@@ -265,30 +303,20 @@ export class Hud {
     } else {
       this.waveTypeText.setText(`${s.biome.name} · 필드 ${s.monsters.length}기 · 다음 ${ni.normal}기${extra} · 최고 W${Math.max(s.bestWave || 0, s.wave)}`).setColor(CSS.sub);
     }
-    this.fitText(this.waveTypeText, WIDE ? 250 : COZY ? GAME_W - 64 : GAME_W - 236 - 48);
+    this.fitText(this.waveTypeText, WIDE ? 210 : COZY ? GAME_W - 64 : GAME_W - 236 - 48);
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
+    // 가로 알약 바: 골드가 길어지면(수만 G) 체력 막대에 닿지 않게 글자를 줄인다
+    if (WIDE) this.goldText.setFontSize(this.goldText.text.length > 8 ? 13 : 16.5);
 
-    // 성벽 체력 (2026-11-17: 몬스터 수 한도 대신). 실드가 있으면 +n 으로 덧붙인다. 30% 이하면 빨강
-    const n = Math.ceil(s.wallHp);
-    const max = s.wallMax;
-    this.countText.setText(`${n}${s.wallShield > 0 ? `+${Math.ceil(s.wallShield)}` : ''} / ${max}`).setColor(n <= max * 0.3 ? CSS.red : CSS.ink);
+    // 성벽 체력 막대 (2026-11-21: 가운데에 수치). 실드가 있으면 +n
+    const hpN = Math.ceil(s.wallHp);
+    if (this._hpKey !== `${hpN}/${s.wallMax}/${Math.ceil(s.wallShield)}`) {
+      this._hpKey = `${hpN}/${s.wallMax}/${Math.ceil(s.wallShield)}`;
+      this.drawHpBar(hpN, s.wallMax, s.wallShield);
+    }
     this.nextWaveBtn.setEnabled(s.canCallNextWave);
     this.refreshShopButtons();
     if (s.selected) this.refreshInfo();
-    if (WIDE) return; // 가로 B-2 는 진행 막대 없음 (몬스터 수 숫자가 80% 넘으면 빨강)
-    // 막대: 4px 단위 칸 채우기
-    const g = this.countBar;
-    const bx = HUD.gauge.x + 8;
-    const bw = HUD.gauge.w - 16;
-    const by = HUD.gauge.y + 4;
-    g.clear();
-    const pct = Math.max(0, Math.min(1, n / max));
-    const fill = Math.round((bw * pct) / UI_PX) * UI_PX;
-    if (fill > 0) {
-      const col = pct > 0.5 ? 0x3f9a52 : pct > 0.3 ? 0xe0a32a : 0xc2453a; // 성벽 체력: 많을수록 초록
-      g.fillStyle(col, 1).fillRect(bx, by, fill, 7);
-      g.fillStyle(0xffffff, 0.35).fillRect(bx, by, fill, 3);
-    }
   }
 
   refreshRelics() {
@@ -337,14 +365,7 @@ export class Hud {
     hint.setPosition(left + pad, top + 66);
     c.add([bg, title, state, desc, hint]);
     // 스프링 등장 (2026-11-19): 아이콘 쪽(위 가운데)을 축으로 0.6 → 1, 살짝 넘쳤다가 출렁이며 멈춘다
-    const ax = Phaser.Math.Clamp(x, left, left + w);
-    c.setPosition(ax, top);
-    c.each((o) => o.setPosition(o.x - ax, o.y - top));
-    if (animate) {
-      c.setScale(0.6).setAlpha(0);
-      uiTween(s, { targets: c, scale: 1, duration: 520, ease: springEase });
-      uiTween(s, { targets: c, alpha: 1, duration: 120 });
-    }
+    springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top, animate);
     this.relicTip = { index, x, y, container: c };
   }
 
@@ -367,7 +388,7 @@ export class Hud {
     this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: v, icon: 'menu', fontSize: fs });
     this.createUpgradeButton(SM, v, fs);
     const E = HUD.estate;
-    this.estateBtn = new Button(s, E.x, E.y, E.w, E.h, '', () => s.levelUpEstate(), { variant: 'gold', icon: 'house', fontSize: WIDE ? 11 : 12 });
+    this.estateBtn = new Button(s, E.x, E.y, E.w, E.h, '', () => s.levelUpEstate(), { variant: 'gold', icon: 'house', fontSize: WIDE ? 11 : 12 }); // 가로(높이 42)는 아이콘 왼쪽
     const R = HUD.reroll;
     this.rerollBtn = new Button(s, R.x, R.y, R.w, R.h, '', () => s.reroll(), { variant: 'primary', icon: 'reroll', fontSize: WIDE ? 11 : 12 });
     // 상점 칸 / 용병 카드 (같은 자리)
@@ -404,17 +425,12 @@ export class Hud {
       g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(0, 0, w, h, 10);
       g.lineStyle(3, gc, 1).strokeRoundedRect(1.5, 1.5, w - 3, h - 3, 10);
       g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
-      const img = charImage(s, w / 2, WIDE ? 30 : 36, ch, WIDE ? 2 : 2.4);
+      const img = charImage(s, w / 2, WIDE ? 32 : 40, ch);
       const nm = uiText(s, w / 2, h - 10, `${ch.name} ${price}G`, 11, ch.grade === 2 ? CSS.white : '#2b1d2f', 'bold').setOrigin(0.5);
       this.fitText(nm, w - 6);
       c.add([img, nm]);
-      // 계열·출신 글자 (왼쪽 위)
-      [ch.cls, ch.origin].forEach((k, j) => {
-        const t = TRAITS[k];
-        const col = Phaser.Display.Color.HexStringToColor(t.color).color;
-        c.add(s.add.circle(10, 10 + j * 17, 7.5, col).setStrokeStyle(1.5, 0x2b1d2f));
-        c.add(uiText(s, 10, 10 + j * 17, t.glyph, 9, CSS.white, 'bold').setOrigin(0.5));
-      });
+      // 계열·출신 상징 (2026-11-21: 아래 가운데, 이름 띠 위에 걸쳐 · 글자 대신 모양 그림)
+      [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 10 : -10), h - 30, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
       if (owned) c.add(uiText(s, w - 6, 6, `${owned}장`, 10, CSS.primary, 'bold').setOrigin(1, 0));
       if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
@@ -426,11 +442,11 @@ export class Hud {
         s.buy(i);
       });
       c.add(hit);
-      // 잠금 (오른쪽 아래 위 — 이름 띠 위)
+      // 잠금 (2026-11-21: 위 가운데)
       const lk = s.add.graphics();
-      lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w - 24, h - 44, 20, 20, 6);
-      drawIcon(lk, slot.locked ? 'lock' : 'unlock', w - 14, h - 34, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
-      const lz = s.add.rectangle(w - 26, h - 46, 24, 24, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
+      lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w / 2 - 9, 3, 18, 18, 5);
+      drawIcon(lk, slot.locked ? 'lock' : 'unlock', w / 2, 12, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
+      const lz = s.add.rectangle(w / 2 - 13, 0, 26, 24, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       lz.on('pointerup', () => s.toggleLock(i));
       c.add([lk, lz]);
       c.slotIndex = i;
@@ -462,29 +478,21 @@ export class Hud {
 
   /** 아이템 그림: 재료는 색 칸 + 글자, 조합품은 두 재료 색 반반 + 금 테두리, 문장은 시너지 색 방패 */
   itemIcon(id, x, y, size = 30) {
+    // 아이템 그림 (2026-11-21): 12x12 전용 도트 그림(docs/drafts/item-icons/items.py → item_<id>)을 2px 로. 칸 배경: 조합품은 금 테두리
     const s = this.s;
     const it = ITEM_BY_ID[id];
     const c = s.add.container(x, y);
     const g = s.add.graphics();
-    const col = (hex) => Phaser.Display.Color.HexStringToColor(hex).color;
     const h = size / 2;
-    if (it.kind === 'combo') {
-      const [a, b] = it.parts.map((p) => col(ITEM_BY_ID[p].color));
-      g.fillStyle(a, 1).fillRoundedRect(-h, -h, size, size, 7);
-      g.fillStyle(b, 1).fillTriangle(h, -h + 4, h, h - 4, -h + 4, h);
-      g.lineStyle(2.5, 0xffd36a, 1).strokeRoundedRect(-h, -h, size, size, 7);
-      c.add([g, uiText(s, 0, 0, it.name[0], 13, CSS.white, 'bold').setOrigin(0.5).setStroke('#2b1d2f', 3)]);
-    } else if (it.kind === 'emblem') {
-      g.fillStyle(col(TRAITS[it.trait].color), 1).fillRoundedRect(-h, -h, size, size, { tl: 4, tr: 4, bl: h, br: h });
-      g.lineStyle(2.5, 0xffd36a, 1).strokeRoundedRect(-h, -h, size, size, { tl: 4, tr: 4, bl: h, br: h });
-      c.add([g, uiText(s, 0, -2, TRAITS[it.trait].glyph, 13, CSS.white, 'bold').setOrigin(0.5)]);
-    } else {
-      g.fillStyle(col(it.color), 1).fillRoundedRect(-h, -h, size, size, 7);
-      g.lineStyle(2, 0x2b1d2f, 1).strokeRoundedRect(-h, -h, size, size, 7);
-      c.add([g, uiText(s, 0, 0, it.glyph, 13, CSS.white, 'bold').setOrigin(0.5)]);
-    }
+    const r = Math.min(7, h);
+    g.fillStyle(it.kind === 'mat' || it.kind === 'seal' ? 0xf3ead2 : 0xfff3d0, 1).fillRoundedRect(-h, -h, size, size, r);
+    g.lineStyle(2, it.kind === 'combo' || it.kind === 'emblem' ? 0xe0a32a : 0xc9b48a, 1).strokeRoundedRect(-h, -h, size, size, r);
+    c.add(g);
+    if (s.textures.exists(`item_${id}`)) c.add(s.add.image(0, 0, `item_${id}`).setScale(UI_PX));
+    else c.add(uiText(s, 0, 0, it.glyph || it.name[0], 13, CSS.ink, 'bold').setOrigin(0.5));
     return c;
   }
+
 
   refreshBench() {
     const s = this.s;
@@ -547,6 +555,9 @@ export class Hud {
       cy += l.height + 4;
       c.add(l);
     }
+    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축
+    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
+    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top + h);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -589,8 +600,7 @@ export class Hud {
         if (x > HUD.relic.x + HUD.relic.w - 160) return; // 유물 4칸 자리
       }
       const c = s.add.container(x, y);
-      c.add(s.add.circle(0, 0, 12, on ? col : 0xd9cdb2).setStrokeStyle(2, on ? 0x2b1d2f : 0xa8875a));
-      c.add(uiText(s, 0, 0, t.glyph, 11, on ? CSS.white : CSS.sub, 'bold').setOrigin(0.5));
+      c.add(traitBadge(s, 0, 0, k, 12, on));
       const label = next ? `${n}/${next.n}` : `${n}`;
       if (WIDE) {
         c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
@@ -634,6 +644,9 @@ export class Hud {
       cy += l.height + 6;
       c.add(l);
     }
+    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 칩 쪽 가장자리가 축
+    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
+    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -643,7 +656,10 @@ export class Hud {
     const x = SM.xs[2], y = SM.y;
     this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
     this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
-    this.upgradeBadge.add([s.add.circle(0, 0, 9, 0xffd36a).setStrokeStyle(2.5, 0x3a2608), uiText(s, 0, 0, '!', 12, '#3a2608', 'bold').setOrigin(0.5)]);
+    // 느낌표 배지 (2026-11-21: 더 크게 r 12, 느낌표는 글자 대신 굵은 도형 — 막대 4x10 + 점 4x4)
+    const mark = s.add.graphics();
+    mark.fillStyle(0x3a2608, 1).fillRoundedRect(-2, -9, 4, 11, 1.5).fillRect(-2, 4, 4, 4);
+    this.upgradeBadge.add([s.add.circle(0, 0, 12, 0xffd36a).setStrokeStyle(3, 0x3a2608), mark]);
     // 스케일 팝 반복 (2026-11-19): 1.3초마다 톡 커졌다 돌아온다. 배속·정지와 상관없이 실제 시간으로 돈다
     const badge = this.upgradeBadge;
     const pop = () => {
@@ -883,6 +899,35 @@ export function badgePop(p) {
   if (t < 0.35) return 1 + 0.35 * Math.sin((t / 0.35) * (Math.PI / 2));
   if (t < 0.7) return 1.35 - 0.43 * ((t - 0.35) / 0.35);
   return 0.92 + 0.08 * ((t - 0.7) / 0.3);
+}
+
+/**
+ * 시너지 상징 배지 (2026-11-21): 시너지 색 원 + 하얀 모양 그림(theme trait_<id>, 7칸 × 2px). off 면 옅은 원 + 갈색 모양
+ * @returns {Phaser.GameObjects.Container}
+ */
+export function traitBadge(s, x, y, k, r = 10, on = true) {
+  const t = TRAITS[k];
+  const col = Phaser.Display.Color.HexStringToColor(t.color).color;
+  const c = s.add.container(x, y);
+  const g = s.add.graphics();
+  g.fillStyle(on ? col : 0xd9cdb2, 1).fillCircle(0, 0, r);
+  g.lineStyle(2, on ? 0x2b1d2f : 0xa8875a, 1).strokeCircle(0, 0, r);
+  drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
+  c.add(g);
+  return c;
+}
+
+/**
+ * 툴팁 스프링 등장 (유물 툴팁 2026-11-19 → 모든 툴팁 2026-11-21): (ax, ay) 를 축으로 0.6 → 1, 살짝 넘쳤다 출렁이며 멈춘다 + 0.12초 페이드.
+ * 컨테이너 c 안의 것들은 화면 좌표로 넣어 두면 축 기준으로 옮겨 준다
+ */
+export function springTip(s, c, ax, ay, animate = true) {
+  c.setPosition(ax, ay);
+  c.each((o) => o.setPosition(o.x - ax, o.y - ay));
+  if (!animate) return;
+  c.setScale(0.6).setAlpha(0);
+  uiTween(s, { targets: c, scale: 1, duration: 520, ease: springEase });
+  uiTween(s, { targets: c, alpha: 1, duration: 120 });
 }
 
 /** UI 트윈: 전투 배속(tweens.timeScale)과 상관없이 실제 시간으로 재생 */

@@ -1012,6 +1012,101 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   expect(errors).toEqual([]);
 });
 
+test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘겨 끌면 고무줄처럼 돌아온다 (영지 덱 줄 · 병영 격자)', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => window.__rtd.meta.reset());
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  const kin = () => game(page, () => { const k = window.game.scene.getScene('Lobby').deckKin; return { v: k.value, max: k.max, moving: k.moving }; });
+  // 빠르게 밀고 놓기 → 놓은 뒤에도 더 간다. 자동화 브라우저는 마우스 이동이 0.3초씩 늦게 와서 '튕기기'가 안 되므로
+  // 손가락 움직임(시각 포함)을 직접 넣는다: 0.1초에 120px 밀고 바로 놓기
+  const atRelease = await game(page, () => {
+    const k = window.game.scene.getScene('Lobby').deckKin;
+    const t0 = performance.now();
+    k.down(t0);
+    for (let i = 1; i <= 6; i++) k.drag(i * 20, t0 + i * 16);
+    k.up(t0 + 100);
+    return { v: k.value, vel: k.v };
+  });
+  expect(atRelease.vel).toBeGreaterThan(0.5);
+  await page.waitForTimeout(300);
+  const later = await kin();
+  expect(later.v).toBeGreaterThan(atRelease.v + 30);
+  await page.waitForTimeout(1500);
+  expect((await kin()).moving).toBe(false);
+  // 끝을 넘겨 끌기 → 끄는 동안 끝 밖, 놓으면 끝으로 돌아온다
+  await game(page, () => window.game.scene.getScene('Lobby').setDeckScroll(9999));
+  await page.mouse.move(200, 812);
+  await page.mouse.down();
+  await page.mouse.move(100, 812, { steps: 4 });
+  await page.mouse.move(20, 812, { steps: 4 });
+  const over = await kin();
+  expect(over.v).toBeGreaterThan(over.max + 10);
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const back = await kin();
+  expect(Math.abs(back.v - back.max)).toBeLessThan(1);
+  expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(true);
+  // 병영 격자도 같은 관성 (세로)
+  await game(page, () => window.game.scene.getScene('Lobby').go('Deck'));
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  const d0 = await game(page, () => {
+    const d = window.game.scene.getScene('Deck');
+    const t0 = performance.now();
+    d.kin.down(t0);
+    for (let i = 1; i <= 6; i++) d.kin.drag(i * 20, t0 + i * 16);
+    d.kin.up(t0 + 100);
+    return d.scrollY;
+  });
+  await page.waitForTimeout(250);
+  const d1 = await game(page, () => window.game.scene.getScene('Deck').scrollY);
+  expect(d1).toBeGreaterThan(d0);
+  expect(errors).toEqual([]);
+});
+
+test('2026-11-21 다듬기: 캐릭터 선택 중 리롤 → 상점으로 · 아이템 그림 40종 · 시너지 상징 그림 · 전열 밝게/후열 어둡게 · 처치 별 · 툴팁 스프링', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 999;
+    const m = g.hire('helga');
+    g.select(m);
+    const before = { info: g.hud.infoBox.visible, shop: g.hud.shopBox.visible };
+    g.reroll();
+    const after = { info: g.hud.infoBox.visible, shop: g.hud.shopBox.visible, selected: !!g.selected };
+    const items = ['whet', 'seal', 'giant_sword', 'guild_vault', 'emblem_knight', 'emblem_guild'].every((id) => g.textures.exists(`item_${id}`) && g.textures.get(`item_${id}`).getSourceImage().width === 12);
+    // 전열(바깥 줄) 칸은 틴트 없음, 후열(가운데 3x3)은 어둡게
+    const t = g.fieldTiles;
+    const tint = { front: t[0].tintTopLeft, back: t[2 * 5 + 2].tintTopLeft };
+    // 처치 별
+    const before2 = g.vfx.em.cuteStar.getAliveParticleCount();
+    g.vfx.death({ x: 200, y: 200, kind: 'normal' });
+    const stars = g.vfx.em.cuteStar.getAliveParticleCount() - before2;
+    return { before, after, items, tint, stars };
+  });
+  expect(r.before).toEqual({ info: true, shop: false });
+  expect(r.after).toEqual({ info: false, shop: true, selected: false });
+  expect(r.items).toBe(true);
+  expect(r.tint.front).toBe(0xffffff);
+  expect(r.tint.back).not.toBe(0xffffff);
+  expect(r.stars).toBe(3);
+  // 아이템 툴팁도 유물 툴팁처럼 0.6 → 1 스프링
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.giveItem('whet'); });
+  const p = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
+  await page.mouse.move(p.x, p.y);
+  await page.waitForTimeout(40);
+  const early = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
+  await page.waitForTimeout(700);
+  const late = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
+  expect(early).toBeLessThan(1);
+  expect(late).toBe(1);
+  await page.screenshot({ path: SHOT('40-polish-1121') });
+  expect(errors).toEqual([]);
+});
+
 test('렌더 해상도: 화면 실제 픽셀에 맞춰 정수 배율(폰 3배) · 캔버스는 부드럽게 맞춤 (자글거림 방지)', async ({ browser }) => {
   const p = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   await p.goto('/');

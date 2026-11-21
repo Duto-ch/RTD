@@ -10,6 +10,7 @@ import { describeSkill } from '../data/skills.js';
 import { starSkill } from '../data/stars.js';
 import { TRAITS } from '../data/synergy.js';
 import { charImage } from '../objects/Mercenary.js';
+import { Kinetic } from '../ui/kinetic.js';
 
 // 병영 = 덱 편성 (룰 v2, 2026-11-20). 가진 캐릭터(술집에서 고용) 중 최대 30명 — 레어 9명·유니크 3명까지.
 // 판 안 상점은 이 덱의 캐릭터만 내놓는다. 카드를 누르면 정보 창에 계열·출신·특성·스킬(별마다), '덱에 넣기/빼기'.
@@ -94,31 +95,44 @@ export class DeckScene extends Phaser.Scene {
     this.gridC = this.add.container(0, 0);
     const shape = this.make.graphics({}, false).fillRect(G.x, G.y, G.w, G.h);
     this.gridC.setMask(shape.createGeometryMask());
+    this.gridC.maskRect = { x: G.x, y: G.y, w: G.w, h: G.h }; // 보이는 영역, 화면 기준 (tools/ui-audit.cjs)
     this.dragging = null;
+    // 관성 스크롤 (2026-11-21): 밀다 놓으면 미끄러지고, 끝을 넘기면 고무줄처럼 돌아온다
+    this.kin = new Kinetic(this, {
+      min: 0,
+      max: () => Math.max(0, (this.contentH || 0) - L.grid.h),
+      onChange: (v) => {
+        this.scrollY = v;
+        this.gridC.y = -Math.round(v);
+      }
+    });
     const zone = this.add.zone(G.x, G.y, G.w, G.h).setOrigin(0).setInteractive();
-    zone.on('pointerdown', (p) => (this.dragging = { y: p.worldY, s: this.scrollY, moved: false }));
+    zone.on('pointerdown', (p) => {
+      this.dragging = { y: p.worldY, moved: this.kin.moving }; // 미끄러지는 중에 누르면 멈추기만
+      this.kin.down(p.downTime);
+    });
     this.input.on('pointermove', (p) => {
       if (!this.dragging || !p.isDown) return;
       const dy = p.worldY - this.dragging.y;
       if (Math.abs(dy) > 6) this.dragging.moved = true;
-      if (this.dragging.moved) this.setScroll(this.dragging.s - dy);
+      if (this.dragging.moved) this.kin.drag(-dy, p.moveTime);
     });
     this.input.on('pointerup', (p) => {
       const d = this.dragging;
       this.dragging = null;
+      this.kin.up(p.upTime);
       if (!d || d.moved) return;
       const card = this.cardAt(p.worldX, p.worldY);
       if (card) this.select(card);
     });
     this.input.on('wheel', (p, _o, _dx, dy) => {
-      if (p.worldX >= G.x && p.worldX <= G.x + G.w && p.worldY >= G.y && p.worldY <= G.y + G.h) this.setScroll(this.scrollY + dy * 0.6);
+      if (p.worldX >= G.x && p.worldX <= G.x + G.w && p.worldY >= G.y && p.worldY <= G.y + G.h) this.kin.scrollBy(dy * 0.6);
     });
   }
 
+  /** 스크롤 위치를 바로 정한다 (끝 안으로 자름, 미끄러짐 멈춤) */
   setScroll(v) {
-    const max = Math.max(0, this.contentH - L.grid.h);
-    this.scrollY = Phaser.Math.Clamp(v, 0, max);
-    this.gridC.y = -this.scrollY;
+    this.kin.scrollBy(v - this.kin.value);
   }
 
   cardAt(x, y) {

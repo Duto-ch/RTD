@@ -97,6 +97,11 @@ def checks(files):
         if miss:
             out.append(f'글꼴 서브셋에 없는 한글 {len(miss)}자({miss[:20]}) — pyftsubset 으로 public/assets/fonts/ 다시 만들기')
 
+    # UI 를 바꾸면 글자 정렬 점검 (2026-11-21 사용자 요청: 좌우·상하 간격을 항상 확인)
+    ui = {f for f in src if re.match(r'src/(ui|scenes)/', f) or f == 'src/ui/theme.js'}
+    if ui and newest_mtime('ui-audit/*.png') < max(newest_mtime(f) for f in ui):
+        out.append('UI(src/ui·src/scenes)가 바뀌었는데 글자 정렬 점검을 안 했다 — `node tools/ui-audit.cjs` (문제 0 + ui-audit/ 화면 눈으로 확인)')
+
     if code and newest_mtime('test-results/screens/*.png') < newest_mtime('src/**/*') :
         out.append('마지막 src 수정 뒤 `npm run check` 를 돌리지 않았다(테스트 화면이 더 오래됨)')
 

@@ -258,7 +258,20 @@ const ICONS = {
   lock: ['..xxx..', '.x...x.', '.x...x.', 'xxxxxxx', 'xxx.xxx', 'xxx.xxx', 'xxxxxxx'],
   unlock: ['..xxx..', '.x...x.', '.x.....', 'xxxxxxx', 'xxx.xxx', 'xxx.xxx', 'xxxxxxx'],
   reroll: ['..xxxx.', '.x...xx', 'x...xxx', 'x......', 'xxx...x', 'xx...x.', '.xxxx..'],
-  house: ['...x...', '..xxx..', '.xxxxx.', 'xxxxxxx', '.x...x.', '.x.x.x.', '.xxxxx.']
+  house: ['...x...', '..xxx..', '.xxxxx.', 'xxxxxxx', '.x...x.', '.x.x.x.', '.xxxxx.'],
+  // 시너지 12종 상징 (2026-11-21: 글자 대신 간단한 모양) — 계열 6 · 출신 6. 이름 = trait_<id>
+  trait_warrior: ['......x', '.....x.', '....x..', 'x..x...', '.xx....', '.xx....', 'x..x...'],
+  trait_ranger: ['...xxxx', '.....xx', '....x.x', '...x..x', '..x....', 'xx.....', 'xx.....'],
+  trait_assassin: ['..xxx..', '.xx....', 'xx.....', 'xx.....', 'xx.....', '.xx....', '..xxx..'],
+  trait_gunner: ['.....xy', '....x..', '..xxx..', '.xxxxx.', 'xxxxxxx', '.xxxxx.', '..xxx..'],
+  trait_hexer: ['.xxxxx.', 'xxxxxxx', 'x..x..x', 'xxxxxxx', '.xxxxx.', '.x.x.x.', '.......'],
+  trait_support: ['..xxx..', '..xxx..', 'xxxxxxx', 'xxxxxxx', 'xxxxxxx', '..xxx..', '..xxx..'],
+  trait_north: ['x.....x', 'xx...xx', '.xxxxx.', 'xxxxxxx', 'xxxxxxx', 'xx.x.xx', '.......'],
+  trait_knight: ['xxxxxxx', 'xxxyxxx', 'xxyyyxx', 'xxxyxxx', '.xxxxx.', '..xxx..', '...x...'],
+  trait_tower: ['...x...', '..xx...', '..xxx..', '.xxyx..', '.xxxxx.', 'xxxxxxx', '.......'],
+  trait_grove: ['....xxx', '..xxxxx', '.xxxx.x', '.xxx.xx', '.xx.xxx', '.x.xxx.', 'x......'],
+  trait_lake: ['...x...', '..xxx..', '.xxxxx.', 'xxxxxxx', 'xyxxxxx', '.xxxxx.', '..xxx..'],
+  trait_guild: ['..x.x..', '...x...', '.xxxxx.', 'xxxxxxx', 'xxxyxxx', 'xxxxxxx', '.xxxxx.']
 };
 
 /** 픽셀 아이콘 그리기 (s = 대략적인 크기 px) */

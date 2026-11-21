@@ -643,6 +643,11 @@ export function generateTextures(scene) {
   paintMap(scene, 'p_shard', ['.w.', 'www', 'www', '.w.'], W);
   paintMap(scene, 'p_leaf', ['.ww', 'www', 'ww.'], W);
   paintMap(scene, 'p_star', ['..w..', '..w..', 'wwwww', '..w..', '..w..'], W);
+  // 몬스터 처치 별 (2026-11-21 사용자 요청 '귀엽게 별이 터져 나오게'): 7x7 오각 별 · 작은 반짝이 · 퍼지는 고리 (흰색 → 틴트)
+  // 9x9 둥근 오각 별 + 진한 테두리(틴트해도 어둡게 남아 어떤 바닥에서도 보인다) + 왼쪽 위 빛
+  paintMap(scene, 'p_cutestar', ['....k....', '...kwk...', '...kwk...', 'kkkkhwkkk', 'kwhwwwwwk', '.kwwwwwk.', '.kwwkwwk.', 'kwwk.kwwk', 'kkk...kkk'], { w: '#ffffff', h: '#ffffff', k: '#4a3326' });
+  paintMap(scene, 'p_twinkle', ['.w.', 'www', '.w.'], W);
+  paintMap(scene, 'p_popring', ['..www..', '.w...w.', 'w.....w', 'w.....w', 'w.....w', '.w...w.', '..www..'], W);
   for (const attr of ATTRS) {
     const pal = { ...BASE_PALETTE, ...ATTR_PALETTES[attr] };
     paintMap(scene, `arrow_${attr}`, ['L......k.', '.Lbbbbbwk', 'L......k.'], pal);

@@ -39,6 +39,19 @@ export class Vfx {
       speedY: { min: -140, max: -60 }, speedX: { min: -20, max: 20 }, lifespan: { min: 400, max: 800 },
       scale: { start: DOT * 1.5, end: 0 }, alpha: { start: 1, end: 0 }, tint: [0xffffff, 0xfff2a0], blendMode: 'ADD'
     });
+    // 몬스터 처치 (2026-11-21): 파스텔 별이 위로 톡 튀어 오르며 빙글 돌다 떨어지고 작아진다 + 작은 반짝이 + 퍼지는 고리.
+    // 입자 하나하나가 2px 도트 그림(7x7 별), 한 발사기로 모두 처리하고 동시 상한을 둬 물량이 몰려 죽어도 가볍다
+    const CUTE = [0xffe066, 0xff8fb1, 0x8fd4ff, 0xb6f09c, 0xffffff];
+    mk('cuteStar', 'p_cutestar', {
+      speed: { min: 70, max: 170 }, angle: { min: 200, max: 340 }, gravityY: 320, rotate: { start: 0, end: 360 },
+      lifespan: { min: 500, max: 750 }, scale: { start: DOT, end: 0.6, ease: 'Expo.easeIn' }, alpha: { start: 1, end: 0, ease: 'Expo.easeIn' }, tint: CUTE, maxParticles: 400
+    });
+    mk('cuteTwinkle', 'p_twinkle', {
+      speed: { min: 30, max: 110 }, lifespan: { min: 300, max: 500 }, scale: { start: DOT * 1.5, end: 0, ease: 'Expo.easeIn' }, tint: CUTE, blendMode: 'ADD', maxParticles: 300
+    });
+    mk('cutePop', 'p_popring', {
+      speed: 0, lifespan: 220, scale: { start: DOT * 0.6, end: DOT * 2 }, alpha: { start: 0.9, end: 0 }, tint: 0xffffff, maxParticles: 120
+    });
     mk('curse', 'p_spark', {
       speed: { min: 20, max: 90 }, lifespan: { min: 300, max: 600 }, scale: { start: DOT * 1.5, end: 0 }, tint: [0xb47cff, 0x6a3fb8], blendMode: 'ADD'
     });
@@ -171,13 +184,17 @@ export class Vfx {
     return true;
   }
 
-  /** 몬스터 사망: 시트가 나오면 true (아니면 GameScene 이 픽셀 파편으로 대신한다) */
+  /** 몬스터 사망 (2026-11-21 귀여운 별 터짐): 일반 별 3 + 반짝이 2 · 정예 별 7 · 보스 폭발 시트 + 별 18. 언제나 true */
   death(m) {
+    const n = m.isBoss ? 18 : m.kind === 'elite' ? 7 : 3;
+    this.em.cutePop.explode(1, m.x, m.y - 6);
+    this.em.cuteStar.explode(n, m.x, m.y - 6);
+    this.em.cuteTwinkle.explode(m.isBoss ? 10 : 2, m.x, m.y - 6);
     if (m.isBoss) {
       this.s.cameras.main.shake(160, 0.004);
-      return this.play('boss_death', m.x, m.y, { depth: DEPTH.fx + 1, optional: false });
+      this.play('boss_death', m.x, m.y, { depth: DEPTH.fx + 1, optional: false });
     }
-    return this.play('death', m.x, m.y, { tint: m.attr });
+    return true;
   }
 
   /** 몬스터 처치 골드 동전 (동시 MAX_COIN_FX 개까지, 넘으면 생략). 몬스터·용병보다 아래(바닥)에 깔린다 */

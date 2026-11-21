@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
+import { Kinetic } from '../ui/kinetic.js';
 import { GAME_W, GAME_H, WIDE } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
@@ -177,17 +178,30 @@ export class UpgradeScene extends Phaser.Scene {
     this.setZoom(1);
   }
 
-  clampPan() {
-    const lim = 160 + 200 * (this.zoom - 0.6);
-    this.tree.x = Phaser.Math.Clamp(this.tree.x, CENTER.x - lim, CENTER.x + lim);
-    this.tree.y = Phaser.Math.Clamp(this.tree.y, CENTER.y - lim, CENTER.y + lim);
+  get panLim() {
+    return 160 + 200 * (this.zoom - 0.6);
   }
 
+  clampPan() {
+    const lim = this.panLim;
+    this.tree.x = Phaser.Math.Clamp(this.tree.x, CENTER.x - lim, CENTER.x + lim);
+    this.tree.y = Phaser.Math.Clamp(this.tree.y, CENTER.y - lim, CENTER.y + lim);
+    this.kx?.sync(this.tree.x);
+    this.ky?.sync(this.tree.y);
+  }
+
+  /** 끌어서 옮기기 — 관성 (2026-11-21): 놓으면 미끄러지고, 끝을 넘기면 고무줄처럼 돌아온다 */
   setupPan() {
+    const axis = (key, c) =>
+      new Kinetic(this, { min: () => c - this.panLim, max: () => c + this.panLim, value: this.tree[key], onChange: (v) => (this.tree[key] = Math.round(v)) });
+    this.kx = axis('x', CENTER.x);
+    this.ky = axis('y', CENTER.y);
     this.input.on('pointerdown', (p) => {
-      this.moved = false;
+      this.moved = this.kx.moving || this.ky.moving; // 미끄러지는 중에 누르면 멈추기만 (노드 선택 안 함)
       if (p.worldY < VIEW.top || p.worldY > VIEW.bottom || p.worldX > VIEW.right) return;
-      this.drag = { x: p.worldX, y: p.worldY, tx: this.tree.x, ty: this.tree.y };
+      this.drag = { x: p.worldX, y: p.worldY };
+      this.kx.down(p.downTime);
+      this.ky.down(p.downTime);
     });
     this.input.on('pointermove', (p) => {
       if (!this.drag || !p.isDown) return;
@@ -195,10 +209,14 @@ export class UpgradeScene extends Phaser.Scene {
       const dy = p.worldY - this.drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 8) this.moved = true;
       if (!this.moved) return;
-      this.tree.setPosition(this.drag.tx + dx, this.drag.ty + dy);
-      this.clampPan();
+      this.kx.drag(dx, p.moveTime);
+      this.ky.drag(dy, p.moveTime);
     });
-    this.input.on('pointerup', () => (this.drag = null));
+    this.input.on('pointerup', (p) => {
+      this.drag = null;
+      this.kx.up(p.upTime);
+      this.ky.up(p.upTime);
+    });
     this.input.on('wheel', (_p, _o, _dx, dy) => this.setZoom(this.zoom - Math.sign(dy) * 0.1));
   }
 

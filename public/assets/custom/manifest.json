@@ -6434,6 +6434,126 @@
   },
   "relic_star_dust": {
    "file": "relics/star_dust.png"
+  },
+  "item_whet": {
+   "file": "items/whet.png"
+  },
+  "item_feath": {
+   "file": "items/feath.png"
+  },
+  "item_mana": {
+   "file": "items/mana.png"
+  },
+  "item_lens": {
+   "file": "items/lens.png"
+  },
+  "item_powd": {
+   "file": "items/powd.png"
+  },
+  "item_coin": {
+   "file": "items/coin.png"
+  },
+  "item_seal": {
+   "file": "items/seal.png"
+  },
+  "item_giant_sword": {
+   "file": "items/giant_sword.png"
+  },
+  "item_twin_dagger": {
+   "file": "items/twin_dagger.png"
+  },
+  "item_rune_sword": {
+   "file": "items/rune_sword.png"
+  },
+  "item_marksman_scope": {
+   "file": "items/marksman_scope.png"
+  },
+  "item_scatter": {
+   "file": "items/scatter.png"
+  },
+  "item_bounty_mark": {
+   "file": "items/bounty_mark.png"
+  },
+  "item_gale_boots": {
+   "file": "items/gale_boots.png"
+  },
+  "item_mana_quill": {
+   "file": "items/mana_quill.png"
+  },
+  "item_repeater": {
+   "file": "items/repeater.png"
+  },
+  "item_fire_quiver": {
+   "file": "items/fire_quiver.png"
+  },
+  "item_horseshoe": {
+   "file": "items/horseshoe.png"
+  },
+  "item_archmage_orb": {
+   "file": "items/archmage_orb.png"
+  },
+  "item_star_scope": {
+   "file": "items/star_scope.png"
+  },
+  "item_mad_grimoire": {
+   "file": "items/mad_grimoire.png"
+  },
+  "item_alchemy_flask": {
+   "file": "items/alchemy_flask.png"
+  },
+  "item_eagle_scope": {
+   "file": "items/eagle_scope.png"
+  },
+  "item_siege_sight": {
+   "file": "items/siege_sight.png"
+  },
+  "item_merchant_scale": {
+   "file": "items/merchant_scale.png"
+  },
+  "item_cannonball": {
+   "file": "items/cannonball.png"
+  },
+  "item_treasure_bomb": {
+   "file": "items/treasure_bomb.png"
+  },
+  "item_guild_vault": {
+   "file": "items/guild_vault.png"
+  },
+  "item_emblem_warrior": {
+   "file": "items/emblem_warrior.png"
+  },
+  "item_emblem_ranger": {
+   "file": "items/emblem_ranger.png"
+  },
+  "item_emblem_assassin": {
+   "file": "items/emblem_assassin.png"
+  },
+  "item_emblem_gunner": {
+   "file": "items/emblem_gunner.png"
+  },
+  "item_emblem_hexer": {
+   "file": "items/emblem_hexer.png"
+  },
+  "item_emblem_support": {
+   "file": "items/emblem_support.png"
+  },
+  "item_emblem_north": {
+   "file": "items/emblem_north.png"
+  },
+  "item_emblem_knight": {
+   "file": "items/emblem_knight.png"
+  },
+  "item_emblem_tower": {
+   "file": "items/emblem_tower.png"
+  },
+  "item_emblem_grove": {
+   "file": "items/emblem_grove.png"
+  },
+  "item_emblem_lake": {
+   "file": "items/emblem_lake.png"
+  },
+  "item_emblem_guild": {
+   "file": "items/emblem_guild.png"
   }
  }
 }
