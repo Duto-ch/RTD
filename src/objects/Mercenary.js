@@ -175,8 +175,16 @@ export class Mercenary extends Phaser.GameObjects.Container {
   }
 
   snapToCell() {
+    // 대기석 (2026-11-21): HUD 대기석 칸 위 — UI 보다 위에 그린다
+    if (this.reserved) {
+      const p = this.scene.hud.reservePos(this.slot);
+      this.setPosition(p.x, p.y - 4); // 발밑 고리까지 칸 안에 들어오게 조금 위로
+      this.setDepth(DEPTH.ui + 1);
+      return;
+    }
     const c = cellCenter(this.col, this.row);
     this.setPosition(c.x, c.y);
+    this.setDepth(DEPTH.merc);
   }
 
   /** 별 승급 (같은 캐릭터 3장 → 다음 별). 스킬 수치도 그 별로 */
