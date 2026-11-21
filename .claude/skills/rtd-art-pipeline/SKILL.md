@@ -32,6 +32,10 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 ## 필드 배경
 - 코드 생성(`src/art/textures.js`): 지역 배경 `bg_<지역>` · 석판 `field_tile_*` · 성벽 `field_wall` (`WALL_RADIUS`·`FLOOR_RADIUS`·`PATH_JITTER`). manifest 스킨으로 교체 가능, 예시 `docs/drafts/field-skin/`
 
+## 배경 장식 (움직이는 나무, 2026-11-21)
+- 초원 나무: 사용자 그림 `docs/drafts/tree-sway/tree.png`(50x50) → `python3 docs/drafts/tree-sway/sway.py` 가 28프레임 흔들림(밑동 고정·위로 갈수록 최대 ±2px, 잎 안쪽 무늬만 1px 바스락, 원본 색 그대로) 시트를 만들고 `public/assets/custom/deco/tree_sway.png` + manifest `deco_tree` 에 넣는다
+- 놓는 자리는 지역별로 `src/data/decor.js`(밑동 좌표·시작 박자), 그리기 `src/art/decor.js`(`addBiomeDecor`·`swapBiomeDecor`, 몬스터 아래 층). 새 지역 장식도 같은 방식으로 키를 더한다
+
 ## 외부 그림 도구
 - **perfectPixel** (`.claude/skills/perfectpixel/`): AI "픽셀 풍" 이미지를 진짜 격자로 정리 — `python3 .claude/skills/perfectpixel/pp.py in.png out.png --preview 8 --key-white --colors 12` (`pip install "perfect-pixel[opencv]" pillow`)
 - **PixelLab MCP** (`.mcp.json`): 토큰은 저장소에 넣지 않는다 — `Bearer proxy-injected` 자리에 클라우드 환경 비밀값이 들어간다

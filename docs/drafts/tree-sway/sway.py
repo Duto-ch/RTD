@@ -4,8 +4,10 @@
 - 바스락: 실루엣(외곽선)은 위 흔들림만 따르고, 잎 안쪽 무늬(밝은 잎·중간·그늘 3톤)만 덩어리마다 다른 박자로 1px 일렁인다.
 - 색은 원본 11색 그대로 (새 색 없음), 도트 격자 그대로 — 회전·흐림 없이 줄마다 정수 칸만 옮긴다.
 실행: python3 docs/drafts/tree-sway/sway.py → sheet.png (50x50 × 28, 가로) · sway.gif (6배) · preview.png (게임 크기 2px · 4배 프레임)
+      게임 적용(2026-11-21): 같은 실행이 public/assets/custom/deco/tree_sway.png + manifest `deco_tree`(sway 28프레임 × 100ms, 밑동 22,46) 를 쓴다.
+      놓는 자리는 src/data/decor.js, 그리는 곳은 src/art/decor.js
 """
-import os, math
+import os, math, json, shutil
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -79,3 +81,16 @@ if __name__ == '__main__':
     pv.convert('RGB').save(os.path.join(HERE, 'preview.png'))
     print('frames', N, 'ms', MS, 'colors', len({p[:3] for f in frames for p in f.get_flattened_data() if p[3]}),
           'sway', [sway(TOP_Y, i / N) for i in range(N)])
+
+
+# ── 게임에 넣기 (manifest 의 다른 항목은 그대로) ──
+ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+dst = os.path.join(ROOT, 'public', 'assets', 'custom', 'deco')
+os.makedirs(dst, exist_ok=True)
+shutil.copyfile(os.path.join(HERE, 'sheet.png'), os.path.join(dst, 'tree_sway.png'))
+mf_path = os.path.join(ROOT, 'public', 'assets', 'custom', 'manifest.json')
+mf = json.load(open(mf_path))
+mf['sprites']['deco_tree'] = {'file': 'deco/tree_sway.png', 'frameWidth': W, 'frameHeight': H, 'scale': 1, 'pivotX': 22, 'pivotY': 46,
+                              'animations': {'sway': {'frames': list(range(N)), 'ms': [MS] * N, 'loop': True}}}
+json.dump(mf, open(mf_path, 'w'), ensure_ascii=False, indent=1)
+print('installed deco_tree')

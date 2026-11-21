@@ -1433,3 +1433,28 @@ test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃
   await page.screenshot({ path: SHOT('48-wall-gates'), clip: { x: 40, y: 236, width: 464, height: 488 } });
   expect(errors).toEqual([]);
 });
+
+test('배경 나무 (2026-11-21): 초원 필드 위아래에 바람에 흔들리는 나무 · 28프레임 반복 · 박자가 서로 다름 · 지역이 바뀌면 사라짐', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const anim = g.anims.get('deco_tree:sway');
+    return { n: g.decor.length, frames: anim.frames.length, loop: anim.repeat, playing: g.decor.every((s) => s.anims.isPlaying),
+      phases: new Set(g.decor.map((s) => s.anims.currentFrame.index)).size, w: g.decor[0].displayWidth,
+      belowMonsters: g.decor.every((s) => s.depth < 10), top: g.decor.some((s) => s.y < 480), bottom: g.decor.some((s) => s.y > 480) };
+  });
+  expect(r.n).toBeGreaterThanOrEqual(4);
+  expect(r.frames).toBe(28);
+  expect(r.loop).toBe(-1);
+  expect(r.playing).toBe(true);
+  expect(r.phases).toBeGreaterThan(2); // 나무끼리 같은 박자로 흔들리지 않게
+  expect(r.w).toBe(100); // 50px 그림 × 아트 1px = 화면 2px
+  expect(r.belowMonsters).toBe(true);
+  expect(r.top && r.bottom).toBe(true);
+  await page.screenshot({ path: SHOT('49-grass-trees') });
+  // 사막(11웨이브)으로 바뀌면 초원 나무는 서서히 사라진다
+  await game(page, () => window.game.scene.getScene('Game').changeBiome({ id: 'desert', name: '사막' }));
+  await page.waitForTimeout(1500);
+  expect(await game(page, () => window.game.scene.getScene('Game').decor.length)).toBe(0);
+  expect(errors).toEqual([]);
+});
