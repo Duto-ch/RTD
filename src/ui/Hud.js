@@ -52,7 +52,7 @@ export const HUD = WIDE
       // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
       line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 76 : 88, subY: 112,
       hp: { x: 236, y: 62, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
-      timer: { x: GAME_W - 194, w: 86, h: 22 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 사용자 요청: 남은 시간·바로 시작 작게
+      timer: { x: GAME_W - 198, w: 86, h: 24 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 작게 (Stitch 점검 뒤 76x30 으로 키웠다가 사용자 결정으로 다시 작게, 글자 12 유지)
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       shop: { x: 12, y: 786, w: GAME_W - 24, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
@@ -174,8 +174,8 @@ export class Hud {
     panel(s, HUD.timer.x, HUD.line2 - HUD.timer.h / 2, HUD.timer.w, HUD.timer.h, 'soft').setDepth(D);
     const clock = s.add.graphics().setDepth(D);
     drawIcon(clock, 'clock', HUD.timer.x + 15, HUD.line2, 12, C.ink);
-    this.timerText = uiText(s, HUD.timer.x + 27, HUD.line2, '', 11, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, HUD.next.h, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 11 });
+    this.timerText = uiText(s, HUD.timer.x + 27, HUD.line2, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, HUD.next.h, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
 
     // 골드 / 몬스터 수
     const coin = s.add.graphics().setDepth(D);
@@ -207,8 +207,8 @@ export class Hud {
     sep.fillStyle(C.line, 1).fillRect(T.x + 364, cy - 14, 2, 28);
     const clock = s.add.graphics().setDepth(D);
     drawIcon(clock, 'clock', T.x + 388, cy, 14, C.sub);
-    this.timerText = uiText(s, T.x + 402, cy, '', 11, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, T.x + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 11 }); // 2026-11-21 작게 (이전 88x32)
+    this.timerText = uiText(s, T.x + 402, cy, '', 12, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, T.x + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 }); // 2026-11-21 작게 (이전 88x32, 74x30 은 되돌림)
     const coin = s.add.graphics().setDepth(D);
     drawIcon(coin, 'coin', T.x + 586, cy, 16, 0x6a4a10);
     this.goldText = uiText(s, T.x + 600, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
@@ -235,9 +235,10 @@ export class Hud {
     this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + 2, B.y + 2, B.w - 4, B.h - 4, (B.h - 4) / 2);
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
+    this.hpPill = s.add.graphics();
     this.hpHeart = s.add.graphics();
-    this.countText = uiText(s, 0, 0, '', fontSize, '#ffffff', 'bold').setOrigin(0, 0.5).setStroke('#2b1d12', 4);
-    this.hpLabel.add([this.hpHeart, this.countText]);
+    this.countText = uiText(s, 0, 0, '', fontSize, CSS.ink, 'bold').setOrigin(0, 0.5);
+    this.hpLabel.add([this.hpPill, this.hpHeart, this.countText]);
   }
 
   /** 막대 다시 그리기 (refresh 에서) */
@@ -266,8 +267,11 @@ export class Hud {
     const total = hw + gap + this.countText.width;
     const left = Math.round(-total / 2);
     this.hpHeart.clear();
-    drawIcon(this.hpHeart, 'heart', left + hw / 2, 1, 14, 0xff6b5e);
+    drawIcon(this.hpHeart, 'heart', left + hw / 2, 1, 14, 0xd2473a);
     this.countText.setPosition(left + hw + gap, 0);
+    // 크림 알약 (2026-11-21 Stitch 시안): 막대가 어떤 색이든 수치가 읽힌다
+    const ph = B.h - 8;
+    this.hpPill.clear().fillStyle(0xfbf7ec, 0.96).fillRoundedRect(left - 8, -ph / 2, total + 16, ph, ph / 2);
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */
@@ -382,15 +386,15 @@ export class Hud {
     panel(s, K.x, K.y, K.w, K.h, 'card').setDepth(D - 2); // 포근한 카드형: 둥근 크림 시트
     const SM = HUD.small;
     const v = WIDE ? 'outline' : 'card';
-    const fs = WIDE ? 11 : 12;
+    const fs = 12;
     // 배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (2026-11-18, 정지 버튼 합침)
     this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => s.cycleSpeed(), { variant: v, icon: 'speed', fontSize: fs });
     this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: v, icon: 'menu', fontSize: fs });
     this.createUpgradeButton(SM, v, fs);
     const E = HUD.estate;
-    this.estateBtn = new Button(s, E.x, E.y, E.w, E.h, '', () => s.levelUpEstate(), { variant: 'gold', icon: 'house', fontSize: WIDE ? 11 : 12 }); // 가로(높이 42)는 아이콘 왼쪽
+    this.estateBtn = new Button(s, E.x, E.y, E.w, E.h, '', () => s.levelUpEstate(), { variant: 'gold', icon: 'house', fontSize: 12 }); // 가로(높이 42)는 아이콘 왼쪽
     const R = HUD.reroll;
-    this.rerollBtn = new Button(s, R.x, R.y, R.w, R.h, '', () => s.reroll(), { variant: 'primary', icon: 'reroll', fontSize: WIDE ? 11 : 12 });
+    this.rerollBtn = new Button(s, R.x, R.y, R.w, R.h, '', () => s.reroll(), { variant: 'primary', icon: 'reroll', fontSize: 12 });
     // 상점 칸 / 용병 카드 (같은 자리)
     this.shopBox = s.add.container(0, 0).setDepth(D);
     this.infoBox = s.add.container(0, 0).setDepth(D).setVisible(false);
@@ -413,7 +417,7 @@ export class Hud {
       c.add(g);
       if (!slot || slot.sold) {
         g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h, 10);
-        c.add(uiText(s, w / 2, h / 2, slot?.sold ? '구매' : '-', 11, CSS.sub, '600').setOrigin(0.5));
+        c.add(uiText(s, w / 2, h / 2, slot?.sold ? '구매' : '-', 12, CSS.sub, '600').setOrigin(0.5));
         this.shopBox.add(c);
         return;
       }
@@ -426,13 +430,16 @@ export class Hud {
       g.lineStyle(3, gc, 1).strokeRoundedRect(1.5, 1.5, w - 3, h - 3, 10);
       g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
       const img = charImage(s, w / 2, WIDE ? 32 : 40, ch);
-      const nm = uiText(s, w / 2, h - 10, `${ch.name} ${price}G`, 11, ch.grade === 2 ? CSS.white : '#2b1d2f', 'bold').setOrigin(0.5);
-      this.fitText(nm, w - 6);
-      c.add([img, nm]);
+      // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
+      const tc = ch.grade === 2 ? CSS.white : '#2b1d2f';
+      const pt = uiText(s, w - 5, h - 10, `${price}G`, 12, tc, 'bold').setOrigin(1, 0.5);
+      const nm = uiText(s, 5, h - 10, ch.name, 12, tc, 'bold').setOrigin(0, 0.5);
+      this.fitText(nm, w - 10 - pt.width - 4);
+      c.add([img, nm, pt]);
       // 계열·출신 상징 (2026-11-21: 아래 가운데, 이름 띠 위에 걸쳐 · 글자 대신 모양 그림)
       [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 10 : -10), h - 30, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
-      if (owned) c.add(uiText(s, w - 6, 6, `${owned}장`, 10, CSS.primary, 'bold').setOrigin(1, 0));
+      if (owned) c.add(uiText(s, w - 5, 5, `${owned}장`, 12, CSS.primary, 'bold').setOrigin(1, 0));
       if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
       const hit = s.add.rectangle(0, 0, w, h - 4, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => c.setScale(0.96));
@@ -464,8 +471,8 @@ export class Hud {
     panel(s, B.x, B.y, B.w, B.h, WIDE ? 'card' : 'strip').setDepth(D - 1);
     if (WIDE) uiText(s, B.x + 18, B.y + 16, '아이템', 15, CSS.primary, 'bold').setDepth(D);
     const sb = B.smith;
-    this.smithBtn = new Button(s, sb.x, sb.y, sb.w, sb.h, '', () => s.smithBuy(), { variant: 'gold', icon: 'anvil', fontSize: 11 });
-    this.toolText = uiText(s, B.tool.x, B.tool.y, '', 11, CSS.ink, 'bold').setOrigin(0.5).setDepth(D);
+    this.smithBtn = new Button(s, sb.x, sb.y, sb.w, sb.h, '', () => s.smithBuy(), { variant: 'gold', icon: 'anvil', fontSize: 12 });
+    this.toolText = uiText(s, B.tool.x, B.tool.y, '', 12, CSS.ink, 'bold').setOrigin(0.5).setDepth(D);
     this.benchRow = s.add.container(0, 0).setDepth(D + 1);
     this.refreshBench();
   }
@@ -595,18 +602,25 @@ export class Hud {
         y = HUD.syn.y + 54 + i * 38;
         if (y > HUD.syn.y + HUD.syn.h - 20) return;
       } else {
-        x = HUD.relic.x + 18 + i * 50;
+        x = HUD.relic.x + 22 + i * 62;
         y = HUD.relic.y + 20;
         if (x > HUD.relic.x + HUD.relic.w - 160) return; // 유물 4칸 자리
       }
       const c = s.add.container(x, y);
+      // 켜진 시너지는 연두 알약으로 강조 (2026-11-21 Stitch 시안)
+      if (on) {
+        const pill = s.add.graphics();
+        const pw = WIDE ? 188 : 56;
+        pill.fillStyle(0xd8fcb4, 1).fillRoundedRect(-15, -14, pw, 28, 14).lineStyle(1.5, 0x56743f, 1).strokeRoundedRect(-15, -14, pw, 28, 14);
+        c.add(pill);
+      }
       c.add(traitBadge(s, 0, 0, k, 12, on));
       const label = next ? `${n}/${next.n}` : `${n}`;
       if (WIDE) {
         c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
         c.add(uiText(s, 168, -1, label, 13, on ? CSS.primary : CSS.sub, 'bold').setOrigin(1, 0.5));
       } else {
-        c.add(uiText(s, 15, 1, label, 11, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0, 0.5));
+        c.add(uiText(s, 15, 1, label, 12, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0, 0.5));
       }
       const hit = s.add.rectangle(WIDE ? 80 : 10, 0, WIDE ? 180 : 46, 30, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => this.showSynergyTip(k, x, y));
@@ -677,14 +691,14 @@ export class Hud {
     c.add(panel(s, B.x, B.y, B.w, B.h, 'soft'));
     this.infoAvatar = panelImage(s, B.x + 40, B.y + B.h / 2, 'soft', 56, 56);
     this.infoPortrait = s.add.sprite(B.x + 40, B.y + B.h / 2, 'pixel').setScale(PX - 1);
-    this.infoTitle = uiText(s, B.x + 80, B.y + 12, '', 15, CSS.ink, 'bold');
-    this.infoSub = uiText(s, B.x + 80, B.y + 33, '', 11, CSS.sub, 'bold');
-    this.infoBody = uiText(s, B.x + 80, B.y + 52, '', 11, CSS.ink, 'bold');
+    this.infoTitle = uiText(s, B.x + 80, B.y + 10, '', 15, CSS.ink, 'bold');
+    this.infoSub = uiText(s, B.x + 80, B.y + 31, '', 12, CSS.sub, 'bold');
+    this.infoBody = uiText(s, B.x + 80, B.y + 52, '', 12, CSS.ink, 'bold');
     this.manaBar = s.add.graphics();
     const bx = B.x + B.w - 64;
     this.skillBtn = new Button(s, bx, B.y + B.h / 2 - 20, 108, 32, '스킬 정보', () => s.selected && this.showSkillPopup(s.selected), { variant: 'primary', fontSize: 12 });
-    this.sellBtn = new Button(s, bx, B.y + B.h / 2 + 20, 108, 32, '판매', () => s.selected && s.sell(s.selected), { variant: 'outline', fontSize: 12 });
-    this.toolBtn = new Button(s, bx - 108, B.y + B.h / 2 - 20, 92, 32, '해제 도구', () => s.selected && s.useTool(s.selected), { variant: 'gold', fontSize: 11 });
+    this.sellBtn = new Button(s, bx, B.y + B.h / 2 + 20, 108, 32, '판매', () => s.selected && s.sell(s.selected), { variant: 'danger', fontSize: 12 });
+    this.toolBtn = new Button(s, bx - 108, B.y + B.h / 2 - 20, 92, 32, '해제 도구', () => s.selected && s.useTool(s.selected), { variant: 'gold', fontSize: 12 });
     this.itemRow = s.add.container(0, 0);
     c.add([this.infoAvatar, this.infoPortrait, this.infoTitle, this.infoSub, this.infoBody, this.manaBar, this.skillBtn, this.sellBtn, this.toolBtn, this.itemRow]);
   }
@@ -723,7 +737,7 @@ export class Hud {
     g.fillStyle(0x4a8fe8, 1).fillRoundedRect(mx, my, Math.max(8, (mw * m.mana) / m.maxMana), 8, 4);
     this.infoBody.setY(B.y + 50);
     if (!this.manaText) {
-      this.manaText = uiText(s, 0, 0, '', 10, CSS.sub, 'bold').setOrigin(0, 0.5);
+      this.manaText = uiText(s, 0, 0, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5);
       this.infoBox.add(this.manaText);
     }
     this.manaText.setPosition(mx + mw + 8, my + 4).setText(`${Math.floor(m.mana)}/${m.maxMana} 「${m.def.name}」`);
