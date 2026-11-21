@@ -99,20 +99,29 @@ test('같은 캐릭터 3장 → 별 승급 (인원이 꽉 차도 3장째는 살 
   expect(errors).toEqual([]);
 });
 
-test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼·Space 키)', async ({ page }) => {
+test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼) · 단축키 Space = 정지/다시 · R = 리롤', async ({ page }) => {
   const errors = await startGame(page);
   const wave = () => game(page, () => window.game.scene.getScene('Game').wave);
   await page.mouse.click(544 - 68, 56); // 시작 전 필드는 비어 있음 → 동작
   await page.mouse.click(544 - 68, 56); // 몬스터가 나오는 중 → 무시
   expect(await wave()).toBe(1);
   await page.waitForTimeout(700);
-  await page.keyboard.press('Space'); // 몬스터가 남아 있음 → 무시
+  await page.mouse.click(544 - 68, 56); // 몬스터가 남아 있음 → 무시
   expect(await wave()).toBe(1);
+  // Space = 게임 정지/다시 (2026-11-21, 이전 바로 시작)
+  await page.keyboard.press('Space');
+  expect(await game(page, () => window.game.scene.getScene('Game').paused)).toBe(true);
+  await page.keyboard.press('Space');
+  expect(await game(page, () => window.game.scene.getScene('Game').paused)).toBe(false);
+  // R = 리롤 (골드가 리롤 값만큼 줄고 상점이 바뀐다)
+  const rr = await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 500; return { gold: g.gold, price: g.rerollPrice }; });
+  await page.keyboard.press('r');
+  expect(await game(page, () => window.game.scene.getScene('Game').gold)).toBe(rr.gold - rr.price);
   expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(false);
   // 전부 처치하면 다시 활성화
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.spawnQueue = []; for (const m of [...g.monsters]) g.killMonster(m); g.cleanupMonsters(); g.refreshHud(); });
   expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(true);
-  await page.keyboard.press('Space');
+  await page.mouse.click(544 - 68, 56);
   expect(await wave()).toBe(2);
   expect(errors).toEqual([]);
 });
