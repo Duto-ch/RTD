@@ -5,7 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 const ALT = process.argv[2]; // 없으면 모두 기본 나무
-const L = JSON.parse(fs.readFileSync(path.join(__dirname, 'layouts.json'), 'utf8'));
+const FILE = process.argv[3] || 'layouts.json'; // layouts_plus.json = 무작위 나무를 더한 판 (add_random.py)
+const TAG = FILE === 'layouts.json' ? '' : '-' + FILE.replace('layouts_', '').replace('.json', '');
+const L = JSON.parse(fs.readFileSync(path.join(__dirname, FILE), 'utf8'));
 (async () => {
   const b = await chromium.launch();
   for (const [name, trees] of Object.entries(L)) {
@@ -31,7 +33,7 @@ const L = JSON.parse(fs.readFileSync(path.join(__dirname, 'layouts.json'), 'utf8
       });
     }, [trees, ALT]);
     await p.waitForTimeout(300);
-    await p.screenshot({ path: path.join(__dirname, `layout-${name}${ALT ? '-' + ALT : ''}.png`) });
+    await p.screenshot({ path: path.join(__dirname, `layout-${name}${ALT ? '-' + ALT : ''}${TAG}.png`) });
     await p.close();
   }
   await b.close();
