@@ -143,7 +143,7 @@ const COZY_STYLES = {
   strip: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 99 },
   dark: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 99 },
   primary: { fill: '#7a9a5c', line: '#56743f', lip: '#56743f', r: 18 },
-  danger: { fill: '#c8644f', line: '#9a4636', lip: '#9a4636', r: 18 },
+  danger: { fill: '#c2453a', line: '#8e2f26', lip: '#8e2f26', r: 18 },
   gold: { fill: '#e2b54a', line: '#a8801c', lip: '#a8801c', r: 18 },
   outline: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.16)', r: 18 },
   soft: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },

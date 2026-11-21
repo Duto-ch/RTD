@@ -228,6 +228,50 @@ def fire28(ch, weapon, hand, idle_deg):
     return out
 
 
+# ───────── 두 번 찌르기 (단검, 2026-11-21 전체 적용 때 추가) ─────────
+def stab28(ch, weapon='dagger', hand=(19, 20), keys=None):
+    """예비 → 빠른 첫 찌르기 → 살짝 빼기 → 더 깊은 두 번째 찌르기 → 멈춤 → 45°로 회복"""
+    b = ch['img']
+    pos = track([(0, (0, 0, 0, 0), 'l'), (3, (-1, 0, -2, 0), 'out'), (6, (-1, 1, -3, 0), 'io'), (8, (1, -1, 4, 1), 'in'), (9, (1, 0, 5, 1), 'l'),
+                 (11, (1, 0, 5, 1), 'l'), (13, (0, 0, -2, 0), 'out'), (15, (1, -1, 4, 1), 'in'), (16, (1, 0, 6, 1), 'l'), (20, (1, 0, 6, 1), 'l'),
+                 (27, (0, 0, 0, 0), 'out')])
+    out = []
+    for f in range(N):
+        deg = 45 if f in (0, 1) or f >= 25 else 90
+        fx = 1 if f in (7, 8, 14, 15) else 3 if f in (9, 16, 17) else 2 if f in (10, 18, 19) else 0
+        hdx, hdy, hx, hy = pos[f]
+        hd = (hand[0] + hx, hand[1] + hy)
+        def before(c, x, y, fx=fx):
+            if fx == 1:
+                g = ImageDraw.Draw(c)
+                for k, yy in enumerate((y - 1, y + 1)):
+                    g.line([(x - 7 + k * 2, yy), (x - 3, yy)], fill=A.SMEAR)
+        def after(c, x, y, fx=fx, deg=deg, hd=hd):
+            if fx >= 2:
+                tx, ty = A.tip_of(weapon, deg, (A.OX + hd[0], A.OY + hd[1]))
+                A.spark(c, tx + 1, ty, 3 if fx == 3 else 1)
+        out.append((A.compose(A.pose(b, -hdx if ch.get('mirror') else hdx, hdy), weapon, deg, hd, extra_before=before, extra_after=after, ch=ch,
+                              hands=A.hands_for(ch, weapon, deg)), 40))
+    return out
+
+
+# ───────── 게임 적용 (2026-11-21 사용자 결정: 28프레임 공격을 전체 캐릭터에) ─────────
+# 타격·발사 프레임 (manifest attack.hit = 이 번호 프레임이 시작될 때 피해·투사체가 나간다, 0부터)
+HIT28 = {'sword': 15, 'axe': 16, 'hammer': 16, 'spear': 16, 'dagger': 9, 'staff': 13, 'staff_ice': 13, 'staff_leaf': 13,
+         'bow': 15, 'gun': 14, 'crossbow': 14}
+
+
+def install():
+    """anim(char-13) 의 공격 함수를 28프레임 판으로 바꿔 끼운다. 반환: 총·석궁용 fire (roster_art 의 fire 자리)"""
+    def swing(ch, weapon, hand=(19, 20), idle_deg=0):
+        return swing28(weapon in ('axe', 'hammer'))(ch, weapon, hand, idle_deg)
+
+    def thrust(ch, weapon='spear', hand=(19, 20), keys=None):
+        return (stab28 if weapon == 'dagger' else thrust28)(ch, weapon, hand, keys)
+    A.swing, A.thrust, A.cast, A.shoot = swing, thrust, cast28, shoot28
+    return fire28
+
+
 def uri(img):
     bb = io.BytesIO()
     img.save(bb, 'PNG')

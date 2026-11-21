@@ -10,7 +10,7 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 
 ## 캐릭터 104명
 - 다시 만들기: `python3 docs/drafts/roster-art/roster_art.py && python3 tools/import-roster-art.py`
-  → `public/assets/custom/chars/<id>.png` + manifest `char_<id>` (프레임 56x40, 대기 8 + 공격, 프레임별 길이 `ms`, `facing: "left"`, 몸 중심 27,23)
+  → `public/assets/custom/chars/<id>.png` + manifest `char_<id>` (프레임 56x40, 대기 8 + 공격 28, 프레임별 길이 `ms`, `facing: "left"`, 몸 중심 27,23)
 - 예외 3명(2026-11-20): 아서·이졸데·오베론은 몸 그림을 `docs/drafts/pixellab-rule-test/` 의 새 비율 그림으로 바꿔 넣는다 (`CUSTOM_BODY`, 머리/몸 나누는 줄 19·눈 (9,15)(13,15)) + 전용 무기 `UNIQUE_WPN` + 무기 바깥으로 `WPN_DX`
 - `roster_art.py`: 캐릭터 설명(look) 키워드로 머리 모양·장식·수염·망토·날개·무기(31종 변형 `weapons_v2.py`)·방패를 정한다. 몸 색 수 `BODY_COLORS`(등급별 10·12·14·15)
 - 시안 출신 8명(카이라·베로나 등)은 `docs/drafts/char-13/anim.py` 그림을 그대로 쓴다(사용자 그림 `edit/`). 열람 https://claude.ai/artifact/KM2FJB4RDdDhGkQYhpEGBN
@@ -24,8 +24,10 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 ## 유물 아이콘
 - 30종 전용 그림 12x12 (2026-11-20 룰 v2: 10종 → 30종) 아트 px(게임에서 2px): `python3 docs/drafts/relic-icons/relics.py` → `public/assets/custom/relics/<id>.png` + manifest `relic_<id>` (미리보기 `preview.png`). 새 유물을 추가하면 이 스크립트에 모양을 더한다
 
-## 공격 모션 28프레임 (시안)
-- `python3 docs/drafts/anim28/anim28.py && python3 docs/drafts/anim28/build_view.py` — 무기 6종 한 명씩, `roster_art.py` 의 공격 함수를 28프레임 버전으로 바꿔 끼워 그린다. 열람 https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT
+## 공격 모션 28프레임 (2026-11-21 전체 적용)
+- 캐릭터 104명(시안 출신 8명 포함)의 공격은 28프레임 — `roster_art.py` 가 실행될 때 `anim28.install()` 로 공격 함수를 바꿔 끼운다(검·도끼·망치 휘두르기 · 창 찌르기 · 단검 두 번 찌르기 · 지팡이 시전 · 활 · 총·석궁). 대기 8프레임은 그대로
+- 타격·발사 프레임 `anim28.HIT28` → roster-art.json `attack.hit` → manifest. 동작을 고치면 이 번호도 맞출 것
+- 무기 6종 비교 열람(예전 시안): `python3 docs/drafts/anim28/anim28.py && python3 docs/drafts/anim28/build_view.py`, https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT
 
 ## 필드 배경
 - 코드 생성(`src/art/textures.js`): 지역 배경 `bg_<지역>` · 석판 `field_tile_*` · 성벽 `field_wall` (`WALL_RADIUS`·`FLOOR_RADIUS`·`PATH_JITTER`). manifest 스킨으로 교체 가능, 예시 `docs/drafts/field-skin/`
@@ -37,6 +39,7 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 
 ## 확정 그림 규칙 (CLAUDE.md 에서 옮김, 2026-11-20 — 결정이 바뀌면 여기를 고친다)
 - **필드 레이어 (2026-11-17)**: 지역 배경 `bg_<지역>`(땅·장식·흙길) → 석판 25칸 `field_tile_light`/`field_tile_dark`(24×24, 변형 `_b`·`_c`) → 성벽 링 `field_wall` 을 따로 쌓는다(`GameScene.createFieldLayers`). 성벽 바깥 모서리·바닥(석판) 네 모서리 둥글게(반지름 20·8도트 `WALL_RADIUS`·`FLOOR_RADIUS`, 벽돌 줄·성가퀴가 곡선을 따라 돌고 돌 색 한 단계 밝게), 몬스터 길 바깥 가장자리는 저주파 노이즈로 들쭉날쭉(±2.5도트 `PATH_JITTER`), 길 안쪽은 성벽 바로 밑까지 흙으로 덮음(2026-11-18). 각 레이어는 manifest 로 **스킨**을 씌워 바꿀 수 있다 (`docs/CUSTOM_ART.md`)
+- **성문 (2026-11-21)**: 성벽 동서남북 가운데에 성문 — 둥근 탑 2개(성가퀴 고리·깃발) + 나무 두짝 문(쇠띠·금 문고리), 가로 36 × 성벽 두께 11 아트 px 안에만(길·석판 안 가림). 깃발 색 북 빨강·동 파랑·남 초록·서 금. `textures.js` `paintGates`(`paintWall` 끝에서), 시안 `docs/drafts/wall-gates/`
 - **캐릭터 그림 (진행 중)** — 규칙은 **`docs/CHARACTER_ART.md`**(확정·현재 값·결정 대기 구분). 요약: 캔버스 24x24, 2등신·두상 크기 동일, **본체 13x13(확정)** + 위쪽 장식 공간, 월드 플리퍼 풍, 키 컬러 RGB, **팔 없음 + 둥근 손 4x4·무기 레이어 = 모든 캐릭터 공통 기준(확정)**(손은 몸통과 겹쳐도 됨), **무기는 별도 레이어·캐릭터 왼쪽·데포르메·대기 때 대각선**, 비스듬한 무기는 각도마다 새로 찍기, 방패는 오른쪽·쥔 손 숨김, **눈은 세로 1×2**(베로나처럼), **발밑은 검은 줄 대신 신발 그늘색**(로브는 옷 그늘색), 대기 숨쉬기·깜빡임 + 공격 예비·잔상·타격 멈춤, 마지막 프레임 = 대기 자세. **게임에 적용(2026-11-18)**: 104명 모두 시안 그림, 도트 1px = 화면 2px, 그림은 왼쪽을 보고 오른쪽 대상이면 반전
   - **몸 색 수는 등급별 (2026-11-18)**: 무기·손 제외 몸만 커먼 10 · 언커먼 12 · 레어 14 · 유니크 15색 이하(`BODY_COLORS`). 나머지 색 설정(외곽선 `#2b1d2f` 등)은 그대로. 시안 출신 8명은 아직 미적용
   - **마녀 고깔모자**는 모두 베로나(사용자 그림 v2)의 모자 모양 그대로, 색만 옷 색으로 (사용자 결정)
