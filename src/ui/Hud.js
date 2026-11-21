@@ -52,7 +52,7 @@ export const HUD = WIDE
       // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
       line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 76 : 88, subY: 112,
       hp: { x: 236, y: 62, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
-      timer: { x: GAME_W - 236, w: 108 }, next: { x: GAME_W - 72, w: 84 },
+      timer: { x: GAME_W - 194, w: 86, h: 22 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 사용자 요청: 남은 시간·바로 시작 작게
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
       dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
       shop: { x: 12, y: 786, w: GAME_W - 24, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
@@ -171,11 +171,11 @@ export class Hud {
 
     // 타이머 슬롯 + 바로 시작 버튼
     // 타이머 칸과 버튼 사이 14px 띄움 (2026-11-15 간격 확보)
-    panel(s, HUD.timer.x, HUD.line2 - 13, HUD.timer.w, 26, 'soft').setDepth(D);
+    panel(s, HUD.timer.x, HUD.line2 - HUD.timer.h / 2, HUD.timer.w, HUD.timer.h, 'soft').setDepth(D);
     const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', HUD.timer.x + 16, HUD.line2, 12, C.ink);
-    this.timerText = uiText(s, HUD.timer.x + 28, HUD.line2, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, 28, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
+    drawIcon(clock, 'clock', HUD.timer.x + 15, HUD.line2, 12, C.ink);
+    this.timerText = uiText(s, HUD.timer.x + 27, HUD.line2, '', 11, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, HUD.next.h, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 11 });
 
     // 골드 / 몬스터 수
     const coin = s.add.graphics().setDepth(D);
@@ -207,8 +207,8 @@ export class Hud {
     sep.fillStyle(C.line, 1).fillRect(T.x + 364, cy - 14, 2, 28);
     const clock = s.add.graphics().setDepth(D);
     drawIcon(clock, 'clock', T.x + 388, cy, 14, C.sub);
-    this.timerText = uiText(s, T.x + 402, cy, '', 12, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, T.x + 518, cy, 88, 32, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
+    this.timerText = uiText(s, T.x + 402, cy, '', 11, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, T.x + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 11 }); // 2026-11-21 작게 (이전 88x32)
     const coin = s.add.graphics().setDepth(D);
     drawIcon(coin, 'coin', T.x + 586, cy, 16, 0x6a4a10);
     this.goldText = uiText(s, T.x + 600, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
