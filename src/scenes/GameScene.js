@@ -1242,9 +1242,11 @@ export class GameScene extends Phaser.Scene {
   setupInput() {
     this.input.dragDistanceThreshold = 6;
     this.input.keyboard?.on('keydown-ESC', () => !this.tut.open && this.hud.toggleMenu());
-    // Space: 다음 웨이브 바로 시작 · S: 선택한 용병 판매
+    // Space: 게임 정지/다시 (2026-11-21 사용자 결정 — 이전 '바로 시작'은 버튼으로만) · R: 상점 리롤 · S: 선택한 용병 판매
     this.input.keyboard?.addCapture('SPACE');
-    this.input.keyboard?.on('keydown-SPACE', () => this.callNextWave());
+    const free = () => !(this.over || this.menuOpen || this.tut.open || this.hud.popup);
+    this.input.keyboard?.on('keydown-SPACE', () => free() && this.togglePause());
+    this.input.keyboard?.on('keydown-R', () => free() && this.reroll());
     this.input.keyboard?.on('keydown-S', () => {
       if (this.over || this.menuOpen || this.tut.open || this.hud.popup) return;
       if (this.selected?.active) this.sell(this.selected);
