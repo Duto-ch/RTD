@@ -1330,7 +1330,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < n; i++) {
       const a = (Math.PI * 2 * i) / n + Math.random() * 0.5;
       const d = (m.isBoss ? 60 : 24) + Math.random() * 12;
-      const p = this.add.image(m.x, m.y, 'pixel').setScale(PX).setTint(color).setDepth(DEPTH.fx);
+      const p = this.add.image(m.x, m.y, 'pixel').setScale(UI_PX).setTint(color).setDepth(DEPTH.fx); // 2px 도트
       this.tweens.add({
         targets: p,
         x: m.x + Math.cos(a) * d,

@@ -20,15 +20,10 @@ export class TitleScene extends Phaser.Scene {
     audio.playMusic('title');
     meta.load();
 
-    // 일러스트: 화면을 꽉 채우게(비율이 거의 같아 위아래 몇 px 만 잘림). perfectPixel 로 진짜 픽셀 격자(312x553)로 정리한 그림이라
-    // 다른 그림처럼 픽셀을 그대로(NEAREST) 확대한다
-    // 가로 화면: 세로 그림을 높이에 맞춰 가운데 두고, 양옆은 같은 그림을 크게 깔아 어둡게 (빈 여백 없이)
-    if (WIDE) {
-      const back = this.add.image(cx, GAME_H / 2, 'title_bg').setTint(0x5a6478);
-      back.setScale(GAME_W / back.width);
-    }
-    const bg = this.add.image(cx, GAME_H / 2, 'title_bg');
-    bg.setScale(WIDE ? GAME_H / bg.height : Math.max(GAME_W / bg.width, GAME_H / bg.height));
+    // 일러스트 (도트 2px 통일, 2026-11-21): perfectPixel 로 정리한 그림을 2px 격자 크기(세로 272x482 · 가로 203x360)로 줄인 것을 정확히 2배로.
+    // 가로 화면은 가운데 그림 + 양옆 어두운 밤하늘색 (예전엔 같은 그림을 크게 깔았는데 도트 크기가 달라 뺐다)
+    if (WIDE) this.add.rectangle(0, 0, GAME_W, GAME_H, 0x22305a).setOrigin(0);
+    this.add.image(cx, GAME_H / 2, WIDE ? 'title_bg_wide' : 'title_bg').setScale(2);
 
     // 제목 그림 아래: 깜빡이는 TAP TO START
     this.tapText = uiText(this, cx, WIDE ? 268 : 352, WIDE ? 'CLICK TO START' : 'TAP TO START', 27.5, '#ffffff', 'bold', { stroke: '#1d2c5a', strokeThickness: 6 }).setOrigin(0.5);

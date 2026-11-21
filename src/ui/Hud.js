@@ -302,7 +302,7 @@ export class Hud {
       const { x, y } = this.relicPos(i, s.ownedRelics.length);
       // 영지 유물 공방에서 장착한 유물 (판 안에서는 끄고 켜기 없음 — 룰 v2 ③). 누르거나 올리면 툴팁
       const slot = panelImage(s, x, y, 'gold', WIDE ? 28 : 27, WIDE ? 28 : 27);
-      const icon = s.add.image(x, y, `relic_${r.id}`).setScale(PX - 2).setInteractive({ useHandCursor: true });
+      const icon = s.add.image(x, y, `relic_${r.id}`).setScale(UI_PX).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => (this.relicTip?.index === i ? this.hideRelicTip() : this.showRelicTip(i, x, y, true)));
       icon.on('pointerover', () => this.showRelicTip(i, x, y, true));
       icon.on('pointerout', () => this.hideRelicTip());

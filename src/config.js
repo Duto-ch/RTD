@@ -21,7 +21,9 @@ export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 
 export const GRID = 5;
 // 배경·UI 를 그리는 픽셀 배율: 아트 1px = 화면 3px (캐릭터 사양 28x24 × 0.75 와 같은 밀도, 2026-11-15)
-export const UI_PX = 3;
+// 도트 2px 통일 (2026-11-21 사용자 결정): 게임 안 모든 도트 그림의 아트 1px = 화면 2px (캐릭터·필드와 같게). 이전 UI·로비 3px, 코드 그림 4px
+export const DOT = 2;
+export const UI_PX = DOT;
 // 필드 배경(땅·길·성벽·석판) 도트 굵기 — 아트 1px = 화면 2px (2026-11-17 시안). 칸 64px = 32 아트 px 로 나누어떨어진다
 export const BG_PX = 2;
 // 칸 56px (2026-11-19 사용자 결정 — 캐릭터 사이를 조금 넓게, 이전 48·64). 캐릭터 그림(48px)은 그대로라 칸 사이가 8px 벌어진다.

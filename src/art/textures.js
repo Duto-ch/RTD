@@ -15,6 +15,103 @@ import { BIOMES } from '../data/biomes.js';
 
 const ATTRS = ['red', 'blue', 'green'];
 
+// ── 도트 2px 통일 (2026-11-21 사용자 결정): 코드 그림을 n배 해상도로 다듬어(Scale2x·Scale3x) 화면엔 2px 도트로 ──
+const at = (g, x, y) => g[Math.max(0, Math.min(g.length - 1, y))][Math.max(0, Math.min(g[0].length - 1, x))];
+export function scale2x(g) {
+  const H = g.length;
+  const W = g[0].length;
+  const out = Array.from({ length: H * 2 }, () => Array(W * 2).fill(null));
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const P = g[y][x], A = at(g, x, y - 1), B = at(g, x + 1, y), C = at(g, x - 1, y), D = at(g, x, y + 1);
+      let e0 = P, e1 = P, e2 = P, e3 = P;
+      if (A !== D && C !== B) {
+        if (C === A) e0 = A;
+        if (A === B) e1 = B;
+        if (D === C) e2 = C;
+        if (B === D) e3 = D;
+      }
+      out[y * 2][x * 2] = e0;
+      out[y * 2][x * 2 + 1] = e1;
+      out[y * 2 + 1][x * 2] = e2;
+      out[y * 2 + 1][x * 2 + 1] = e3;
+    }
+  return out;
+}
+export function scale3x(g) {
+  const H = g.length;
+  const W = g[0].length;
+  const out = Array.from({ length: H * 3 }, () => Array(W * 3).fill(null));
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const E = g[y][x];
+      const A = at(g, x - 1, y - 1), B = at(g, x, y - 1), C = at(g, x + 1, y - 1), D = at(g, x - 1, y), F = at(g, x + 1, y), G = at(g, x - 1, y + 1), Hh = at(g, x, y + 1), I = at(g, x + 1, y + 1);
+      const e = Array(9).fill(E);
+      if (B !== Hh && D !== F) {
+        e[0] = D === B ? D : E;
+        e[1] = (D === B && E !== C) || (B === F && E !== A) ? B : E;
+        e[2] = B === F ? F : E;
+        e[3] = (D === B && E !== G) || (D === Hh && E !== A) ? D : E;
+        e[5] = (B === F && E !== I) || (Hh === F && E !== C) ? F : E;
+        e[6] = D === Hh ? D : E;
+        e[7] = (D === Hh && E !== I) || (Hh === F && E !== G) ? Hh : E;
+        e[8] = Hh === F ? F : E;
+      }
+      for (let k = 0; k < 9; k++) out[y * 3 + Math.floor(k / 3)][x * 3 + (k % 3)] = e[k];
+    }
+  return out;
+}
+
+/**
+ * 코드 그림 텍스처 key 를 n배 해상도로 다듬은 텍스처 키 (`key@n`, 처음 부를 때 만든다). customData.artScale = 1/n 이라
+ * setArt(obj, 키, 예전 배율) 이면 화면 크기는 그대로, 도트는 예전 배율/n. 예: 정예 배율 4 → n 2 = 2px · 보스 6 → n 3 = 2px
+ */
+export function dotKey(scene, key, n) {
+  if (!n || n <= 1 || !scene.textures.exists(key)) return key;
+  const k = `${key}@${n}`;
+  if (scene.textures.exists(k)) return k;
+  const src = scene.textures.get(key).getSourceImage();
+  const w = src.width;
+  const h = src.height;
+  const tmp = document.createElement('canvas');
+  tmp.width = w;
+  tmp.height = h;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(src, 0, 0);
+  const data = tctx.getImageData(0, 0, w, h).data;
+  let grid = Array.from({ length: h }, (_, y) =>
+    Array.from({ length: w }, (_, x) => {
+      const i = (y * w + x) * 4;
+      return data[i + 3] ? (data[i] << 24) + (data[i + 1] << 16) + (data[i + 2] << 8) + data[i + 3] : null;
+    })
+  );
+  if (n === 2) grid = scale2x(grid);
+  else if (n === 3) grid = scale3x(grid);
+  else if (n === 4) grid = scale2x(scale2x(grid));
+  const tex = scene.textures.createCanvas(k, grid[0].length, grid.length);
+  const ctx = tex.getContext();
+  const img = ctx.createImageData(grid[0].length, grid.length);
+  grid.forEach((row, y) =>
+    row.forEach((c, x) => {
+      if (c == null) return;
+      const i = (y * row.length + x) * 4;
+      img.data[i] = (c >>> 24) & 255;
+      img.data[i + 1] = (c >>> 16) & 255;
+      img.data[i + 2] = (c >>> 8) & 255;
+      img.data[i + 3] = c & 255;
+    })
+  );
+  ctx.putImageData(img, 0, 0);
+  tex.refresh();
+  tex.customData.artScale = 1 / n;
+  return k;
+}
+
+/** 코드 그림을 2px 도트로 놓는다: 예전 배율 px(4·6 …) → px/2 배 해상도 텍스처를 배율 2 로 */
+export function dotImage(scene, x, y, key, px) {
+  return scene.add.image(x, y, dotKey(scene, key, Math.max(1, Math.round(px / 2)))).setScale(2);
+}
+
 function paintMap(scene, key, rows, palette) {
   const h = rows.length;
   const w = rows[0].length;

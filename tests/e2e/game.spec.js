@@ -453,7 +453,8 @@ test('성탑 삭제: 가운데 칸까지 25칸 모두 용병 자리, 하단 강�
   const slots = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
-    for (let i = 0; i < 30; i++) g.hire();
+    // 서로 다른 캐릭터로 (무작위 고용은 같은 캐릭터 3장이 겹치면 별 승급으로 수가 줄어 흔들렸다)
+    for (const c of window.__rtd.ROSTER.slice(0, 30)) g.hire(c.id);
     return { mercs: g.mercs.length, center: !!g.grid[2][2], slots: g.fieldSlots, tower: !!g.tower };
   });
   expect(slots).toEqual({ mercs: 25, center: true, slots: 25, tower: false });
@@ -654,7 +655,7 @@ test('PixelLab 화살: 궁수 속성별·레인저 금빛 화살이 시트 애�
     return shots;
   });
   expect(r.map((s) => s.key).sort()).toEqual(['fx_arrow_blue', 'fx_arrow_blue', 'fx_arrow_blue', 'fx_arrow_gold', 'fx_arrow_green', 'fx_arrow_red']);
-  expect(r.every((s) => s.playing && s.scale === 3)).toBe(true);
+  expect(r.every((s) => s.playing && s.scale === 2)).toBe(true); // 도트 2px 통일 (2026-11-21, 이전 3)
   await page.screenshot({ path: SHOT('23-arrows') });
   // 명중하면 사라진다
   await game(page, () => window.game.scene.getScene('Game').scene.resume());
