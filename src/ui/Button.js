@@ -25,7 +25,10 @@ const ICON_COLOR = COZY ? { primary: 0xfffbea, danger: 0xfffbea, gold: 0x3a2a10,
 // 예전 color 옵션 → variant (호환용)
 const FROM_COLOR = { 0x2f7d4a: 'primary', 0x8c2b25: 'danger' };
 
-/** 픽셀 버튼. icon 이 있으면 아이콘 위 + 글자 아래의 타일형 */
+/**
+ * 버튼. icon 이 있으면 — 높이 44 이상: 아이콘 위 + 글자 아래 타일형 / 그보다 낮으면: 아이콘 왼쪽 + 글자 오른쪽 한 줄(묶어서 가운데)
+ * (2026-11-21 정렬 점검: 낮은 버튼에서 아이콘과 글자가 겹치던 문제)
+ */
 export class Button extends Phaser.GameObjects.Container {
   constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 16, icon } = {}) {
     super(scene, x, y);
@@ -36,14 +39,13 @@ export class Button extends Phaser.GameObjects.Container {
     this.bg = scene.add.image(0, COZY ? 0 : PX / 2, panelKey(scene, STYLE[this.variant] || this.variant, w, h)).setScale(panelScale());
     const t = TEXT[this.variant] || TEXT.outline;
     this.iconColor = ICON_COLOR[this.variant] ?? C.ink;
-    this.icon = null;
-    if (icon) {
-      this.icon = scene.add.graphics();
-      drawIcon(this.icon, icon, 0, -h * 0.16, Math.min(21, h * 0.3), this.iconColor);
-    }
+    this.icon = icon ? scene.add.graphics() : null;
+    this.iconName = icon;
+    this.iconLeft = !!icon && h < 44;
     const extra = t.stroke ? { stroke: t.stroke, strokeThickness: 4, align: 'center' } : { align: 'center' };
-    this.label = uiText(scene, 0, icon ? h * 0.22 : 0, label, fontSize, t.color, 'bold', extra).setOrigin(0.5);
+    this.label = uiText(scene, 0, 0, label, fontSize, t.color, 'bold', extra).setOrigin(0.5);
     this.add([this.bg, ...(this.icon ? [this.icon] : []), this.label]);
+    this.layout();
     this.setSize(w, h);
     this.setInteractive({ useHandCursor: true });
     this.setDepth(DEPTH.ui);
@@ -51,7 +53,7 @@ export class Button extends Phaser.GameObjects.Container {
     // 누르면 1픽셀 내려앉는다
     const down = (v) => {
       this.bg.setY((COZY ? 0 : PX / 2) + (v ? PX : 0));
-      this.label.setY((icon ? h * 0.22 : 0) + (v ? PX : 0));
+      this.label.setY(this.labelY + (v ? PX : 0));
       if (this.icon) this.icon.setY(v ? PX : 0);
     };
     this.on('pointerdown', () => {
@@ -72,21 +74,42 @@ export class Button extends Phaser.GameObjects.Container {
 
   setLabel(t) {
     this.label.setText(t);
+    this.layout();
     return this;
   }
 
-  /** 아이콘 바꾸기 (아이콘 타일 버튼만) */
+  /** 아이콘·글자 자리 (글자가 바뀌면 다시) — iconRect: 아이콘 칸(버튼 기준, tools/ui-audit.cjs 가 겹침 확인) */
+  layout() {
+    const h = this.h;
+    if (!this.icon) {
+      this.labelY = 0;
+      this.label.setPosition(0, 0);
+      return;
+    }
+    this.icon.clear();
+    if (this.iconLeft) {
+      const iw = 14; // 7칸 × 2px
+      const gap = 6;
+      const total = iw + (this.label.text ? gap + this.label.width : 0);
+      const left = Math.round(-total / 2);
+      drawIcon(this.icon, this.iconName, left + iw / 2, 0, iw, this.iconColor);
+      this.iconRect = { x: left, y: -iw / 2, w: iw, h: iw };
+      this.labelY = 0;
+      this.label.setPosition(left + iw + gap + this.label.width / 2, 0);
+    } else {
+      const s = Math.min(21, h * 0.3);
+      drawIcon(this.icon, this.iconName, 0, -h * 0.16, s, this.iconColor);
+      this.iconRect = { x: -7, y: Math.round(-h * 0.16 - 7), w: 14, h: 14 };
+      this.labelY = h * 0.22;
+      this.label.setPosition(0, this.labelY);
+    }
+  }
+
+  /** 아이콘 바꾸기 (아이콘 버튼만) */
   setIcon(name) {
     if (!this.icon) return this;
-    this.icon.clear();
-    drawIcon(this.icon, name, 0, -this.h * 0.16, Math.min(21, this.h * 0.3), this.iconColor);
-    return this;
-  }
-
-  setIcon(type) {
-    if (!this.icon) return this;
-    this.icon.clear();
-    drawIcon(this.icon, type, 0, -this.h * 0.16, Math.min(21, this.h * 0.3), this.iconColor);
+    this.iconName = name;
+    this.layout();
     return this;
   }
 

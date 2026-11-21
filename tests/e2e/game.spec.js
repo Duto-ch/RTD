@@ -1012,6 +1012,61 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   expect(errors).toEqual([]);
 });
 
+test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘겨 끌면 고무줄처럼 돌아온다 (영지 덱 줄 · 병영 격자)', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => window.__rtd.meta.reset());
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  const kin = () => game(page, () => { const k = window.game.scene.getScene('Lobby').deckKin; return { v: k.value, max: k.max, moving: k.moving }; });
+  // 빠르게 밀고 놓기 → 놓은 뒤에도 더 간다. 자동화 브라우저는 마우스 이동이 0.3초씩 늦게 와서 '튕기기'가 안 되므로
+  // 손가락 움직임(시각 포함)을 직접 넣는다: 0.1초에 120px 밀고 바로 놓기
+  const atRelease = await game(page, () => {
+    const k = window.game.scene.getScene('Lobby').deckKin;
+    const t0 = performance.now();
+    k.down(t0);
+    for (let i = 1; i <= 6; i++) k.drag(i * 20, t0 + i * 16);
+    k.up(t0 + 100);
+    return { v: k.value, vel: k.v };
+  });
+  expect(atRelease.vel).toBeGreaterThan(0.5);
+  await page.waitForTimeout(300);
+  const later = await kin();
+  expect(later.v).toBeGreaterThan(atRelease.v + 30);
+  await page.waitForTimeout(1500);
+  expect((await kin()).moving).toBe(false);
+  // 끝을 넘겨 끌기 → 끄는 동안 끝 밖, 놓으면 끝으로 돌아온다
+  await game(page, () => window.game.scene.getScene('Lobby').setDeckScroll(9999));
+  await page.mouse.move(200, 812);
+  await page.mouse.down();
+  await page.mouse.move(100, 812, { steps: 4 });
+  await page.mouse.move(20, 812, { steps: 4 });
+  const over = await kin();
+  expect(over.v).toBeGreaterThan(over.max + 10);
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const back = await kin();
+  expect(Math.abs(back.v - back.max)).toBeLessThan(1);
+  expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(true);
+  // 병영 격자도 같은 관성 (세로)
+  await game(page, () => window.game.scene.getScene('Lobby').go('Deck'));
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  const d0 = await game(page, () => {
+    const d = window.game.scene.getScene('Deck');
+    const t0 = performance.now();
+    d.kin.down(t0);
+    for (let i = 1; i <= 6; i++) d.kin.drag(i * 20, t0 + i * 16);
+    d.kin.up(t0 + 100);
+    return d.scrollY;
+  });
+  await page.waitForTimeout(250);
+  const d1 = await game(page, () => window.game.scene.getScene('Deck').scrollY);
+  expect(d1).toBeGreaterThan(d0);
+  expect(errors).toEqual([]);
+});
+
 test('렌더 해상도: 화면 실제 픽셀에 맞춰 정수 배율(폰 3배) · 캔버스는 부드럽게 맞춤 (자글거림 방지)', async ({ browser }) => {
   const p = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   await p.goto('/');

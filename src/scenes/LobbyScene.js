@@ -8,6 +8,7 @@ import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
 import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
+import { Kinetic } from '../ui/kinetic.js';
 
 // 로비 = 용병단 영지 (2026-11-17, 시안 A '영지 지도형'). 건물이 곧 메뉴:
 //   성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용, 룰 v2) · 유물 공방(마정석 유물 생산·장착, 룰 v2). 출전은 아래 덱 줄의 버튼 (성문 삭제 2026-11-21)
@@ -182,31 +183,42 @@ export class LobbyScene extends Phaser.Scene {
     });
     const shape = this.make.graphics({}, false).fillRect(row.x, row.y, row.w, row.h);
     strip.setMask(shape.createGeometryMask());
+    strip.maskRect = row; // 보이는 영역 (tools/ui-audit.cjs)
     const maxScroll = Math.max(0, ids.length * step - 8 - row.w);
+    // 관성 스크롤 (2026-11-21): 밀다 놓으면 미끄러지고, 끝을 넘기면 고무줄처럼 돌아온다
+    const kin = new Kinetic(this, {
+      min: 0,
+      max: maxScroll,
+      onChange: (v) => {
+        this.deckScroll = v;
+        strip.x = Math.round(row.x - v); // 정수 위치 (자글거림 방지)
+      }
+    });
     this.deckScroll = 0;
-    const setScroll = (v) => {
-      this.deckScroll = Phaser.Math.Clamp(v, 0, maxScroll);
-      strip.x = Math.round(row.x - this.deckScroll); // 정수 위치 (자글거림 방지)
-    };
-    this.setDeckScroll = setScroll;
+    this.deckKin = kin;
+    this.setDeckScroll = (v) => kin.scrollBy(v - kin.value);
     this.deckStrip = strip;
-    // 밀기 · 휠 · 누르기
+    // 밀기 · 휠 · 누르기 (미끄러지는 중에 누르면 멈추기만)
     const zone = this.add.zone(row.x, row.y, row.w, row.h).setOrigin(0).setInteractive({ useHandCursor: true });
     let drag = null;
-    zone.on('pointerdown', (p) => (drag = { x: p.worldX, s: this.deckScroll, moved: false }));
+    zone.on('pointerdown', (p) => {
+      drag = { x: p.worldX, moved: kin.moving };
+      kin.down(p.downTime);
+    });
     this.input.on('pointermove', (p) => {
       if (!drag || !p.isDown) return;
       const dx = p.worldX - drag.x;
       if (Math.abs(dx) > 6) drag.moved = true;
-      if (drag.moved) setScroll(drag.s - dx);
+      if (drag.moved) kin.drag(-dx, p.moveTime);
     });
-    this.input.on('pointerup', () => {
+    this.input.on('pointerup', (p) => {
       const d = drag;
       drag = null;
+      kin.up(p.upTime);
       if (d && !d.moved) this.go('Deck');
     });
     this.input.on('wheel', (p, _o, dx, dy) => {
-      if (p.worldX >= row.x && p.worldX <= row.x + row.w && p.worldY >= row.y && p.worldY <= row.y + row.h) setScroll(this.deckScroll + (dx || dy) * 0.6);
+      if (p.worldX >= row.x && p.worldX <= row.x + row.w && p.worldY >= row.y && p.worldY <= row.y + row.h) kin.scrollBy((dx || dy) * 0.6);
     });
     // 남은 카드가 있으면 오른쪽 끝에 흐림 표시
     if (maxScroll > 0) {
@@ -219,5 +231,6 @@ export class LobbyScene extends Phaser.Scene {
     this.goBtn = new Button(this, gx, gy, goW, goH, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 33 });
     uiText(this, gx, gy + 24, 'WAVE 1부터 · Space', 11, '#3a2a10', '600').setOrigin(0.5).setDepth(this.goBtn.depth + 1);
     this.goBtn.label.setY(-8);
+    this.goBtn.auditOk = true; // 글자를 위로 올리고 아래에 작은 안내 (의도 — tools/ui-audit.cjs 에서 제외)
   }
 }
