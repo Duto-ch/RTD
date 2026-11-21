@@ -1272,3 +1272,32 @@ test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을
   expect(errors).toEqual([]);
   await page.close();
 });
+
+test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 알약 · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    const texts = h.shopBox.list.flatMap((c) => c.list || []).filter((o) => o.type === 'Text').map((o) => o.text);
+    g.gold = 999;
+    g.hire('isolde');
+    g.select(g.mercs[0]);
+    return {
+      nextColor: h.nextWaveBtn.label.style.color,
+      rerollColor: h.rerollBtn.label.style.color,
+      sellVariant: h.sellBtn.variant,
+      pill: !!h.hpPill,
+      prices: texts.filter((t) => /^\d+G$/.test(t)).length,
+      namesWithPrice: texts.filter((t) => /\d+G$/.test(t) && !/^\d+G$/.test(t)).length
+    };
+  });
+  expect(r.nextColor).toBe('#0d2000');
+  expect(r.rerollColor).toBe('#0d2000');
+  expect(r.sellVariant).toBe('danger');
+  expect(r.pill).toBe(true);
+  expect(r.prices).toBe(6); // 6칸 모두 가격이 따로
+  expect(r.namesWithPrice).toBe(0);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31-hud-polish') });
+  expect(errors).toEqual([]);
+});

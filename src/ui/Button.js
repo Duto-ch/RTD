@@ -6,7 +6,7 @@ import { panelKey, panelScale, uiText, drawIcon, CSS, C } from './theme.js';
 const STYLE = { card: 'outline' };
 const TEXT = COZY ? {
   // 포근한 카드형: 테두리 없는 크림 글자
-  primary: { color: '#fffbea' },
+  primary: { color: '#0d2000' }, // 2026-11-21 디자인 시스템: 세이지 위 진한 글자 (흰 글자는 대비 3.2:1)
   danger: { color: '#fffbea' },
   gold: { color: '#3a2a10' },
   outline: { color: CSS.ink },
@@ -20,7 +20,7 @@ const TEXT = COZY ? {
   card: { color: CSS.ink },
   soft: { color: CSS.ink }
 };
-const ICON_COLOR = COZY ? { primary: 0xfffbea, danger: 0xfffbea, gold: 0x3a2a10, outline: 0x56743f, card: 0x56743f } : { primary: 0xffffff, danger: 0xffffff, gold: 0xffffff };
+const ICON_COLOR = COZY ? { primary: 0x0d2000, danger: 0xfffbea, gold: 0x3a2a10, outline: 0x56743f, card: 0x56743f } : { primary: 0xffffff, danger: 0xffffff, gold: 0xffffff };
 
 // 예전 color 옵션 → variant (호환용)
 const FROM_COLOR = { 0x2f7d4a: 'primary', 0x8c2b25: 'danger' };
