@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Battle HUD wireframe</title>
+<style>
+  :root { --bg:#f4f4f4; --box:#ffffff; --fill:#d9d9d9; --line:#9a9a9a; --ink:#333; --sub:#777; }
+  body { margin:0; background:#ccc; font:12px/1.2 system-ui, sans-serif; color:var(--ink); }
+  .screen { position:relative; width:544px; height:960px; background:var(--bg); margin:0 auto; overflow:hidden; }
+  .a { position:absolute; box-sizing:border-box; }
+  .card { background:var(--box); border:1.5px solid var(--line); border-radius:14px; }
+  .fill { background:var(--fill); border-radius:6px; }
+  .btn { background:var(--fill); border:1.5px solid var(--line); border-radius:8px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:600; }
+  .slot { background:var(--fill); border:1px dashed var(--line); border-radius:6px; }
+  .label { position:absolute; font-size:10px; color:#b03030; font-weight:700; }
+  .field { border:2px dashed #b03030; background:repeating-linear-gradient(45deg,#ececec 0 10px,#e2e2e2 10px 20px); display:flex; align-items:center; justify-content:center; color:#b03030; font-weight:700; font-size:14px; }
+  .t { position:absolute; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <!-- A status card -->
+  <div class="a card" style="left:12px;top:16px;width:520px;height:120px"></div>
+  <div class="t" style="left:32px;top:30px;font-size:22px;font-weight:800">WAVE 12</div>
+  <div class="a btn" style="left:350px;top:33px;width:86px;height:22px;font-size:11px">◷ 다음 18초</div>
+  <div class="a btn" style="left:444px;top:32px;width:68px;height:24px;font-size:11px">바로 시작</div>
+  <div class="t" style="left:32px;top:64px;font-size:22px;font-weight:800">● 1,250 G</div>
+  <div class="a fill" style="left:236px;top:62px;width:276px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700">♥ 62 / 80</div>
+  <div class="t" style="left:32px;top:105px;color:var(--sub)">초원 · 필드 34기 · 다음 167기+보스 · 최고 W30</div>
+  <div class="label" style="left:16px;top:2px">A 상태 카드</div>
+
+  <!-- B synergy + relic strip -->
+  <div class="a card" style="left:12px;top:142px;width:520px;height:40px;border-radius:10px"></div>
+  <div class="a fill" style="left:26px;top:152px;width:64px;height:20px;border-radius:10px"></div>
+  <div class="a fill" style="left:96px;top:152px;width:64px;height:20px;border-radius:10px"></div>
+  <div class="a fill" style="left:166px;top:152px;width:64px;height:20px;border-radius:10px"></div>
+  <div class="a slot" style="left:390px;top:148px;width:27px;height:27px"></div>
+  <div class="a slot" style="left:426px;top:148px;width:27px;height:27px"></div>
+  <div class="a slot" style="left:462px;top:148px;width:27px;height:27px"></div>
+  <div class="a slot" style="left:498px;top:148px;width:27px;height:27px"></div>
+  <div class="label" style="left:16px;top:184px">B 시너지 칩 · 유물 4칸 &nbsp;&nbsp;/&nbsp;&nbsp; 아래 띠: 배너(잠깐)</div>
+
+  <!-- battlefield -->
+  <div class="a field" style="left:24px;top:272px;width:496px;height:416px">전장 (UI 금지) y 272–688</div>
+
+  <!-- C item strip -->
+  <div class="label" style="left:16px;top:700px">토스트(잠깐) 띠 · C 아이템 띠</div>
+  <div class="a card" style="left:12px;top:732px;width:520px;height:40px;border-radius:10px"></div>
+  <div class="a btn" style="left:16px;top:737px;width:84px;height:30px;font-size:11px">⚒ 제작 30G</div>
+  <div id="items"></div>
+  <div class="t" style="left:474px;top:742px;font-size:10px;text-align:center;color:var(--sub)">해제 도구<br>0개</div>
+
+  <!-- D bottom sheet -->
+  <div class="a card" style="left:4px;top:776px;width:536px;height:176px;border-radius:18px"></div>
+  <div id="shop"></div>
+  <div class="a btn" style="left:14px;top:886px;width:52px;height:56px;flex-direction:column;font-size:11px">▶▶<br>x1</div>
+  <div class="a btn" style="left:72px;top:886px;width:52px;height:56px;flex-direction:column;font-size:11px">☰<br>메뉴</div>
+  <div class="a btn" style="left:130px;top:886px;width:52px;height:56px;flex-direction:column;font-size:11px">♜<br>강화</div>
+  <div class="a btn" style="left:196px;top:886px;width:188px;height:56px;font-size:11px">⌂ 영지 Lv.1 · 0/3명<br>레벨 업 20G</div>
+  <div class="a btn" style="left:392px;top:886px;width:140px;height:56px;font-size:11px">↻ 리롤 20G</div>
+  <div class="label" style="left:300px;top:775px;background:var(--bg);padding:0 4px">D 하단 시트 (상점 6칸 ↔ 고른 용병 카드)</div>
+</div>
+<script>
+  const items = document.getElementById('items');
+  for (let i = 0; i < 10; i++) items.insertAdjacentHTML('beforeend', `<div class="a slot" style="left:${108 + i * 36}px;top:738px;width:28px;height:28px"></div>`);
+  const shop = document.getElementById('shop');
+  const w = (520 - 30) / 6;
+  for (let i = 0; i < 6; i++) {
+    const x = 12 + i * (w + 6);
+    shop.insertAdjacentHTML('beforeend', `
+      <div class="a card" style="left:${x}px;top:786px;width:${w}px;height:92px;border-radius:10px"></div>
+      <div class="a fill" style="left:${x + w / 2 - 6}px;top:790px;width:12px;height:10px"></div>
+      <div class="a fill" style="left:${x + w / 2 - 20}px;top:804px;width:40px;height:36px"></div>
+      <div class="a fill" style="left:${x + w / 2 - 18}px;top:843px;width:14px;height:14px;border-radius:50%"></div>
+      <div class="a fill" style="left:${x + w / 2 + 4}px;top:843px;width:14px;height:14px;border-radius:50%"></div>
+      <div class="t" style="left:${x}px;top:862px;width:${w}px;text-align:center;font-size:10px">이름 10G</div>`);
+  }
+</script>
+</body>
+</html>
