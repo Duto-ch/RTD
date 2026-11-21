@@ -28,10 +28,18 @@ for i in order:
     d['key'] = min(COLORS, key=lambda c: (c in used, count[c], rnd.random()))
     count[d['key']] += 1
     d['phase'] = round(rnd.random(), 2)
+# 오른쪽 위가 비어 보여서 손으로 2그루 더 (2026-11-21 사용자 요청) — 앞 나무들의 색·박자는 그대로 두고, 가까운 나무 색을 피해 고른다
+for d in [{'x': 438, 'y': 241, 'flip': False}, {'x': 486, 'y': 254, 'flip': True}]:
+    near = sorted(((d['x'] - o['x']) ** 2 + (d['y'] - o['y']) ** 2, o['key']) for o in trees)[:2]
+    used = {k for _, k in near}
+    d['key'] = min(COLORS, key=lambda c: (c in used, count[c], rnd.random()))
+    count[d['key']] += 1
+    d['phase'] = round(rnd.random(), 2)
+    trees.append(d)
 trees.sort(key=lambda d: (d['y'], d['x']))
 lines = ',\n'.join(f"    {{ key: '{d['key']}', x: {d['x']}, y: {d['y']}, phase: {d['phase']}{', flip: true' if d.get('flip') else ''} }}" for d in trees)
 p = os.path.join(ROOT, 'src', 'data', 'decor.js')
 s = open(p).read()
-s = re.sub(r"  grass: \[\n.*?\n  \]", "  grass: [\n    // D 배치 + 무작위 7그루, 색 3가지 (docs/drafts/tree-sway/final_d.py 가 쓴다 — 손으로 고치면 다음 실행에 덮인다)\n" + lines + "\n  ]", s, flags=re.S)
+s = re.sub(r"  grass: \[\n.*?\n  \]", "  grass: [\n    // D 배치 + 무작위 7그루 + 오른쪽 위 2그루, 색 3가지 (docs/drafts/tree-sway/final_d.py 가 쓴다 — 손으로 고치면 다음 실행에 덮인다)\n" + lines + "\n  ]", s, flags=re.S)
 open(p, 'w').write(s)
 print(len(trees), count, [(d['x'], d['y']) for d in trees if d.get('side')])

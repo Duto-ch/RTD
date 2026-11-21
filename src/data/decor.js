@@ -3,11 +3,13 @@
 // 세로 화면만 (가로 배치는 꺼 둠). 몬스터 길(필드 바깥 y 250~710)·HUD 를 가리지 않는 곳에.
 export const DECOR = {
   grass: [
-    // D 배치 + 무작위 7그루, 색 3가지 (docs/drafts/tree-sway/final_d.py 가 쓴다 — 손으로 고치면 다음 실행에 덮인다)
+    // D 배치 + 무작위 7그루 + 오른쪽 위 2그루, 색 3가지 (docs/drafts/tree-sway/final_d.py 가 쓴다 — 손으로 고치면 다음 실행에 덮인다)
     { key: 'deco_tree_spring', x: 226, y: 237, phase: 0.31, flip: true },
+    { key: 'deco_tree_spring', x: 438, y: 241, phase: 0.91 },
     { key: 'deco_tree_teal', x: 160, y: 242, phase: 0.72 },
     { key: 'deco_tree', x: 352, y: 247, phase: 0.13, flip: true },
     { key: 'deco_tree', x: 28, y: 252, phase: 0.35 },
+    { key: 'deco_tree', x: 486, y: 254, phase: 0.26, flip: true },
     { key: 'deco_tree_spring', x: 87, y: 255, phase: 0.51, flip: true },
     { key: 'deco_tree_teal', x: 534, y: 262, phase: 0.11 },
     { key: 'deco_tree_teal', x: 18, y: 357, phase: 0.69 },
