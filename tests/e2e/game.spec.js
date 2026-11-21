@@ -1387,3 +1387,22 @@ test('2026-11-21 상점·아이템 다듬기: 상점 상징 배지는 이름 띠
   await page.screenshot({ path: SHOT('47-shop-badges-info') });
   expect(errors).toEqual([]);
 });
+
+test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃발, 성벽 두께 안에만', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const cv = window.game.textures.get('field_wall').getSourceImage();
+    const ctx = cv.getContext('2d');
+    const S = cv.width, SZ = S - 1, c = Math.floor(SZ / 2 + 0.5);
+    const px = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data);
+    const wood = (p) => p[3] === 255 && p[0] > p[2] + 30 && p[0] > 80; // 갈색 나무
+    // 문 가운데 (바깥에서 6도트 안쪽): 위 · 아래 · 왼 · 오른
+    const doors = [[c - 3, 6], [c - 3, SZ - 7], [6, c - 3], [SZ - 7, c - 3]].map(([x, y]) => wood(px(x, y)));
+    // 성벽 바깥(텍스처 밖 여백)은 그대로 투명, 바닥 자리 안쪽도 투명
+    return { doors, inner: px(c, c)[3] };
+  });
+  expect(r.doors).toEqual([true, true, true, true]);
+  expect(r.inner).toBe(0);
+  await page.screenshot({ path: SHOT('48-wall-gates'), clip: { x: 40, y: 236, width: 464, height: 488 } });
+  expect(errors).toEqual([]);
+});
