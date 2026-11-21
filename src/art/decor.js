@@ -12,6 +12,11 @@ export function addBiomeDecor(scene, biomeId, alpha = 1) {
     if (!scene.textures.exists(d.key)) continue;
     const s = scene.add.sprite(d.x, d.y, d.key);
     setArt(s, d.key, DOT);
+    if (d.flip) { // 좌우 뒤집기 — 밑동(pivot)이 같은 자리에 오도록 origin 도 뒤집는다
+      const cd = s.texture.customData || {};
+      s.setFlipX(true);
+      if (cd.frameWidth && cd.pivotX != null) s.setOrigin((cd.frameWidth - cd.pivotX) / cd.frameWidth, s.originY);
+    }
     s.setDepth(DEPTH.bg + 0.8 + d.y / 100000).setAlpha(alpha); // 아래쪽 나무가 앞에
     const anim = `${d.key}:sway`;
     if (scene.anims.exists(anim)) {
