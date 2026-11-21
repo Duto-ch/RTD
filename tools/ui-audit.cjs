@@ -10,7 +10,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-const which = process.argv[2] || 'all';
+const which = process.argv[2] || 'tall'; // 가로 배치는 당분간 꺼 둠 (config WIDE_ENABLED) — 켜면 all
 const OUT = 'ui-audit';
 fs.mkdirSync(OUT, { recursive: true });
 
