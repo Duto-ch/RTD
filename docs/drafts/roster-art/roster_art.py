@@ -495,6 +495,11 @@ def uri(img):
 
 
 if __name__ == '__main__':
+    # 공격 애니메이션 = 28프레임 (2026-11-21 사용자 결정, docs/drafts/anim28/anim28.py) — 대기 8프레임은 그대로
+    sys.path.insert(0, os.path.join(HERE, '..', 'anim28'))
+    import anim28 as A28
+    fire = A28.install()
+    hit_of = lambda w: A28.HIT28[w]
     os.makedirs(os.path.join(HERE, 'sheets'), exist_ok=True)
     os.makedirs(os.path.join(HERE, 'bodies'), exist_ok=True)
     out = []
@@ -507,7 +512,7 @@ if __name__ == '__main__':
         sh = sheet(frames)
         sh.save(os.path.join(HERE, 'sheets', f"{c['id']}.png"))
         out.append({**c, 'weapon': r['weapon'], 'variant': r['variant'], 'shield': r['shield'], 'idle': {'n': len(r['idle']), 'ms': [m for _, m in r['idle']]},
-                    'attack': {'n': len(r['attack']), 'ms': [m for _, m in r['attack']]}, 'src': uri(sh)})
+                    'attack': {'n': len(r['attack']), 'ms': [m for _, m in r['attack']], 'hit': hit_of(r['weapon'])}, 'src': uri(sh)})
     # ── 시안 8종 (2026-11-17 테스트로 만든 캐릭터, docs/drafts/char-13/anim.py) — 도감에 함께 싣는다 (게임 로스터에는 아직 없음) ──
     A.geo_weapon = A.geo_weapon_orig          # 시안 그대로의 무기 (v2 모양·재질 없이)
     A.GEO_LEN.clear(); A.GEO_LEN.update(BASE_LEN)
@@ -522,7 +527,7 @@ if __name__ == '__main__':
         sh.save(os.path.join(HERE, 'sheets', f"{cid}.png"))
         out.append({**rc, 'weapon': w, 'variant': '',
                     'shield': shield, 'idle': {'n': len(a['idle']), 'ms': [m for _, m in a['idle']]},
-                    'attack': {'n': len(a['attack']), 'ms': [m for _, m in a['attack']]}, 'src': uri(sh)})
+                    'attack': {'n': len(a['attack']), 'ms': [m for _, m in a['attack']], 'hit': hit_of(w)}, 'src': uri(sh)})
     A.geo_weapon = W2.geo
     json.dump({'W': A.W, 'H': A.H, 'OX': A.OX, 'OY': A.OY, 'chars': out}, open(os.path.join(HERE, 'roster-art.json'), 'w'))
     # 한눈에 보기: 대기 첫 프레임 96명 (속성별 줄)
