@@ -39,7 +39,7 @@ export const HUD = WIDE
       cy: 42, // 알약 바 가운데 y
       relic: { x: 990, y: 24, w: 132 }, // 유물 칸 4개 자리 (알약 바 오른쪽 끝)
       hp: { x: 836, y: 29, w: 144, h: 26 }, // 성벽 체력 막대 (골드 오른쪽 ~ 유물 칸 왼쪽)
-      dark: { x: 160, y: 616, w: 960, h: 96 }, // 아래 독: 상점 6칸 + 영지·리롤 + 배속·메뉴·강화
+      dark: { x: 150, y: 616, w: 980, h: 96 }, // 아래 독: 상점 6칸 + 영지·리롤 + 배속·메뉴·강화 (2026-11-21: 위 알약 바와 같은 폭 150~1130)
       shop: { x: 172, y: 622, w: 612, h: 84 }, // 상점 칸 (선택한 용병이 있으면 그 자리에 용병 카드)
       estate: { x: 871, y: 645, w: 150, h: 42 }, // 버튼 가운데
       reroll: { x: 871, y: 690, w: 150, h: 34 },
@@ -54,15 +54,19 @@ export const HUD = WIDE
       hp: { x: 236, y: 62, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
       timer: { x: GAME_W - 194, w: 86, h: 22 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 사용자 요청: 남은 시간·바로 시작 작게
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
-      dark: { x: 4, y: 776, w: GAME_W - 8, h: 176 },
-      shop: { x: 12, y: 786, w: GAME_W - 24, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
-      estate: { x: 290, y: 914, w: 188, h: 56 }, // 버튼 가운데
-      reroll: { x: 462, y: 914, w: 140, h: 56 },
-      small: { y: 914, xs: [40, 98, 156], w: 52, h: 56 }, // 배속(→정지) · 메뉴 · 강화
-      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 58, y: 752, w: 88, h: 30 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래)
+      // 2026-11-21 사용자 요청: 아래 시트 폭 = 위 카드 폭(12~532), 버튼 줄 높이 56 → 46 (위아래 여백 12)
+      dark: { x: 12, y: 776, w: GAME_W - 24, h: 176 },
+      shop: { x: 20, y: 786, w: GAME_W - 40, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
+      estate: { x: 280, y: 917, w: 188, h: 46 }, // 버튼 가운데
+      reroll: { x: 453, y: 917, w: 142, h: 46 },
+      small: { y: 917, xs: [45, 99, 153], w: 50, h: 46 }, // 배속(→정지) · 메뉴 · 강화
+      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 60, y: 752, w: 76, h: 26 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래) — 재료 버튼 88x30 → 76x26 (띠 안 여백)
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = WIDE ? 520 : GAME_W;
+
+/** 성벽 체력 막대 외곽 두께 */
+const HP_LINE = 4;
 
 export class Hud {
   /** @param {Phaser.Scene} scene GameScene */
@@ -231,8 +235,9 @@ export class Hud {
     const s = this.s;
     const B = HUD.hp;
     this.hpBg = s.add.graphics().setDepth(D);
-    this.hpBg.fillStyle(0x6b4e2a, 1).fillRoundedRect(B.x, B.y, B.w, B.h, B.h / 2);
-    this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + 2, B.y + 2, B.w - 4, B.h - 4, (B.h - 4) / 2);
+    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px)
+    this.hpBg.fillStyle(0x5a3f20, 1).fillRoundedRect(B.x, B.y, B.w, B.h, B.h / 2);
+    this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, B.w - HP_LINE * 2, B.h - HP_LINE * 2, (B.h - HP_LINE * 2) / 2);
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
     this.hpHeart = s.add.graphics();
@@ -245,19 +250,19 @@ export class Hud {
     const B = HUD.hp;
     const g = this.hpFill;
     g.clear();
-    const iw = B.w - 4;
-    const ih = B.h - 4;
+    const iw = B.w - HP_LINE * 2;
+    const ih = B.h - HP_LINE * 2;
     const pct = Math.max(0, Math.min(1, n / max));
     const fill = Math.round((iw * pct) / UI_PX) * UI_PX;
     if (fill > 0) {
       const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
       const w = Math.max(ih, fill); // 둥근 끝이 깨지지 않게 최소 높이만큼
-      g.fillStyle(col, 1).fillRoundedRect(B.x + 2, B.y + 2, w, ih, ih / 2);
-      g.fillStyle(0xffffff, 0.28).fillRoundedRect(B.x + 6, B.y + 4, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+      g.fillStyle(col, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, w, ih, ih / 2);
+      g.fillStyle(0xffffff, 0.28).fillRoundedRect(B.x + HP_LINE + 4, B.y + HP_LINE + 2, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
     }
     if (shield > 0) {
       const sw = Math.round((iw * Math.min(1, shield / max)) / UI_PX) * UI_PX;
-      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(B.x + 2, B.y + 2, Math.max(6, sw), 4, 2);
+      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, Math.max(6, sw), 4, 2);
     }
     // 가운데: 하트 + 수치 (함께 가운데 정렬)
     this.countText.setText(`${Math.ceil(n)}${shield > 0 ? `+${Math.ceil(shield)}` : ''} / ${max}`);
@@ -388,9 +393,9 @@ export class Hud {
     this.menuBtn = new Button(s, SM.xs[1], SM.y, SM.w, SM.h, '메뉴', () => this.toggleMenu(), { variant: v, icon: 'menu', fontSize: fs });
     this.createUpgradeButton(SM, v, fs);
     const E = HUD.estate;
-    this.estateBtn = new Button(s, E.x, E.y, E.w, E.h, '', () => s.levelUpEstate(), { variant: 'gold', icon: 'house', fontSize: WIDE ? 11 : 12 }); // 가로(높이 42)는 아이콘 왼쪽
+    this.estateBtn = new Button(s, E.x, E.y, E.w, E.h, '', () => s.levelUpEstate(), { variant: 'gold', icon: 'house', iconLeft: true, fontSize: WIDE ? 11 : 12 }); // 아이콘 왼쪽 + 두 줄
     const R = HUD.reroll;
-    this.rerollBtn = new Button(s, R.x, R.y, R.w, R.h, '', () => s.reroll(), { variant: 'primary', icon: 'reroll', fontSize: WIDE ? 11 : 12 });
+    this.rerollBtn = new Button(s, R.x, R.y, R.w, R.h, '', () => s.reroll(), { variant: 'primary', icon: 'reroll', iconLeft: true, fontSize: WIDE ? 11 : 12 });
     // 상점 칸 / 용병 카드 (같은 자리)
     this.shopBox = s.add.container(0, 0).setDepth(D);
     this.infoBox = s.add.container(0, 0).setDepth(D).setVisible(false);
@@ -482,12 +487,8 @@ export class Hud {
     const s = this.s;
     const it = ITEM_BY_ID[id];
     const c = s.add.container(x, y);
-    const g = s.add.graphics();
-    const h = size / 2;
-    const r = Math.min(7, h);
-    g.fillStyle(it.kind === 'mat' || it.kind === 'seal' ? 0xf3ead2 : 0xfff3d0, 1).fillRoundedRect(-h, -h, size, size, r);
-    g.lineStyle(2, it.kind === 'combo' || it.kind === 'emblem' ? 0xe0a32a : 0xc9b48a, 1).strokeRoundedRect(-h, -h, size, size, r);
-    c.add(g);
+    // 2026-11-21 사용자 요청: 아이콘 외곽(칸 배경·테두리) 제거 — 그림만. 누르는 영역은 그림 크기
+    c.setSize(size, size);
     if (s.textures.exists(`item_${id}`)) c.add(s.add.image(0, 0, `item_${id}`).setScale(UI_PX));
     else c.add(uiText(s, 0, 0, it.glyph || it.name[0], 13, CSS.ink, 'bold').setOrigin(0.5));
     return c;

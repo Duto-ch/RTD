@@ -24,8 +24,8 @@ async function toGame(page, x, y) {
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
 }
 
-// 세로 상점 칸 가운데 (룰 v2 하단 시트: x 12~532, y 786~882, 6칸)
-const SHOP_X = (i) => 12 + ((520 - 30) / 6) * (i + 0.5) + 6 * i;
+// 세로 상점 칸 가운데 (룰 v2 하단 시트 2026-11-21: x 20~524, y 786~882, 6칸)
+const SHOP_X = (i) => 20 + ((504 - 30) / 6) * (i + 0.5) + 6 * i;
 const SHOP_Y = 820;
 
 test('상점에서 사기 → 웨이브 진행 → 처치', async ({ page }) => {

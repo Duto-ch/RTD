@@ -30,7 +30,7 @@ const FROM_COLOR = { 0x2f7d4a: 'primary', 0x8c2b25: 'danger' };
  * (2026-11-21 정렬 점검: 낮은 버튼에서 아이콘과 글자가 겹치던 문제)
  */
 export class Button extends Phaser.GameObjects.Container {
-  constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 16, icon } = {}) {
+  constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 16, icon, iconLeft } = {}) {
     super(scene, x, y);
     this.w = w;
     this.h = h;
@@ -41,7 +41,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.iconColor = ICON_COLOR[this.variant] ?? C.ink;
     this.icon = icon ? scene.add.graphics() : null;
     this.iconName = icon;
-    this.iconLeft = !!icon && h < 44;
+    this.iconLeft = !!icon && (iconLeft ?? h < 44); // iconLeft: true 면 높이와 상관없이 아이콘 왼쪽
     const extra = t.stroke ? { stroke: t.stroke, strokeThickness: 4, align: 'center' } : { align: 'center' };
     this.label = uiText(scene, 0, 0, label, fontSize, t.color, 'bold', extra).setOrigin(0.5);
     this.add([this.bg, ...(this.icon ? [this.icon] : []), this.label]);

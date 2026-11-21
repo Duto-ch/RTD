@@ -30,7 +30,7 @@ const text = (scene, x, y, str, size = 22, color = '#ffffff', extra = {}) =>
 
 const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 /** 전열·후열 칸 대비 (2026-11-21 사용자 결정): 전열 밝게(흰빛 겹침), 후열 어둡게(틴트) */
-const FIELD_ROWS = { frontLift: 0.14, backTint: 0x9c9ca8 };
+const FIELD_ROWS = { frontLift: 0.14, backTint: 0x7c7c8c }; // 2026-11-21: 후열 더 어둡게 (이전 0x9c9ca8)
 
 export class GameScene extends Phaser.Scene {
   constructor() {
