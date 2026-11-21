@@ -10,7 +10,7 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 
 ## 캐릭터 104명
 - 다시 만들기: `python3 docs/drafts/roster-art/roster_art.py && python3 tools/import-roster-art.py`
-  → `public/assets/custom/chars/<id>.png` + manifest `char_<id>` (프레임 56x40, 대기 8 + 공격, 프레임별 길이 `ms`, `facing: "left"`, 몸 중심 27,23)
+  → `public/assets/custom/chars/<id>.png` + manifest `char_<id>` (프레임 56x40, 대기 8 + 공격 28, 프레임별 길이 `ms`, `facing: "left"`, 몸 중심 27,23)
 - 예외 3명(2026-11-20): 아서·이졸데·오베론은 몸 그림을 `docs/drafts/pixellab-rule-test/` 의 새 비율 그림으로 바꿔 넣는다 (`CUSTOM_BODY`, 머리/몸 나누는 줄 19·눈 (9,15)(13,15)) + 전용 무기 `UNIQUE_WPN` + 무기 바깥으로 `WPN_DX`
 - `roster_art.py`: 캐릭터 설명(look) 키워드로 머리 모양·장식·수염·망토·날개·무기(31종 변형 `weapons_v2.py`)·방패를 정한다. 몸 색 수 `BODY_COLORS`(등급별 10·12·14·15)
 - 시안 출신 8명(카이라·베로나 등)은 `docs/drafts/char-13/anim.py` 그림을 그대로 쓴다(사용자 그림 `edit/`). 열람 https://claude.ai/artifact/KM2FJB4RDdDhGkQYhpEGBN
@@ -24,8 +24,10 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 ## 유물 아이콘
 - 30종 전용 그림 12x12 (2026-11-20 룰 v2: 10종 → 30종) 아트 px(게임에서 2px): `python3 docs/drafts/relic-icons/relics.py` → `public/assets/custom/relics/<id>.png` + manifest `relic_<id>` (미리보기 `preview.png`). 새 유물을 추가하면 이 스크립트에 모양을 더한다
 
-## 공격 모션 28프레임 (시안)
-- `python3 docs/drafts/anim28/anim28.py && python3 docs/drafts/anim28/build_view.py` — 무기 6종 한 명씩, `roster_art.py` 의 공격 함수를 28프레임 버전으로 바꿔 끼워 그린다. 열람 https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT
+## 공격 모션 28프레임 (2026-11-21 전체 적용)
+- 캐릭터 104명(시안 출신 8명 포함)의 공격은 28프레임 — `roster_art.py` 가 실행될 때 `anim28.install()` 로 공격 함수를 바꿔 끼운다(검·도끼·망치 휘두르기 · 창 찌르기 · 단검 두 번 찌르기 · 지팡이 시전 · 활 · 총·석궁). 대기 8프레임은 그대로
+- 타격·발사 프레임 `anim28.HIT28` → roster-art.json `attack.hit` → manifest. 동작을 고치면 이 번호도 맞출 것
+- 무기 6종 비교 열람(예전 시안): `python3 docs/drafts/anim28/anim28.py && python3 docs/drafts/anim28/build_view.py`, https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT
 
 ## 필드 배경
 - 코드 생성(`src/art/textures.js`): 지역 배경 `bg_<지역>` · 석판 `field_tile_*` · 성벽 `field_wall` (`WALL_RADIUS`·`FLOOR_RADIUS`·`PATH_JITTER`). manifest 스킨으로 교체 가능, 예시 `docs/drafts/field-skin/`

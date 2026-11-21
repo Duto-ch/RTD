@@ -791,7 +791,7 @@ test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동
     const g = window.game.scene.getScene('Game');
     return ['char_arthur', 'char_isolde', 'char_robin'].map((k) => g.textures.get(k).customData.hitFrame.attack);
   });
-  expect(hits).toEqual([4, 2, 4]); // 검 = 내려친 타격, 지팡이 = 구슬 섬광, 활 = 시위를 놓음
+  expect(hits).toEqual([15, 13, 15]); // 28프레임 공격 (2026-11-21): 검 = 내려친 타격, 지팡이 = 고리가 퍼지는 시전, 활 = 시위를 놓음
   // 발사 전에 노린 몬스터가 모두 죽으면 공격 동작을 끊고 대기로 (피해·투사체도 안 나감, 바로 다음 대상을 노릴 수 있게 쿨타임 0)
   const c = await game(page, () => {
     const g = window.game.scene.getScene('Game');
