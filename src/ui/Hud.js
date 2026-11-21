@@ -436,8 +436,8 @@ export class Hud {
       const nm = uiText(s, 5, h - 10, ch.name, 12, tc, 'bold').setOrigin(0, 0.5);
       this.fitText(nm, w - 10 - pt.width - 4);
       c.add([img, nm, pt]);
-      // 계열·출신 상징 (2026-11-21: 아래 가운데, 이름 띠 위에 걸쳐 · 글자 대신 모양 그림)
-      [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 10 : -10), h - 30, k, 9)));
+      // 계열·출신 상징 (2026-11-21: 아래 가운데 · 글자 대신 모양 그림) — 이름 띠·서로 4px 이상 띄운다 (여백 필수 규칙)
+      [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 13 : -13), h - 20 - 5 - 10, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
       if (owned) c.add(uiText(s, w - 5, 5, `${owned}장`, 12, CSS.primary, 'bold').setOrigin(1, 0));
       if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
@@ -489,12 +489,7 @@ export class Hud {
     const s = this.s;
     const it = ITEM_BY_ID[id];
     const c = s.add.container(x, y);
-    const g = s.add.graphics();
-    const h = size / 2;
-    const r = Math.min(7, h);
-    g.fillStyle(it.kind === 'mat' || it.kind === 'seal' ? 0xf3ead2 : 0xfff3d0, 1).fillRoundedRect(-h, -h, size, size, r);
-    g.lineStyle(2, it.kind === 'combo' || it.kind === 'emblem' ? 0xe0a32a : 0xc9b48a, 1).strokeRoundedRect(-h, -h, size, size, r);
-    c.add(g);
+    // 2026-11-21 사용자 요청: 그림 뒤 둥근 사각형 칸(배경·테두리)은 없앰 — 그림 실루엣만
     if (s.textures.exists(`item_${id}`)) c.add(s.add.image(0, 0, `item_${id}`).setScale(UI_PX));
     else c.add(uiText(s, 0, 0, it.glyph || it.name[0], 13, CSS.ink, 'bold').setOrigin(0.5));
     return c;
@@ -517,9 +512,8 @@ export class Hud {
       ic.on('pointerout', () => this.hideRelicTip());
       ic.on('dragstart', () => {
         this.hideRelicTip();
-        ic.setDepth(DEPTH.drag);
         this.benchRow.remove(ic);
-        ic.setDepth(DEPTH.drag);
+        ic.setDepth(DEPTH.drag); // UI(200) 위 — 끌고 가는 그림이 상점·시트 아래로 숨지 않게
         s.add.existing(ic);
       });
       ic.on('drag', (_p, x, y) => ic.setPosition(x, y));
@@ -611,10 +605,11 @@ export class Hud {
       if (on) {
         const pill = s.add.graphics();
         const pw = WIDE ? 188 : 56;
-        pill.fillStyle(0xd8fcb4, 1).fillRoundedRect(-15, -14, pw, 28, 14).lineStyle(1.5, 0x56743f, 1).strokeRoundedRect(-15, -14, pw, 28, 14);
+        pill.fillStyle(0xd8fcb4, 1).fillRoundedRect(-15, -15, pw, 30, 15).lineStyle(1.5, 0x56743f, 1).strokeRoundedRect(-15, -15, pw, 30, 15);
+        pill.auditBox = { x: -15, y: -15, w: pw, h: 30 }; // tools/ui-audit.cjs 여백 검사
         c.add(pill);
       }
-      c.add(traitBadge(s, 0, 0, k, 12, on));
+      c.add(traitBadge(s, 0, 0, k, 10, on)); // r10: 알약 안쪽·숫자와 4px 이상 (여백 필수 규칙)
       const label = next ? `${n}/${next.n}` : `${n}`;
       if (WIDE) {
         c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
@@ -691,8 +686,8 @@ export class Hud {
     c.add(panel(s, B.x, B.y, B.w, B.h, 'soft'));
     this.infoAvatar = panelImage(s, B.x + 40, B.y + B.h / 2, 'soft', 56, 56);
     this.infoPortrait = s.add.sprite(B.x + 40, B.y + B.h / 2, 'pixel').setScale(PX - 1);
-    this.infoTitle = uiText(s, B.x + 80, B.y + 10, '', 15, CSS.ink, 'bold');
-    this.infoSub = uiText(s, B.x + 80, B.y + 31, '', 12, CSS.sub, 'bold');
+    this.infoTitle = uiText(s, B.x + 80, B.y + (WIDE ? 5 : 8), '', 15, CSS.ink, 'bold');
+    this.infoSub = uiText(s, B.x + 80, B.y + (WIDE ? 27 : 31), '', 12, CSS.sub, 'bold');
     this.infoBody = uiText(s, B.x + 80, B.y + 52, '', 12, CSS.ink, 'bold');
     this.manaBar = s.add.graphics();
     const bx = B.x + B.w - 64;
@@ -722,6 +717,17 @@ export class Hud {
     setArt(this.infoPortrait, m.textureKey, PX - 1);
     playBase(this.infoPortrait, 'idle');
     this.infoTitle.setColor(m.isHero ? CSS.gold : CSS.ink).setText(`${m.heroName} ${'★'.repeat(m.star)}`);
+    // 계열·출신 상징 배지 (2026-11-21 사용자 요청: 상점 카드와 같은 그림을 이름 오른쪽에)
+    const bKey = `${m.char.id}|${this.infoTitle.text}`;
+    if (this.infoBadgeKey !== bKey) {
+      this.infoBadgeKey = bKey;
+      this.infoBadges?.destroy();
+      const by = Math.round(this.infoTitle.y + this.infoTitle.height / 2);
+      const bx0 = this.infoTitle.x + this.infoTitle.width + 6 + 9;
+      this.infoBadges = s.add.container(0, 0);
+      [m.char.cls, m.char.origin].forEach((k, j) => this.infoBadges.add(traitBadge(s, bx0 + j * 22, by, k, 8)));
+      this.infoBox.add(this.infoBadges);
+    }
     this.infoSub.setText(`${m.gradeName} · ${m.roleName} · ${STYLES[m.char.style].name}${m.isFront ? ' · 전열' : ' · 후열'}`);
     const textW = B.w - 80 - 128;
     this.fitText(this.infoSub, textW);
@@ -735,7 +741,7 @@ export class Hud {
     const mx = B.x + 80, my = B.y + B.h - 18, mw = Math.min(200, textW - 4);
     g.fillStyle(0xd9cdb2, 1).fillRoundedRect(mx, my, mw, 8, 4);
     g.fillStyle(0x4a8fe8, 1).fillRoundedRect(mx, my, Math.max(8, (mw * m.mana) / m.maxMana), 8, 4);
-    this.infoBody.setY(B.y + 50);
+    this.infoBody.setY(B.y + (WIDE ? 45 : 50)); // 가로(높이 84)는 줄마다 4px 여백이 남게 촘촘히
     if (!this.manaText) {
       this.manaText = uiText(s, 0, 0, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5);
       this.infoBox.add(this.manaText);
@@ -928,6 +934,7 @@ export function traitBadge(s, x, y, k, r = 10, on = true) {
   g.lineStyle(2, on ? 0x2b1d2f : 0xa8875a, 1).strokeCircle(0, 0, r);
   drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
   c.add(g);
+  c.auditBox = { x: -r - 1, y: -r - 1, w: 2 * r + 2, h: 2 * r + 2 }; // tools/ui-audit.cjs 여백 검사 (외곽선 포함)
   return c;
 }
 
