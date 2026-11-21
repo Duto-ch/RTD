@@ -59,7 +59,7 @@ export const TUTORIAL_STEPS = {
   },
   next: {
     title: '바로 시작',
-    text: '필드의 몬스터를 모두 처치하면\n다음 웨이브를 바로 부를 수 있어요. (Space 키)',
+    text: '필드의 몬스터를 모두 처치하면\n다음 웨이브를 바로 부를 수 있어요.\n(Space 키는 게임 정지 · R 키는 리롤)',
     rect: (s) => btnRect(s.hud.nextWaveBtn, 6)
   },
   boss: {
