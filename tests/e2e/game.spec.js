@@ -1185,7 +1185,8 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   expect(await tut()).toBe(null);
   expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v3')).tutorial.seen.shop)).toBe(true);
   // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
+  // 커먼으로 고정 — 무작위 고용이 유니크면 '유니크 합류' 안내가 먼저 떠서 가끔 실패하던 문제 (2026-11-21)
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire('helga'); g.select(g.mercs[0]); });
   expect(await tut()).toBe('select');
   await page.screenshot({ path: SHOT('27-tutorial-select') });
   // 끄기 → 이후 단계는 뜨지 않는다
