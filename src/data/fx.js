@@ -50,7 +50,7 @@ export const HIT_FX = {
   mage: 'hit_magic',
   archmage: 'hit_magic',
   sniper: 'hit_snipe',
-  warlord: 'slash'
+  warlord: 'hit_star' // 2026-11-21 사용자 요청: X자(slash) 이펙트 삭제
 };
 
 import { FX_SETS } from './fxSets.js';

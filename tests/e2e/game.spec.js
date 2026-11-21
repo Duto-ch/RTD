@@ -24,12 +24,19 @@ async function toGame(page, x, y) {
   await page.waitForFunction(() => window.game.scene.isActive('Game'));
 }
 
-// 세로 상점 칸 가운데 (룰 v2 하단 시트: x 12~532, y 786~882, 6칸)
-const SHOP_X = (i) => 12 + ((520 - 30) / 6) * (i + 0.5) + 6 * i;
+// 세로 상점 칸 가운데 (룰 v2 하단 시트 2026-11-21: x 20~524, y 786~882, 6칸)
+const SHOP_X = (i) => 20 + ((504 - 30) / 6) * (i + 0.5) + 6 * i;
 const SHOP_Y = 820;
 
 test('상점에서 사기 → 웨이브 진행 → 처치', async ({ page }) => {
   const errors = await startGame(page);
+  // 상점을 서로 다른 커먼 6명으로 고정 (무작위면 같은 캐릭터가 겹쳐 별 승급으로 인원 수가 흔들린다)
+  await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const ids = g.deck.filter((id) => window.__rtd.ROSTER.find((c) => c.id === id).grade === 1).slice(0, 6);
+    g.shop = ids.map((id) => ({ id, locked: false, sold: false }));
+    g.refreshShop();
+  });
   for (let i = 0; i < 3; i++) await page.mouse.click(SHOP_X(i), SHOP_Y); // 상점 칸 (영지 Lv1 = 3명)
   const r0 = await game(page, () => { const g = window.game.scene.getScene('Game'); return { n: g.mercs.length, sold: g.shop.filter((x) => x?.sold).length, gold: g.gold }; });
   expect(r0.n).toBe(3);
@@ -1245,7 +1252,17 @@ test('물량: 1웨이브 167기(2026-11-20 1/3 감소)가 길 폭에 퍼져 나�
   expect(errors).toEqual([]);
 });
 
-test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을 가리지 않는다', async ({ browser }) => {
+test('가로 화면은 당분간 끔: 1280x720 창에서도 세로 배치(544x960)가 가운데', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await page.goto('/?layout=wide');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  const r = await page.evaluate(() => ({ ratio: window.game.canvas.width / window.game.canvas.height }));
+  expect(r.ratio).toBeCloseTo(544 / 960, 3);
+  await page.close();
+});
+
+// 가로 배치는 2026-11-21 사용자 결정으로 당분간 꺼 둠 (src/config.js WIDE_ENABLED) — 다시 켜면 이 테스트도 되살린다
+test.skip('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을 가리지 않는다', async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));

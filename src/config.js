@@ -2,8 +2,10 @@
 export const PX = 4;
 // 화면 방향 (2026-11-15): 창이 가로로 넓으면(16:9 모니터) 가로 배치 1280x720, 아니면 세로 배치 544x960 (모바일).
 // 게임을 띄울 때 한 번 정한다. 주소에 ?layout=wide / ?layout=tall 을 붙이면 강제로 고를 수 있다
+// 2026-11-21 사용자 결정: 가로 화면은 당분간 뺀다 — 창이 가로여도 세로 배치(양옆 검은 여백). 가로 코드는 그대로 두고 이 값만 true 로 하면 돌아온다
+export const WIDE_ENABLED = false;
 function pickLayout() {
-  if (typeof window === 'undefined') return 'tall';
+  if (typeof window === 'undefined' || !WIDE_ENABLED) return 'tall';
   const q = new URLSearchParams(window.location?.search || '').get('layout');
   if (q === 'wide' || q === 'tall') return q;
   return window.innerWidth > window.innerHeight * 1.15 ? 'wide' : 'tall';

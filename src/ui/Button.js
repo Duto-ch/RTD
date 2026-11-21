@@ -30,7 +30,7 @@ const FROM_COLOR = { 0x2f7d4a: 'primary', 0x8c2b25: 'danger' };
  * (2026-11-21 정렬 점검: 낮은 버튼에서 아이콘과 글자가 겹치던 문제)
  */
 export class Button extends Phaser.GameObjects.Container {
-  constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 16, icon } = {}) {
+  constructor(scene, x, y, w, h, label, onClick, { variant, color, fontSize = 16, icon, iconLeft } = {}) {
     super(scene, x, y);
     this.w = w;
     this.h = h;
@@ -41,6 +41,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.iconColor = ICON_COLOR[this.variant] ?? C.ink;
     this.icon = icon ? scene.add.graphics() : null;
     this.iconName = icon;
+    this.forceIconLeft = iconLeft; // true 면 높이·글자와 상관없이 아이콘 왼쪽 (영지·리롤)
     const extra = t.stroke ? { stroke: t.stroke, strokeThickness: 4, align: 'center' } : { align: 'center' };
     this.label = uiText(scene, 0, 0, label, fontSize, t.color, 'bold', extra).setOrigin(0.5);
     this.add([this.bg, ...(this.icon ? [this.icon] : []), this.label]);
@@ -89,7 +90,7 @@ export class Button extends Phaser.GameObjects.Container {
     // 아이콘 위·글자 아래(타일형)는 둘 사이 4px·위아래 4px 이상 남을 때만 — 모자라면 아이콘 왼쪽 한 줄 (여백 필수 규칙)
     const s = 14; // 아이콘 실제 크기 (7칸 × 2px)
     const lh = this.label.text ? this.label.height : 0;
-    this.iconLeft = h < 44 || s + 4 + lh + 8 > h;
+    this.iconLeft = this.forceIconLeft ?? (h < 44 || s + 4 + lh + 8 > h);
     if (this.iconLeft) {
       const iw = 14; // 7칸 × 2px
       const gap = 6;

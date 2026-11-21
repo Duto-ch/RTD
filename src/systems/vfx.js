@@ -412,10 +412,8 @@ export class Vfx {
         break;
       case 'rogue':
       case 'warlord':
-        for (const t of targets.slice(0, 10)) {
-          if (!this.play('slash', t.x, t.y, { tint: attr, angle: Phaser.Math.Between(-2, 2) * 90 }))
-            this.slash(t.x, t.y, color, kind === 'warlord');
-        }
+        // X자 베기(slash) 대신 별 섬광 (2026-11-21 사용자 요청: X자 이펙트 삭제)
+        for (const t of targets.slice(0, 10)) this.play('hit_star', t.x, t.y, { tint: attr });
         if (area.type === 'range' || area.type === 'circle') this.shockwave(cx, cy, r, color);
         break;
       default:
