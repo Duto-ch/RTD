@@ -426,8 +426,9 @@ export class Hud {
       const gc = Phaser.Display.Color.HexStringToColor(GRADES[ch.grade].color).color;
       const owned = s.mercs.filter((m) => m.char.id === ch.id).length;
       const afford = s.gold >= price;
-      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(0, 0, w, h, 10);
-      g.lineStyle(3, gc, 1).strokeRoundedRect(1.5, 1.5, w - 3, h - 3, 10);
+      // 테두리 = 등급색 바깥 모양 + 안쪽 바탕 (선을 겹쳐 그리면 모서리에 틈이 생겼다, 2026-11-21)
+      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h, 10);
+      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, 7);
       g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
       const img = charImage(s, w / 2, WIDE ? 32 : 40, ch);
       // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
