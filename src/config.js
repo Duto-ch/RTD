@@ -87,6 +87,10 @@ export const DEPTH = {
 export const BALANCE = {
   // 공격 모션: 공격 간격 중 이 비율 동안 한 번 휘두른다 (공속에 맞춤, 2026-11-19)
   attackAnim: { share: 0.85 },
+  // 스킬 암전 (2026-11-21 시험): 스킬을 쓰는 순간 전투 화면이 흑백·고대비로 어두워지고 시전자·스킬 이펙트·UI 만 원래 색.
+  // grades: 연출할 등급(4 = 유니크만) · in/hold/out: 실제 시간 ms (배속·정지와 무관) · gap: 다음 암전까지 최소 간격 ms
+  // dark: 어둡기(0~1) · contrast: 대비 추가 · gray: 흑백 정도(0~1)
+  skillDim: { grades: [4], in: 80, hold: 140, out: 320, gap: 4000, dark: 0.45, contrast: 0.35, gray: 1 },
   startGold: 120,
   // 룰 v2 (2026-11-20): 고용·합성·레벨·속성 상성 폐지 → 상점·별 승급(data/shop.js·stars.js)·시너지(data/synergy.js)
   // 용병 기본 전투력 배율 — 출전 인원이 25 → 최대 12명, 성장이 레벨 ×8.5 → 별 ×3.2 로 줄어서 올림 (가안, 밸런스 봇으로 맞춤)

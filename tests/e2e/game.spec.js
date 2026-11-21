@@ -889,6 +889,39 @@ test('스킬 이펙트: 커먼·언커먼은 공용 세트(속성색 · 바닥 �
   expect(errors).toEqual([]);
 });
 
+test('스킬 암전(시험): 유니크 스킬만 — 화면 흑백·어둡게 + 시전자·UI 는 원래 색, 잠깐 뒤 원래대로 · 간격 안에는 다시 안 걸림', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, async () => {
+    const g = window.game.scene.getScene('Game');
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+    g.gold = 9999;
+    const iso = g.hire('isolde');
+    const helga = g.hire('helga');
+    g.startWave(3);
+    const out = {};
+    // 커먼(헬가) 스킬: 암전 없음
+    for (let i = 0; i < 40 && !out.common; i++) {
+      helga.mana = helga.maxMana;
+      await wait(150);
+      if (helga.mana < helga.maxMana) out.common = { dim: !!g.dimState };
+    }
+    // 유니크(이졸데) 스킬: 암전
+    for (let i = 0; i < 60 && !g.dimState; i++) {
+      iso.mana = iso.maxMana;
+      await wait(100);
+    }
+    const ignored = g.dimIgnored || [];
+    out.unique = { dim: !!g.dimState, spot: !!g.spotCam?.visible, casterColored: !ignored.includes(iso), uiColored: !ignored.some((o) => o.depth >= 190) };
+    // 간격(4초) 안에는 다시 안 걸린다
+    out.again = g.skillDim(iso);
+    await wait(1200);
+    out.after = { dim: !!g.dimState, spot: !!g.spotCam?.visible };
+    return out;
+  });
+  expect(r).toEqual({ common: { dim: false }, unique: { dim: true, spot: true, casterColored: true, uiColored: true }, again: false, after: { dim: false, spot: false } });
+  expect(errors).toEqual([]);
+});
+
 test('단축키 S: 선택한 용병 판매', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire('helga'); g.select(g.mercs[0]); });
@@ -1090,7 +1123,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   expect(await tut()).toBe(null);
   expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v3')).tutorial.seen.shop)).toBe(true);
   // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
-  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire(); g.select(g.mercs[0]); });
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire('helga'); g.select(g.mercs[0]); }); // 커먼 고정 (무작위면 유니크가 나와 '유니크 등장' 안내가 먼저 뜬다)
   expect(await tut()).toBe('select');
   await page.screenshot({ path: SHOT('27-tutorial-select') });
   // 끄기 → 이후 단계는 뜨지 않는다

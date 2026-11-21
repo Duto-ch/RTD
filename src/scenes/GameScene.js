@@ -81,6 +81,24 @@ export class GameScene extends Phaser.Scene {
     this.hudTimer = 0;
     this.activeTexts = 0;
     this.tweens.timeScale = 1;
+    this.spotCam = this.dimFx = this.dimRect = this.dimIgnored = this.dimState = null; // 스킬 암전 (판마다 새로)
+    this.dimUntil = 0;
+    this.dimAdded = [];
+    // 암전 중에 새로 생긴 것: 그리기 직전에 깊이를 보고 몬스터·동전 등(용병 아래)은 흑백 쪽으로 (스킬 이펙트·피해 숫자는 원래 색)
+    this.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, (o) => this.dimIgnored && this.dimAdded.push(o));
+    this.events.on(Phaser.Scenes.Events.PRE_RENDER, () => {
+      if (!this.dimAdded.length) return;
+      const spot = this.spotCam;
+      if (spot && this.dimIgnored) {
+        for (const o of this.dimAdded) {
+          if (o.active && (o.depth ?? 0) < DEPTH.merc) {
+            o.cameraFilter |= spot.id;
+            this.dimIgnored.push(o);
+          }
+        }
+      }
+      this.dimAdded = [];
+    });
 
     this.biome = biomeForWave(1);
     this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setDisplaySize(GAME_W, GAME_H).setDepth(DEPTH.bg);
@@ -651,6 +669,8 @@ export class GameScene extends Phaser.Scene {
     } else if (def.buff && !live.length) {
       return false;
     }
+    // 스킬 암전 (유니크): 이펙트를 만들기 전에 — 지금 있는 것만 흑백, 이후 생기는 스킬 이펙트는 원래 색
+    if (BALANCE.skillDim.grades.includes(merc.grade)) this.skillDim(merc);
     // 레어·유니크는 캐릭터 전용 이펙트, 커먼·언커먼은 공용 세트 이펙트 (2026-11-18). 시트가 없으면 예전 연출
     if (!this.vfx.sigSkill(merc, def, targets, primary) && !this.vfx.setSkill(merc, def, targets, primary)) this.vfx.skill(merc, def, this.kindOf(merc), targets, primary, st.range);
     if (def.level > 5) audio.ult();
@@ -1465,6 +1485,66 @@ export class GameScene extends Phaser.Scene {
    * 일시정지(정지 버튼·ESC 메뉴·유물 선택·튜토리얼) 동안 캐릭터·몬스터·이펙트 애니메이션과 전투 타이머도 멈춘다 (2026-11-19).
    * 배속은 애니메이션·타이머에도 그대로 걸린다
    */
+  /**
+   * 스킬 암전 (2026-11-21 시험, BALANCE.skillDim): 메인 카메라에 흑백·어둡게·고대비 색 행렬을 잠깐 걸고,
+   * 그 위에 '조명 카메라'를 겹쳐 시전자·UI(DEPTH.ui 이상)·이제부터 생기는 것(스킬 이펙트·피해 숫자)만 원래 색으로 그린다.
+   * 실제 시간으로 들어가고(in) 머물렀다(hold) 빠진다(out). WebGL 이 아니면(색 행렬 없음) 반투명 검은 막을 용병 아래에 깐다
+   */
+  skillDim(caster) {
+    const D = BALANCE.skillDim;
+    const now = this.game.loop.time;
+    if (this.dimUntil && now < this.dimUntil + D.gap - (D.in + D.hold + D.out)) return false;
+    this.dimUntil = now + D.in + D.hold + D.out;
+    const cam = this.cameras.main;
+    this.dimState = { t: 0 };
+    const apply = () => {
+      const t = this.dimState.t;
+      if (this.dimFx) {
+        this.dimFx.reset();
+        this.dimFx.grayscale(D.gray * t, true);
+        this.dimFx.contrast(D.contrast * t, true);
+        this.dimFx.brightness(1 - D.dark * t, true);
+      } else if (this.dimRect) this.dimRect.setAlpha(D.dark * 1.2 * t);
+    };
+    if (cam.postFX && this.renderer.type === Phaser.WEBGL) {
+      this.dimFx ||= cam.postFX.addColorMatrix();
+      // 조명 카메라: 메인 카메라와 같은 확대·위치, 지금 있는 것 중 시전자·UI 가 아닌 것은 무시
+      if (!this.spotCam) this.spotCam = this.cameras.add(0, 0, cam.width, cam.height).setOrigin(0, 0).setZoom(cam.zoom).setScroll(cam.scrollX, cam.scrollY);
+      const spot = this.spotCam;
+      for (const o of this.dimIgnored || []) if (o.active) o.cameraFilter &= ~spot.id;
+      this.dimIgnored = this.children.list.filter((o) => o !== caster && (o.depth ?? 0) < DEPTH.ui - 10); // UI(카드 패널 DEPTH.ui-1 포함)는 원래 색
+      for (const o of this.dimIgnored) o.cameraFilter |= spot.id;
+      spot.setVisible(true);
+    } else {
+      this.dimRect ||= this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 1).setOrigin(0).setDepth(DEPTH.merc - 0.5);
+      this.dimRect.setVisible(true);
+    }
+    this.tweens.killTweensOf(this.dimState);
+    const k = this.tweens.timeScale || 1; // 트윈은 배속을 따르므로 실제 시간이 되게 되돌린다
+    this.tweens.chain({
+      targets: this.dimState,
+      tweens: [
+        { t: 1, duration: D.in * k, ease: 'Quad.easeOut', onUpdate: apply },
+        { t: 1, duration: D.hold * k, onUpdate: apply },
+        { t: 0, duration: D.out * k, ease: 'Quad.easeIn', onUpdate: apply }
+      ],
+      onComplete: () => this.endSkillDim()
+    });
+    apply();
+    return true;
+  }
+
+  endSkillDim() {
+    this.dimFx?.reset();
+    this.dimRect?.setVisible(false);
+    if (this.spotCam) {
+      for (const o of this.dimIgnored || []) if (o.active) o.cameraFilter &= ~this.spotCam.id;
+      this.spotCam.setVisible(false);
+    }
+    this.dimIgnored = null;
+    this.dimState = null;
+  }
+
   syncFreeze(frozen) {
     const sp = frozen ? 0 : this.speed;
     if (this._animSpeed === sp) return;

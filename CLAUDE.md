@@ -20,6 +20,7 @@
 - 랭킹 (내 기기 vs 온라인) — 보류
 - **룰 v2 가안 수치 (2026-11-20 main 에 합침)**: 확정 사항 `docs/drafts/rules-v2/DECISIONS.md`. 아직 가안 ⚠️ — 유물 30종 효과(`src/data/relics.js`, 20종 Claude 가안)·술집 값(`src/data/tavern.js`)·마정석 드랍(보스 2·강화 5·최종 10)·유물 생산 마정석 4·시너지·아이템 수치·`baseDamageMult` 3
 - **캐릭터 그림 시안 전부 보류 (2026-11-20 사용자 결정)** — 등급 재배분 그림 다시 뽑기(`docs/drafts/regrade-art/`) · 캐릭터 v2 키 컬러 16색·생김새·무기 배분(`docs/drafts/roster-v2-art/`) · 화풍 시험 6명·도트 광원 5종(`docs/drafts/chibi-test/`) · 빛 번짐 시안(`docs/drafts/chibi-test/glow.tpl.html`). 게임 캐릭터 그림은 지금 것 그대로 — **단, 아서·이졸데·오베론 3명은 새 비율(머리 9줄 + 몸 5줄, PixelLab 정리본·직접 도트) + 전용 무기(성검·태양 지팡이·요정 홀)로 게임 적용** (2026-11-20, `roster_art.py` 의 `CUSTOM_BODY`·`UNIQUE_WPN`·`WPN_DX`, 시험 기록 `docs/drafts/pixellab-rule-test/`). 나머지 101명에 새 비율을 쓸지는 결정 대기. 도끼·망치 실루엣 시안(`docs/drafts/chibi-test/axe_hammer.py`)·무기 v3 모양(`weapons_v3.py`)은 무기 쪽이라 따로 검토 대기
+- **스킬 암전 시험판 (2026-11-21, 브랜치 `feature/skill-dim`)**: 유니크 스킬 순간 전투 화면 흑백·어둡게·고대비(0.08초 들어가 0.14초 머물고 0.32초 빠짐, 다음까지 4초 간격) + 시전자·스킬 이펙트·UI 는 원래 색 (`BALANCE.skillDim`, `GameScene.skillDim` — 메인 카메라 색 행렬 + 조명 카메라). 적용 여부·강도·대상 등급 결정 대기
 - UI 모션 시안 12곳 (https://claude.ai/artifact/3wd8z9Jx7HfNX8HXx5gduW, `docs/drafts/ui-motion/`) · 공격 28프레임 시안 6종 (https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT, `docs/drafts/anim28/`) — 어느 것을 적용할지
 
 ## 게임 개요
