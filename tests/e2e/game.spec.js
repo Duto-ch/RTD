@@ -1351,3 +1351,58 @@ test('UI 여백 (2026-11-21 필수 규칙): 아이콘 버튼은 아이콘·글�
   expect(d.minGap).toBeGreaterThanOrEqual(4);
   await page.screenshot({ path: SHOT('46-ui-spacing-deck') });
 });
+
+test('2026-11-21 상점·아이템 다듬기: 상점 상징 배지는 이름 띠와 4px 이상 · 용병 카드에도 상징 배지 · 아이템 그림 뒤 칸 없음 · 끄는 아이템은 UI 위', async ({ page }) => {
+  const errors = await startGame(page);
+  await page.waitForTimeout(400);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    // 상점 카드 0번: 배지(auditBox 컨테이너) 아래와 이름 띠(카드 아래 20px) 사이
+    const card = h.shopBox.list[0];
+    const badges = card.list.filter((o) => o.auditBox);
+    const cardH = 96;
+    const bandGap = Math.min(...badges.map((b) => cardH - 20 - (b.y + b.auditBox.y + b.auditBox.h)));
+    const between = badges.length === 2 ? Math.abs(badges[1].x - badges[0].x) - badges[0].auditBox.w : -1;
+    g.gold = 999;
+    g.bench.push('whet');
+    h.refreshBench();
+    const icon = h.benchRow.list.find((o) => o.input?.draggable);
+    const hasBg = icon.list.some((o) => o.type === 'Graphics');
+    icon.emit('dragstart');
+    const dragDepth = icon.depth;
+    const uiDepth = h.smithBtn.depth;
+    icon.emit('dragend', { worldX: -999, worldY: -999 });
+    g.hire('isolde');
+    g.select(g.mercs[0]);
+    return { badges: badges.length, bandGap, between, hasBg, dragDepth, uiDepth, infoBadges: h.infoBadges?.list.length };
+  });
+  expect(r.badges).toBe(2);
+  expect(r.bandGap).toBeGreaterThanOrEqual(4);
+  expect(r.between).toBeGreaterThanOrEqual(4);
+  expect(r.hasBg).toBe(false);
+  expect(r.dragDepth).toBeGreaterThan(r.uiDepth);
+  expect(r.infoBadges).toBe(2);
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: SHOT('47-shop-badges-info') });
+  expect(errors).toEqual([]);
+});
+
+test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃발, 성벽 두께 안에만', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const cv = window.game.textures.get('field_wall').getSourceImage();
+    const ctx = cv.getContext('2d');
+    const S = cv.width, SZ = S - 1, c = Math.floor(SZ / 2 + 0.5);
+    const px = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data);
+    const wood = (p) => p[3] === 255 && p[0] > p[2] + 30 && p[0] > 80; // 갈색 나무
+    // 문 가운데 (바깥에서 6도트 안쪽): 위 · 아래 · 왼 · 오른
+    const doors = [[c - 3, 6], [c - 3, SZ - 7], [6, c - 3], [SZ - 7, c - 3]].map(([x, y]) => wood(px(x, y)));
+    // 성벽 바깥(텍스처 밖 여백)은 그대로 투명, 바닥 자리 안쪽도 투명
+    return { doors, inner: px(c, c)[3] };
+  });
+  expect(r.doors).toEqual([true, true, true, true]);
+  expect(r.inner).toBe(0);
+  await page.screenshot({ path: SHOT('48-wall-gates'), clip: { x: 40, y: 236, width: 464, height: 488 } });
+  expect(errors).toEqual([]);
+});
