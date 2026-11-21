@@ -1272,3 +1272,53 @@ test('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을
   expect(errors).toEqual([]);
   await page.close();
 });
+
+test('UI 여백 (2026-11-21 필수 규칙): 아이콘 버튼은 아이콘·글자 사이와 위아래에 여백 · 병영 카드 체크는 이름과 떨어져 등급 앞 · 아이템 띠 버튼은 띠 안쪽', async ({ page }) => {
+  await startGame(page);
+  await page.waitForTimeout(400);
+  const r = await game(page, () => {
+    const h = window.game.scene.getScene('Game').hud;
+    const btns = [h.estateBtn, h.menuBtn, h.smithBtn];
+    const tile = btns.map((b) => {
+      const lb = b.label.getBounds();
+      const bx = b.getBounds();
+      const ir = b.iconRect;
+      const iconBottom = bx.centerY + ir.y + ir.h;
+      const iconRight = bx.centerX + ir.x + ir.w;
+      return b.iconLeft ? { gap: lb.x - iconRight, top: lb.y - bx.y, bottom: bx.bottom - lb.bottom } : { gap: lb.y - iconBottom, top: bx.centerY + ir.y - bx.y, bottom: bx.bottom - lb.bottom };
+    });
+    const strip = h.smithBtn.getBounds();
+    return { tile, smithLeft: strip.x - 12 };
+  });
+  for (const t of r.tile) {
+    expect(t.gap).toBeGreaterThanOrEqual(4);
+    expect(t.top).toBeGreaterThanOrEqual(2);
+    expect(t.bottom).toBeGreaterThanOrEqual(2);
+  }
+  expect(r.smithLeft).toBeGreaterThanOrEqual(4); // 세로 아이템 띠(x 12) 왼쪽 가장자리와 4px 이상
+  await game(page, () => {
+    for (const s of window.game.scene.getScenes(true)) s.scene.stop();
+    window.game.scene.start('Deck');
+  });
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await page.waitForTimeout(300);
+  const d = await game(page, () => {
+    const g = window.game.scene.getScene('Deck').gridC;
+    const marks = g.list.filter((o) => o.auditBox);
+    const names = g.list.filter((o) => o.type === 'Text');
+    let minGap = 99;
+    for (const m of marks) {
+      const b = m.auditBox;
+      for (const t of names) {
+        const tb = t.getBounds();
+        const dx = Math.max(tb.x - (b.x + b.w), b.x - tb.right);
+        const dy = Math.max(tb.y - (b.y + b.h), b.y - tb.bottom);
+        if (Math.abs(tb.centerY - (b.y + b.h / 2)) < 60 && Math.abs(tb.centerX - (b.x + b.w / 2)) < 120) minGap = Math.min(minGap, Math.max(dx, dy));
+      }
+    }
+    return { marks: marks.length, minGap };
+  });
+  expect(d.marks).toBeGreaterThan(0);
+  expect(d.minGap).toBeGreaterThanOrEqual(4);
+  await page.screenshot({ path: SHOT('46-ui-spacing-deck') });
+});
