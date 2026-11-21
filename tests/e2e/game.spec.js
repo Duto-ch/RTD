@@ -1351,3 +1351,39 @@ test('UI 여백 (2026-11-21 필수 규칙): 아이콘 버튼은 아이콘·글�
   expect(d.minGap).toBeGreaterThanOrEqual(4);
   await page.screenshot({ path: SHOT('46-ui-spacing-deck') });
 });
+
+test('2026-11-21 상점·아이템 다듬기: 상점 상징 배지는 이름 띠와 4px 이상 · 용병 카드에도 상징 배지 · 아이템 그림 뒤 칸 없음 · 끄는 아이템은 UI 위', async ({ page }) => {
+  const errors = await startGame(page);
+  await page.waitForTimeout(400);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    // 상점 카드 0번: 배지(auditBox 컨테이너) 아래와 이름 띠(카드 아래 20px) 사이
+    const card = h.shopBox.list[0];
+    const badges = card.list.filter((o) => o.auditBox);
+    const cardH = 96;
+    const bandGap = Math.min(...badges.map((b) => cardH - 20 - (b.y + b.auditBox.y + b.auditBox.h)));
+    const between = badges.length === 2 ? Math.abs(badges[1].x - badges[0].x) - badges[0].auditBox.w : -1;
+    g.gold = 999;
+    g.bench.push('whet');
+    h.refreshBench();
+    const icon = h.benchRow.list.find((o) => o.input?.draggable);
+    const hasBg = icon.list.some((o) => o.type === 'Graphics');
+    icon.emit('dragstart');
+    const dragDepth = icon.depth;
+    const uiDepth = h.smithBtn.depth;
+    icon.emit('dragend', { worldX: -999, worldY: -999 });
+    g.hire('isolde');
+    g.select(g.mercs[0]);
+    return { badges: badges.length, bandGap, between, hasBg, dragDepth, uiDepth, infoBadges: h.infoBadges?.list.length };
+  });
+  expect(r.badges).toBe(2);
+  expect(r.bandGap).toBeGreaterThanOrEqual(4);
+  expect(r.between).toBeGreaterThanOrEqual(4);
+  expect(r.hasBg).toBe(false);
+  expect(r.dragDepth).toBeGreaterThan(r.uiDepth);
+  expect(r.infoBadges).toBe(2);
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: SHOT('47-shop-badges-info') });
+  expect(errors).toEqual([]);
+});
