@@ -41,7 +41,6 @@ export class Button extends Phaser.GameObjects.Container {
     this.iconColor = ICON_COLOR[this.variant] ?? C.ink;
     this.icon = icon ? scene.add.graphics() : null;
     this.iconName = icon;
-    this.iconLeft = !!icon && h < 44;
     const extra = t.stroke ? { stroke: t.stroke, strokeThickness: 4, align: 'center' } : { align: 'center' };
     this.label = uiText(scene, 0, 0, label, fontSize, t.color, 'bold', extra).setOrigin(0.5);
     this.add([this.bg, ...(this.icon ? [this.icon] : []), this.label]);
@@ -87,6 +86,10 @@ export class Button extends Phaser.GameObjects.Container {
       return;
     }
     this.icon.clear();
+    // 아이콘 위·글자 아래(타일형)는 둘 사이 4px·위아래 4px 이상 남을 때만 — 모자라면 아이콘 왼쪽 한 줄 (여백 필수 규칙)
+    const s = 14; // 아이콘 실제 크기 (7칸 × 2px)
+    const lh = this.label.text ? this.label.height : 0;
+    this.iconLeft = h < 44 || s + 4 + lh + 8 > h;
     if (this.iconLeft) {
       const iw = 14; // 7칸 × 2px
       const gap = 6;
@@ -97,10 +100,11 @@ export class Button extends Phaser.GameObjects.Container {
       this.labelY = 0;
       this.label.setPosition(left + iw + gap + this.label.width / 2, 0);
     } else {
-      const s = Math.min(21, h * 0.3);
-      drawIcon(this.icon, this.iconName, 0, -h * 0.16, s, this.iconColor);
-      this.iconRect = { x: -7, y: Math.round(-h * 0.16 - 7), w: 14, h: 14 };
-      this.labelY = h * 0.22;
+      // 아이콘·글자 묶음을 버튼 세로 가운데에
+      const top = -(s + (lh ? 4 + lh : 0)) / 2;
+      drawIcon(this.icon, this.iconName, 0, top + s / 2, s, this.iconColor);
+      this.iconRect = { x: -s / 2, y: Math.round(top), w: s, h: s };
+      this.labelY = top + s + 4 + lh / 2;
       this.label.setPosition(0, this.labelY);
     }
   }

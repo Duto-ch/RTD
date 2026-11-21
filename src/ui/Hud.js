@@ -45,7 +45,7 @@ export const HUD = WIDE
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       syn: { x: 16, y: 84, w: 210, h: 372 }, // 시너지 목록 (왼쪽 세로)
-      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 490, w: 96, h: 30 }, tool: { x: 121, y: 590 } } // 아이템 띠 (5×2)
+      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 487, w: 96, h: 30 }, tool: { x: 121, y: 590 } } // 아이템 띠 (5×2)
     }
   : {
       top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
@@ -59,7 +59,7 @@ export const HUD = WIDE
       estate: { x: 290, y: 914, w: 188, h: 56 }, // 버튼 가운데
       reroll: { x: 462, y: 914, w: 140, h: 56 },
       small: { y: 914, xs: [40, 98, 156], w: 52, h: 56 }, // 배속(→정지) · 메뉴 · 강화
-      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 58, y: 752, w: 88, h: 30 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래)
+      bench: { x: 12, y: 732, w: GAME_W - 24, h: 40, smith: { x: 64, y: 752, w: 88, h: 30 }, tool: { x: 502, y: 752 } } // 아이템 띠 (몬스터 길 아래)
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = WIDE ? 520 : GAME_W;
@@ -472,7 +472,7 @@ export class Hud {
 
   benchPos(i) {
     const B = HUD.bench;
-    if (WIDE) return { x: B.x + 29 + (i % 5) * 38, y: B.y + 52 + Math.floor(i / 5) * 38 };
+    if (WIDE) return { x: B.x + 29 + (i % 5) * 38, y: B.y + 58 + Math.floor(i / 5) * 38 };
     return { x: B.x + 118 + i * 36, y: B.y + B.h / 2 };
   }
 

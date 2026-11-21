@@ -166,7 +166,7 @@ export class DeckScene extends Phaser.Scene {
       const img = charImage(this, x + 28, y + L.cardH / 2 + 2, c, 2.5);
       if (!own) img.setTint(0x30403c);
       const nm = uiText(this, x + 52, y + 14, c.name, 13, CSS.ink, 'bold');
-      const gr = uiText(this, x + 52, y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
+      const gr = uiText(this, x + 52 + (inDeck ? 18 : 0), y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
       const st = uiText(this, x + 52, y + 52, own ? `${TRAITS[c.cls].name}·${TRAITS[c.origin].name}` : '술집에서 고용', 11, CSS.sub, '600');
       this.fit(st, w - 56);
       this.gridC.add([g, img, nm, gr, st]);
@@ -174,8 +174,11 @@ export class DeckScene extends Phaser.Scene {
       if (enh) this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `+${enh}`, 11, CSS.primary, 'bold').setOrigin(1, 1));
       if (inDeck) {
         const chk = this.add.graphics();
-        chk.fillStyle(0x3f9a5a, 1).fillCircle(x + w - 14, y + 14, 10);
-        chk.lineStyle(3, 0xffffff, 1).beginPath().moveTo(x + w - 19, y + 14).lineTo(x + w - 15, y + 18).lineTo(x + w - 8, y + 10).strokePath();
+        // 덱 표시 = 등급 글자 앞 작은 체크 (2026-11-21: 오른쪽 위에 두면 이름과 붙어 이름 줄 앞으로 옮김)
+        const cx = x + 59, cy = Math.round(gr.y + gr.height / 2);
+        chk.fillStyle(0x3f9a5a, 1).fillCircle(cx, cy, 7);
+        chk.lineStyle(2, 0xffffff, 1).beginPath().moveTo(cx - 4, cy).lineTo(cx - 1, cy + 3).lineTo(cx + 4, cy - 3).strokePath();
+        chk.auditBox = { x: cx - 7, y: cy - 7, w: 14, h: 14 }; // tools/ui-audit.cjs 여백 검사용
         this.gridC.add(chk);
       }
     });
@@ -225,8 +228,8 @@ export class DeckScene extends Phaser.Scene {
       y += t.height + gap;
     };
     line(`특성 — ${TRAIT_TEXT(c.trait)}`, 12, CSS.ink, 'bold', 6);
-    line(`스킬 「${c.skill.name}」 — 마나가 가득 차면 시전`, 12, CSS.primary, 'bold', 2);
-    [1, 2, 3].forEach((n) => line(`${'★'.repeat(n)} ${describeSkill(starSkill(c.skill, n))}`, 11, CSS.ink, '600', WIDE ? 4 : 2));
+    line(`스킬 「${c.skill.name}」 — 마나가 가득 차면 시전`, 12, CSS.primary, 'bold', 4);
+    [1, 2, 3].forEach((n) => line(`${'★'.repeat(n)} ${describeSkill(starSkill(c.skill, n))}`, 11, CSS.ink, '600', 4)); // 줄 사이 여백 4px 이상 (필수 규칙)
     const inDeck = this.deck.includes(c.id);
     const btn = new Button(this, I.x + I.w - 86, I.y + I.h - 28, 152, 36, inDeck ? '덱에서 빼기' : this.owned(c.id) ? '덱에 넣기' : '미보유', () => this.toggle(c), {
       variant: inDeck ? 'outline' : 'primary',

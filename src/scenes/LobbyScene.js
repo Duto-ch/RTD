@@ -72,8 +72,8 @@ export class LobbyScene extends Phaser.Scene {
     const crest = this.add.graphics();
     crest.fillStyle(0xf2c14e, 1).fillCircle(44, 40, 18).lineStyle(2, 0xa8801c, 1).strokeCircle(44, 40, 18);
     drawIcon(crest, 'crown', 44, 40, 14, 0x6b4505);
-    uiText(this, 70, 27, '용병단 영지', 16.5, CSS.ink, 'bold');
-    uiText(this, 70, 47, `최고 기록 WAVE ${best}`, 11, CSS.sub, '600');
+    uiText(this, 70, 22, '용병단 영지', 16.5, CSS.ink, 'bold');
+    uiText(this, 70, 46, `최고 기록 WAVE ${best}`, 11, CSS.sub, '600');
 
     // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
