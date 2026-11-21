@@ -3,14 +3,24 @@
 // 세로 화면만 (가로 배치는 꺼 둠). 몬스터 길(필드 바깥 y 250~710)·HUD 를 가리지 않는 곳에.
 export const DECOR = {
   grass: [
-    // 위: HUD 카드 아래 ~ 몬스터 길 위
-    { key: 'deco_tree', x: 26, y: 262, phase: 0 },
-    { key: 'deco_tree', x: 520, y: 258, phase: 0.45 },
-    // 아래: 밑동은 아이템 띠 뒤 — 나무 위쪽 절반이 띠 위로 보인다 (몬스터 길 바깥 가장자리를 조금 덮지만 몬스터보다 아래 층)
-    { key: 'deco_tree', x: 30, y: 756, phase: 0.7 },
-    { key: 'deco_tree', x: 150, y: 762, phase: 0.2 },
-    { key: 'deco_tree', x: 272, y: 766, phase: 0.55 },
-    { key: 'deco_tree', x: 394, y: 760, phase: 0.85 },
-    { key: 'deco_tree', x: 514, y: 754, phase: 0.33 }
+    // D 배치 + 무작위 7그루, 색 3가지 (docs/drafts/tree-sway/final_d.py 가 쓴다 — 손으로 고치면 다음 실행에 덮인다)
+    { key: 'deco_tree_spring', x: 226, y: 237, phase: 0.31, flip: true },
+    { key: 'deco_tree_teal', x: 160, y: 242, phase: 0.72 },
+    { key: 'deco_tree', x: 352, y: 247, phase: 0.13, flip: true },
+    { key: 'deco_tree', x: 28, y: 252, phase: 0.35 },
+    { key: 'deco_tree_spring', x: 87, y: 255, phase: 0.51, flip: true },
+    { key: 'deco_tree_teal', x: 534, y: 262, phase: 0.11 },
+    { key: 'deco_tree_teal', x: 18, y: 357, phase: 0.69 },
+    { key: 'deco_tree_spring', x: 12, y: 439, phase: 0.83, flip: true },
+    { key: 'deco_tree', x: 8, y: 497, phase: 0.98 },
+    { key: 'deco_tree_spring', x: 530, y: 540, phase: 0.78, flip: true },
+    { key: 'deco_tree_spring', x: 10, y: 650, phase: 0.76, flip: true },
+    { key: 'deco_tree', x: 524, y: 660, phase: 0.21, flip: true },
+    { key: 'deco_tree_teal', x: 300, y: 756, phase: 0.21 },
+    { key: 'deco_tree_teal', x: 96, y: 760, phase: 0.74, flip: true },
+    { key: 'deco_tree_spring', x: 220, y: 762, phase: 0.58, flip: true },
+    { key: 'deco_tree_teal', x: 528, y: 762, phase: 0.62 },
+    { key: 'deco_tree_spring', x: 402, y: 770, phase: 0.49, flip: true },
+    { key: 'deco_tree', x: 168, y: 772, phase: 0.12 }
   ]
 };
