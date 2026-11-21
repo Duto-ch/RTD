@@ -29,6 +29,8 @@ const text = (scene, x, y, str, size = 22, color = '#ffffff', extra = {}) =>
   scene.add.text(x, y, str, { fontFamily: FONT, fontSize: `${size}px`, color, ...extra }).setDepth(DEPTH.ui);
 
 const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+/** 전열·후열 칸 대비 (2026-11-21 사용자 결정): 전열 밝게(흰빛 겹침), 후열 어둡게(틴트) */
+const FIELD_ROWS = { frontLift: 0.14, backTint: 0x9c9ca8 };
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -320,9 +322,19 @@ export class GameScene extends Phaser.Scene {
       for (let gx = 0; gx < GRID; gx++) {
         const keys = TILE_KEYS[(gx + gy) % 2 === 0 ? 'light' : 'dark'];
         const key = skinned(keys[0]) ? keys[0] : keys[(gx * 7 + gy * 3) % keys.length];
-        this.fieldTiles.push(this.add.image(FIELD_X + gx * CELL, FIELD_Y + gy * CELL, key).setOrigin(0).setDisplaySize(CELL, CELL).setDepth(DEPTH.bg + 1));
+        const tile = this.add.image(FIELD_X + gx * CELL, FIELD_Y + gy * CELL, key).setOrigin(0).setDisplaySize(CELL, CELL).setDepth(DEPTH.bg + 1);
+        // 전열(바깥 줄 16칸)·후열(가운데 3x3) 구분 (2026-11-21): 후열은 어둡게
+        const front = gx === 0 || gy === 0 || gx === GRID - 1 || gy === GRID - 1;
+        if (!front) tile.setTint(FIELD_ROWS.backTint);
+        this.fieldTiles.push(tile);
       }
     }
+    // 전열은 밝게: 바깥 줄 위에 흰빛 얇게
+    const lift = this.add.graphics().setDepth(DEPTH.bg + 1.5);
+    lift.fillStyle(0xffffff, FIELD_ROWS.frontLift);
+    lift.fillRect(FIELD_X, FIELD_Y, FIELD_SIZE, CELL).fillRect(FIELD_X, FIELD_Y + FIELD_SIZE - CELL, FIELD_SIZE, CELL);
+    lift.fillRect(FIELD_X, FIELD_Y + CELL, CELL, FIELD_SIZE - 2 * CELL).fillRect(FIELD_X + FIELD_SIZE - CELL, FIELD_Y + CELL, CELL, FIELD_SIZE - 2 * CELL);
+    this.fieldRowLift = lift;
     // 성벽: 텍스처 (0,0) = 성벽 바깥 테두리에서 아트 1px 바깥
     const wall = this.textures.get('field_wall').getSourceImage();
     const size = FIELD_SIZE + 2 * WALL + 3 * BG_PX;
@@ -969,6 +981,7 @@ export class GameScene extends Phaser.Scene {
   /** 리롤: 잠그지 않은 칸을 새로 굴린다 */
   reroll() {
     if (this.over) return false;
+    if (this.selected) this.select(null); // 필드 캐릭터를 고른 채(정보 창)라도 리롤을 누르면 구매 창(상점)으로 (2026-11-21)
     const cost = this.rerollPrice;
     if (this.gold < cost) {
       this.toast(`골드가 부족합니다 (리롤 ${cost}G)`);
@@ -1323,23 +1336,7 @@ export class GameScene extends Phaser.Scene {
 
 
   deathFx(m) {
-    if (this.vfx.death(m) && !m.isBoss) return; // PixelLab 시트 (보스는 파편도 함께)
-    if (m.kind === 'normal') return; // 물량: 시트가 꽉 찼으면 일반 몬스터는 연출 생략 (파편을 수백 개 만들지 않는다)
-    const color = ATTR_INFO[m.attr].color;
-    const n = m.isBoss ? 16 : 5;
-    for (let i = 0; i < n; i++) {
-      const a = (Math.PI * 2 * i) / n + Math.random() * 0.5;
-      const d = (m.isBoss ? 60 : 24) + Math.random() * 12;
-      const p = this.add.image(m.x, m.y, 'pixel').setScale(UI_PX).setTint(color).setDepth(DEPTH.fx); // 2px 도트
-      this.tweens.add({
-        targets: p,
-        x: m.x + Math.cos(a) * d,
-        y: m.y + Math.sin(a) * d,
-        alpha: 0,
-        duration: 260,
-        onComplete: () => p.destroy()
-      });
-    }
+    this.vfx.death(m); // 귀여운 별 터짐 (2026-11-21, vfx.death)
   }
 
   /** 레벨 업 연출(약 0.5초): 이펙트와 문구 모두 용병 컨테이너에 붙어 옮겨도 따라간다 */

@@ -365,14 +365,7 @@ export class Hud {
     hint.setPosition(left + pad, top + 66);
     c.add([bg, title, state, desc, hint]);
     // 스프링 등장 (2026-11-19): 아이콘 쪽(위 가운데)을 축으로 0.6 → 1, 살짝 넘쳤다가 출렁이며 멈춘다
-    const ax = Phaser.Math.Clamp(x, left, left + w);
-    c.setPosition(ax, top);
-    c.each((o) => o.setPosition(o.x - ax, o.y - top));
-    if (animate) {
-      c.setScale(0.6).setAlpha(0);
-      uiTween(s, { targets: c, scale: 1, duration: 520, ease: springEase });
-      uiTween(s, { targets: c, alpha: 1, duration: 120 });
-    }
+    springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top, animate);
     this.relicTip = { index, x, y, container: c };
   }
 
@@ -432,17 +425,12 @@ export class Hud {
       g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(0, 0, w, h, 10);
       g.lineStyle(3, gc, 1).strokeRoundedRect(1.5, 1.5, w - 3, h - 3, 10);
       g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
-      const img = charImage(s, w / 2, WIDE ? 30 : 36, ch, WIDE ? 2 : 2.4);
+      const img = charImage(s, w / 2, WIDE ? 32 : 40, ch);
       const nm = uiText(s, w / 2, h - 10, `${ch.name} ${price}G`, 11, ch.grade === 2 ? CSS.white : '#2b1d2f', 'bold').setOrigin(0.5);
       this.fitText(nm, w - 6);
       c.add([img, nm]);
-      // 계열·출신 글자 (왼쪽 위)
-      [ch.cls, ch.origin].forEach((k, j) => {
-        const t = TRAITS[k];
-        const col = Phaser.Display.Color.HexStringToColor(t.color).color;
-        c.add(s.add.circle(10, 10 + j * 17, 7.5, col).setStrokeStyle(1.5, 0x2b1d2f));
-        c.add(uiText(s, 10, 10 + j * 17, t.glyph, 9, CSS.white, 'bold').setOrigin(0.5));
-      });
+      // 계열·출신 상징 (2026-11-21: 아래 가운데, 이름 띠 위에 걸쳐 · 글자 대신 모양 그림)
+      [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 10 : -10), h - 30, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
       if (owned) c.add(uiText(s, w - 6, 6, `${owned}장`, 10, CSS.primary, 'bold').setOrigin(1, 0));
       if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
@@ -454,11 +442,11 @@ export class Hud {
         s.buy(i);
       });
       c.add(hit);
-      // 잠금 (오른쪽 아래 위 — 이름 띠 위)
+      // 잠금 (2026-11-21: 위 가운데)
       const lk = s.add.graphics();
-      lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w - 24, h - 44, 20, 20, 6);
-      drawIcon(lk, slot.locked ? 'lock' : 'unlock', w - 14, h - 34, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
-      const lz = s.add.rectangle(w - 26, h - 46, 24, 24, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
+      lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w / 2 - 9, 3, 18, 18, 5);
+      drawIcon(lk, slot.locked ? 'lock' : 'unlock', w / 2, 12, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
+      const lz = s.add.rectangle(w / 2 - 13, 0, 26, 24, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       lz.on('pointerup', () => s.toggleLock(i));
       c.add([lk, lz]);
       c.slotIndex = i;
@@ -490,29 +478,21 @@ export class Hud {
 
   /** 아이템 그림: 재료는 색 칸 + 글자, 조합품은 두 재료 색 반반 + 금 테두리, 문장은 시너지 색 방패 */
   itemIcon(id, x, y, size = 30) {
+    // 아이템 그림 (2026-11-21): 12x12 전용 도트 그림(docs/drafts/item-icons/items.py → item_<id>)을 2px 로. 칸 배경: 조합품은 금 테두리
     const s = this.s;
     const it = ITEM_BY_ID[id];
     const c = s.add.container(x, y);
     const g = s.add.graphics();
-    const col = (hex) => Phaser.Display.Color.HexStringToColor(hex).color;
     const h = size / 2;
-    if (it.kind === 'combo') {
-      const [a, b] = it.parts.map((p) => col(ITEM_BY_ID[p].color));
-      g.fillStyle(a, 1).fillRoundedRect(-h, -h, size, size, 7);
-      g.fillStyle(b, 1).fillTriangle(h, -h + 4, h, h - 4, -h + 4, h);
-      g.lineStyle(2.5, 0xffd36a, 1).strokeRoundedRect(-h, -h, size, size, 7);
-      c.add([g, uiText(s, 0, 0, it.name[0], 13, CSS.white, 'bold').setOrigin(0.5).setStroke('#2b1d2f', 3)]);
-    } else if (it.kind === 'emblem') {
-      g.fillStyle(col(TRAITS[it.trait].color), 1).fillRoundedRect(-h, -h, size, size, { tl: 4, tr: 4, bl: h, br: h });
-      g.lineStyle(2.5, 0xffd36a, 1).strokeRoundedRect(-h, -h, size, size, { tl: 4, tr: 4, bl: h, br: h });
-      c.add([g, uiText(s, 0, -2, TRAITS[it.trait].glyph, 13, CSS.white, 'bold').setOrigin(0.5)]);
-    } else {
-      g.fillStyle(col(it.color), 1).fillRoundedRect(-h, -h, size, size, 7);
-      g.lineStyle(2, 0x2b1d2f, 1).strokeRoundedRect(-h, -h, size, size, 7);
-      c.add([g, uiText(s, 0, 0, it.glyph, 13, CSS.white, 'bold').setOrigin(0.5)]);
-    }
+    const r = Math.min(7, h);
+    g.fillStyle(it.kind === 'mat' || it.kind === 'seal' ? 0xf3ead2 : 0xfff3d0, 1).fillRoundedRect(-h, -h, size, size, r);
+    g.lineStyle(2, it.kind === 'combo' || it.kind === 'emblem' ? 0xe0a32a : 0xc9b48a, 1).strokeRoundedRect(-h, -h, size, size, r);
+    c.add(g);
+    if (s.textures.exists(`item_${id}`)) c.add(s.add.image(0, 0, `item_${id}`).setScale(UI_PX));
+    else c.add(uiText(s, 0, 0, it.glyph || it.name[0], 13, CSS.ink, 'bold').setOrigin(0.5));
     return c;
   }
+
 
   refreshBench() {
     const s = this.s;
@@ -575,6 +555,9 @@ export class Hud {
       cy += l.height + 4;
       c.add(l);
     }
+    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축
+    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
+    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top + h);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -617,8 +600,7 @@ export class Hud {
         if (x > HUD.relic.x + HUD.relic.w - 160) return; // 유물 4칸 자리
       }
       const c = s.add.container(x, y);
-      c.add(s.add.circle(0, 0, 12, on ? col : 0xd9cdb2).setStrokeStyle(2, on ? 0x2b1d2f : 0xa8875a));
-      c.add(uiText(s, 0, 0, t.glyph, 11, on ? CSS.white : CSS.sub, 'bold').setOrigin(0.5));
+      c.add(traitBadge(s, 0, 0, k, 12, on));
       const label = next ? `${n}/${next.n}` : `${n}`;
       if (WIDE) {
         c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
@@ -662,6 +644,9 @@ export class Hud {
       cy += l.height + 6;
       c.add(l);
     }
+    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 칩 쪽 가장자리가 축
+    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
+    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -671,7 +656,10 @@ export class Hud {
     const x = SM.xs[2], y = SM.y;
     this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
     this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
-    this.upgradeBadge.add([s.add.circle(0, 0, 9, 0xffd36a).setStrokeStyle(2.5, 0x3a2608), uiText(s, 0, 0, '!', 12, '#3a2608', 'bold').setOrigin(0.5)]);
+    // 느낌표 배지 (2026-11-21: 더 크게 r 12, 느낌표는 글자 대신 굵은 도형 — 막대 4x10 + 점 4x4)
+    const mark = s.add.graphics();
+    mark.fillStyle(0x3a2608, 1).fillRoundedRect(-2, -9, 4, 11, 1.5).fillRect(-2, 4, 4, 4);
+    this.upgradeBadge.add([s.add.circle(0, 0, 12, 0xffd36a).setStrokeStyle(3, 0x3a2608), mark]);
     // 스케일 팝 반복 (2026-11-19): 1.3초마다 톡 커졌다 돌아온다. 배속·정지와 상관없이 실제 시간으로 돈다
     const badge = this.upgradeBadge;
     const pop = () => {
@@ -911,6 +899,35 @@ export function badgePop(p) {
   if (t < 0.35) return 1 + 0.35 * Math.sin((t / 0.35) * (Math.PI / 2));
   if (t < 0.7) return 1.35 - 0.43 * ((t - 0.35) / 0.35);
   return 0.92 + 0.08 * ((t - 0.7) / 0.3);
+}
+
+/**
+ * 시너지 상징 배지 (2026-11-21): 시너지 색 원 + 하얀 모양 그림(theme trait_<id>, 7칸 × 2px). off 면 옅은 원 + 갈색 모양
+ * @returns {Phaser.GameObjects.Container}
+ */
+export function traitBadge(s, x, y, k, r = 10, on = true) {
+  const t = TRAITS[k];
+  const col = Phaser.Display.Color.HexStringToColor(t.color).color;
+  const c = s.add.container(x, y);
+  const g = s.add.graphics();
+  g.fillStyle(on ? col : 0xd9cdb2, 1).fillCircle(0, 0, r);
+  g.lineStyle(2, on ? 0x2b1d2f : 0xa8875a, 1).strokeCircle(0, 0, r);
+  drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
+  c.add(g);
+  return c;
+}
+
+/**
+ * 툴팁 스프링 등장 (유물 툴팁 2026-11-19 → 모든 툴팁 2026-11-21): (ax, ay) 를 축으로 0.6 → 1, 살짝 넘쳤다 출렁이며 멈춘다 + 0.12초 페이드.
+ * 컨테이너 c 안의 것들은 화면 좌표로 넣어 두면 축 기준으로 옮겨 준다
+ */
+export function springTip(s, c, ax, ay, animate = true) {
+  c.setPosition(ax, ay);
+  c.each((o) => o.setPosition(o.x - ax, o.y - ay));
+  if (!animate) return;
+  c.setScale(0.6).setAlpha(0);
+  uiTween(s, { targets: c, scale: 1, duration: 520, ease: springEase });
+  uiTween(s, { targets: c, alpha: 1, duration: 120 });
 }
 
 /** UI 트윈: 전투 배속(tweens.timeScale)과 상관없이 실제 시간으로 재생 */
