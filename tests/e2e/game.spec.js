@@ -533,7 +533,7 @@ test('PixelLab 이펙트: 시트 8종 로드, 명중·속성 폭발·영웅 기�
   await page.waitForTimeout(260);
   await page.screenshot({ path: SHOT('19-pixellab-fx') });
   // 재생이 끝나면 스스로 지워진다
-  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.sheetCount === 0, null, { timeout: 5000 });
+  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.sheetCount === 0, null, { timeout: 10000 }); // 느린 CI 에서 5초를 넘긴 적 있음 (2026-11-20)
   expect(errors).toEqual([]);
 });
 
@@ -981,6 +981,45 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
   expect(shopOk).toBe(true);
   expect(errors).toEqual([]);
 });
+test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없음) · 출전 덱은 출전 버튼과 한 판, 한 줄로 밀어서 보기 → 누르면 병영', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => window.__rtd.meta.reset());
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  const r = await game(page, () => {
+    const l = window.game.scene.getScene('Lobby');
+    const ys = new Set(l.deckStrip.list.filter((o) => o.type === 'Graphics').map((o) => o.y));
+    return { spots: Object.keys(l.spots).sort(), cards: l.deckStrip.list.filter((o) => o.type === 'Graphics').length, oneRow: ys.size === 1 };
+  });
+  expect(r).toEqual({ spots: ['barracks', 'forge', 'tent', 'tower'], cards: 30, oneRow: true });
+  // 밀기: 덱 줄을 왼쪽으로 끌면 넘어가고 병영으로 가지 않는다
+  await page.mouse.move(420, 812);
+  await page.mouse.down();
+  await page.mouse.move(300, 812, { steps: 5 });
+  await page.mouse.move(180, 812, { steps: 5 });
+  await page.mouse.up();
+  const moved = await game(page, () => ({ s: window.game.scene.getScene('Lobby').deckScroll, lobby: window.game.scene.isActive('Lobby') }));
+  expect(moved.s).toBeGreaterThan(100);
+  expect(moved.lobby).toBe(true);
+  await page.screenshot({ path: SHOT('32c-lobby-deck-scroll') });
+  // 누르기: 병영
+  await page.mouse.click(272, 812);
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  expect(errors).toEqual([]);
+});
+
+test('렌더 해상도: 화면 실제 픽셀에 맞춰 정수 배율(폰 3배) · 캔버스는 부드럽게 맞춤 (자글거림 방지)', async ({ browser }) => {
+  const p = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
+  await p.goto('/');
+  await p.waitForFunction(() => window.game?.scene.isActive('Title'));
+  const r = await p.evaluate(() => ({ w: window.game.canvas.width, ir: getComputedStyle(window.game.canvas).imageRendering }));
+  expect(r).toEqual({ w: 544 * 3, ir: 'auto' });
+  await p.close();
+});
+
 test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 → 강화) · 리롤 값 상승 / 유물 공방: 생산 → 장착 → 출전하면 효과', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));

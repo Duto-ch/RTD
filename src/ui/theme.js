@@ -147,7 +147,9 @@ const COZY_STYLES = {
   gold: { fill: '#e2b54a', line: '#a8801c', lip: '#a8801c', r: 18 },
   outline: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.16)', r: 18 },
   soft: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
-  ghost: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 }
+  ghost: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
+  // 영지 메뉴 버튼 (2026-11-21): 진한 갈색 굵은 테두리 + 아래 입술로 '누르는 버튼' 느낌을 강조
+  menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
 
 function cozyKey(scene, style, w, h) {
@@ -169,16 +171,17 @@ function cozyKey(scene, style, w, h) {
   ctx.shadowOffsetY = 2;
   if (S.lip) {
     ctx.fillStyle = S.lip;
-    shape(pad, pad + 3, w, h);
+    shape(pad, pad + (S.lipH || 3), w, h);
     ctx.fill();
   }
   ctx.shadowColor = 'transparent';
   ctx.fillStyle = S.fill;
   shape(pad, pad, w, h);
   ctx.fill();
-  ctx.lineWidth = 2;
+  const lw = S.lw || 2;
+  ctx.lineWidth = lw;
   ctx.strokeStyle = S.line;
-  shape(pad + 1, pad + 1, w - 2, h - 2);
+  shape(pad + lw / 2, pad + lw / 2, w - lw, h - lw);
   ctx.stroke();
   tex.refresh();
   return key;

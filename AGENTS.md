@@ -6,7 +6,7 @@
 
 ## 함정 (코드만 보면 놓치기 쉬운 것)
 - Phaser **3** API만 쓴다 (Phaser 4 문법 금지). 물리 엔진 없이 이동·충돌을 직접 계산한다
-- 게임 좌표 544x960(가로 배치 `config.WIDE` 면 1280x720, `?layout=`). **실제 캔버스는 ×`RES`(2) — 각 장면 `create()` 첫 줄 `hiRes(this)` 가 카메라를 zoom 2 로 맞춘다.** 포인터는 `p.x` 가 아니라 `p.worldX/worldY`. 모든 `add.text` 는 `main.js` 가 RES·`crispFontSize()` 로 맞춘다
+- 게임 좌표 544x960(가로 배치 `config.WIDE` 면 1280x720, `?layout=`). **실제 캔버스는 ×`RES`(화면에 맞춘 정수 2~3, 테스트 뷰포트는 2) — 각 장면 `create()` 첫 줄 `hiRes(this)` 가 카메라를 zoom RES 로 맞춘다. RES 를 2 로 가정한 숫자를 쓰지 말 것.** 포인터는 `p.x` 가 아니라 `p.worldX/worldY`. 모든 `add.text` 는 `main.js` 가 RES·`crispFontSize()` 로 맞춘다
 - UI 글꼴 썬플라워·고운돋움은 **게임에 쓰는 글자만 서브셋** — 새 한글 문구를 넣으면 `src` 글자를 모아 `pyftsubset` 으로 `public/assets/fonts/` 를 다시 만들 것 (안 하면 글자가 빠져 보인다)
 - UI 는 `COZY`(B-2 카드형, 기본 true) — `src/ui/theme.js` 의 `panel()`·`uiText()`·`drawIcon()` 등과 `Button` variant 를 쓴다. 가로 HUD 는 `createTopWide`/`createBottomWide`/`refreshInfoWide` 가 따로 있다
 - 그림은 기본이 코드 생성(`src/art/`), `public/assets/custom/manifest.json` 에 적힌 PNG 가 같은 키를 대체한다(`src/systems/customArt.js`, 키 목록 `docs/CUSTOM_ART.md`). 유닛 그림을 바꿀 때는 `setArt(obj, key, 기본배율)`, 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')`. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영

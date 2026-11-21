@@ -8,6 +8,8 @@
       /* 게임 화면 밖 여백은 검은색. 가운데 정렬은 Phaser(Scale.CENTER_BOTH)가 맡는다 */
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; overscroll-behavior: none; }
       #game { width: 100%; height: 100%; background: #000; }
+      /* 캔버스는 화면 해상도에 맞춘 정수 배율(RES)로 그리고, 남는 확대·축소는 부드럽게 — nearest 로 줄이면 글자·테두리가 자글거린다 */
+      #game canvas { image-rendering: auto !important; }
     </style>
   </head>
   <body>

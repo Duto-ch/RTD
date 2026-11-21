@@ -10,7 +10,7 @@ import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
 
 // 로비 = 용병단 영지 (2026-11-17, 시안 A '영지 지도형'). 건물이 곧 메뉴:
-//   성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용, 룰 v2) · 유물 공방(마정석 유물 생산·장착, 룰 v2) · 성문/출전(전투 시작)
+//   성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용, 룰 v2) · 유물 공방(마정석 유물 생산·장착, 룰 v2). 출전은 아래 덱 줄의 버튼 (성문 삭제 2026-11-21)
 // 배경은 동화풍 일러스트를 캐릭터와 같은 3px 도트로 정리한 그림 (public/assets/lobby/lobby_<wide|tall>.png, 아트 1px = 화면 3px)
 
 /** 건물 이름표 위치 (게임 좌표) · 누를 수 있는 건물 영역 */
@@ -19,23 +19,20 @@ const SPOTS = WIDE
       tower: { tag: [622, 92], hit: [570, 110, 110, 190] },
       tent: { tag: [350, 150], hit: [270, 170, 160, 130] },
       barracks: { tag: [876, 196], hit: [780, 210, 180, 130] },
-      forge: { tag: [342, 424], hit: [260, 430, 160, 120] },
-      gate: { tag: [176, 268], hit: [90, 280, 150, 150] }
+      forge: { tag: [342, 424], hit: [260, 430, 160, 120] }
     }
   : {
       tower: { tag: [392, 236], hit: [222, 230, 110, 160] },
       tent: { tag: [118, 232], hit: [56, 250, 130, 110] },
       barracks: { tag: [392, 350], hit: [300, 370, 150, 110] },
-      forge: { tag: [108, 536], hit: [40, 540, 120, 110] },
-      gate: null
+      forge: { tag: [108, 536], hit: [40, 540, 120, 110] }
     };
 
 const LABELS = {
   tower: ['성탑', '스킬 노드', 'tower'],
   tent: ['술집', '용병 고용', 'userplus'],
   barracks: ['병영', '덱 편성', 'sword'],
-  forge: ['유물 공방', '유물 생산·장착', 'gem'],
-  gate: ['성문', '출전', 'sword']
+  forge: ['유물 공방', '유물 생산·장착', 'gem']
 };
 
 export class LobbyScene extends Phaser.Scene {
@@ -65,11 +62,12 @@ export class LobbyScene extends Phaser.Scene {
     this.scene.start(scene, data);
   }
 
-  /** 위: 용병단 이름·최고 기록 + 재화 3종 */
+  /** 위: 왼쪽 용병단 이름·최고 기록 / 오른쪽 재화 2종 (2026-11-21: 같은 높이로 오른쪽 위에) */
   createTop() {
     const best = meta.data.best?.normal || 0;
+    const H = 52;
     const nameW = WIDE ? 230 : 200;
-    panel(this, 16, 14, nameW, 52, 'strip');
+    panel(this, 16, 14, nameW, H, 'strip');
     const crest = this.add.graphics();
     crest.fillStyle(0xf2c14e, 1).fillCircle(44, 40, 18).lineStyle(2, 0xa8801c, 1).strokeCircle(44, 40, 18);
     drawIcon(crest, 'crown', 44, 40, 14, 0x6b4505);
@@ -81,63 +79,66 @@ export class LobbyScene extends Phaser.Scene {
       ['명성', meta.fame, 0xf2c14e, 'crown'],
       ['마정석', meta.stones, 0x2fbfb2, 'gem']
     ];
-    const w = WIDE ? 170 : 252;
+    const w = WIDE ? 170 : 148;
+    const gap = 8;
     cur.forEach(([label, n, col, icon], i) => {
-      const x = WIDE ? GAME_W - 16 - (cur.length - i) * (w + 8) + 8 : 16 + i * (w + 8);
-      const y = WIDE ? 14 : 74;
-      panel(this, x, y, w, 40, 'strip');
+      const x = GAME_W - 16 - (cur.length - i) * w - (cur.length - 1 - i) * gap;
+      const y = 14;
+      panel(this, x, y, w, H, 'strip');
       const g = this.add.graphics();
-      g.fillStyle(col, 1).fillCircle(x + 22, y + 20, 13);
-      drawIcon(g, icon, x + 22, y + 20, 10, 0xffffff);
-      uiText(this, x + 42, y + 20, n.toLocaleString(), 16.5, CSS.ink, 'bold').setOrigin(0, 0.5);
-      uiText(this, x + w - 14, y + 20, label, 11, CSS.sub, '600').setOrigin(1, 0.5);
+      g.fillStyle(col, 1).fillCircle(x + 26, y + H / 2, 16);
+      drawIcon(g, icon, x + 26, y + H / 2, 12, 0xffffff);
+      uiText(this, x + 50, y + 8, n.toLocaleString(), 16.5, CSS.ink, 'bold');
+      uiText(this, x + 50, y + 31, label, 11, CSS.sub, '600');
     });
   }
 
-  /** 건물 이름표 + 누르는 영역 */
+  /** 건물 메뉴 버튼 (2026-11-21: 이름표 → 진한 테두리 메뉴 버튼, 흔들림 없음 — 소수점 위치로 움직이면 글자가 자글거린다) + 건물 영역 */
   createSpot(id) {
     const S = SPOTS[id];
     const [name, sub, icon] = LABELS[id];
     const [tx, ty] = S.tag;
     const action = () => this.openSpot(id);
-    // 건물 영역 (보이지 않음)
     const [hx, hy, hw, hh] = S.hit;
     this.add.zone(hx, hy, hw, hh).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerup', action);
-    // 이름표 (알약)
-    const t1 = uiText(this, 0, 0, name, 15, CSS.ink, 'bold');
+    const t1 = uiText(this, 0, 0, name, 16.5, CSS.ink, 'bold');
     const t2 = uiText(this, 0, 0, sub, 11, CSS.sub, '600');
-    const w = Math.ceil(Math.max(t1.width, t2.width) + 62);
-    const h = 44;
-    const x = Math.round(tx - w / 2);
-    const y = Math.round(ty - h / 2);
-    const c = this.add.container(0, 0);
-    c.add(panel(this, x, y, w, h, 'strip'));
+    const w = Math.ceil(Math.max(t1.width, t2.width) + 74);
+    const h = 52;
+    const c = this.add.container(Math.round(tx), Math.round(ty)); // 가운데 기준 (눌림 효과가 가운데로 줄어들게)
+    c.add(panel(this, -w / 2, -h / 2, w, h, 'menu'));
     const g = this.add.graphics();
-    g.fillStyle(0x1f6f66, 1).fillCircle(x + 22, y + h / 2, 15);
-    drawIcon(g, icon, x + 22, y + h / 2, 12, 0xfff3c4);
+    const ix = -w / 2 + 26;
+    g.fillStyle(0x6b4e2a, 1).fillCircle(ix, 0, 18);
+    g.fillStyle(0x1f6f66, 1).fillCircle(ix, 0, 15);
+    drawIcon(g, icon, ix, 0, 12, 0xfff3c4);
     c.add(g);
-    t1.setPosition(x + 44, y + 5);
-    t2.setPosition(x + 44, y + 24);
+    t1.setPosition(ix + 24, -h / 2 + 7);
+    t2.setPosition(ix + 24, -h / 2 + 30);
     c.add([t1, t2]);
     // 살 수 있는 노드 수 (성탑)
     if (id === 'tower') {
       const n = UPGRADES.filter((u) => meta.status(u.id) === 'ok').length;
       if (n) {
         const b = this.add.graphics();
-        b.fillStyle(0xd9603f, 1).fillCircle(x + w - 4, y + 4, 11).lineStyle(2, 0xfff3dc, 1).strokeCircle(x + w - 4, y + 4, 11);
-        c.add([b, uiText(this, x + w - 4, y + 4, String(n), 11, '#ffffff', 'bold').setOrigin(0.5)]);
+        b.fillStyle(0xd9603f, 1).fillCircle(w / 2 - 4, -h / 2 + 4, 11).lineStyle(2, 0xfff3dc, 1).strokeCircle(w / 2 - 4, -h / 2 + 4, 11);
+        c.add([b, uiText(this, w / 2 - 4, -h / 2 + 4, String(n), 11, '#ffffff', 'bold').setOrigin(0.5)]);
       }
     }
-    const hit = this.add.zone(x, y, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
-    hit.on('pointerup', action);
+    const hit = this.add.zone(-w / 2, -h / 2, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
+    hit.on('pointerdown', () => c.setScale(0.96));
+    hit.on('pointerout', () => c.setScale(1));
+    hit.on('pointerup', () => {
+      c.setScale(1);
+      action();
+    });
     c.add(hit);
-    this.tweens.add({ targets: c, y: -3, duration: 1200 + (tx % 5) * 80, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.spots = { ...this.spots, [id]: c };
   }
 
   openSpot(id) {
     if (id === 'tower') return this.go('Upgrade', { from: 'lobby' });
     if (id === 'barracks') return this.go('Deck');
-    if (id === 'gate') return this.go('Game');
     if (id === 'tent') return this.go('Tavern');
     if (id === 'forge') return this.go('Workshop');
   }
@@ -151,37 +152,72 @@ export class LobbyScene extends Phaser.Scene {
     this.tweens.add({ targets: c, alpha: 0, delay: 1600, duration: 300, onComplete: () => c.destroy() });
   }
 
-  /** 아래: 출전 덱 (병영으로) + 출전 버튼 */
+  /**
+   * 아래 독 (2026-11-21): 출전 버튼과 한 판에 붙인 출전 덱 — 큰 카드 한 줄, 좌우로 밀어서 본다. 카드를 누르면 병영(덱 편성)
+   * 세로: 화면 아래 시트(덱 줄 위 + 출전 버튼 아래) / 가로: 아래 띠(덱 줄 왼쪽 + 출전 버튼 오른쪽)
+   */
   createDeckStrip() {
-    const ids = meta.deck;
-    const per = WIDE ? 22 : 11; // 한 줄에 놓는 수
-    const step = WIDE ? 33 : 46;
-    const rows = Math.ceil(ids.length / per);
-    const pw = WIDE ? per * step + 24 : GAME_W - 32;
-    const ph = 34 + rows * (step + 2) + 8;
-    const px = 16;
-    const py = WIDE ? GAME_H - 16 - ph : GAME_H - 108 - ph;
-    panel(this, px, py, pw, ph, 'card');
-    uiText(this, px + 16, py + 10, `출전 덱 ${ids.length}명`, 13, CSS.ink, 'bold');
-    uiText(this, px + pw - 16, py + 10, `${ids.length} / ${DECK_RULES.max}명 · 병영에서 편성`, 11, CSS.sub, '600').setOrigin(1, 0);
+    const ids = [...meta.deck].sort((a, b) => ROSTER_BY_ID[b].grade - ROSTER_BY_ID[a].grade);
+    const goW = WIDE ? 280 : GAME_W - 48;
+    const goH = WIDE ? 92 : 72;
+    const D = WIDE ? { x: 16, y: GAME_H - 16 - 132, w: GAME_W - 32, h: 132 } : { x: 8, y: GAME_H - 8 - 218, w: GAME_W - 16, h: 218 };
+    panel(this, D.x, D.y, D.w, D.h, 'card');
+    // 카드 줄 (가려지는 영역)
+    const row = WIDE ? { x: D.x + 16, y: D.y + 38, w: D.w - goW - 48, h: 80 } : { x: D.x + 16, y: D.y + 38, w: D.w - 32, h: 80 };
+    uiText(this, row.x, D.y + 12, `출전 덱 ${ids.length} / ${DECK_RULES.max}명`, 13, CSS.ink, 'bold');
+    uiText(this, row.x + row.w, D.y + 12, '밀어서 보기 · 누르면 병영', 11, CSS.sub, '600').setOrigin(1, 0);
+    const cw = 64;
+    const ch = 76;
+    const step = cw + 8;
+    const strip = this.add.container(row.x, row.y);
     ids.forEach((id, i) => {
-      const ch = ROSTER_BY_ID[id];
-      const x = px + 12 + (i % per) * step + step / 2;
-      const y = py + 34 + Math.floor(i / per) * (step + 2) + step / 2;
-      const r = this.add.graphics();
-      r.fillStyle(0xf3ead2, 1).fillRoundedRect(x - step / 2 + 2, y - step / 2 + 2, step - 4, step - 4, 7);
-      r.lineStyle(2, Phaser.Display.Color.HexStringToColor(GRADES[ch.grade].color).color, 1).strokeRoundedRect(x - step / 2 + 2, y - step / 2 + 2, step - 4, step - 4, 7);
-      charImage(this, x, y, ch, WIDE ? 1.5 : PX / 2 + 0.5);
+      const c = ROSTER_BY_ID[id];
+      const x = i * step;
+      const g = this.add.graphics();
+      g.fillStyle(0xf3ead2, 1).fillRoundedRect(x, 2, cw, ch, 10);
+      g.lineStyle(3, Phaser.Display.Color.HexStringToColor(GRADES[c.grade].color).color, 1).strokeRoundedRect(x, 2, cw, ch, 10);
+      const img = charImage(this, x + cw / 2, 2 + ch / 2 - 6, c, 3);
+      const nm = uiText(this, x + cw / 2, 2 + ch - 6, c.name, 11, CSS.ink, 'bold').setOrigin(0.5, 1);
+      strip.add([g, img, nm]);
     });
-    const zone = this.add.zone(px, py, pw, ph).setOrigin(0).setInteractive({ useHandCursor: true });
-    zone.on('pointerup', () => this.go('Deck'));
+    const shape = this.make.graphics({}, false).fillRect(row.x, row.y, row.w, row.h);
+    strip.setMask(shape.createGeometryMask());
+    const maxScroll = Math.max(0, ids.length * step - 8 - row.w);
+    this.deckScroll = 0;
+    const setScroll = (v) => {
+      this.deckScroll = Phaser.Math.Clamp(v, 0, maxScroll);
+      strip.x = Math.round(row.x - this.deckScroll); // 정수 위치 (자글거림 방지)
+    };
+    this.setDeckScroll = setScroll;
+    this.deckStrip = strip;
+    // 밀기 · 휠 · 누르기
+    const zone = this.add.zone(row.x, row.y, row.w, row.h).setOrigin(0).setInteractive({ useHandCursor: true });
+    let drag = null;
+    zone.on('pointerdown', (p) => (drag = { x: p.worldX, s: this.deckScroll, moved: false }));
+    this.input.on('pointermove', (p) => {
+      if (!drag || !p.isDown) return;
+      const dx = p.worldX - drag.x;
+      if (Math.abs(dx) > 6) drag.moved = true;
+      if (drag.moved) setScroll(drag.s - dx);
+    });
+    this.input.on('pointerup', () => {
+      const d = drag;
+      drag = null;
+      if (d && !d.moved) this.go('Deck');
+    });
+    this.input.on('wheel', (p, _o, dx, dy) => {
+      if (p.worldX >= row.x && p.worldX <= row.x + row.w && p.worldY >= row.y && p.worldY <= row.y + row.h) setScroll(this.deckScroll + (dx || dy) * 0.6);
+    });
+    // 남은 카드가 있으면 오른쪽 끝에 흐림 표시
+    if (maxScroll > 0) {
+      const f = this.add.graphics();
+      for (let k = 0; k < 6; k++) f.fillStyle(0xfbf7ec, 0.16 * (k + 1)).fillRect(row.x + row.w - 24 + k * 4, row.y, 4, row.h);
+    }
 
-    const goW = WIDE ? 300 : GAME_W - 32;
-    const goH = WIDE ? 84 : 76;
-    const gx = WIDE ? GAME_W - 16 - goW / 2 : GAME_W / 2;
-    const gy = GAME_H - 16 - goH / 2;
+    const gx = WIDE ? D.x + D.w - 16 - goW / 2 : GAME_W / 2;
+    const gy = WIDE ? D.y + D.h / 2 : D.y + D.h - 12 - goH / 2;
     this.goBtn = new Button(this, gx, gy, goW, goH, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 33 });
-    uiText(this, gx, gy + 26, 'WAVE 1부터 · Space', 11, '#3a2a10', '600').setOrigin(0.5).setDepth(this.goBtn.depth + 1);
+    uiText(this, gx, gy + 24, 'WAVE 1부터 · Space', 11, '#3a2a10', '600').setOrigin(0.5).setDepth(this.goBtn.depth + 1);
     this.goBtn.label.setY(-8);
   }
 }
