@@ -6,3 +6,4 @@ test-results/
 playwright-report/
 graphify-out/
 __pycache__/
+ui-audit/

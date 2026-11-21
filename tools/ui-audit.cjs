@@ -6,12 +6,12 @@
 //   pad    글자를 감싼 패널(카드·알약·버튼) 안 여백이 한쪽만 좁음 (가장자리에 닿음 < 4px)
 //   center 버튼 글자가 버튼 가운데에서 벗어남 (> 3px)
 //   icon   아이콘 버튼: 아이콘과 글자가 겹치거나 버튼 밖으로 나감
-// 결과: 표 + test-results/ui-audit/<배치>-<장면>.png (모든 장면, 문제 글자에 빨간 상자) — 자동 점검 뒤 화면을 눈으로도 본다
+// 결과: 표 + ui-audit/<배치>-<장면>.png (모든 장면, 문제 글자에 빨간 상자) — 자동 점검 뒤 화면을 눈으로도 본다
 const { chromium } = require('playwright');
 const fs = require('fs');
 
 const which = process.argv[2] || 'all';
-const OUT = 'test-results/ui-audit';
+const OUT = 'ui-audit';
 fs.mkdirSync(OUT, { recursive: true });
 
 async function audit(page) {
