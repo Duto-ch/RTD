@@ -1,3 +1,4 @@
+import { ICON_SET, VECTOR_ICONS } from '../ui/theme.js';
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { generateTextures } from '../art/textures.js';
@@ -15,6 +16,7 @@ export class BootScene extends Phaser.Scene {
   preload() {
     preloadManifest(this);
     preloadFx(this);
+    if (ICON_SET !== 'dot') for (const n of VECTOR_ICONS) this.load.svg(`vicon_${n}`, `assets/icons/${ICON_SET}/${n}.svg`, { width: 32, height: 32 });
     this.load.image('title_bg', 'assets/title/title.png'); // 도트 2px: 세로용 272x482
     this.load.image('title_bg_wide', 'assets/title/title_wide.png'); // 가로용 203x360 (화면 높이 720 = 2px)
     // 로비(영지) 배경 — 동화풍 일러스트를 2px 도트로 정리한 그림 (2026-11-21, 세로 272x480 · 가로 640x360) (아트 해상도, 화면엔 UI_PX 배)

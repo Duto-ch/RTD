@@ -275,7 +275,28 @@ const ICONS = {
 };
 
 /** 픽셀 아이콘 그리기 (s = 대략적인 크기 px) */
+// [시험] ?icons=bold|duotone|lucide — 벡터 아이콘 세트로 바꿔 그리기 (test/vector-icons 브랜치 전용)
+export const ICON_SET = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('icons')) || 'dot';
+export const VECTOR_ICONS = ['clock', 'coin', 'heart', 'speed', 'menu', 'house', 'reroll', 'lock', 'unlock', 'anvil', 'tower'];
+
+function drawVectorIcon(g, type, x, y, color) {
+  const key = `vicon_${type}`;
+  const scene = g.scene;
+  if (!scene || !scene.textures.exists(key)) return false;
+  let img = g.__vicon;
+  if (!img || !img.active) {
+    img = scene.add.image(0, 0, key);
+    g.__vicon = img;
+    if (g.parentContainer) g.parentContainer.add(img);
+    else img.setDepth(g.depth + 0.01);
+    g.once('destroy', () => img.destroy());
+  }
+  img.setTexture(key).setDisplaySize(16, 16).setTint(color).setPosition(g.x + x, g.y + y).setVisible(g.visible);
+  return true;
+}
+
 export function drawIcon(g, type, x, y, s, color) {
+  if (ICON_SET !== 'dot' && drawVectorIcon(g, type, x, y, color)) return;
   const map = ICONS[type];
   if (!map) return;
   // 아이콘 1칸 = 2px (도트 2px 통일, 2026-11-21) — 7칸 = 14px. s 는 예전 크기 인자(무시)
