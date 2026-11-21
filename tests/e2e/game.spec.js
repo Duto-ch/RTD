@@ -1434,7 +1434,7 @@ test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃
   expect(errors).toEqual([]);
 });
 
-test('배경 나무 (2026-11-21): 초원 필드 위아래·양옆에 잎 색 3가지로 바람에 흔들리는 나무 · 28프레임 반복 · 박자가 서로 다름 · 지역이 바뀌면 사라짐', async ({ page }) => {
+test('배경 나무 (2026-11-21): 초원 화면 전체에 흩뿌린 잎 색 3가지 바람에 흔들리는 나무 · 28프레임 반복 · 박자가 서로 다름 · 지역이 바뀌면 사라짐', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1444,7 +1444,7 @@ test('배경 나무 (2026-11-21): 초원 필드 위아래·양옆에 잎 색 3�
       belowMonsters: g.decor.every((s) => s.depth < 10), top: g.decor.some((s) => s.y < 480), bottom: g.decor.some((s) => s.y > 480),
       colors: new Set(g.decor.map((s) => s.texture.key)).size, flipped: g.decor.some((s) => s.flipX) };
   });
-  expect(r.n).toBeGreaterThanOrEqual(4);
+  expect(r.n).toBeGreaterThanOrEqual(30); // 화면 전체에 흩뿌린 40그루 (2026-11-21)
   expect(r.frames).toBe(28);
   expect(r.loop).toBe(-1);
   expect(r.playing).toBe(true);
