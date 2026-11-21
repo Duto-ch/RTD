@@ -4,13 +4,14 @@ import { pathPoint } from '../systems/path.js';
 import { monsterStats, isFinalWave } from '../data/waves.js';
 import { monsterDesign } from '../data/monsters.js';
 import { playBase, setArt } from '../systems/customArt.js';
+import { dotKey } from '../art/textures.js';
 import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Sprite {
   constructor(scene, kind, attr, wave, milestone = false) {
     const design = monsterDesign(kind, wave);
-    super(scene, 0, 0, `mon_${design.id}_${attr}`);
+    super(scene, 0, 0, Monster.texKey(scene, design, attr, kind));
     this.design = design; // { id, name } — 웨이브별 전용 외형
     const s = monsterStats(kind, wave, milestone);
     this.milestone = milestone; // 강화 보스 (30·60·90)
@@ -47,12 +48,18 @@ export class Monster extends Phaser.GameObjects.Sprite {
         .map((def) => ({ def, cd: def.cd * 0.5 }));
     }
 
-    this.baseScale = kind === 'boss' ? PX + 1 : kind === 'elite' ? PX : H.normalScale;
+    // 도트 2px (2026-11-21): 정예 배율 4 = 2배 해상도 텍스처, 보스 배율 6(이전 5) = 3배 해상도 텍스처 (dotKey)
+    this.baseScale = kind === 'boss' ? 6 : kind === 'elite' ? PX : H.normalScale;
     setArt(this, this.texture.key, this.baseScale);
     this.setDepth(DEPTH.monster + (kind === 'boss' ? 2 : kind === 'elite' ? 1 : 0));
     scene.add.existing(this);
     playBase(this, 'walk');
     this.place();
+  }
+
+  /** 몬스터 텍스처 키 — 정예·보스는 도트 2px 가 되도록 n배 해상도 (dotKey) */
+  static texKey(scene, design, attr, kind) {
+    return dotKey(scene, `mon_${design.id}_${attr}`, kind === 'boss' ? 3 : kind === 'elite' ? 2 : 1);
   }
 
   get isBoss() {
@@ -116,7 +123,7 @@ export class Monster extends Phaser.GameObjects.Sprite {
   /** 속성 변환 (강화 보스) */
   setAttr(attr) {
     this.attr = attr;
-    setArt(this, `mon_${this.design.id}_${attr}`, this.baseScale);
+    setArt(this, Monster.texKey(this.scene, this.design, attr, this.kind), this.baseScale);
     playBase(this, 'walk');
   }
 

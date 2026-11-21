@@ -237,7 +237,7 @@ export class DeckScene extends Phaser.Scene {
       const g = this.add.graphics();
       g.fillStyle(0xf3ead2, 1).fillRoundedRect(x - 18, y - 18, 36, 36, 8);
       g.lineStyle(2, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x - 18, y - 18, 36, 36, 8);
-      const img = charImage(this, x, y, c, 2).setInteractive({ useHandCursor: true });
+      const img = charImage(this, x, y, c, 'head').setInteractive({ useHandCursor: true });
       img.on('pointerup', () => this.select(c));
       this.deckBox.add([g, img]);
     });

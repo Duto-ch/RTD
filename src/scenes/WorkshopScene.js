@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, PX } from '../config.js';
+import { GAME_W, GAME_H, WIDE, DOT } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, panelImage, uiText, drawIcon, CSS } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
@@ -68,7 +68,7 @@ export class WorkshopScene extends Phaser.Scene {
       const id = eq[i];
       this.slotBox.add(panelImage(this, x, y, id ? 'gold' : 'soft', 52, 52));
       if (id) {
-        const icon = this.add.image(x, y, `relic_${id}`).setScale(PX - 1).setInteractive({ useHandCursor: true });
+        const icon = this.add.image(x, y, `relic_${id}`).setScale(DOT).setInteractive({ useHandCursor: true });
         icon.on('pointerup', () => this.select(id));
         this.slotBox.add(icon);
       }
@@ -89,7 +89,7 @@ export class WorkshopScene extends Phaser.Scene {
       const g = this.add.graphics();
       g.fillStyle(lv ? 0xfff6dc : 0xd9cfe6, 1).fillRoundedRect(x - cw / 2 + 4, y - L.cell / 2 + 2, cw - 8, L.cell - 4, 10);
       g.lineStyle(sel ? 4 : 2, sel ? 0xf2c14e : eq.includes(r.id) ? 0x3f9a5a : 0xb8a8cc, 1).strokeRoundedRect(x - cw / 2 + 4, y - L.cell / 2 + 2, cw - 8, L.cell - 4, 10);
-      const icon = this.add.image(x, y - 10, `relic_${r.id}`).setScale(PX - 1);
+      const icon = this.add.image(x, y - 10, `relic_${r.id}`).setScale(DOT);
       if (!lv) icon.setTint(0x403850).setAlpha(0.6);
       const t = uiText(this, x, y + 24, lv ? `Lv${lv}` : '?', 11, lv >= RELIC_RULES.maxLevel ? '#b47a12' : CSS.sub, 'bold').setOrigin(0.5);
       const hit = this.add.zone(x - cw / 2 + 4, y - L.cell / 2 + 2, cw - 8, L.cell - 4).setOrigin(0).setInteractive({ useHandCursor: true });
@@ -110,7 +110,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.info.removeAll(true);
     this.info.add(panel(this, I.x, I.y, I.w, I.h, 'card'));
     this.info.add(panelImage(this, I.x + 44, I.y + 44, 'soft', 60, 60));
-    const icon = this.add.image(I.x + 44, I.y + 44, `relic_${r.id}`).setScale(PX);
+    const icon = this.add.image(I.x + 44, I.y + 44, `relic_${r.id}`).setScale(DOT);
     if (!lv) icon.setTint(0x403850).setAlpha(0.6);
     const cat = RELIC_CATS.find((c) => c.id === r.cat).name;
     this.info.add([
@@ -157,8 +157,8 @@ export class WorkshopScene extends Phaser.Scene {
     this.toast(r.result === 'new' ? `새 유물: ${relic.name}!` : r.result === 'up' ? `${relic.name} Lv${r.level}!` : `${relic.name}은(는) 최대 레벨 — 마정석 ${RELIC_RULES.maxRefund}개 반환`);
     this.refresh();
     // 나온 유물 강조 (튀어 오름)
-    const img = this.add.image(GAME_W / 2, GAME_H / 2, `relic_${r.id}`).setScale(PX).setDepth(60);
-    this.tweens.add({ targets: img, scale: PX * 3, alpha: 0, duration: 700, ease: 'Cubic.easeOut', onComplete: () => img.destroy() });
+    const img = this.add.image(GAME_W / 2, GAME_H / 2, `relic_${r.id}`).setScale(DOT).setDepth(60);
+    this.tweens.add({ targets: img, scale: DOT * 4, alpha: 0, duration: 700, ease: 'Cubic.easeOut', onComplete: () => img.destroy() });
   }
 
   refresh() {

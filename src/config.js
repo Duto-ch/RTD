@@ -21,7 +21,9 @@ export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
 
 export const GRID = 5;
 // 배경·UI 를 그리는 픽셀 배율: 아트 1px = 화면 3px (캐릭터 사양 28x24 × 0.75 와 같은 밀도, 2026-11-15)
-export const UI_PX = 3;
+// 도트 2px 통일 (2026-11-21 사용자 결정): 게임 안 모든 도트 그림의 아트 1px = 화면 2px (캐릭터·필드와 같게). 이전 UI·로비 3px, 코드 그림 4px
+export const DOT = 2;
+export const UI_PX = DOT;
 // 필드 배경(땅·길·성벽·석판) 도트 굵기 — 아트 1px = 화면 2px (2026-11-17 시안). 칸 64px = 32 아트 px 로 나누어떨어진다
 export const BG_PX = 2;
 // 칸 56px (2026-11-19 사용자 결정 — 캐릭터 사이를 조금 넓게, 이전 48·64). 캐릭터 그림(48px)은 그대로라 칸 사이가 8px 벌어진다.
@@ -50,11 +52,21 @@ export const HUD_RECTS = WIDE
     ];
 // 고화질 렌더링: 캔버스 실제 해상도 = 게임 좌표 × RES (카메라 zoom RES). 글자도 RES 배 해상도로 그려 선명하게.
 // 게임 좌표(544x960)·레이아웃은 그대로다
-export const RES = 2; // 가로 배치도 2배 (1280x720 → 2560x1440). 1.5배면 픽셀 글꼴 크기 격자가 달라져 작은 글자가 커진다
+// 2026-11-21: 고정 2배 캔버스를 브라우저가 nearest 로 줄이고 늘려서(정수배가 아닐 때) 글자·테두리가 자글거렸다 →
+// 화면 실제 픽셀(창 크기 × devicePixelRatio)에 맞춰 정수 배율 2~3 을 고르고, 브라우저 확대·축소는 부드럽게(index.html image-rendering: auto).
+// 정수 배율이라 캔버스 안의 도트는 그대로 반듯하다. 주소에 ?res=1~4 로 강제할 수 있다
+function pickRes() {
+  if (typeof window === 'undefined') return 2;
+  const q = Number(new URLSearchParams(window.location?.search || '').get('res'));
+  if (q) return Math.max(1, Math.min(4, Math.round(q)));
+  const fit = Math.min(window.innerWidth / GAME_W, window.innerHeight / GAME_H);
+  return Math.max(2, Math.min(3, Math.ceil(fit * (window.devicePixelRatio || 1) - 0.05)));
+}
+export const RES = pickRes();
 /** Galmuri11 은 11px 격자로 디자인된 픽셀 글꼴 — 화면 크기가 11의 배수(px)일 때 획이 정확히 맞아 깔끔하다.
- *  요청 크기를 가장 가까운 '11 × 정수 / RES' 로 맞춘다 (RES 2: 11, 16.5, 22, 27.5 …) */
+ *  요청 크기를 가장 가까운 '11 × 정수 / 2' 로 맞춘다 (11, 16.5, 22, 27.5 …) */
 export function crispFontSize(size) {
-  const step = 11 / RES;
+  const step = 11 / 2; // 글자 크기 격자는 RES 2 기준으로 고정 (RES 가 화면마다 달라도 배치가 같게)
   return Math.max(11, Math.round(size / step) * step);
 }
 

@@ -40,7 +40,16 @@ export function charImage(scene, x, y, c, base) {
   const key = charTexture(scene, c);
   const tex = scene.textures.get(key);
   const frame = tex.frameTotal > 2 && tex.has(0) ? 0 : undefined;
-  const img = scene.add.image(x, y, key, frame).setScale(base * artScale(scene, key));
+  // 도트 2px 통일 (2026-11-21): 크기 인자 대신 언제나 아트 1px = 화면 2px. base === 'head' 면 머리 쪽만 (작은 칸용)
+  const img = scene.add.image(x, y, key, frame).setScale(UNIT_PX * artScale(scene, key));
+  if (base === 'head') {
+    const f = img.frame;
+    const cw = Math.round(f.width * 0.62);
+    const ch = Math.round(f.height * 0.6);
+    const cx = Math.round((f.width - cw) / 2);
+    img.setCrop(cx, 0, cw, ch);
+    img.setOrigin(0.5, ch / 2 / f.height);
+  }
   const cd = tex.customData || {};
   if (cd.frameWidth && cd.pivotX != null) img.setOrigin(cd.pivotX / cd.frameWidth, cd.pivotY != null ? cd.pivotY / cd.frameHeight : 0.5); // 몸 중심을 자리에
   return img;

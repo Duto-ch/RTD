@@ -53,7 +53,7 @@ const STYLES = {
 };
 STYLES.card_tile = STYLES.outline;
 
-export const SHADOW_PAD = PX; // 그림자 1 아트픽셀
+export const SHADOW_PAD = 3; // 패널 그림자 여백 (배치 기준이라 UI_PX 가 2 로 바뀌어도 3 그대로)
 
 /** 픽셀 패널 텍스처 (아트 해상도, 그림자 1px 포함). 화면에는 PX 배로 확대해서 쓴다 */
 export function panelKey(scene, style, w, h) {
@@ -147,7 +147,9 @@ const COZY_STYLES = {
   gold: { fill: '#e2b54a', line: '#a8801c', lip: '#a8801c', r: 18 },
   outline: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.16)', r: 18 },
   soft: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
-  ghost: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 }
+  ghost: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
+  // 영지 메뉴 버튼 (2026-11-21): 진한 갈색 굵은 테두리 + 아래 입술로 '누르는 버튼' 느낌을 강조
+  menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
 
 function cozyKey(scene, style, w, h) {
@@ -169,16 +171,17 @@ function cozyKey(scene, style, w, h) {
   ctx.shadowOffsetY = 2;
   if (S.lip) {
     ctx.fillStyle = S.lip;
-    shape(pad, pad + 3, w, h);
+    shape(pad, pad + (S.lipH || 3), w, h);
     ctx.fill();
   }
   ctx.shadowColor = 'transparent';
   ctx.fillStyle = S.fill;
   shape(pad, pad, w, h);
   ctx.fill();
-  ctx.lineWidth = 2;
+  const lw = S.lw || 2;
+  ctx.lineWidth = lw;
   ctx.strokeStyle = S.line;
-  shape(pad + 1, pad + 1, w - 2, h - 2);
+  shape(pad + lw / 2, pad + lw / 2, w - lw, h - lw);
   ctx.stroke();
   tex.refresh();
   return key;
@@ -262,8 +265,8 @@ const ICONS = {
 export function drawIcon(g, type, x, y, s, color) {
   const map = ICONS[type];
   if (!map) return;
-  // 아이콘 1칸 = UI 픽셀 배수. 7칸 × 3px = 21px 보다 작게 써야 하는 아이콘(시계 등)은 2px 칸으로
-  const b = s >= 18 ? Math.max(1, Math.round(s / 7 / PX)) * PX : 2;
+  // 아이콘 1칸 = 2px (도트 2px 통일, 2026-11-21) — 7칸 = 14px. s 는 예전 크기 인자(무시)
+  const b = 2;
   const ox = Math.round(x - (7 * b) / 2);
   const oy = Math.round(y - (7 * b) / 2);
   map.forEach((row, j) =>
