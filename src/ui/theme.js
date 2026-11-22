@@ -133,12 +133,14 @@ export function panel(scene, x, y, w, h, style = 'card') {
   return scene.add.image(x - SHADOW_PAD, y - SHADOW_PAD, panelKey(scene, style, w, h)).setOrigin(0).setScale(panelScale());
 }
 
-/** panelKey 텍스처를 화면에 놓을 배율 — 픽셀 패널은 아트 해상도 ×PX, 포근한 카드형은 캔버스 해상도 ×1/RES */
+/** panelKey 텍스처를 화면에 놓을 배율 — 픽셀 패널은 아트 해상도 ×PX, 포근한 카드형은 화면 해상도 ×1/PANEL_RES */
 export function panelScale() {
-  return COZY ? 1 / RES : PX;
+  return COZY ? 1 / PANEL_RES : PX;
 }
 
-// ── 포근한 카드형 패널 (B-2): 둥근 모서리 · 얇은 테두리 · 부드러운 그림자, 캔버스 해상도(RES 배)로 매끈하게 ──
+// ── 포근한 카드형 패널 (B-2): 둥근 모서리 · 얇은 테두리 · 부드러운 그림자, 화면 해상도로 매끈하게 ──
+// PC (2026-11-22): UI 는 RES × UI_SCALE(1.5)배로 그려지므로 그 해상도로 만든다 — RES 로 만들어 1.5배로 늘리면 흐릿하고 모서리가 고르지 않았다
+const PANEL_RES = RES * UI_SCALE;
 const COZY_STYLES = {
   card: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 22 },
   header: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 22 },
@@ -159,9 +161,9 @@ function cozyKey(scene, style, w, h) {
   if (scene.textures.exists(key)) return key;
   const S = COZY_STYLES[style] || COZY_STYLES.card;
   const pad = SHADOW_PAD; // 픽셀 패널과 같은 여백 (그림자 자리)
-  const tex = scene.textures.createCanvas(key, Math.round((w + pad * 2) * RES), Math.round((h + pad * 2) * RES));
+  const tex = scene.textures.createCanvas(key, Math.round((w + pad * 2) * PANEL_RES), Math.round((h + pad * 2) * PANEL_RES));
   const ctx = tex.getContext();
-  ctx.scale(RES, RES);
+  ctx.scale(PANEL_RES, PANEL_RES);
   const r = Math.min(S.r, h / 2, w / 2);
   const shape = (x, y, ww, hh, rr = r) => {
     ctx.beginPath();
@@ -295,6 +297,7 @@ const ICONS = {
 export function drawIcon(g, type, x, y, s, color) {
   const map = ICONS[type];
   if (!map) return;
+  g.iconName ||= type; // 이름표 (tools/export-psd.cjs 레이어 이름)
   // 아이콘 1칸 = 2px (도트 2px 통일, 2026-11-21) — 7칸 = 14px. s 는 예전 크기 인자(무시)
   const b = 2;
   const ox = Math.round(x - (7 * b) / 2);
@@ -420,6 +423,7 @@ function traitTipBox(s, badge) {
  */
 export function edgeBar(scene, x, y, w, h, edge = 'top') {
   const g = scene.add.graphics();
+  g.layerName = edge === 'top' ? '위 바 판' : '아래 바 판'; // 이름표 (tools/export-psd.cjs)
   g.fillStyle(0xfbf7ec, 1).fillRect(x, y, w, h);
   if (edge === 'top') {
     g.fillStyle(0x785f32, 0.14).fillRect(x, y + h, w, 3); // 아래 그림자

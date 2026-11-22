@@ -56,7 +56,11 @@ const game = new Phaser.Game({
   backgroundColor: '#2b1810',
   // ?transparent=1: 캔버스 바탕을 투명하게 (화면을 레이어별 PNG·PSD 로 뽑을 때, tools/export-psd.cjs)
   transparent: new URLSearchParams(window.location.search).has('transparent'),
-  pixelArt: true,
+  // 도트는 nearest 로 반듯하게(antialias false = pixelArt 의 텍스처 설정), 도형(Graphics: 시너지 알약·동그란 배지·체력 막대) 가장자리는
+  // WebGL 안티에일리어싱으로 매끈하게 (2026-11-22 — pixelArt: true 는 antialiasGL 까지 꺼서 도형 테두리가 계단졌다)
+  pixelArt: false,
+  antialias: false,
+  antialiasGL: true,
   roundPixels: true,
   scale: {
     mode: Phaser.Scale.NONE,
