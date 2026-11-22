@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, WIDE, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, C } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, C, coverImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
@@ -13,7 +13,7 @@ import { slideTo } from '../ui/slide.js';
 import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 
 // 로비 = 용병단 영지. 메뉴: 성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용) · 유물 공방(마정석 유물 생산·장착). 출전은 아래 덱 줄의 버튼
-// 2026-11-22 사용자 결정: 배경 = 사용자 그림(해 질 녘 호숫가 성, public/assets/lobby/lobby_tall.png — 272x480, 2px 도트로 줄임)
+// 2026-11-22 사용자 결정: 배경 = 사용자 그림(해 질 녘 호숫가 성, public/assets/lobby/lobby_bg.webp — 원본 941x1672 그대로, 도트로 줄이지 않음)
 //   메뉴 버튼은 그림 위 건물 자리 대신 **오른쪽 정렬 세로 줄**, 누르면 화면이 옆으로 밀려 넘어간다(src/ui/slide.js)
 
 /** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
@@ -37,8 +37,10 @@ export class LobbyScene extends Phaser.Scene {
     meta.load();
     this.leaving = false;
     audio.playMusic('title');
-    const bg = this.add.image(0, 0, WIDE ? 'lobby_wide' : 'lobby_tall').setOrigin(0).setScale(UI_PX);
-    if (WIDE) bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
+    if (WIDE) {
+      const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
+      bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
+    } else coverImage(this, 'lobby_bg', GAME_W, GAME_H); // 사용자 그림 원본 그대로 (2026-11-22)
 
     this.createTop();
     SPOTS.forEach((id, i) => this.createSpot(id, i));
