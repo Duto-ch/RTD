@@ -1692,3 +1692,44 @@ test('성벽 체력 피해 자국 (2026-11-22): 맞으면 줄어든 만큼 붉�
   expect(r1.healed).toBe(1); // 회복은 자국 없이 바로
   expect(errors).toEqual([]);
 });
+
+test('2026-11-22 화면 점검: 용병 카드 아이템은 상징 배지와 안 겹침 · 카드가 닫히면 아이템 툴팁도 닫힘 · 대기석 캐릭터는 칸 테두리로 등급 표시', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    g.gold = 999;
+    g.hire('isolde');
+    const m = g.mercs[0];
+    m.items = ['whet', 'feath'];
+    g.select(m);
+    const icons = h.itemRow.list;
+    const firstLeft = icons[0].x - 12;
+    const badgeRight = h.infoBadgeRight;
+    // 아이템 아이콘에 마우스 → 툴팁, 화면을 여러 번 새로 그려도 아이콘이 그대로 (툴팁이 남지 않게)
+    icons[0].emit('pointerover');
+    const tip1 = !!h.relicTip;
+    for (let i = 0; i < 5; i++) g.refreshHud();
+    const same = h.itemRow.list[0] === icons[0];
+    g.select(null); // 카드 닫기
+    const tipAfter = !!h.relicTip;
+    return { gap: firstLeft - badgeRight, tip1, same, tipAfter };
+  });
+  expect(r.gap).toBeGreaterThanOrEqual(4);
+  expect(r.tip1).toBe(true);
+  expect(r.same).toBe(true);
+  expect(r.tipAfter).toBe(false);
+  // 대기석: 필드를 채우고 하나 더 사면 대기석 — 발밑 고리 대신 칸 테두리
+  const q = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const ids = window.__rtd.ROSTER.filter((c) => c.grade === 1).map((c) => c.id);
+    ids.slice(0, 3).forEach((id) => g.hire(id));
+    g.shop[0] = { id: ids[4], sold: false, locked: false };
+    g.buy(0);
+    const u = g.reserve.find(Boolean);
+    return { reserved: !!u?.reserved, drawn: u?.drawnReserved };
+  });
+  expect(q.reserved).toBe(true);
+  expect(q.drawn).toBe(true);
+  expect(errors).toEqual([]);
+});

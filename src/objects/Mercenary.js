@@ -159,6 +159,18 @@ export class Mercenary extends Phaser.GameObjects.Container {
     const paint = (g, list) => list.forEach(([x, y, c]) => g.fillStyle(c).fillRect(x * P, y * P, P, P));
     this.ringBack.clear();
     this.pips.clear();
+    if (this.reserved) {
+      // 대기석 (2026-11-22): 발밑 고리 대신 칸 테두리를 등급색으로 — 고리까지 그리면 칸(50px) 밖으로 넘쳤다
+      const R = this.scene.hud?.reserveSlot;
+      if (R) {
+        const col = Phaser.Display.Color.HexStringToColor(GRADES[this.grade].color).color;
+        this.ringBack.lineStyle(3, col, 1).strokeRoundedRect(-R.w / 2 + 1.5, -R.h / 2 + 1.5, R.w - 3, R.h - 3, 9);
+      }
+      paint(this.pips, starPixels(this.grade, this.star));
+      this.pips.setY(-10); // 별 패를 칸 안(아래 테두리 위)으로
+      return;
+    }
+    this.pips.setY(0);
     paint(this.ringBack, ringPixels(this.grade, 'back'));
     paint(this.pips, ringPixels(this.grade, 'front'));
     paint(this.pips, starPixels(this.grade, this.star));
@@ -194,9 +206,17 @@ export class Mercenary extends Phaser.GameObjects.Container {
     // 대기석 (2026-11-21): HUD 대기석 칸 위 — UI 보다 위에 그린다
     if (this.reserved) {
       const p = this.scene.hud.reservePos(this.slot);
-      this.setPosition(p.x, p.y - 4); // 발밑 고리까지 칸 안에 들어오게 조금 위로
+      this.setPosition(p.x, p.y);
       this.setDepth(DEPTH.ui + 1);
+      if (this.drawnReserved !== true) {
+        this.drawnReserved = true;
+        this.drawPips();
+      }
       return;
+    }
+    if (this.drawnReserved) {
+      this.drawnReserved = false;
+      this.drawPips();
     }
     const c = cellCenter(this.col, this.row);
     this.setPosition(c.x, c.y);
