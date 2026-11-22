@@ -4,8 +4,9 @@
   C      숲 덩어리 — 나무를 4~5군데에 모아 작은 숲, 꽃도 6~7군데 꽃밭으로 무리 짓기 — 나무 26 · 꽃 56
   D      꽃밭 — 나무는 적게 고르게 15, 꽃은 많이 80
 실행: python3 docs/drafts/tree-sway/variants.py → variants.json · 찍기: node docs/drafts/tree-sway/variants.cjs (빌드 + vite preview 4173 먼저)
+      게임에 적용: python3 docs/drafts/tree-sway/variants.py --apply A → src/data/decor.js 의 grass 배열 (2026-11-22 사용자 결정: A안)
 """
-import os, json, random, math
+import os, json, random, math, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GW, GH = 544, 960
@@ -103,3 +104,11 @@ if __name__ == '__main__':
     }
     json.dump(V, open(os.path.join(HERE, 'variants.json'), 'w'), ensure_ascii=False)
     print({k: (sum(d['key'].startswith('deco_tree') for d in v), sum(d['key'].startswith('deco_flower') for d in v)) for k, v in V.items()})
+    if '--apply' in sys.argv:
+        name = sys.argv[sys.argv.index('--apply') + 1]
+        lines = ',\n'.join(f"    {{ key: '{d['key']}', x: {d['x']}, y: {d['y']}, phase: {d['phase']}{', flip: true' if d['flip'] else ''} }}" for d in V[name])
+        p = os.path.join(HERE, '..', '..', '..', 'src', 'data', 'decor.js')
+        s = open(p).read()
+        s = re.sub(r"  grass: \[\n.*?\n  \]", f"  grass: [\n    // 배치 시안 {name}안 (2026-11-22 사용자 결정) — docs/drafts/tree-sway/variants.py --apply {name} 가 쓴다 (손으로 고치면 다음 실행에 덮인다)\n" + lines + "\n  ]", s, flags=re.S)
+        open(p, 'w').write(s)
+        print('applied', name, 'to src/data/decor.js')
