@@ -1158,8 +1158,8 @@ test('2026-11-21 다듬기: 캐릭터 선택 중 리롤 → 상점으로 · 아�
   const early = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
   await page.waitForTimeout(700);
   const late = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
-  expect(early).toBeLessThan(1);
-  expect(late).toBe(1);
+  expect(early).toBeLessThan(0.75);
+  expect(late).toBe(0.75); // 아이템 툴팁은 원래 배치 그대로 0.75배 (2026-11-22)
   await page.screenshot({ path: SHOT('40-polish-1121') });
   expect(errors).toEqual([]);
 });
@@ -1568,6 +1568,73 @@ test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대�
   expect(r.lines[1]).toContain('최고 W');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('48-reserve') });
+  expect(errors).toEqual([]);
+});
+
+test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 툴팁은 아이콘 아래 + 조합식 그림 · 정지 중에도 툴팁 · 필드 캐릭터마다 켜진 시너지 상징', async ({ page }) => {
+  const errors = await startGame(page);
+  // 1) 상점: 웨이브 시작 때는 그대로, 몬스터를 다 잡으면 새로 고침
+  const r1 = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.startWave(1);
+    const before = g.shop;
+    g.startWave(2); // 다 잡기 전에 다음 웨이브 → 그때 새로 고침 (웨이브마다 한 번)
+    const fallback = g.shop !== before;
+    const atStart = g.shop;
+    return { fallback, refreshed: g.shopRefreshed, sameAfterStart: g.shop === atStart, atStart: !!atStart };
+  });
+  expect(r1.fallback).toBe(true);
+  expect(r1.refreshed).toBe(false);
+  const s0 = await game(page, () => { const g = window.game.scene.getScene('Game'); window.__shop0 = g.shop; g.spawnQueue = []; for (const m of [...g.monsters]) g.killMonster(m); g.cleanupMonsters(); return g.shopRefreshed; });
+  expect(s0).toBe(false);
+  await page.waitForTimeout(300);
+  const s1 = await game(page, () => { const g = window.game.scene.getScene('Game'); return { refreshed: g.shopRefreshed, changed: g.shop !== window.__shop0 }; });
+  expect(s1).toEqual({ refreshed: true, changed: true });
+
+  // 2) 정지한 채로 아이템 툴팁: 아이콘 아래에 뜨고, 화면 안, 다 보인다(alpha 1·scale 1), 조합식 줄마다 그림
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.giveItem('whet'); if (!g.paused) g.togglePause(); });
+  const p = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
+  await page.mouse.move(p.x, p.y);
+  await page.waitForTimeout(700);
+  const tip = await game(page, (py) => {
+    const g = window.game.scene.getScene('Game');
+    const c = g.hud.relicTip?.container;
+    const b = c.getBounds();
+    const imgs = [];
+    const walk = (o) => (o.type === 'Image' ? imgs.push(o.texture.key) : o.each?.(walk));
+    c.each(walk);
+    return { paused: g.paused, alpha: c.alpha, scale: c.scale, top: b.y, bottom: b.bottom, below: b.y > py, imgs: imgs.length, sword: imgs.includes('item_giant_sword') };
+  }, p.y);
+  expect(tip.paused).toBe(true);
+  expect(tip.alpha).toBe(1);
+  expect(tip.scale).toBe(0.75); // 원래 배치 그대로 작게 (2026-11-22)
+  expect(tip.below).toBe(true);
+  expect(tip.top).toBeGreaterThanOrEqual(0);
+  expect(tip.bottom).toBeLessThanOrEqual(960);
+  expect(tip.imgs).toBeGreaterThanOrEqual(10); // 머리 1 + 조합 줄마다 재료·결과
+  expect(tip.sword).toBe(true);
+  await page.screenshot({ path: SHOT('49-item-tip-paused') });
+
+  // 3) 정지 중에 산 캐릭터도 바로 보인다 + 켜진 시너지 상징
+  const r3 = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (const m of [...g.allUnits]) g.sell(m);
+    const R = window.__rtd.ROSTER;
+    const a = R.find((c) => g.deck.includes(c.id));
+    const b = R.find((c) => c.id !== a.id && c.cls === a.cls && c.origin !== a.origin);
+    const solo = g.hire(a.id);
+    const marks0 = solo.synMarks.length;
+    const m2 = g.hire(b.id);
+    return { marks0, marks1: solo.synMarks.length, marks2: m2.synMarks.length, alpha: m2.sprite.alpha, y: m2.sprite.y, on: !!g.syn.tiers[a.cls] };
+  });
+  expect(r3.marks0).toBe(0);
+  expect(r3.on).toBe(true);
+  expect(r3.marks1).toBeGreaterThanOrEqual(1);
+  expect(r3.marks2).toBeGreaterThanOrEqual(1);
+  expect(r3.alpha).toBe(1); // 정지 중에 사도 투명하게 멈춰 있지 않다
+  expect(r3.y).toBe(0);
+  await page.mouse.move(272, 480);
+  await page.screenshot({ path: SHOT('50-syn-marks') });
   expect(errors).toEqual([]);
 });
 

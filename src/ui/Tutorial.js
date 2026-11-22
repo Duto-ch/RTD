@@ -11,7 +11,7 @@ import { Button } from './Button.js';
 export const TUTORIAL_STEPS = {
   shop: {
     title: '상점',
-    text: '덱의 용병 6명이 상점에 나와요. 눌러서 사면 빈 칸에 놓입니다.\n웨이브가 시작할 때마다 새로 채워지고, 리롤로 바로 바꿀 수 있어요.',
+    text: '덱의 용병 6명이 상점에 나와요. 눌러서 사면 빈 칸에 놓입니다.\n웨이브가 끝날 때마다 새로 채워지고, 리롤로 바로 바꿀 수 있어요.',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   star: {

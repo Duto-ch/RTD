@@ -6,7 +6,8 @@ import { GAME_W, GAME_H, PX, UI_PX, WIDE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE, PA
 import { charImage } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
-import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, C, CSS, ATTR_CSS_DARK } from './theme.js';
+import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, C, CSS, ATTR_CSS_DARK } from './theme.js';
+export { traitBadge };
 import { describeSkill } from '../data/skills.js';
 import { STYLES, TRAIT_TEXT, GRADES, ROSTER_BY_ID } from '../data/roster.js';
 import { starSkill, MAX_STAR } from '../data/stars.js';
@@ -619,7 +620,7 @@ export class Hud {
       const p = this.benchPos(i);
       const ic = this.itemIcon(id, p.x, p.y, 28);
       ic.setSize(32, 32).setInteractive({ draggable: true, useHandCursor: true });
-      ic.on('pointerover', () => this.showItemTip(id, p.x, p.y));
+      ic.on('pointerover', () => this.showItemTip(id, p.x, p.y, 16));
       ic.on('pointerout', () => this.hideRelicTip());
       ic.on('dragstart', () => {
         this.hideRelicTip();
@@ -639,18 +640,52 @@ export class Hud {
     this.toolText?.setText(WIDE ? `해제 도구 ${s.tools}개` : `해제 도구\n${s.tools}개`);
   }
 
-  /** 아이템 툴팁: 이름·효과 (재료는 조합표) */
-  showItemTip(id, x, y) {
+  /**
+   * 아이템 툴팁: 이름·효과 (재료는 조합표 — 줄마다 재료·결과 그림, 2026-11-22)
+   * (x, y) = 아이콘 가운데, half = 아이콘 반 높이. 세로는 아이콘 아래에 띄우고(위로 띄우면 위 카드에서 화면 밖으로 잘림),
+   * 아래 자리가 모자라면 위로 뒤집는다
+   */
+  showItemTip(id, x, y, half = 16) {
     const s = this.s;
     this.hideRelicTip();
     const it = ITEM_BY_ID[id];
     const c = s.add.container(0, 0).setDepth(DEPTH.overlay - 0.5);
-    const lines = [uiText(s, 0, 0, it.name, 15, CSS.ink, 'bold'), uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 300 } })];
+    // 툴팁 속 아이템 그림은 화면에서 아트 1px = 1px (2026-11-22 사용자 요청) — 툴팁 전체 배율(ITEM_TIP_SCALE)을 되돌려 놓는다
+    const icon = (k) => (s.textures.exists(`item_${k}`) ? s.add.image(0, 0, `item_${k}`).setScale(1 / ITEM_TIP_SCALE).setOrigin(0, 0.5) : null);
+    /** 한 줄 = [{obj, w}] 를 왼쪽부터 4px 간격으로 */
+    const row = (parts) => {
+      const r = s.add.container(0, 0);
+      let rx = 0;
+      let rh = 0;
+      for (const o of parts.filter(Boolean)) {
+        o.setOrigin(0, 0.5).setPosition(rx, 0);
+        r.add(o);
+        rx += o.displayWidth + 4;
+        rh = Math.max(rh, o.displayHeight);
+      }
+      r.width = Math.max(0, rx - 4);
+      r.height = rh;
+      return r;
+    };
+    const lines = [
+      row([icon(id), uiText(s, 0, 0, it.name, 15, CSS.ink, 'bold')]),
+      row([uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 300 } })])
+    ];
     if (isComponent(id)) {
-      lines.push(uiText(s, 0, 0, '같은 캐릭터에 재료 2개 → 자동 조합', 11, CSS.sub, '600'));
+      lines.push(row([uiText(s, 0, 0, '같은 캐릭터에 재료 2개 → 자동 조합', 12, CSS.sub, '600')]));
       for (const r of recipesWith(id)) {
         const res = ITEM_BY_ID[r.result];
-        lines.push(uiText(s, 0, 0, `+ ${ITEM_BY_ID[r.with].name} → ${res ? res.name : '출신 문장(출신을 고름)'}`, 11, CSS.ink, '600'));
+        const w2 = ITEM_BY_ID[r.with];
+        lines.push(
+          row([
+            uiText(s, 0, 0, '+', 12, CSS.sub, 'bold'),
+            icon(r.with),
+            uiText(s, 0, 0, w2.name, 12, CSS.ink, '600'),
+            uiText(s, 0, 0, '→', 12, CSS.sub, 'bold'),
+            res ? icon(r.result) : null,
+            uiText(s, 0, 0, res ? res.name : '출신 문장(출신을 고름)', 12, res ? CSS.primary : CSS.ink, 'bold')
+          ])
+        );
       }
     }
     const pad = 12;
@@ -659,17 +694,27 @@ export class Hud {
     for (const l of lines) h += l.height + 4;
     h += pad - 4;
     const left = Phaser.Math.Clamp(WIDE ? x + 30 : x - w / 2, 8, GAME_W - 8 - w);
-    const top = WIDE ? Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8) : y - 24 - h;
+    let top;
+    let below = true;
+    if (WIDE) top = Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8);
+    else {
+      top = y + half + 6;
+      if (top + h > GAME_H - 8) {
+        below = false;
+        top = Math.max(8, y - half - 6 - h);
+      }
+    }
     c.add(panel(s, left, top, w, h, 'card'));
     let cy = top + pad;
     for (const l of lines) {
-      l.setPosition(left + pad, cy);
+      l.setPosition(left + pad, cy + l.height / 2);
       cy += l.height + 4;
       c.add(l);
     }
-    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축
-    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
-    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top + h);
+    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축.
+    // 크기는 배치 그대로 비율만 ITEM_TIP_SCALE 로 줄인다 (2026-11-22 사용자 요청) — 축 쪽으로 줄어 아이콘과 간격 유지
+    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE);
+    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), below ? top : top + h, true, ITEM_TIP_SCALE);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -865,7 +910,7 @@ export class Hud {
     m.items.forEach((id, i) => {
       const ic = this.itemIcon(id, this.infoTitle.x + this.infoTitle.width + 18 + i * 26, B.y + 21, 22);
       ic.setSize(24, 24).setInteractive();
-      ic.on('pointerover', () => this.showItemTip(id, ic.x, ic.y + 40));
+      ic.on('pointerover', () => this.showItemTip(id, ic.x, ic.y, 12));
       ic.on('pointerout', () => this.hideRelicTip());
       this.itemRow.add(ic);
     });
@@ -1032,39 +1077,29 @@ export function badgePop(p) {
   return 0.92 + 0.08 * ((t - 0.7) / 0.3);
 }
 
-/**
- * 시너지 상징 배지 (2026-11-21): 시너지 색 원 + 하얀 모양 그림(theme trait_<id>, 7칸 × 2px). off 면 옅은 원 + 갈색 모양
- * @returns {Phaser.GameObjects.Container}
- */
-export function traitBadge(s, x, y, k, r = 10, on = true) {
-  const t = TRAITS[k];
-  const col = Phaser.Display.Color.HexStringToColor(t.color).color;
-  const c = s.add.container(x, y);
-  const g = s.add.graphics();
-  g.fillStyle(on ? col : 0xd9cdb2, 1).fillCircle(0, 0, r);
-  g.lineStyle(2, on ? 0x2b1d2f : 0xa8875a, 1).strokeCircle(0, 0, r);
-  drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
-  c.add(g);
-  c.auditBox = { x: -r - 1, y: -r - 1, w: 2 * r + 2, h: 2 * r + 2 }; // tools/ui-audit.cjs 여백 검사 (외곽선 포함)
-  return c;
-}
+
+/** 아이템 툴팁 크기 비율 (2026-11-22 사용자 요청: 원래 배치 그대로 작게) */
+export const ITEM_TIP_SCALE = 0.75;
 
 /**
  * 툴팁 스프링 등장 (유물 툴팁 2026-11-19 → 모든 툴팁 2026-11-21): (ax, ay) 를 축으로 0.6 → 1, 살짝 넘쳤다 출렁이며 멈춘다 + 0.12초 페이드.
  * 컨테이너 c 안의 것들은 화면 좌표로 넣어 두면 축 기준으로 옮겨 준다
  */
-export function springTip(s, c, ax, ay, animate = true) {
+export function springTip(s, c, ax, ay, animate = true, to = 1) {
   c.setPosition(ax, ay);
   c.each((o) => o.setPosition(o.x - ax, o.y - ay));
-  if (!animate) return;
-  c.setScale(0.6).setAlpha(0);
-  uiTween(s, { targets: c, scale: 1, duration: 520, ease: springEase });
-  uiTween(s, { targets: c, alpha: 1, duration: 120 });
+  if (!animate) return c.setScale(to);
+  // 실제 시간으로 직접 돌린다 (2026-11-22): 트윈으로 하면 게임 정지(tweens.pauseAll) 중에 툴팁이 투명한 채로 멈춰 안 보였다
+  c.setScale(0.6 * to).setAlpha(0);
+  const t0 = performance.now();
+  const step = () => {
+    if (!c.active) return s.events.off('update', step);
+    const t = performance.now() - t0;
+    c.setAlpha(Math.min(1, t / 120));
+    c.setScale(to * (0.6 + 0.4 * springEase(Math.min(1, t / 520))));
+    if (t >= 520) s.events.off('update', step);
+  };
+  s.events.on('update', step);
+  c.once('destroy', () => s.events.off('update', step));
 }
 
-/** UI 트윈: 전투 배속(tweens.timeScale)과 상관없이 실제 시간으로 재생 */
-function uiTween(s, cfg) {
-  const t = s.tweens.add(cfg);
-  t.timeScale = 1 / (s.tweens.timeScale || 1);
-  return t;
-}

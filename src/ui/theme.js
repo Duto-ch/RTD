@@ -1,5 +1,6 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
+import { TRAITS } from '../data/synergy.js';
 import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
 
 export const UI_FONT = COZY ? COZY_FONT : FONT; // 포근한 카드형: 썬플라워 · 픽셀 UI: Galmuri11
@@ -310,4 +311,21 @@ export function onLight(color) {
     '#5aa2ff': '#2f62c4'
   };
   return map[color] || color;
+}
+
+/**
+ * 시너지 상징 배지 (2026-11-21): 시너지 색 원 + 하얀 모양 그림(theme trait_<id>, 7칸 × 2px). off 면 옅은 원 + 갈색 모양
+ * @returns {Phaser.GameObjects.Container}
+ */
+export function traitBadge(s, x, y, k, r = 10, on = true) {
+  const t = TRAITS[k];
+  const col = Phaser.Display.Color.HexStringToColor(t.color).color;
+  const c = s.add.container(x, y);
+  const g = s.add.graphics();
+  g.fillStyle(on ? col : 0xd9cdb2, 1).fillCircle(0, 0, r);
+  g.lineStyle(2, on ? 0x2b1d2f : 0xa8875a, 1).strokeCircle(0, 0, r);
+  drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
+  c.add(g);
+  c.auditBox = { x: -r - 1, y: -r - 1, w: 2 * r + 2, h: 2 * r + 2 }; // tools/ui-audit.cjs 여백 검사 (외곽선 포함)
+  return c;
 }
