@@ -1158,8 +1158,8 @@ test('2026-11-21 다듬기: 캐릭터 선택 중 리롤 → 상점으로 · 아�
   const early = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
   await page.waitForTimeout(700);
   const late = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
-  expect(early).toBeLessThan(1);
-  expect(late).toBe(1);
+  expect(early).toBeLessThan(0.75);
+  expect(late).toBe(0.75); // 아이템 툴팁은 원래 배치 그대로 0.75배 (2026-11-22)
   await page.screenshot({ path: SHOT('40-polish-1121') });
   expect(errors).toEqual([]);
 });
@@ -1607,7 +1607,7 @@ test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 �
   }, p.y);
   expect(tip.paused).toBe(true);
   expect(tip.alpha).toBe(1);
-  expect(tip.scale).toBe(1);
+  expect(tip.scale).toBe(0.75); // 원래 배치 그대로 작게 (2026-11-22)
   expect(tip.below).toBe(true);
   expect(tip.top).toBeGreaterThanOrEqual(0);
   expect(tip.bottom).toBeLessThanOrEqual(960);

@@ -622,33 +622,28 @@ export class Hud {
       r.height = rh;
       return r;
     };
-    // 작게 (2026-11-22 사용자 요청): 여백 8 · 제목 13 · 조합식은 2열, 칸마다 [재료 그림] → [결과 그림] 결과 이름
     const lines = [
-      row([icon(id), uiText(s, 0, 0, it.name, 13, CSS.ink, 'bold')]),
-      row([uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 240 } })])
+      row([icon(id), uiText(s, 0, 0, it.name, 15, CSS.ink, 'bold')]),
+      row([uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 300 } })])
     ];
     if (isComponent(id)) {
-      lines.push(row([uiText(s, 0, 0, '재료 2개 → 자동 조합', 12, CSS.sub, '600')]));
-      const cells = recipesWith(id).map((r) => {
+      lines.push(row([uiText(s, 0, 0, '같은 캐릭터에 재료 2개 → 자동 조합', 12, CSS.sub, '600')]));
+      for (const r of recipesWith(id)) {
         const res = ITEM_BY_ID[r.result];
-        return row([
-          icon(r.with),
-          uiText(s, 0, 0, '→', 12, CSS.sub, 'bold'),
-          res ? icon(r.result) : null,
-          uiText(s, 0, 0, res ? res.name : '출신 문장', 12, res ? CSS.primary : CSS.ink, 'bold')
-        ]);
-      });
-      const colW = Math.max(...cells.map((cl) => cl.width)) + 8;
-      for (let k = 0; k < cells.length; k += 2) {
-        const pair = s.add.container(0, 0);
-        const two = cells.slice(k, k + 2);
-        two.forEach((cl, n) => pair.add(cl.setPosition(n * colW, 0)));
-        pair.width = colW * (two.length - 1) + two[two.length - 1].width;
-        pair.height = Math.max(...two.map((cl) => cl.height));
-        lines.push(pair);
+        const w2 = ITEM_BY_ID[r.with];
+        lines.push(
+          row([
+            uiText(s, 0, 0, '+', 12, CSS.sub, 'bold'),
+            icon(r.with),
+            uiText(s, 0, 0, w2.name, 12, CSS.ink, '600'),
+            uiText(s, 0, 0, '→', 12, CSS.sub, 'bold'),
+            res ? icon(r.result) : null,
+            uiText(s, 0, 0, res ? res.name : '출신 문장(출신을 고름)', 12, res ? CSS.primary : CSS.ink, 'bold')
+          ])
+        );
       }
     }
-    const pad = 8;
+    const pad = 12;
     const w = Math.ceil((Math.max(...lines.map((l) => l.width)) + pad * 2) / UI_PX) * UI_PX;
     let h = pad;
     for (const l of lines) h += l.height + 4;
@@ -671,9 +666,10 @@ export class Hud {
       cy += l.height + 4;
       c.add(l);
     }
-    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축
-    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
-    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), below ? top : top + h);
+    // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축.
+    // 크기는 배치 그대로 비율만 ITEM_TIP_SCALE 로 줄인다 (2026-11-22 사용자 요청) — 축 쪽으로 줄어 아이콘과 간격 유지
+    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE);
+    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), below ? top : top + h, true, ITEM_TIP_SCALE);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -1037,22 +1033,25 @@ export function badgePop(p) {
 }
 
 
+/** 아이템 툴팁 크기 비율 (2026-11-22 사용자 요청: 원래 배치 그대로 작게) */
+export const ITEM_TIP_SCALE = 0.75;
+
 /**
  * 툴팁 스프링 등장 (유물 툴팁 2026-11-19 → 모든 툴팁 2026-11-21): (ax, ay) 를 축으로 0.6 → 1, 살짝 넘쳤다 출렁이며 멈춘다 + 0.12초 페이드.
  * 컨테이너 c 안의 것들은 화면 좌표로 넣어 두면 축 기준으로 옮겨 준다
  */
-export function springTip(s, c, ax, ay, animate = true) {
+export function springTip(s, c, ax, ay, animate = true, to = 1) {
   c.setPosition(ax, ay);
   c.each((o) => o.setPosition(o.x - ax, o.y - ay));
-  if (!animate) return;
+  if (!animate) return c.setScale(to);
   // 실제 시간으로 직접 돌린다 (2026-11-22): 트윈으로 하면 게임 정지(tweens.pauseAll) 중에 툴팁이 투명한 채로 멈춰 안 보였다
-  c.setScale(0.6).setAlpha(0);
+  c.setScale(0.6 * to).setAlpha(0);
   const t0 = performance.now();
   const step = () => {
     if (!c.active) return s.events.off('update', step);
     const t = performance.now() - t0;
     c.setAlpha(Math.min(1, t / 120));
-    c.setScale(0.6 + 0.4 * springEase(Math.min(1, t / 520)));
+    c.setScale(to * (0.6 + 0.4 * springEase(Math.min(1, t / 520))));
     if (t >= 520) s.events.off('update', step);
   };
   s.events.on('update', step);
