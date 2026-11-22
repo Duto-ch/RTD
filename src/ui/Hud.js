@@ -70,6 +70,8 @@ export const MODAL_W = WIDE ? 520 : GAME_W;
 
 /** 성벽 체력 막대 외곽 두께 */
 const HP_LINE = 4;
+// 성벽 체력 피해 자국 (2026-11-22 사용자 요청): 줄어든 만큼 붉게 남았다가 delay 뒤 duration 동안 따라 줄어든다
+const HP_TRAIL = { color: 0xff5a4a, delay: 400, duration: 700 };
 
 export class Hud {
   /** @param {Phaser.Scene} scene GameScene */
@@ -264,25 +266,36 @@ export class Hud {
     this.hpLabel.add([this.hpHeart, this.countText]);
   }
 
-  /** 막대 다시 그리기 (refresh 에서) */
+  /** 막대 다시 그리기 (refresh 에서) — 피해를 입으면 줄어든 만큼 붉게 남았다가 천천히 따라 줄어든다 (2026-11-22) */
   drawHpBar(n, max, shield) {
-    const B = HUD.hp;
-    const g = this.hpFill;
-    g.clear();
-    const iw = B.w - HP_LINE * 2;
-    const ih = B.h - HP_LINE * 2;
     const pct = Math.max(0, Math.min(1, n / max));
-    const fill = Math.round((iw * pct) / UI_PX) * UI_PX;
-    if (fill > 0) {
-      const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
-      const w = Math.max(ih, fill); // 둥근 끝이 깨지지 않게 최소 높이만큼
-      g.fillStyle(col, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, w, ih, ih / 2);
-      g.fillStyle(0xffffff, 0.28).fillRoundedRect(B.x + HP_LINE + 4, B.y + HP_LINE + 2, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+    if (this.hpShown == null || pct >= this.hpTrail) {
+      // 처음·회복: 붉은 자국 없이 바로
+      this.hpTrailTween?.stop();
+      this.hpTrailTween = null;
+      this.hpTrail = pct;
+    } else if (pct < this.hpShown) {
+      // 피해: 붉은 자국은 그대로 두고 잠깐 뒤 새 위치까지 천천히 줄인다 (연달아 맞으면 다시 기다렸다 줄어듦)
+      this.hpTrailTween?.stop();
+      this.hpTrailTween = this.s.tweens.addCounter({
+        from: this.hpTrail,
+        to: pct,
+        delay: HP_TRAIL.delay,
+        duration: HP_TRAIL.duration,
+        ease: 'Quad.easeOut',
+        onUpdate: (tw) => {
+          this.hpTrail = tw.getValue();
+          this.paintHpBar();
+        },
+        onComplete: () => {
+          this.hpTrailTween = null;
+        }
+      });
     }
-    if (shield > 0) {
-      const sw = Math.round((iw * Math.min(1, shield / max)) / UI_PX) * UI_PX;
-      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, Math.max(6, sw), 4, 2);
-    }
+    this.hpShown = pct;
+    this.hpShield = shield;
+    this.hpMax = max;
+    this.paintHpBar();
     // 가운데: 하트 + 수치 (함께 가운데 정렬)
     this.countText.setText(`${Math.ceil(n)}${shield > 0 ? `+${Math.ceil(shield)}` : ''} / ${max}`);
     const hw = 14; // 하트 7칸 × 2px
@@ -292,6 +305,37 @@ export class Hud {
     this.hpHeart.clear();
     drawIcon(this.hpHeart, 'heart', left + hw / 2, 1, 14, 0xd2473a);
     this.countText.setPosition(left + hw + gap, 0);
+  }
+
+  /** 막대 칠하기: 붉은 자국(hpTrail) → 지금 체력(hpShown) → 실드 */
+  paintHpBar() {
+    const B = HUD.hp;
+    const g = this.hpFill;
+    g.clear();
+    const iw = B.w - HP_LINE * 2;
+    const ih = B.h - HP_LINE * 2;
+    const x = B.x + HP_LINE;
+    const y = B.y + HP_LINE;
+    const px = (p) => Math.round((iw * p) / UI_PX) * UI_PX;
+    const pct = this.hpShown;
+    const fill = px(pct);
+    const trail = px(this.hpTrail);
+    if (trail > fill) {
+      const tw = Math.max(ih, trail);
+      g.fillStyle(HP_TRAIL.color, 1).fillRoundedRect(x, y, tw, ih, ih / 2);
+      g.fillStyle(0xffffff, 0.22).fillRoundedRect(x + 4, y + 2, Math.max(0, tw - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+    }
+    if (fill > 0) {
+      const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
+      const w = Math.max(ih, fill); // 둥근 끝이 깨지지 않게 최소 높이만큼
+      g.fillStyle(col, 1).fillRoundedRect(x, y, w, ih, ih / 2);
+      g.fillStyle(0xffffff, 0.28).fillRoundedRect(x + 4, y + 2, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+    }
+    const shield = this.hpShield || 0;
+    if (shield > 0) {
+      const sw = px(Math.min(1, shield / this.hpMax));
+      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(x, y, Math.max(6, sw), 4, 2);
+    }
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */
