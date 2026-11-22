@@ -240,7 +240,7 @@
 
 | 키 | 크기 | 설명 |
 |---|---|---|
-| `deco_tree` | 50×50 × 28프레임 | 초원 나무 — 바람에 살랑임 (100ms, 밑동 pivot 22,46). 그림 `docs/drafts/tree-sway/` |
+| `deco_tree_1`, `deco_tree_2`, `deco_tree_3` | 50×50 × 28프레임 | 초원 나무 3종(사용자 그림) — 바람에 살랑임 (100ms, 밑동 pivot 은 그림마다). 그림 `docs/drafts/tree-sway/` |
 
 ### 기타
 
