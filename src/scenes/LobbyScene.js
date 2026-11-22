@@ -9,25 +9,15 @@ import { UPGRADES } from '../data/upgrades.js';
 import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Kinetic } from '../ui/kinetic.js';
+import { slideTo } from '../ui/slide.js';
 
-// 로비 = 용병단 영지 (2026-11-17, 시안 A '영지 지도형'). 건물이 곧 메뉴:
-//   성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용, 룰 v2) · 유물 공방(마정석 유물 생산·장착, 룰 v2). 출전은 아래 덱 줄의 버튼 (성문 삭제 2026-11-21)
-// 배경은 동화풍 일러스트를 캐릭터와 같은 3px 도트로 정리한 그림 (public/assets/lobby/lobby_<wide|tall>.png, 아트 1px = 화면 3px)
+// 로비 = 용병단 영지. 메뉴: 성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용) · 유물 공방(마정석 유물 생산·장착). 출전은 아래 덱 줄의 버튼
+// 2026-11-22 사용자 결정: 배경 = 사용자 그림(해 질 녘 호숫가 성, public/assets/lobby/lobby_tall.png — 272x480, 2px 도트로 줄임)
+//   메뉴 버튼은 그림 위 건물 자리 대신 **오른쪽 정렬 세로 줄**, 누르면 화면이 옆으로 밀려 넘어간다(src/ui/slide.js)
 
-/** 건물 이름표 위치 (게임 좌표) · 누를 수 있는 건물 영역 */
-const SPOTS = WIDE
-  ? {
-      tower: { tag: [622, 92], hit: [570, 110, 110, 190] },
-      tent: { tag: [350, 150], hit: [270, 170, 160, 130] },
-      barracks: { tag: [876, 196], hit: [780, 210, 180, 130] },
-      forge: { tag: [342, 424], hit: [260, 430, 160, 120] }
-    }
-  : {
-      tower: { tag: [392, 236], hit: [222, 230, 110, 160] },
-      tent: { tag: [118, 232], hit: [56, 250, 130, 110] },
-      barracks: { tag: [392, 350], hit: [300, 370, 150, 110] },
-      forge: { tag: [108, 536], hit: [40, 540, 120, 110] }
-    };
+/** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
+const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
+const MENU = { right: GAME_W - 16, top: 92, w: 188, h: 52, gap: 12 };
 
 const LABELS = {
   tower: ['성탑', '스킬 노드', 'tower'],
@@ -50,17 +40,19 @@ export class LobbyScene extends Phaser.Scene {
     if (WIDE) bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
 
     this.createTop();
-    for (const id of Object.keys(SPOTS)) if (SPOTS[id]) this.createSpot(id);
+    SPOTS.forEach((id, i) => this.createSpot(id, i));
     this.createDeckStrip();
     this.input.keyboard?.on('keydown-ENTER', () => this.go('Game'));
     this.input.keyboard?.on('keydown-SPACE', () => this.go('Game'));
   }
 
   go(scene, data) {
-    if (this.leaving) return;
+    if (this.leaving || this.sliding) return; // 영지가 아직 밀려 들어오는 중이면 무시
     this.leaving = true;
     audio.init();
-    this.scene.start(scene, data);
+    // 메뉴 화면은 옆으로 밀어서 (2026-11-22), 출전(전투)은 바로
+    if (scene === 'Game') this.scene.start(scene, data);
+    else if (!slideTo(this, scene, data, 1)) this.leaving = false;
   }
 
   /** 위: 왼쪽 용병단 이름·최고 기록 / 오른쪽 재화 2종 (2026-11-21: 같은 높이로 오른쪽 위에) */
@@ -94,18 +86,16 @@ export class LobbyScene extends Phaser.Scene {
     });
   }
 
-  /** 건물 메뉴 버튼 (2026-11-21: 이름표 → 진한 테두리 메뉴 버튼, 흔들림 없음 — 소수점 위치로 움직이면 글자가 자글거린다) + 건물 영역 */
-  createSpot(id) {
-    const S = SPOTS[id];
+  /** 메뉴 버튼 (진한 테두리 menu 스타일) — 2026-11-22: 오른쪽 정렬 세로 줄, 폭은 모두 같게 */
+  createSpot(id, i) {
     const [name, sub, icon] = LABELS[id];
-    const [tx, ty] = S.tag;
     const action = () => this.openSpot(id);
-    const [hx, hy, hw, hh] = S.hit;
-    this.add.zone(hx, hy, hw, hh).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerup', action);
     const t1 = uiText(this, 0, 0, name, 16.5, CSS.ink, 'bold');
     const t2 = uiText(this, 0, 0, sub, 11, CSS.sub, '600');
-    const w = Math.ceil(Math.max(t1.width, t2.width) + 74);
-    const h = 52;
+    const w = MENU.w;
+    const h = MENU.h;
+    const tx = MENU.right - w / 2;
+    const ty = MENU.top + h / 2 + i * (h + MENU.gap);
     const c = this.add.container(Math.round(tx), Math.round(ty)); // 가운데 기준 (눌림 효과가 가운데로 줄어들게)
     c.add(panel(this, -w / 2, -h / 2, w, h, 'menu'));
     const g = this.add.graphics();

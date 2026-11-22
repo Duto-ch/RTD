@@ -519,6 +519,8 @@ test('버그 회귀: 전투 중 강화 후 게임 오버 → 명성 강화 → �
   expect(await game(page, () => window.__rtd.meta.level('origin'))).toBe(1);
   await page.mouse.click(272 + 140, 916); // 영지로
   await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  // 2026-11-22: 옆으로 밀기 전환 동안은 두 장면이 함께 돈다 — 전환이 끝나면 영지만 남아야 한다
+  await page.waitForFunction(() => window.game.scene.getScenes(true).length === 1, null, { timeout: 5000 }).catch(() => null);
   expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Lobby']);
   expect(errors).toEqual([]);
 });
@@ -1229,7 +1231,7 @@ test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 �
   });
   expect(t).toMatchObject({ n: 3, owned: true, hired: true, r1: true, r2: true, next: 7 });
   await game(page, () => window.game.scene.getScene('Tavern').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').sliding); // 옆으로 밀기 전환이 끝난 뒤 (2026-11-22)
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('forge'));
   await page.waitForFunction(() => window.game.scene.isActive('Workshop'));
   const w = await game(page, () => {
@@ -1756,5 +1758,50 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   const s3 = await game(page, (id) => window.game.scene.getScene('Deck').deck.includes(id), pos.id);
   expect(s3).toBe(pos.inDeck);
   await page.screenshot({ path: SHOT('50-deck-select') });
+  expect(errors).toEqual([]);
+});
+
+test('영지 (2026-11-22): 사용자 배경 그림 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 옆으로 밀어 넘어가고 돌아올 때도 반대로', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await page.mouse.click(272, 652);
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.waitForTimeout(300);
+  const r = await game(page, () => {
+    const l = window.game.scene.getScene('Lobby');
+    const rights = Object.values(l.spots).map((c) => Math.round(c.getBounds().right));
+    const ys = Object.values(l.spots).map((c) => Math.round(c.y));
+    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_tall');
+    return { rights, ys, bgW: bg?.texture.source[0].width, bgH: bg?.texture.source[0].height };
+  });
+  expect(new Set(r.rights).size).toBe(1); // 오른쪽 끝이 모두 같다
+  expect(r.rights[0]).toBeGreaterThanOrEqual(544 - 20);
+  expect([...r.ys].sort((a, b) => a - b)).toEqual(r.ys); // 위에서 아래로 한 줄
+  expect([r.bgW, r.bgH]).toEqual([272, 480]); // 2px 도트 그림
+  await page.screenshot({ path: SHOT('49-lobby-right-menu') });
+  // 병영으로: 잠깐 두 장면이 함께 보이며 새 화면 카메라가 오른쪽에서 들어온다
+  // 매 프레임 두 장면 카메라 위치를 모아 본다 (전환은 실제 시간 0.36초라 한 번 읽어서는 놓친다)
+  const watch = (key) => game(page, (key) => {
+    window.__xs = [];
+    const f = () => { const s = window.game.scene.getScene(key); if (window.game.scene.isActive(key)) window.__xs.push(s.cameras.main.x); };
+    window.__xsOff?.();
+    window.game.events.on('poststep', f);
+    window.__xsOff = () => window.game.events.off('poststep', f);
+  }, key);
+  await watch('Deck');
+  await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
+  await page.waitForFunction(() => !window.game.scene.isActive('Lobby') && window.game.scene.isActive('Deck') && !window.game.scene.getScene('Deck').sliding, null, { timeout: 8000 });
+  const into = await game(page, () => window.__xs);
+  expect(into.some((x) => x > 0)).toBe(true); // 오른쪽에서 들어왔다
+  expect(into[into.length - 1]).toBe(0);
+  // 돌아가기: 영지가 왼쪽에서 들어온다
+  await watch('Lobby');
+  await game(page, () => window.game.scene.getScene('Deck').leave());
+  await page.waitForFunction(() => !window.game.scene.isActive('Deck') && window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').sliding, null, { timeout: 8000 });
+  const back = await game(page, () => { window.__xsOff(); return window.__xs; });
+  expect(back.some((x) => x < 0)).toBe(true);
+  expect(back[back.length - 1]).toBe(0);
   expect(errors).toEqual([]);
 });
