@@ -4,6 +4,7 @@
 //   1번째 인자(JSON): BALANCE 덮어쓰기 실험. BALANCE.monster 의 키는 monster 에, 나머지(baseDamageMult 등)는 BALANCE 에 적용
 //   성벽·물량: '{"wall":{"hp":80,"dmg":{"normal":0.2}},"horde":{"carryHops":10}}' (물량 배수 mult 는 빌드 때 정해져 덮어쓸 수 없다)
 //   2번째 인자(JSON): 명성 강화 레벨 (예: {"atk":10,"funds":5}). 없으면 강화 0
+//   환경 변수 RESERVE=0: 대기석을 쓰지 않는 예전 봇 (기본은 필드가 차면 같은 캐릭터 카드를 대기석에 모아 별 승급)
 //   3번째 인자(JSON): 장착 유물 id → 레벨 (예: {"hero_sword":3,"war_drum":1}, 최대 4개). 없으면 유물 없음
 const { chromium } = require('playwright');
 (async () => {
@@ -21,7 +22,8 @@ const { chromium } = require('playwright');
   await p.waitForFunction(() => window.game.scene.isActive('Game') && window.game.scene.getScene('Game').hud, null, { timeout: 60000 });
   await p.waitForTimeout(300);
   const override = JSON.parse(process.argv[2] || '{}');
-  const res = await p.evaluate((override) => {
+  const useReserveArg = process.env.RESERVE !== '0'; // 대기석 활용 (기본 켬, RESERVE=0 이면 예전 봇)
+  const res = await p.evaluate(([override, useReserve]) => {
     for (const [k, v] of Object.entries(override)) {
       if (k in window.BALANCE.monster) window.BALANCE.monster[k] = v;
       else if (k === 'wall') { const { dmg, ...rest } = v; Object.assign(window.BALANCE.wall, rest); Object.assign(window.BALANCE.wall.dmg, dmg || {}); }
@@ -61,6 +63,12 @@ const { chromium } = require('playwright');
         if (g.mercs.length < g.cap && open.length) {
           const best = open.sort((a, b) => slotValue(b.s) - slotValue(a.s))[0];
           if (g.buy(best.i)) continue;
+        }
+        // 2b) 대기석 (2026-11-21): 필드가 차면 필드·대기석에 있는 캐릭터와 같은 카드를 대기석에 모아 별 승급을 노린다 (RESERVE=0 이면 안 씀)
+        if (useReserve && g.mercs.length >= g.cap && g.freeReserve() >= 0) {
+          const ec2 = g.estateCost || 0;
+          const dup = open.find(({ s }) => g.allUnits.some((m) => m.char.id === s.id && m.star < 3) && g.gold - price(R[s.id]) >= ec2 * 0.5);
+          if (dup && g.buy(dup.i)) continue;
         }
         // 3) 자리가 차면 영지 레벨 업
         const ec = g.estateCost;
@@ -109,7 +117,7 @@ const { chromium } = require('playwright');
     }
     const reason = g.children.list.filter(o => o.type === 'Text').map(o => o.text).find(t => /무너졌습니다/.test(t));
     return { wave: g.wave, fame: g.fameEarned, stones: g.stonesEarned, kills: g.totalKills, over: g.over, log: [...log, 'boss max lap%: ' + JSON.stringify(bossMax), 'reason: ' + reason] };
-  }, override);
+  }, [override, useReserveArg]);
   console.log(res.log.join('\n')); console.log('END wave', res.wave, 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));
   await b.close();
 })();
