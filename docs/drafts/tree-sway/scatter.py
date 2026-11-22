@@ -71,6 +71,14 @@ while len(flowers) < NF and tries < 200000:
         continue
     flowers.append({'key': key, 'x': x, 'y': y, 'flip': rnd.random() < 0.5, 'phase': 0})
 assert len(flowers) == NF, (len(flowers), '꽃 자리가 모자람')
+# 손으로 더 심은 나무 (2026-11-22 사용자 요청: 오른쪽 하나 + 오른쪽 위 두 그루를 붙여서) — 무작위 결과는 그대로 두고 덧붙인다
+hand = random.Random('grass-hand')
+for x, y, flip in [(534, 470, True), (498, 246, False), (528, 228, True)]:
+    near = sorted(((x - o['x']) ** 2 + (y - o['y']) ** 2, o['key']) for o in trees)[:2]
+    used = {k for _, k in near}
+    key = min(COLORS, key=lambda c: (c in used, count[c], hand.random()))
+    count[key] += 1
+    trees.append({'key': key, 'x': x, 'y': y, 'flip': flip, 'phase': round(hand.random(), 2)})
 trees += flowers
 trees.sort(key=lambda d: (d['y'], d['x']))
 lines = ',\n'.join(f"    {{ key: '{d['key']}', x: {d['x']}, y: {d['y']}, phase: {d['phase']}{', flip: true' if d['flip'] else ''} }}" for d in trees)
@@ -78,4 +86,4 @@ p = os.path.join(ROOT, 'src', 'data', 'decor.js')
 s = open(p).read()
 s = re.sub(r"  grass: \[\n.*?\n  \]", "  grass: [\n    // 화면 전체(UI 뒤 땅 포함)에 흩뿌린 나무·꽃 — docs/drafts/tree-sway/scatter.py 가 쓴다 (손으로 고치면 다음 실행에 덮인다)\n" + lines + "\n  ]", s, flags=re.S)
 open(p, 'w').write(s)
-print(N, 'trees', count, NF, 'flowers', {k: sum(f['key'] == k for f in flowers) for k in FKEYS})
+print(len([t for t in trees if t['key'].startswith('deco_tree')]), 'trees', count, NF, 'flowers', {k: sum(f['key'] == k for f in flowers) for k in FKEYS})
