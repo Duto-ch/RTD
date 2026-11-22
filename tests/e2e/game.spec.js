@@ -1434,17 +1434,21 @@ test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃
   expect(errors).toEqual([]);
 });
 
-test('배경 나무 (2026-11-22): 초원 화면 전체에 흩뿌린 나무 3종 바람에 흔들리는 나무 · 28프레임 반복 · 박자가 서로 다름 · 지역이 바뀌면 사라짐', async ({ page }) => {
+test('배경 나무·꽃 (2026-11-22): 초원 화면 전체에 나무 3종(바람에 흔들림 28프레임·박자 다름) 22그루 + 꽃 6종 · 지역이 바뀌면 사라짐', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     const anim = g.anims.get('deco_tree_1:sway');
-    return { n: g.decor.length, frames: anim.frames.length, loop: anim.repeat, playing: g.decor.every((s) => s.anims.isPlaying),
-      phases: new Set(g.decor.map((s) => s.anims.currentFrame.index)).size, w: g.decor[0].displayWidth,
-      belowMonsters: g.decor.every((s) => s.depth < 10), top: g.decor.some((s) => s.y < 480), bottom: g.decor.some((s) => s.y > 480),
-      colors: new Set(g.decor.map((s) => s.texture.key)).size, flipped: g.decor.some((s) => s.flipX) };
+    const trees = g.decor.filter((s) => s.texture.key.startsWith('deco_tree_'));
+    const flowers = g.decor.filter((s) => s.texture.key.startsWith('deco_flower_'));
+    return { trees: trees.length, flowers: flowers.length, frames: anim.frames.length, loop: anim.repeat, playing: trees.every((s) => s.anims.isPlaying),
+      phases: new Set(trees.map((s) => s.anims.currentFrame.index)).size, w: trees[0].displayWidth,
+      belowMonsters: g.decor.every((s) => s.depth < 10), top: trees.some((s) => s.y < 480), bottom: trees.some((s) => s.y > 480),
+      treeKinds: new Set(trees.map((s) => s.texture.key)).size, flowerKinds: new Set(flowers.map((s) => s.texture.key)).size,
+      flipped: trees.some((s) => s.flipX) };
   });
-  expect(r.n).toBeGreaterThanOrEqual(30); // 화면 전체에 흩뿌린 40그루 (2026-11-21)
+  expect(r.trees).toBeGreaterThanOrEqual(15); // 나무 22그루 (2026-11-22 줄임)
+  expect(r.flowers).toBeGreaterThanOrEqual(30); // 꽃 50송이
   expect(r.frames).toBe(28);
   expect(r.loop).toBe(-1);
   expect(r.playing).toBe(true);
@@ -1452,7 +1456,8 @@ test('배경 나무 (2026-11-22): 초원 화면 전체에 흩뿌린 나무 3종 
   expect(r.w).toBe(100); // 50px 그림 × 아트 1px = 화면 2px
   expect(r.belowMonsters).toBe(true);
   expect(r.top && r.bottom).toBe(true);
-  expect(r.colors).toBe(3); // 나무 3종 (deco_tree_1~3, 2026-11-22 사용자 그림)
+  expect(r.treeKinds).toBe(3); // 나무 3종 (deco_tree_1~3, 사용자 그림)
+  expect(r.flowerKinds).toBe(6); // 꽃 6종 (deco_flower_1~6, 사용자 그림)
   expect(r.flipped).toBe(true); // 일부는 좌우 뒤집기
   await page.screenshot({ path: SHOT('49-grass-trees') });
   // 사막(11웨이브)으로 바뀌면 초원 나무는 서서히 사라진다

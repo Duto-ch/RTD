@@ -10699,6 +10699,54 @@
      "loop": true
     }
    }
+  },
+  "deco_flower_1": {
+   "file": "deco/flower_1.png",
+   "frameWidth": 14,
+   "frameHeight": 15,
+   "scale": 1,
+   "pivotX": 7,
+   "pivotY": 14
+  },
+  "deco_flower_2": {
+   "file": "deco/flower_2.png",
+   "frameWidth": 23,
+   "frameHeight": 21,
+   "scale": 1,
+   "pivotX": 11,
+   "pivotY": 20
+  },
+  "deco_flower_3": {
+   "file": "deco/flower_3.png",
+   "frameWidth": 15,
+   "frameHeight": 15,
+   "scale": 1,
+   "pivotX": 7,
+   "pivotY": 14
+  },
+  "deco_flower_4": {
+   "file": "deco/flower_4.png",
+   "frameWidth": 14,
+   "frameHeight": 15,
+   "scale": 1,
+   "pivotX": 7,
+   "pivotY": 14
+  },
+  "deco_flower_5": {
+   "file": "deco/flower_5.png",
+   "frameWidth": 14,
+   "frameHeight": 15,
+   "scale": 1,
+   "pivotX": 7,
+   "pivotY": 14
+  },
+  "deco_flower_6": {
+   "file": "deco/flower_6.png",
+   "frameWidth": 6,
+   "frameHeight": 6,
+   "scale": 1,
+   "pivotX": 3,
+   "pivotY": 5
   }
  }
 }

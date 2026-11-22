@@ -34,7 +34,8 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 
 ## 배경 장식 (움직이는 나무, 2026-11-21 · 2026-11-22 새 나무 3종)
 - 초원 나무 3종: 사용자 그림 `docs/drafts/tree-sway/tree_1~3.png`(50x50) → `python3 docs/drafts/tree-sway/sway.py` 가 그림마다 28프레임 흔들림(밑동 고정·위로 갈수록 최대 ±2px, 녹색 잎 안쪽만 1px 바스락, 원본 색·반투명 그대로, 밑동 pivot 자동) 시트를 만들고 `public/assets/custom/deco/tree_sway_<n>.png` + manifest `deco_tree_<n>` 에 넣는다. 새 나무는 `TREES` 에 한 줄
-- 초원 배치는 `python3 docs/drafts/tree-sway/scatter.py [그루 수] [씨앗]` 이 `src/data/decor.js` 에 쓴다(필드·길만 피해 화면 전체에 포아송 흩뿌리기, 종류 섞기)
+- 초원 꽃 6종: 사용자 그림 `docs/drafts/flowers/flowers_a·b.png` → `python3 docs/drafts/flowers/flowers.py` 가 떨어진 덩어리(8방향 연결)마다 잘라 `deco/flower_<n>.png` + manifest `deco_flower_<n>`(정지, 밑동 아래 가운데)
+- 초원 배치는 `python3 docs/drafts/tree-sway/scatter.py [나무 수=22] [씨앗] [꽃 수=50]` 이 `src/data/decor.js` 에 쓴다(필드·길만 피해 화면 전체에 포아송 흩뿌리기, 종류 섞기)
 - 그리기 `src/art/decor.js`(`addBiomeDecor`·`swapBiomeDecor`, 몬스터 아래 층, `flip` 지원). 새 지역 장식도 같은 방식으로 키를 더한다
 
 ## 외부 그림 도구
