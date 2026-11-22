@@ -951,7 +951,7 @@ test('스킬 1개 · 마나 시전 · 별마다 강해짐 · 유니크', async (
   await page.screenshot({ path: SHOT('25-fixed-skills') });
   expect(errors).toEqual([]);
 });
-test('유니크 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 (2026-11-22)', async ({ page }) => {
+test('유니크·레어 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 (2026-11-22)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const a = window.__rtd.audio;
@@ -964,6 +964,7 @@ test('유니크 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 (2026-11
     g.gold = 99999;
     const u = g.hire('isolde');
     const c = g.hire('bridget');
+    const rare = g.hire('elva');
     g.startWave(1);
     for (let i = 0; i < 400 && !g.monsters.length; i++) g.updateWaves(0.05);
     const cast = (m) => {
@@ -975,12 +976,17 @@ test('유니크 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 (2026-11
     cast(c);
     const afterCommon = [...calls];
     a.last.ult = -9;
+    cast(rare);
+    const afterRare = [...calls];
+    a.last.ult = -9;
     cast(u);
-    return { afterCommon, calls, level: u.def.level, hasDuck: !!a.duck };
+    return { afterCommon, afterRare, rareGrade: rare.grade, calls, level: u.def.level, hasDuck: !!a.duck };
   });
   expect(r.level).toBe(6);
   expect(r.afterCommon).toEqual(['skill']); // 커먼은 일반 스킬 소리
-  expect(r.calls).toEqual(['skill', 'ult']); // 유니크는 궁극기 소리
+  expect(r.rareGrade).toBe(3);
+  expect(r.afterRare).toEqual(['skill', 'ult']); // 레어도 궁극기 소리 (2026-11-22)
+  expect(r.calls).toEqual(['skill', 'ult', 'ult']); // 유니크는 궁극기 소리
   expect(r.hasDuck).toBe(true);
   await page.waitForTimeout(150);
   // 궁극기가 울리는 동안 배경음·효과음(덕 게인)이 낮아졌다가

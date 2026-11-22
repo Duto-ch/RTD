@@ -720,7 +720,7 @@ export class GameScene extends Phaser.Scene {
     }
     // 레어·유니크는 캐릭터 전용 이펙트, 커먼·언커먼은 공용 세트 이펙트 (2026-11-18). 시트가 없으면 예전 연출
     if (!this.vfx.sigSkill(merc, def, targets, primary) && !this.vfx.setSkill(merc, def, targets, primary)) this.vfx.skill(merc, def, this.kindOf(merc), targets, primary, st.range);
-    if (def.level > 5) audio.ult();
+    if (def.level > 5 || merc.grade === 3) audio.ult(); // 궁극기 소리: 유니크 + 레어 (2026-11-22 사용자 요청)
     else audio.skill(def.level, merc.attr);
 
     const fx = def.fx || {};
