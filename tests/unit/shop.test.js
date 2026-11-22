@@ -28,6 +28,14 @@ describe('상점 · 영지 레벨', () => {
     expect(rerollCost(slots)).toBe((2 + 4 + 1) * 10); // 유니크 +4, 커먼 +1
   });
 
+  it('리롤 값 (2026-11-22): 리롤할 때마다 +10G, 10웨이브마다 기본 +10G', () => {
+    expect(rerollCost([], { rerolls: 0, wave: 1 })).toBe(20);
+    expect(rerollCost([], { rerolls: 2, wave: 1 })).toBe(40);
+    expect(rerollCost([], { rerolls: 0, wave: 9 })).toBe(20);
+    expect(rerollCost([], { rerolls: 0, wave: 10 })).toBe(30);
+    expect(rerollCost([], { rerolls: 1, wave: 25 })).toBe(50); // 2 + 2(W20~) + 1
+  });
+
   it('굴리기: 등급 확률 → 덱 안 그 등급 중 하나, 없으면 아래 등급 → 위 등급', () => {
     const seq = (vals) => { let i = 0; return () => vals[i++ % vals.length]; };
     const deck = ['helga', 'siri', 'elva', 'ragnar'];

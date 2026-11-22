@@ -9,6 +9,8 @@ export const SHOP = {
   slots: 6,
   unit: 10, // 상점 값 1단위 = 10골드 (등급 값 1·2·3·5 → 10·20·30·50G)
   reroll: 2, // 리롤 기본 2단위
+  rerollStep: 1, // 2026-11-22 사용자 결정: 웨이브 안에서 리롤할 때마다 +1단위(10G) — 웨이브가 끝나 상점이 새로 채워지면 처음 값으로 ⚠️ 가안 수치
+  rerollWaveStep: 1, // 2026-11-22 사용자 결정: 10웨이브마다 기본 리롤 값 +1단위(10G) — W1~9 20G · W10~19 30G … ⚠️ 가안 수치
   lockExtra: { 1: 1, 2: 1, 3: 2, 4: 4 }, // 잠근 칸 하나마다 리롤 값 + (등급별 단위)
   sellRefund: 0.7, // 판매: 산 값(별 승급에 들어간 장수 포함)의 70%
   maxLevel: 10,
@@ -30,9 +32,13 @@ export function priceOf(c) {
 }
 
 /** 리롤 값(골드): 기본 + 잠근 칸마다 등급별 추가 */
-export function rerollCost(slots) {
+/**
+ * 리롤 값(골드). rerolls: 이번 웨이브에 돈 내고 돌린 횟수, wave: 지금 웨이브 (10웨이브마다 기본 값이 오른다)
+ */
+export function rerollCost(slots, { rerolls = 0, wave = 0 } = {}) {
   const locked = slots.filter((s) => s && s.locked && !s.sold);
-  return (SHOP.reroll + locked.reduce((t, s) => t + SHOP.lockExtra[ROSTER_BY_ID[s.id].grade], 0)) * SHOP.unit;
+  const base = SHOP.reroll + Math.floor(Math.max(0, wave) / 10) * SHOP.rerollWaveStep + rerolls * SHOP.rerollStep;
+  return (base + locked.reduce((t, s) => t + SHOP.lockExtra[ROSTER_BY_ID[s.id].grade], 0)) * SHOP.unit;
 }
 
 /** 영지 레벨 업 값 (최고 레벨이면 null). discount: 명성 강화 할인 비율 */
