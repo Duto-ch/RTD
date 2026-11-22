@@ -71,6 +71,7 @@ export class GameScene extends Phaser.Scene {
     this.lakeRevived = false; // 호수의 성역 9: 성벽 부활 1회
     // 아이템 조합 (룰 v2 ②): 아이템 띠 · 해제 도구 · 판 안 대장장이
     this.bench = [];
+    this.reserve = Array(SHOP.reserve).fill(null); // 대기석 (필드 아래 8칸) — Mercenary, reserved = true
     this.tools = 0;
     this.smithBought = 0;
     // 유물 (룰 v2 ③): 영지 유물 공방에서 장착한 것 — 판 안에서는 바뀌지 않는다 (효과는 meta.bonus 가 this.bonus 에 합쳐 둠)
@@ -378,8 +379,44 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ───────────────────────── 전투 ─────────────────────────
+  /** 필드에 놓인 용병 (전투·시너지·인원은 이것만) */
   get mercs() {
     return this.grid.flat().filter(Boolean);
+  }
+
+  /** 필드 + 대기석 (별 승급·3성 판정은 대기석도 센다) */
+  get allUnits() {
+    return [...this.mercs, ...this.reserve.filter(Boolean)];
+  }
+
+  /** 빈 대기석 칸 번호 (없으면 -1) */
+  freeReserve() {
+    return this.reserve.findIndex((u) => !u);
+  }
+
+  /** 유닛을 지금 자리(필드 칸·대기석)에서 뺀다 */
+  unplace(u) {
+    if (u.reserved) this.reserve[u.slot] = null;
+    else if (this.grid[u.row]?.[u.col] === u) this.grid[u.row][u.col] = null;
+  }
+
+  /** 유닛을 대기석 slot 에 */
+  toReserve(u, slot) {
+    u.reserved = true;
+    u.slot = slot;
+    u.col = u.row = -1;
+    this.reserve[slot] = u;
+    u.snapToCell();
+  }
+
+  /** 유닛을 필드 칸에 */
+  toField(u, col, row) {
+    u.reserved = false;
+    u.slot = -1;
+    u.col = col;
+    u.row = row;
+    this.grid[row][col] = u;
+    u.snapToCell();
   }
 
   monstersInRange(x, y, range) {
@@ -850,12 +887,12 @@ export class GameScene extends Phaser.Scene {
 
   /** 이미 3성인 캐릭터 (상점에 더 나오지 않는다) */
   maxedIds() {
-    return new Set(this.mercs.filter((m) => m.star >= MAX_STAR).map((m) => m.char.id));
+    return new Set(this.allUnits.filter((m) => m.star >= MAX_STAR).map((m) => m.char.id));
   }
 
   /** 이 캐릭터를 사면 별 승급이 되는가 (같은 캐릭터 1성 2장이 이미 있으면) — 인원이 꽉 차도 살 수 있다 */
   completesStar(id) {
-    return this.mercs.filter((m) => m.char.id === id && m.star === 1).length >= 2;
+    return this.allUnits.filter((m) => m.char.id === id && m.star === 1).length >= 2;
   }
 
   /** 빈 칸 (후열·가운데부터, 전사는 전열 먼저) */
@@ -887,12 +924,14 @@ export class GameScene extends Phaser.Scene {
       this.toast('골드가 부족합니다');
       return null;
     }
-    if (this.mercs.length >= this.cap && !this.completesStar(char.id)) {
-      this.toast(`놓을 수 있는 인원이 가득 찼어요 (${this.cap}명) — 영지 레벨을 올리세요`, '#ff9a7a');
+    // 필드 인원이 가득 차면 대기석으로 (2026-11-21) — 대기석도 차면 못 산다 (별 승급이 되는 3장째는 예외)
+    const toBench = this.mercs.length >= this.cap || !this.emptyCell(char);
+    if (toBench && this.freeReserve() < 0 && !this.completesStar(char.id)) {
+      this.toast(`필드(${this.cap}명)와 대기석이 가득 찼어요 — 팔거나 영지 레벨을 올리세요`, '#ff9a7a');
       this.tut.show('estate');
       return null;
     }
-    const merc = this.placeChar(char, cost);
+    const merc = this.placeChar(char, cost, false, toBench);
     if (!merc) return null;
     this.gold -= cost;
     slot.sold = true;
@@ -904,22 +943,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** 캐릭터를 빈 칸에 놓고 별 승급을 확인한다. cost: 들어간 골드 */
-  placeChar(char, cost, free = false) {
-    let cell = this.emptyCell(char);
-    if (!cell) {
+  placeChar(char, cost, free = false, toBench = false) {
+    let cell = toBench ? null : this.emptyCell(char);
+    const slot = toBench ? this.freeReserve() : -1;
+    if (!cell && slot < 0) {
       // 칸이 없어도 별 승급이 되면 놓을 수 있게: 승급 재료 한 장 자리를 잠깐 쓴다
       if (!this.completesStar(char.id)) {
         this.toast('빈 칸이 없습니다');
         return null;
       }
-      const m0 = this.mercs.find((m) => m.char.id === char.id && m.star === 1);
-      cell = { c: m0.col, r: m0.row };
+      const m0 = this.allUnits.find((m) => m.char.id === char.id && m.star === 1);
       return this.starUpWith(m0, char, cost);
     }
-    const merc = new Mercenary(this, cell.c, cell.r, char);
+    const merc = new Mercenary(this, cell ? cell.c : 0, cell ? cell.r : 0, char);
     merc.invested = cost;
     merc.mana = Math.round(merc.maxMana * (this.bonus.startMana || 0)); // 명성 강화 '마나 정수'
-    this.grid[cell.r][cell.c] = merc;
+    if (cell) this.toField(merc, cell.c, cell.r);
+    else {
+      this.toReserve(merc, slot);
+      this.tut.show('reserve');
+    }
     merc.sprite.setY(-40).setAlpha(0);
     this.tweens.add({ targets: merc.sprite, y: 0, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
     if (free) this.toast(`징집: ${merc.gradeName} ${merc.heroName} 합류!`, '#f2c14e');
@@ -949,9 +992,10 @@ export class GameScene extends Phaser.Scene {
   checkStarUps(extraId) {
     let last = null;
     for (;;) {
-      let group = findStarUp(this.mercs, MAX_STAR);
+      // 필드 유닛을 앞에 — 남는 쪽(keep)이 필드에 있게 (대기석 것만 모이면 대기석에서 승급)
+      let group = findStarUp(this.allUnits, MAX_STAR);
       if (!group && extraId) {
-        const ones = this.mercs.filter((m) => m.char.id === extraId && m.star === 1);
+        const ones = this.allUnits.filter((m) => m.char.id === extraId && m.star === 1);
         if (ones.length >= 2) group = [ones[0], ones[1], null];
         extraId = null;
       }
@@ -967,7 +1011,7 @@ export class GameScene extends Phaser.Scene {
         }
         keep.invested += o.invested;
         keep.kills += o.kills;
-        this.grid[o.row][o.col] = null;
+        this.unplace(o);
         if (this.selected === o) this.selected = keep;
         o.destroy();
       }
@@ -1030,7 +1074,7 @@ export class GameScene extends Phaser.Scene {
     merc.items = [];
     const refund = Math.floor(merc.invested * this.sellRefund);
     this.gold += refund;
-    this.grid[merc.row][merc.col] = null;
+    this.unplace(merc);
     this.floatText(merc.x, merc.y - 20, `+${refund}G`, '#f2c14e');
     merc.destroy();
     this.select(null);
@@ -1216,30 +1260,30 @@ export class GameScene extends Phaser.Scene {
     this.circleFx(c.x, c.y, root.r, 0x3e8a50);
   }
 
+  /** 끌어 놓기: 필드 칸 ↔ 필드 칸 · 필드 ↔ 대기석 · 대기석 ↔ 대기석 (2026-11-21 대기석) */
   handleDrop(merc, x, y) {
-    const cell = cellAt(x, y);
-    if (!cell || (cell.col === merc.col && cell.row === merc.row)) return merc.snapToCell();
-    const other = this.grid[cell.row][cell.col];
-
-    if (!other) {
-      this.grid[merc.row][merc.col] = null;
-      merc.col = cell.col;
-      merc.row = cell.row;
-      this.grid[merc.row][merc.col] = merc;
-      merc.snapToCell();
-      return this.recomputeSynergy();
+    const slot = this.hud.reserveSlotAt?.(x, y) ?? -1;
+    const cell = slot < 0 ? cellAt(x, y) : null;
+    if (slot < 0 && !cell) return merc.snapToCell();
+    if (slot >= 0 && merc.reserved && merc.slot === slot) return merc.snapToCell();
+    if (cell && !merc.reserved && cell.col === merc.col && cell.row === merc.row) return merc.snapToCell();
+    const other = slot >= 0 ? this.reserve[slot] : this.grid[cell.row][cell.col];
+    // 대기석 → 빈 필드 칸: 필드 인원이 가득이면 못 올린다
+    if (cell && merc.reserved && !other && this.mercs.length >= this.cap) {
+      this.toast(`필드 인원이 가득 찼어요 (${this.cap}명) — 영지 레벨을 올리세요`, '#ff9a7a');
+      return merc.snapToCell();
     }
-    // 자리 교체 (룰 v2: 합성 없음 — 별 승급은 상점에서 3장째를 살 때 자동)
-    const { col, row } = merc;
-    merc.col = other.col;
-    merc.row = other.row;
-    other.col = col;
-    other.row = row;
-    this.grid[merc.row][merc.col] = merc;
-    this.grid[other.row][other.col] = other;
-    merc.snapToCell();
-    other.snapToCell();
+    const from = merc.reserved ? { slot: merc.slot } : { col: merc.col, row: merc.row };
+    this.unplace(merc);
+    if (other) this.unplace(other);
+    if (slot >= 0) this.toReserve(merc, slot);
+    else this.toField(merc, cell.col, cell.row);
+    if (other) {
+      if (from.slot != null) this.toReserve(other, from.slot);
+      else this.toField(other, from.col, from.row);
+    }
     this.recomputeSynergy();
+    this.refreshHud();
   }
 
   setupInput() {
@@ -1277,7 +1321,6 @@ export class GameScene extends Phaser.Scene {
     this.input.on('dragend', (p, obj) => {
       if (!obj.dragging) return;
       obj.dragging = false;
-      obj.setDepth(DEPTH.merc);
       this.handleDrop(obj, p.worldX, p.worldY);
     });
   }
@@ -1300,7 +1343,7 @@ export class GameScene extends Phaser.Scene {
     const g = this.rangeGfx;
     g.clear();
     const m = this.selected;
-    if (!m || !m.active) return;
+    if (!m || !m.active || m.reserved) return;
     const st = m.getStats(this.relics, this.gameTime);
     const color = ATTR_INFO[m.attr].color;
     g.fillStyle(color, 0.08).fillCircle(m.x, m.y, st.range);

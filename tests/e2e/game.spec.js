@@ -189,7 +189,7 @@ test('패배 화면: 도달 웨이브·최고 기록 저장 → 다시 하기', 
     if (ok) break;
   }
   await page.waitForFunction(() => { const g = window.game.scene.getScene('Game'); return !g.over && g.wave === 0; });
-  expect(await game(page, () => window.game.scene.getScene('Game').hud.waveTypeText.text)).toContain('최고 W10');
+  expect(await game(page, () => { const h = window.game.scene.getScene('Game').hud; return `${h.waveTypeText.text} ${h.waveTypeText2?.text || ''}`; })).toContain('최고 W10'); // 안내 두 줄 (2026-11-21)
   expect(errors).toEqual([]);
 });
 
@@ -608,12 +608,14 @@ test('배너·토스트는 필드와 몬스터 길(칸 48px: y 272~688)을 가�
   const b = await game(page, () => {
     const h = window.game.scene.getScene('Game').hud;
     const r = (c) => { const k = c.getBounds(); return { top: k.top, bottom: k.bottom, left: k.left, right: k.right }; };
-    return { banner: r(h.bannerObj), toast: r(h.toastObj) };
+    return { banner: r(h.bannerObj), toast: r(h.toastObj), bannerHidden: !h.bannerObj.visible };
   });
   expect(b.banner.bottom).toBeLessThanOrEqual(272);
   expect(b.banner.top).toBeGreaterThanOrEqual(180);
-  expect(b.toast.top).toBeGreaterThanOrEqual(688);
-  expect(b.toast.bottom).toBeLessThanOrEqual(776);
+  // 2026-11-21 대기석: 아래 길 밑은 대기석 자리 → 토스트도 위 알림 띠에, 토스트 동안 배너는 숨김
+  expect(b.toast.top).toBeGreaterThanOrEqual(180);
+  expect(b.toast.bottom).toBeLessThanOrEqual(272);
+  expect(b.bannerHidden).toBe(true);
   for (const k of ['banner', 'toast']) {
     expect(b[k].left).toBeGreaterThanOrEqual(0);
     expect(b[k].right).toBeLessThanOrEqual(544);
@@ -1300,7 +1302,7 @@ test.skip('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 �
   await page.close();
 });
 
-test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 알약 · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
+test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 흰 글자+외곽(알약 없음) · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1313,7 +1315,8 @@ test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 
       nextColor: h.nextWaveBtn.label.style.color,
       rerollColor: h.rerollBtn.label.style.color,
       sellVariant: h.sellBtn.variant,
-      pill: !!h.hpPill,
+      pill: !!h.hpPill, // 2026-11-21 사용자 요청: 숫자 뒤 크림 알약 없앰 → 흰 글자 + 진한 외곽
+      hpStroke: h.countText.style.stroke,
       prices: texts.filter((t) => /^\d+G$/.test(t)).length,
       namesWithPrice: texts.filter((t) => /\d+G$/.test(t) && !/^\d+G$/.test(t)).length
     };
@@ -1321,7 +1324,8 @@ test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 
   expect(r.nextColor).toBe('#0d2000');
   expect(r.rerollColor).toBe('#0d2000');
   expect(r.sellVariant).toBe('danger');
-  expect(r.pill).toBe(true);
+  expect(r.pill).toBe(false);
+  expect(r.hpStroke).toBe('#2b1d12');
   expect(r.prices).toBe(6); // 6칸 모두 가격이 따로
   expect(r.namesWithPrice).toBe(0);
   await page.waitForTimeout(300);
@@ -1464,5 +1468,66 @@ test('배경 나무·꽃 (2026-11-22): 초원 화면 전체에 나무 3종(바�
   await game(page, () => window.game.scene.getScene('Game').changeBiome({ id: 'desert', name: '사막' }));
   await page.waitForTimeout(1500);
   expect(await game(page, () => window.game.scene.getScene('Game').decor.length)).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대기석으로 · 대기석은 시너지·인원 제외 · 끌어서 필드와 자리 바꿈 · 별 승급에 함께 셈 · 아이템 띠는 위 카드 안 · 안내 두 줄은 남은 시간 알약 왼쪽', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    g.gold = 9999;
+    const ids = window.__rtd.ROSTER.filter((c) => c.grade === 1).map((c) => c.id);
+    // 필드 3명(영지 Lv1)을 서로 다른 캐릭터로 채운다
+    ids.slice(0, 3).forEach((id) => g.hire(id));
+    const field0 = g.mercs.length;
+    // 상점 0번을 4번째 캐릭터로 바꿔 산다 → 대기석
+    g.shop[0] = { id: ids[3], sold: false, locked: false };
+    const bought = g.buy(0);
+    const res = g.reserve.filter(Boolean);
+    const inSyn = Object.values(g.syn.counts || {}).reduce((a, b) => a + b, 0);
+    // 대기석 → 필드(가득) 끌어 놓기: 빈 칸이면 거절, 필드 유닛 위면 자리 바꿈
+    const u = res[0];
+    const empty = g.emptyCell(u.char);
+    g.handleDrop(u, 132 + empty.c * 56 + 28, 340 + empty.r * 56 + 28); // 빈 칸 (필드 가득이라 거절)
+    const stillReserved = u.reserved;
+    const target = g.mercs[0];
+    const tPos = { x: target.x, y: target.y };
+    g.handleDrop(u, tPos.x, tPos.y); // 필드 유닛과 자리 바꿈
+    const swapped = !u.reserved && target.reserved;
+    // 별 승급: 필드 1장 + 대기석 1장 + 상점 3장째
+    const starId = u.char.id;
+    g.shop[1] = { id: starId, sold: false, locked: false };
+    g.shop[2] = { id: starId, sold: false, locked: false };
+    g.buy(1); // 대기석으로 (필드 가득)
+    const before = g.allUnits.filter((m) => m.char.id === starId).length;
+    g.buy(2); // 3장째 → 2성
+    const after = g.allUnits.filter((m) => m.char.id === starId);
+    // 위 카드: 아이템 띠 y, 안내 두 줄
+    const timerL = 544 - 198;
+    const t1 = h.waveTypeText.getBounds(), t2 = h.waveTypeText2.getBounds();
+    return {
+      field0, bought: !!bought, reserved: res.length, fieldAfter: g.mercs.length, inSyn,
+      stillReserved, swapped, before, afterN: after.length, afterStar: after[0]?.star,
+      smithY: h.smithBtn.y, infoLeftSame: Math.round(t1.x) === Math.round(t2.x),
+      infoRightGap: timerL - Math.max(t1.right, t2.right), lines: [h.waveTypeText.text, h.waveTypeText2.text]
+    };
+  });
+  expect(r.field0).toBe(3);
+  expect(r.bought).toBe(true);
+  expect(r.reserved).toBe(1);
+  expect(r.fieldAfter).toBe(3);
+  expect(r.inSyn).toBeLessThanOrEqual(6); // 대기석 캐릭터는 시너지에 안 들어감 (필드 3명 × 2)
+  expect(r.stillReserved).toBe(true); // 필드 가득 → 빈 칸으로 못 올림
+  expect(r.swapped).toBe(true);
+  expect(r.before).toBe(2);
+  expect(r.afterN).toBe(1);
+  expect(r.afterStar).toBe(2);
+  expect(r.smithY).toBeLessThan(140); // 아이템 띠는 위 카드 안
+  expect(r.infoLeftSame).toBe(true); // 두 줄 왼쪽 정렬
+  expect(r.infoRightGap).toBeGreaterThanOrEqual(4); // 알약과 여백
+  expect(r.lines[1]).toContain('최고 W');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('48-reserve') });
   expect(errors).toEqual([]);
 });

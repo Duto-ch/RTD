@@ -37,6 +37,11 @@ export const TUTORIAL_STEPS = {
     text: '정예·보스를 잡거나 대장장이에서 사면 재료가 아이템 띠에 들어와요.\n캐릭터에게 끌어다 놓고, 같은 캐릭터에 재료 2개가 모이면 자동 조합!\n장착한 아이템은 「해제 도구」로만 뺄 수 있어요.',
     rect: () => ({ x: HUD.bench.x - 4, y: HUD.bench.y - 4, w: HUD.bench.w + 8, h: HUD.bench.h + 8 })
   },
+  reserve: {
+    title: '대기석',
+    text: '필드 인원이 가득 차면 산 용병은 대기석으로 가요.\n대기석 용병은 싸우지 않아요 — 필드로 끌어다 놓으세요.\n별 승급에는 대기석 용병도 함께 들어가요.',
+    rect: () => ({ x: HUD.reserve.x - 4, y: HUD.reserve.y - 4, w: HUD.reserve.w + 8, h: HUD.reserve.h + 8 })
+  },
   synergy: {
     title: '시너지',
     text: '용병마다 계열(공격 방식) 1개와 출신(세력) 1개가 있어요.\n서로 다른 용병을 모으면 시너지가 켜집니다 — 계열 2·5·8명, 출신 3·6·9명.',
