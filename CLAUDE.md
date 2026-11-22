@@ -15,7 +15,6 @@
 - **세션 분담 (2026-11-21 사용자 결정)**: UI 전담 세션(`feature/ui-*` — `src/ui/`·`src/scenes/` 배치·`tools/ui-audit.cjs`, `Hud.js` 는 UI 몫) · 게임 아트 전담 세션(`feature/art-*` — `docs/drafts/` 그림 스크립트·`public/assets/`·`src/art/`·`src/data/fx.js`·`vfx.js`). 작업마다 최신 main 에서 브랜치, 합치기 전에 main 다시 받기, main 은 사용자가 "합쳐" 할 때만 PR. `manifest.json` 충돌은 그림 스크립트를 다시 돌려 해결, `docs/HISTORY.md` 충돌은 두 줄 모두 남기기
 
 ## 확인 필요 (사용자 결정 대기)
-- **난이도 목표**: 강화 0 으로 W10~15 가 한계라는 기존 기준 유지? (룰 v2 봇 강화 0 → W51·W52·W61, 유물 Lv3 4개 → W61. 룰 v2 이전 W62·W56. 물량·관통·성벽 체력으로 쉬워짐 — `BALANCE.baseDamageMult` 3 은 가안)
 - 후반 골드 소비처 (지금 없음 — 골드가 수만 이상 쌓임)
 - 보스 디버프 대상 (지금 랜덤 용병 2+웨이브/20명) · 웨이브 속성 '최대 2종'이 맞는지('1종만' 의도였는지)
 - 랭킹 (내 기기 vs 온라인) — 보류
