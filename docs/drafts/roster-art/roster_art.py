@@ -470,7 +470,8 @@ def animate(c):
         attack = A.swing(ch, w, hand, 45)
     if c['grade'] == 4:   # 유니크: 대기 중 몸 주위에 반짝임이 돌아가며 핀다
         spots = [(2, 9), (21, 12), (19, 5), (4, 16), (20, 19), (6, 6), (18, 15), (3, 12)]
-        idle = [(sparkle(f, spots[k % len(spots)], k), ms) for k, (f, ms) in enumerate(idle)]
+        n8 = lambda k: k * 8 // len(idle)       # 대기 28프레임이어도 반짝임은 예전 8박자로 옮겨 다닌다 (2026-11-22)
+        idle = [(sparkle(f, spots[n8(k) % len(spots)], n8(k)), ms) for k, (f, ms) in enumerate(idle)]
     return {'body': img, 'idle': idle, 'attack': attack, 'weapon': w, 'variant': var, 'shield': shield, 'female': female, 'hair': style}
 
 
