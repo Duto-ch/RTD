@@ -1601,7 +1601,8 @@ test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 �
     const c = g.hud.relicTip?.container;
     const b = c.getBounds();
     const imgs = [];
-    c.each((o) => o.each?.((x) => x.type === 'Image' && imgs.push(x.texture.key)));
+    const walk = (o) => (o.type === 'Image' ? imgs.push(o.texture.key) : o.each?.(walk));
+    c.each(walk);
     return { paused: g.paused, alpha: c.alpha, scale: c.scale, top: b.y, bottom: b.bottom, below: b.y > py, imgs: imgs.length, sword: imgs.includes('item_giant_sword') };
   }, p.y);
   expect(tip.paused).toBe(true);

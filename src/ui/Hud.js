@@ -622,28 +622,33 @@ export class Hud {
       r.height = rh;
       return r;
     };
+    // 작게 (2026-11-22 사용자 요청): 여백 8 · 제목 13 · 조합식은 2열, 칸마다 [재료 그림] → [결과 그림] 결과 이름
     const lines = [
-      row([icon(id), uiText(s, 0, 0, it.name, 15, CSS.ink, 'bold')]),
-      row([uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 300 } })])
+      row([icon(id), uiText(s, 0, 0, it.name, 13, CSS.ink, 'bold')]),
+      row([uiText(s, 0, 0, it.text, 12, CSS.primary, '600', { wordWrap: { width: 240 } })])
     ];
     if (isComponent(id)) {
-      lines.push(row([uiText(s, 0, 0, '같은 캐릭터에 재료 2개 → 자동 조합', 12, CSS.sub, '600')]));
-      for (const r of recipesWith(id)) {
+      lines.push(row([uiText(s, 0, 0, '재료 2개 → 자동 조합', 12, CSS.sub, '600')]));
+      const cells = recipesWith(id).map((r) => {
         const res = ITEM_BY_ID[r.result];
-        const w2 = ITEM_BY_ID[r.with];
-        lines.push(
-          row([
-            uiText(s, 0, 0, '+', 12, CSS.sub, 'bold'),
-            icon(r.with),
-            uiText(s, 0, 0, w2.name, 12, CSS.ink, '600'),
-            uiText(s, 0, 0, '→', 12, CSS.sub, 'bold'),
-            res ? icon(r.result) : null,
-            uiText(s, 0, 0, res ? res.name : '출신 문장(출신을 고름)', 12, res ? CSS.primary : CSS.ink, 'bold')
-          ])
-        );
+        return row([
+          icon(r.with),
+          uiText(s, 0, 0, '→', 12, CSS.sub, 'bold'),
+          res ? icon(r.result) : null,
+          uiText(s, 0, 0, res ? res.name : '출신 문장', 12, res ? CSS.primary : CSS.ink, 'bold')
+        ]);
+      });
+      const colW = Math.max(...cells.map((cl) => cl.width)) + 8;
+      for (let k = 0; k < cells.length; k += 2) {
+        const pair = s.add.container(0, 0);
+        const two = cells.slice(k, k + 2);
+        two.forEach((cl, n) => pair.add(cl.setPosition(n * colW, 0)));
+        pair.width = colW * (two.length - 1) + two[two.length - 1].width;
+        pair.height = Math.max(...two.map((cl) => cl.height));
+        lines.push(pair);
       }
     }
-    const pad = 12;
+    const pad = 8;
     const w = Math.ceil((Math.max(...lines.map((l) => l.width)) + pad * 2) / UI_PX) * UI_PX;
     let h = pad;
     for (const l of lines) h += l.height + 4;
