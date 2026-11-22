@@ -12,7 +12,7 @@
 ## 브랜치 상태 (2026-11-18)
 - `preview/field-image` — 초원 필드 그림 시험 + `tools/import-art.py`(perfectPixel 자동·manifest `backgrounds`)·`addBackground` (보류. 새 그림을 넣게 되면 스크립트·장치만 main 으로)
 - 미리보기 시험판: https://claude.ai/artifact/HsbNZRZ3U9vBogYMm52FLW
-- **세션 분담 (2026-11-21 사용자 결정)**: UI 전담 세션(`feature/ui-*` — `src/ui/`·`src/scenes/` 배치·`tools/ui-audit.cjs`, `Hud.js` 는 UI 몫) · 게임 아트 전담 세션(`feature/art-*` — `docs/drafts/` 그림 스크립트·`public/assets/`·`src/art/`·`src/data/fx.js`·`vfx.js`). 작업마다 최신 main 에서 브랜치, 합치기 전에 main 다시 받기, main 은 사용자가 "합쳐" 할 때만 PR. `manifest.json` 충돌은 그림 스크립트를 다시 돌려 해결, `docs/HISTORY.md` 충돌은 두 줄 모두 남기기
+- **세션 분담 (2026-11-21 사용자 결정)**: UI 전담 세션(`feature/ui-*` — `src/ui/`·`src/scenes/` 배치·`tools/ui-audit.cjs`, `Hud.js` 는 UI 몫) · 게임 아트 전담 세션(`feature/art-*` — `docs/drafts/` 그림 스크립트·`public/assets/`·`src/art/`·`src/data/fx.js`·`vfx.js`) · 사운드 전담 세션(`feature/sound-*` — `src/systems/audio.js`·`docs/drafts/music/`·`docs/drafts/sound/`·`public/assets/audio/`, 장면·HUD 엔 `audio.<이름>()` 한 줄만, 2026-11-22). 작업마다 최신 main 에서 브랜치, 합치기 전에 main 다시 받기, main 은 사용자가 "합쳐" 할 때만 PR. `manifest.json` 충돌은 그림 스크립트를 다시 돌려 해결, `docs/HISTORY.md` 충돌은 두 줄 모두 남기기
 
 ## 확인 필요 (사용자 결정 대기)
 - 후반 골드 소비처 (지금 없음 — 골드가 수만 이상 쌓임)
