@@ -40,8 +40,8 @@ export const PATH_WIDTH = 64; // 칸 48 비율(42)의 1.5배 — 몬스터가 �
 export const FONT = 'Galmuri11';
 // 지역 장식을 놓지 않을 HUD 영역 (월드 좌표) — 위 알약 바 · 아래 독 (UI 좌표 × UI_SCALE)
 export const HUD_RECTS = [
-  { x: 144, y: 10, w: 992, h: 64 },
-  { x: 144, y: 610, w: 992, h: 110 }
+  { x: 0, y: 0, w: 1280, h: 76 }, // 위 바 (화면 좌우 끝까지, 2026-11-22)
+  { x: 0, y: 606, w: 1280, h: 114 } // 아래 독
 ].map((r) => ({ x: r.x * UI_SCALE, y: r.y * UI_SCALE, w: r.w * UI_SCALE, h: r.h * UI_SCALE }));
 // 화면 맞춤 (2026-11-22 사용자 결정 '정수 배율 + 검은 테두리'): 1920x1080 을 창에 들어가는 가장 큰 정수 배(1·2·3 …)로 —
 // 남는 곳은 검정. 창이 1080p 보다 작으면 어쩔 수 없이 부드럽게 줄인다. RES = 캔버스 실제 픽셀 / 월드 px (정수, 화면 배율 × devicePixelRatio)

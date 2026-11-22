@@ -413,3 +413,20 @@ function traitTipBox(s, badge) {
   box.auditOk = true; // 잠깐 뜨는 툴팁 (ui-audit 제외)
   return box;
 }
+
+/**
+ * 화면 끝에 붙는 바 (2026-11-22 사용자 요청: 위·아래 UI 바를 좌우 끝까지, 화면 끝은 둥근 모서리 없이).
+ * 크림 판 + 화면 안쪽 가장자리에만 테두리 선과 옅은 그림자. edge = 'top'(화면 위에 붙음) | 'bottom'
+ */
+export function edgeBar(scene, x, y, w, h, edge = 'top') {
+  const g = scene.add.graphics();
+  g.fillStyle(0xfbf7ec, 1).fillRect(x, y, w, h);
+  if (edge === 'top') {
+    g.fillStyle(0x785f32, 0.14).fillRect(x, y + h, w, 3); // 아래 그림자
+    g.fillStyle(0xe3d6b6, 1).fillRect(x, y + h - 2, w, 2);
+  } else {
+    g.fillStyle(0x785f32, 0.1).fillRect(x, y - 3, w, 3); // 위 그림자
+    g.fillStyle(0xe3d6b6, 1).fillRect(x, y, w, 2);
+  }
+  return g;
+}

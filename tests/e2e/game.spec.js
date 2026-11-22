@@ -1354,7 +1354,7 @@ test('물량: 1웨이브 167기(2026-11-20 1/3 감소)가 길 폭에 퍼져 나�
   expect(errors).toEqual([]);
 });
 
-test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 · HUD 가 필드·몬스터 길을 가리지 않는다 · 대기석은 오른쪽 칸', async ({ page }) => {
+test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 · HUD 가 필드·몬스터 길을 가리지 않는다 · 대기석은 오른쪽 칸 · 위·아래 바는 화면 끝까지', async ({ page }) => {
   const errors = await startGame(page);
   expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([1920, 1080]);
   const r = await page.evaluate(() => {
@@ -1380,6 +1380,19 @@ test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 
   expect(r.field).toEqual([true, true]);
   expect(r.dock).toEqual([true, true]);
   expect(r.reserveRight).toBe(true);
+  // 위·아래 바는 화면 좌우 끝까지, 화면 끝에 붙는다 (2026-11-22 사용자 요청)
+  // WebGL 캔버스는 바로 읽을 수 없어 화면 캡처를 그림으로 읽는다
+  const shot = (await page.screenshot()).toString('base64');
+  const bars = await page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+    const px = (x, y) => [...ctx.getImageData(x, y, 1, 1).data.slice(0, 3)];
+    return { tl: px(1, 1), tr: px(1918, 1), bl: px(1, 1078), br: px(1918, 1078) };
+  }, shot);
+  for (const k of ['tl', 'tr', 'bl', 'br']) expect(bars[k]).toEqual([251, 247, 236]); // 네 귀퉁이까지 크림색 (둥근 모서리 없음)
   // 대기석: 필드가 차면 산 용병은 오른쪽 대기석 칸 위 (월드 좌표 = UI × 1.5)
   const res = await page.evaluate(() => {
     const g = window.game.scene.getScene('Game');
