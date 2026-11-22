@@ -606,7 +606,8 @@ export class Hud {
     this.hideRelicTip();
     const it = ITEM_BY_ID[id];
     const c = s.add.container(0, 0).setDepth(DEPTH.overlay - 0.5);
-    const icon = (k) => (s.textures.exists(`item_${k}`) ? s.add.image(0, 0, `item_${k}`).setScale(UI_PX).setOrigin(0, 0.5) : null);
+    // 툴팁 속 아이템 그림은 화면에서 아트 1px = 1px (2026-11-22 사용자 요청) — 툴팁 전체 배율(ITEM_TIP_SCALE)을 되돌려 놓는다
+    const icon = (k) => (s.textures.exists(`item_${k}`) ? s.add.image(0, 0, `item_${k}`).setScale(1 / ITEM_TIP_SCALE).setOrigin(0, 0.5) : null);
     /** 한 줄 = [{obj, w}] 를 왼쪽부터 4px 간격으로 */
     const row = (parts) => {
       const r = s.add.container(0, 0);
