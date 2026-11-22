@@ -951,6 +951,45 @@ test('스킬 1개 · 마나 시전 · 별마다 강해짐 · 유니크', async (
   await page.screenshot({ path: SHOT('25-fixed-skills') });
   expect(errors).toEqual([]);
 });
+test('유니크 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 (2026-11-22)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    const calls = [];
+    for (const k of ['ult', 'skill']) {
+      const o = a[k].bind(a);
+      a[k] = (...x) => { calls.push(k); o(...x); };
+    }
+    g.gold = 99999;
+    const u = g.hire('isolde');
+    const c = g.hire('bridget');
+    g.startWave(1);
+    for (let i = 0; i < 400 && !g.monsters.length; i++) g.updateWaves(0.05);
+    const cast = (m) => {
+      const st = m.getStats(g.relics, g.gameTime);
+      const mon = g.monsters[0];
+      mon.x = m.x + 40; mon.y = m.y; mon.hp = 1e9; mon.maxHp = 1e9;
+      return g.castSkill(m, m.def, st, g.monstersInRange(m.x, m.y, st.range));
+    };
+    cast(c);
+    const afterCommon = [...calls];
+    a.last.ult = -9;
+    cast(u);
+    return { afterCommon, calls, level: u.def.level, hasDuck: !!a.duck };
+  });
+  expect(r.level).toBe(6);
+  expect(r.afterCommon).toEqual(['skill']); // 커먼은 일반 스킬 소리
+  expect(r.calls).toEqual(['skill', 'ult']); // 유니크는 궁극기 소리
+  expect(r.hasDuck).toBe(true);
+  await page.waitForTimeout(150);
+  // 궁극기가 울리는 동안 배경음·효과음(덕 게인)이 낮아졌다가
+  expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeLessThan(0.6);
+  await page.waitForTimeout(1200);
+  // 1초쯤 뒤 원래대로
+  expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeGreaterThan(0.95);
+  expect(errors).toEqual([]);
+});
 test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 레어 9 · 유니크 3) → 저장 → 출전하면 그 덱에서만 상점에 나옴', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
