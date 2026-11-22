@@ -76,6 +76,7 @@ const TRACKS = {
 const SHOOT_GAP = 0.045; // 같은 종류 공격음 최소 간격(초)
 const MUSIC_GAIN = 0.28; // 볼륨 100% 일 때 배경음 음량
 const SFX_GAIN = 0.48; // 볼륨 100% 일 때 효과음 음량
+const ULT_DUCK = 0.35; // 궁극기가 울리는 동안 배경음·다른 효과음 배율
 
 // 설정 저장 (저장이 막힌 환경에서도 동작하도록)
 function load(key, fallback) {
@@ -117,6 +118,7 @@ class Chiptune {
     this.sfxVol = Math.max(0, Math.min(1, Math.round(v * 10) / 10));
     save('rtd-sfx-vol', this.sfxVol);
     if (this.sfx) this.sfx.gain.setTargetAtTime(SFX_GAIN * this.sfxVol, this.ctx.currentTime, 0.02);
+    if (this.ultBus) this.ultBus.gain.setTargetAtTime(SFX_GAIN * this.sfxVol, this.ctx.currentTime, 0.02);
     return this.sfxVol;
   }
 
@@ -133,12 +135,19 @@ class Chiptune {
     this.master.gain.value = this.muted ? 0 : 0.9;
     const comp = ctx.createDynamicsCompressor();
     this.master.connect(comp).connect(ctx.destination);
+    // 배경음·일반 효과음은 덕(duck) 게인을 거친다 — 궁극기가 울리는 동안 잠깐 낮춰 궁극기가 묻히지 않게 (2026-11-22)
+    this.duck = ctx.createGain();
+    this.duck.connect(this.master);
     this.music = ctx.createGain();
     this.music.gain.value = MUSIC_GAIN * this.musicVol;
-    this.music.connect(this.master);
+    this.music.connect(this.duck);
     this.sfx = ctx.createGain();
     this.sfx.gain.value = SFX_GAIN * this.sfxVol;
-    this.sfx.connect(this.master);
+    this.sfx.connect(this.duck);
+    // 궁극기 전용 버스: 효과음 볼륨은 따르되 덕을 거치지 않는다
+    this.ultBus = ctx.createGain();
+    this.ultBus.gain.value = SFX_GAIN * this.sfxVol;
+    this.ultBus.connect(this.master);
     // 리드용 에코 (16비트 콘솔 느낌의 잔향)
     this.echo = ctx.createDelay(1);
     this.echo.delayTime.value = 0.19;
@@ -308,12 +317,33 @@ class Chiptune {
     if (level >= 5) this.noise(this.sfx, t, 0.25, 0.15, 'bandpass', 2000, 8000);
   }
 
+  /**
+   * 유니크 궁극기 (skillDef level 6). 2026-11-22: 0.3초짜리 화음이 전투 소음에 묻혀 안 들리던 것을
+   * 약 1초 — 묵직한 타격 + 빠르게 올라가는 아르페지오 + 밝은 화음 + 반짝임 — 로 바꾸고,
+   * 울리는 동안 배경음·다른 효과음을 잠깐 낮춘다(ULT_DUCK). 유니크 여럿이 한꺼번에 써도 겹쳐 터지지 않게 0.3초 간격.
+   */
   ult() {
-    if (!this.ready) return;
+    if (!this.ready || !this.throttle('ult', 0.3)) return;
     const t = this.ctx.currentTime;
-    ['C5', 'E5', 'G5', 'C6'].forEach((n) => this.tone(this.sfx, 'square', hz(n), t, 0.5, 0.12, { attack: 0.02 }));
-    this.tone(this.sfx, 'sawtooth', 110, t, 0.5, 0.25, { to: 440 });
-    this.noise(this.sfx, t, 0.6, 0.3, 'lowpass', 400, 6000);
+    const o = this.ultBus;
+    // 덕: 배경음·효과음을 0.05초 만에 낮췄다가 0.9초에 걸쳐 되돌린다
+    const dg = this.duck.gain;
+    dg.cancelScheduledValues(t);
+    dg.setValueAtTime(dg.value, t);
+    dg.linearRampToValueAtTime(ULT_DUCK, t + 0.05);
+    dg.setValueAtTime(ULT_DUCK, t + 0.45);
+    dg.linearRampToValueAtTime(1, t + 0.95);
+    // 1) 타격: 낮게 떨어지는 톱니 + 저음 잡음
+    this.tone(o, 'sawtooth', 220, t, 0.45, 0.5, { to: 50 });
+    this.noise(o, t, 0.35, 0.5, 'lowpass', 1200, 120);
+    // 2) 올라가는 아르페지오
+    ['C5', 'E5', 'G5', 'C6', 'E6', 'G6'].forEach((n, i) => this.tone(o, 'p25', hz(n), t + 0.04 + i * 0.045, 0.14, 0.3));
+    // 3) 밝은 화음 (아르페지오 끝에서 펼쳐져 길게 남는다)
+    const c = t + 0.3;
+    ['C5', 'G5', 'C6', 'E6'].forEach((n) => this.tone(o, 'square', hz(n), c, 0.65, 0.11, { attack: 0.03 }));
+    this.tone(o, 'p12', hz('C4'), c, 0.6, 0.25, { attack: 0.02 });
+    // 4) 반짝임
+    this.noise(o, c, 0.55, 0.12, 'highpass', 5000, 11000);
   }
 
   kill() {
