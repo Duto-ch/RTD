@@ -104,6 +104,7 @@ export class GameScene extends Phaser.Scene {
     if (this.ownedRelics.length) this.time.delayedCall(500, () => this.tut.show('relic'));
     this.setupInput();
     this.shop = refillShop([], this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
+    this.shopRefreshed = true; // 웨이브가 끝날 때 한 번 새로 고침 (refillShopNow)
     this.conscript();
     this.recomputeSynergy();
     this.refreshShop();
@@ -187,6 +188,11 @@ export class GameScene extends Phaser.Scene {
       this.updateRoots(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
+      // 웨이브 클리어 → 상점 새로 고침 (2026-11-22)
+      if (this.wave >= 1 && !this.shopRefreshed && this.canCallNextWave) {
+        this.refillShopNow();
+        this.toast('웨이브 클리어 · 상점 새로 고침');
+      }
     }
 
     this.drawHpBars();
@@ -274,9 +280,10 @@ export class GameScene extends Phaser.Scene {
     if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
     this.waveSynergy(w);
     this.waveItems(w);
-    // 상점: 웨이브가 시작할 때마다 잠그지 않은 칸을 새로 채운다
-    this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
-    this.refreshShop();
+    // 상점 (2026-11-22 사용자 결정): 웨이브가 끝날 때(몬스터를 다 잡았을 때) 새로 채운다 — 다 잡기 전에 다음 웨이브가
+    // 시작되면 그때 새로 채운다 (웨이브마다 한 번)
+    if (w >= 2 && !this.shopRefreshed) this.refillShopNow();
+    this.shopRefreshed = false;
     this.wave = w;
     const info = waveInfo(w);
     const list = spawnList(w);
@@ -293,8 +300,15 @@ export class GameScene extends Phaser.Scene {
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
-    this.showBanner(`WAVE ${w}`, `${sub} · 상점 새로 고침`, color);
+    this.showBanner(`WAVE ${w}`, sub, color);
     if (w === 1) this.tut.show('wave');
+  }
+
+  /** 상점의 잠그지 않은 칸을 새로 채운다 (웨이브가 끝날 때 한 번) */
+  refillShopNow() {
+    this.shopRefreshed = true;
+    this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
+    this.refreshShop();
   }
 
   /** 바로 시작은 필드의 몬스터를 전부 처치했을 때만 (나올 몬스터도 남아 있지 않을 때) */
@@ -963,8 +977,11 @@ export class GameScene extends Phaser.Scene {
       this.toReserve(merc, slot);
       this.tut.show('reserve');
     }
-    merc.sprite.setY(-40).setAlpha(0);
-    this.tweens.add({ targets: merc.sprite, y: 0, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
+    // 떨어지며 등장 — 정지 중(트윈 멈춤)에 사면 그대로 놓는다 (안 그러면 다시 움직일 때까지 투명해 안 보였다, 2026-11-22)
+    if (!this.tweens.paused) {
+      merc.sprite.setY(-40).setAlpha(0);
+      this.tweens.add({ targets: merc.sprite, y: 0, alpha: 1, duration: 220, ease: 'Bounce.easeOut' });
+    }
     if (free) this.toast(`징집: ${merc.gradeName} ${merc.heroName} 합류!`, '#f2c14e');
     else if (merc.isHero) {
       this.levelUpFx(merc, '유니크!', true);
@@ -1225,6 +1242,9 @@ export class GameScene extends Phaser.Scene {
     }
     const before = this.syn?.tiers || {};
     this.syn = { counts, tiers };
+    // 필드 캐릭터마다 켜진 시너지 상징 (2026-11-22)
+    for (const m of this.mercs) m.setSynMarks(m.dragging ? [] : [...new Set([m.cls, m.origin, ...m.extraTraits])].filter((k) => tiers[k]));
+    for (const m of this.reserve || []) m?.setSynMarks?.([]);
     // 새로 켜진 시너지 알림
     for (const k of TRAIT_IDS) if (tiers[k] && tiers[k] !== before[k]) this.tut.show('synergy');
     this.hud?.refreshSynergy?.();

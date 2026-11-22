@@ -8,11 +8,14 @@ import { ITEM_BY_ID, itemFx, emblemTraits } from '../data/items.js';
 import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
 import { ringPixels, starPixels, MARK_PX } from '../ui/gradeMark.js';
+import { traitBadge } from '../ui/theme.js';
 import { GRID } from '../config.js';
 
 /** 필드 위 유닛 = 캐릭터 70명(data/roster.js) 중 하나 (룰 v2, 2026-11-20).
  *  등급·별(1~3, 같은 캐릭터 3장 → 승급)·계열·출신·고유 특성·스킬 1개(마나가 차면 시전) */
 const NO_BONUS = {};
+/** 켜진 시너지 상징 자리 (칸 56px, 그림 48px — 몸 오른쪽 위 빈 곳) */
+const SYN_MARK = { x: 20, y: -19, step: 18, r: 7, max: 3 };
 const NO_SYN = { tiers: {} };
 
 // 아직 전용 그림이 없는 캐릭터의 임시 그림 (ChatGPT 그림을 manifest 에 `char_<id>` 로 넣으면 그게 우선)
@@ -89,7 +92,8 @@ export class Mercenary extends Phaser.GameObjects.Container {
     playBase(this.sprite, 'idle');
     this.ringBack = scene.add.graphics(); // 받침 고리 뒤쪽 반 (캐릭터 뒤)
     this.pips = scene.add.graphics(); // 받침 고리 앞쪽 반 + 레벨 패 (캐릭터 앞)
-    this.add([this.ringBack, this.sprite, this.pips]);
+    this.synMarks = scene.add.container(0, 0); // 켜진 시너지 상징 (칸 오른쪽 위, 2026-11-22)
+    this.add([this.ringBack, this.sprite, this.pips, this.synMarks]);
     this.drawPips();
 
     this.setSize(CELL, CELL);
@@ -167,6 +171,18 @@ export class Mercenary extends Phaser.GameObjects.Container {
       this.pips.fillStyle(col).fillRect((x + 1) * P, (y + 1) * P, 2 * P, 2 * P);
       if (it?.kind !== 'mat' && it?.kind !== 'seal') this.pips.fillStyle(0xffe066).fillRect((x + 1) * P, (y + 1) * P, P, P);
     });
+  }
+
+  /**
+   * 켜진 시너지(계열·출신·문장) 상징을 칸 오른쪽 위에 작게 세로로 (2026-11-22 사용자 요청).
+   * GameScene.recomputeSynergy 가 부른다 — 대기석·끄는 중이면 빈 목록
+   */
+  setSynMarks(keys) {
+    const sig = keys.join(',');
+    if (sig === this.synSig) return;
+    this.synSig = sig;
+    this.synMarks.removeAll(true);
+    keys.slice(0, SYN_MARK.max).forEach((k, i) => this.synMarks.add(traitBadge(this.scene, SYN_MARK.x, SYN_MARK.y + i * SYN_MARK.step, k, SYN_MARK.r)));
   }
 
   preDestroy() {
