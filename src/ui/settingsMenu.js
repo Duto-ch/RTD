@@ -1,6 +1,6 @@
 // 영지(로비) ESC 메뉴 (2026-11-22 사용자 요청): 전투 메뉴(Hud.openMenu)와 같은 모양 — 볼륨·음소거·튜토리얼 다시 보기 + 계속하기·게임 종료
 // 영지에서 '게임 종료'는 게임을 완전히 끝낸다(quitApp): 창을 닫아 보고, 브라우저가 막으면 게임을 멈추고 '창을 닫아 주세요' 화면
-import { GAME_W, GAME_H, WIDE } from '../config.js';
+import { GAME_W, GAME_H } from '../config.js';
 import { Button } from './Button.js';
 import { panel, uiText, titleTab, closeButton, CSS, C } from './theme.js';
 import { audio } from '../systems/audio.js';
@@ -12,9 +12,9 @@ import { meta } from '../systems/meta.js';
  * @returns {Phaser.GameObjects.Container}
  */
 export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
-  const pw = WIDE ? 440 : GAME_W - 104;
+  const pw = 440;
   const px = (GAME_W - pw) / 2;
-  const py = WIDE ? 80 : 200;
+  const py = 80;
   const ph = 520;
   const c = s.add.container(0, 0).setDepth(depth);
   const shade = s.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, 0.55).setOrigin(0).setInteractive();

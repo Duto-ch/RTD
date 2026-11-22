@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, UI_PX, PX } from '../config.js';
+import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, drawIcon, CSS, C, coverImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
@@ -37,10 +37,8 @@ export class LobbyScene extends Phaser.Scene {
     meta.load();
     this.leaving = false;
     audio.playMusic('title');
-    if (WIDE) {
-      const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
-      bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
-    } else coverImage(this, 'lobby_bg', GAME_W, GAME_H); // 사용자 그림 원본 그대로 (2026-11-22)
+    const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
+    bg.setX(Math.round((GAME_W - bg.displayWidth) / 2)); // 사용자 그림 원본 그대로 (2026-11-22)
 
     this.createTop();
     SPOTS.forEach((id, i) => this.createSpot(id, i));
@@ -78,7 +76,7 @@ export class LobbyScene extends Phaser.Scene {
   createTop() {
     const best = meta.data.best?.normal || 0;
     const H = 52;
-    const nameW = WIDE ? 230 : 200;
+    const nameW = 230;
     panel(this, 16, 14, nameW, H, 'strip');
     const crest = this.add.graphics();
     crest.fillStyle(0xf2c14e, 1).fillCircle(44, 40, 18).lineStyle(2, 0xa8801c, 1).strokeCircle(44, 40, 18);
@@ -91,7 +89,7 @@ export class LobbyScene extends Phaser.Scene {
       ['명성', meta.fame, 0xf2c14e, 'crown'],
       ['마정석', meta.stones, 0x2fbfb2, 'gem']
     ];
-    const w = WIDE ? 170 : 148;
+    const w = 170;
     const gap = 8;
     cur.forEach(([label, n, col, icon], i) => {
       const x = GAME_W - 16 - (cur.length - i) * w - (cur.length - 1 - i) * gap;
@@ -157,7 +155,7 @@ export class LobbyScene extends Phaser.Scene {
     this.toastObj?.destroy();
     const t = uiText(this, 0, 0, msg, 13, CSS.ink, 'bold').setOrigin(0.5);
     const w = Math.ceil(t.width + 40);
-    const c = this.add.container(GAME_W / 2, WIDE ? 560 : 640, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
+    const c = this.add.container(GAME_W / 2, 560, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
     this.toastObj = c;
     this.tweens.add({ targets: c, alpha: 0, delay: 1600, duration: 300, onComplete: () => c.destroy() });
   }
@@ -168,12 +166,12 @@ export class LobbyScene extends Phaser.Scene {
    */
   createDeckStrip() {
     const ids = [...meta.deck].sort((a, b) => ROSTER_BY_ID[b].grade - ROSTER_BY_ID[a].grade);
-    const goW = WIDE ? 280 : GAME_W - 48;
-    const goH = WIDE ? 92 : 72;
-    const D = WIDE ? { x: 16, y: GAME_H - 16 - 132, w: GAME_W - 32, h: 132 } : { x: 8, y: GAME_H - 8 - 218, w: GAME_W - 16, h: 218 };
+    const goW = 280;
+    const goH = 92;
+    const D = { x: 16, y: GAME_H - 16 - 132, w: GAME_W - 32, h: 132 };
     panel(this, D.x, D.y, D.w, D.h, 'card');
     // 카드 줄 (가려지는 영역)
-    const row = WIDE ? { x: D.x + 16, y: D.y + 38, w: D.w - goW - 48, h: 80 } : { x: D.x + 16, y: D.y + 38, w: D.w - 32, h: 80 };
+    const row = { x: D.x + 16, y: D.y + 38, w: D.w - goW - 48, h: 80 };
     uiText(this, row.x, D.y + 12, `출전 덱 ${ids.length} / ${DECK_RULES.max}명`, 13, CSS.ink, 'bold');
     uiText(this, row.x + row.w, D.y + 12, '밀어서 보기 · 누르면 병영', 11, CSS.sub, '600').setOrigin(1, 0);
     const cw = 64;
@@ -235,8 +233,8 @@ export class LobbyScene extends Phaser.Scene {
       for (let k = 0; k < 6; k++) f.fillStyle(0xfbf7ec, 0.16 * (k + 1)).fillRect(row.x + row.w - 24 + k * 4, row.y, 4, row.h);
     }
 
-    const gx = WIDE ? D.x + D.w - 16 - goW / 2 : GAME_W / 2;
-    const gy = WIDE ? D.y + D.h / 2 : D.y + D.h - 12 - goH / 2;
+    const gx = D.x + D.w - 16 - goW / 2;
+    const gy = D.y + D.h / 2;
     this.goBtn = new Button(this, gx, gy, goW, goH, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 33 });
     uiText(this, gx, gy + 24, 'WAVE 1부터 · Space', 11, '#3a2a10', '600').setOrigin(0.5).setDepth(this.goBtn.depth + 1);
     this.goBtn.label.setY(-8);

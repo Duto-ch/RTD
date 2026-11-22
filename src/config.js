@@ -1,25 +1,22 @@
 // 화면 / 레이아웃 상수. 모든 배치는 4배 픽셀(아트 1px = 화면 4px) 격자에 맞춘다.
 export const PX = 4;
-// 화면 방향 (2026-11-15): 창이 가로로 넓으면(16:9 모니터) 가로 배치 1280x720, 아니면 세로 배치 544x960 (모바일).
-// 게임을 띄울 때 한 번 정한다. 주소에 ?layout=wide / ?layout=tall 을 붙이면 강제로 고를 수 있다
-// 2026-11-21 사용자 결정: 가로 화면은 당분간 뺀다 — 창이 가로여도 세로 배치(양옆 검은 여백). 가로 코드는 그대로 두고 이 값만 true 로 하면 돌아온다
-export const WIDE_ENABLED = false;
-function pickLayout() {
-  if (typeof window === 'undefined' || !WIDE_ENABLED) return 'tall';
-  const q = new URLSearchParams(window.location?.search || '').get('layout');
-  if (q === 'wide' || q === 'tall') return q;
-  return window.innerWidth > window.innerHeight * 1.15 ? 'wide' : 'tall';
-}
-export const LAYOUT = pickLayout();
-export const WIDE = LAYOUT === 'wide';
+// PC 전환 (2026-11-22 사용자 결정): 모바일·세로 배치 폐지 → 1920x1080 한 벌.
+//  전장(배경·필드·몬스터·용병·이펙트) = 월드 좌표 WORLD_W x WORLD_H(1920x1080), 도트 아트 1px = 2px (DOT).
+//  UI(HUD·창·로비·병영 …) = UI 좌표 GAME_W x GAME_H(1280x720) 를 UI_SCALE(1.5)배로 그린다 → UI 도트는 3px, 글자는 1.5배.
+//  GameScene 은 카메라를 나눠(전장 zoom RES, UI zoom RES×1.5) 깊이로 나눠 그린다 (src/systems/hires.js)
+export const WIDE = true; // 예전 가로 배치 분기 이름 — 이제 늘 가로
+export const LAYOUT = 'wide';
+export const UI_SCALE = 1.5;
+export const WORLD_W = 1920;
+export const WORLD_H = 1080;
 // 포근한 카드형 UI (B-2 시안): 크림색 둥근 카드·세이지 키 컬러 — 2026-11-16 가로·세로 모두
 export const COZY = true;
 // UI 글꼴 (2026-11-16 글꼴 시안 G): 썬플라워 — 본문 Medium, 굵은 글자(제목·숫자·버튼) Bold.
 // 썬플라워에 없는 기호(· — … → 등)는 고운돋움으로 채운다
 export const COZY_FONT = 'Sunflower, Gowun Dodum';
 export const COZY_HEAD = COZY_FONT;
-export const GAME_W = WIDE ? 1280 : 544; // 세로: 136 아트 px
-export const GAME_H = WIDE ? 720 : 960; // 세로: 240 아트 px
+export const GAME_W = WORLD_W / UI_SCALE; // UI 좌표 폭 1280
+export const GAME_H = WORLD_H / UI_SCALE; // UI 좌표 높이 720
 
 export const GRID = 5;
 // 배경·UI 를 그리는 픽셀 배율: 아트 1px = 화면 3px (캐릭터 사양 28x24 × 0.75 와 같은 밀도, 2026-11-15)
@@ -34,37 +31,33 @@ export const CELL = 56;
 // 코드로 그린 임시 유닛·성탑 그림 배율 (16x16 → 칸 크기에 맞춤, 칸 64 일 때 PX 4)
 export const UNIT_PX = (PX * 48) / 64; // 칸 48 때 배율 3 그대로 (정수 배율이어야 도트가 번지지 않는다)
 export const FIELD_SIZE = GRID * CELL; // 280
-export const FIELD_X = (GAME_W - FIELD_SIZE) / 2; // 세로 132 · 가로 500 (가운데)
-export const FIELD_Y = WIDE ? (GAME_H - FIELD_SIZE) / 2 : 480 - FIELD_SIZE / 2; // 세로는 필드 가운데가 y 480, 가로는 위아래 가운데
+export const FIELD_X = (WORLD_W - FIELD_SIZE) / 2; // 월드 좌표 820 (가운데)
+export const FIELD_Y = (WORLD_H - FIELD_SIZE) / 2; // 월드 좌표 400
 export const WALL = 20; // 성벽 두께 (칸 48 때 18, 칸 56 에 맞춰 10 아트 px)
 export const PATH_OFF = 58; // 필드 가장자리 → 몬스터 이동 경로 중심선 거리 (성벽 20 + 틈 6 + 길 반폭 32)
 export const PATH_WIDTH = 64; // 칸 48 비율(42)의 1.5배 — 몬스터가 더 넓게 퍼져 걷는다 (사용자 결정)
 
 export const FONT = 'Galmuri11';
-// 지역 장식을 놓지 않을 HUD 영역 (배경 그림이 가려지는 곳) — 세로: 위·아래 띠, 가로: 양옆 HUD 칸
-export const HUD_RECTS = WIDE
-  ? [
-      // B-2: 위 알약 바 · 아래 독
-      { x: 144, y: 10, w: 992, h: 64 },
-      { x: 284, y: 638, w: 712, h: 80 }
-    ]
-  : [
-      { x: 0, y: 0, w: 544, h: 180 },
-      { x: 0, y: 776, w: 544, h: 184 }
-    ];
-// 고화질 렌더링: 캔버스 실제 해상도 = 게임 좌표 × RES (카메라 zoom RES). 글자도 RES 배 해상도로 그려 선명하게.
-// 게임 좌표(544x960)·레이아웃은 그대로다
-// 2026-11-21: 고정 2배 캔버스를 브라우저가 nearest 로 줄이고 늘려서(정수배가 아닐 때) 글자·테두리가 자글거렸다 →
-// 화면 실제 픽셀(창 크기 × devicePixelRatio)에 맞춰 정수 배율 2~3 을 고르고, 브라우저 확대·축소는 부드럽게(index.html image-rendering: auto).
-// 정수 배율이라 캔버스 안의 도트는 그대로 반듯하다. 주소에 ?res=1~4 로 강제할 수 있다
+// 지역 장식을 놓지 않을 HUD 영역 (월드 좌표) — 위 알약 바 · 아래 독 (UI 좌표 × UI_SCALE)
+export const HUD_RECTS = [
+  { x: 144, y: 10, w: 992, h: 64 },
+  { x: 144, y: 610, w: 992, h: 110 }
+].map((r) => ({ x: r.x * UI_SCALE, y: r.y * UI_SCALE, w: r.w * UI_SCALE, h: r.h * UI_SCALE }));
+// 화면 맞춤 (2026-11-22 사용자 결정 '정수 배율 + 검은 테두리'): 1920x1080 을 창에 들어가는 가장 큰 정수 배(1·2·3 …)로 —
+// 남는 곳은 검정. 창이 1080p 보다 작으면 어쩔 수 없이 부드럽게 줄인다. RES = 캔버스 실제 픽셀 / 월드 px (정수, 화면 배율 × devicePixelRatio)
+export function displayScale(w = window.innerWidth, h = window.innerHeight) {
+  const fit = Math.min(w / WORLD_W, h / WORLD_H);
+  return fit >= 1 ? Math.floor(fit) : fit;
+}
 function pickRes() {
-  if (typeof window === 'undefined') return 2;
+  if (typeof window === 'undefined') return 1;
   const q = Number(new URLSearchParams(window.location?.search || '').get('res'));
   if (q) return Math.max(1, Math.min(4, Math.round(q)));
-  const fit = Math.min(window.innerWidth / GAME_W, window.innerHeight / GAME_H);
-  return Math.max(2, Math.min(3, Math.ceil(fit * (window.devicePixelRatio || 1) - 0.05)));
+  return Math.max(1, Math.min(4, Math.ceil(displayScale() * (window.devicePixelRatio || 1) - 0.05)));
 }
 export const RES = pickRes();
+/** 글자 해상도: UI 글자는 RES × UI_SCALE 로 확대되어 그려지므로 그만큼 촘촘히 그린다 */
+export const TEXT_RES = RES * UI_SCALE;
 /** Galmuri11 은 11px 격자로 디자인된 픽셀 글꼴 — 화면 크기가 11의 배수(px)일 때 획이 정확히 맞아 깔끔하다.
  *  요청 크기를 가장 가까운 '11 × 정수 / 2' 로 맞춘다 (11, 16.5, 22, 27.5 …) */
 export function crispFontSize(size) {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE } from '../config.js';
+import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, CSS, traitBadge } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
@@ -16,9 +16,8 @@ import { slideTo } from '../ui/slide.js';
 // 병영 = 덱 편성 (룰 v2, 2026-11-20). 가진 캐릭터(술집에서 고용) 중 최대 30명 — 레어 9명·유니크 3명까지.
 // 판 안 상점은 이 덱의 캐릭터만 내놓는다. 카드를 누르면 정보 창에 계열·출신·특성·스킬(별마다), '덱에 넣기/빼기'.
 
-const L = WIDE
-  ? { grid: { x: 16, y: 128, w: 840, h: 576 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 } }
-  : { grid: { x: 12, y: 192, w: 520, h: 436 }, cols: 4, cardH: 86, info: { x: 12, y: 640, w: 520, h: 252 }, deck: null, synY: 160 }; // 2026-11-22: 시너지 필터 줄(y 160) 자리만큼 격자를 내림
+// 시너지 필터 줄(synY 136) 아래부터 격자 (2026-11-22)
+const L = { grid: { x: 16, y: 160, w: 840, h: 544 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 }, synY: 136 };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
@@ -52,14 +51,14 @@ export class DeckScene extends Phaser.Scene {
   }
 
   createHeader() {
-    uiText(this, 20, WIDE ? 18 : 16, '병영 · 덱 편성', 22, '#fff3c4', 'bold');
-    this.ptText = uiText(this, WIDE ? 856 : GAME_W - 20, WIDE ? 22 : 20, '', 16.5, '#fff3c4', 'bold').setOrigin(1, 0);
-    this.ptSub = uiText(this, 20, WIDE ? 48 : 46, '', 12, '#bfe1d4', '600');
+    uiText(this, 20, 18, '병영 · 덱 편성', 22, '#fff3c4', 'bold');
+    this.ptText = uiText(this, 856, 22, '', 16.5, '#fff3c4', 'bold').setOrigin(1, 0);
+    this.ptSub = uiText(this, 20, 48, '', 12, '#bfe1d4', '600');
     this.ptBar = this.add.graphics();
   }
 
   createFilters() {
-    const y = WIDE ? 92 : 82;
+    const y = 92;
     const chips = [
       ['all', '전체'], ['owned', '보유'], ['deck', '덱']
     ];
@@ -77,8 +76,8 @@ export class DeckScene extends Phaser.Scene {
       this.chipBtns.push(b);
       x += w + 6;
     }
-    let gx = WIDE ? x + 14 : 16;
-    const gy = WIDE ? y : y + 38;
+    let gx = x + 14;
+    const gy = y;
     for (const [v, label] of grades) {
       const w = v === 2 ? 70 : 62;
       const b = new Button(this, gx + w / 2, gy, w, 30, label, () => {
@@ -95,7 +94,7 @@ export class DeckScene extends Phaser.Scene {
 
   /** 시너지(계열 6 · 출신 6) 상징으로 거르기 (2026-11-22 사용자 요청) — 누르면 그 시너지 캐릭터만, 한 번 더 누르면 해제 */
   createTraitFilter() {
-    if (WIDE) return; // 가로 배치는 꺼져 있다
+    // PC (2026-11-22): 등급 줄 아래 한 줄 (격자는 그만큼 아래)
     const y = L.synY;
     const r = 12;
     const step = 42;
@@ -309,14 +308,9 @@ export class DeckScene extends Phaser.Scene {
   }
 
   createFooter() {
-    const y = GAME_H - (WIDE ? 40 : 32);
-    if (WIDE) {
-      new Button(this, 872 + 70, y, 140, 48, '기본 덱', () => this.resetDeck(), { variant: 'outline', fontSize: 13 });
-      new Button(this, 872 + 140 + 12 + 120, y, 240, 52, '저장하고 영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
-    } else {
-      new Button(this, 12 + 70, y, 140, 48, '기본 덱', () => this.resetDeck(), { variant: 'outline', fontSize: 13 });
-      new Button(this, GAME_W - 12 - 170, y, 340, 52, '저장하고 영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
-    }
+    const y = GAME_H - 40;
+    new Button(this, 872 + 70, y, 140, 48, '기본 덱', () => this.resetDeck(), { variant: 'outline', fontSize: 13 });
+    new Button(this, 872 + 140 + 12 + 120, y, 240, 52, '저장하고 영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
   }
 
   resetDeck() {
@@ -337,9 +331,9 @@ export class DeckScene extends Phaser.Scene {
     const by = [1, 2, 3, 4].map((g) => `${GRADES[g].name} ${cnt(g)}${g === 3 ? `/${DECK_RULES.rare}` : g === 4 ? `/${DECK_RULES.unique}` : ''}`).join(' · ');
     this.ptSub.setText(`${by} · 보유 ${ROSTER.filter((c) => this.owned(c.id)).length}명`);
     // 인원 막대
-    const bx = WIDE ? 560 : GAME_W - 200;
-    const bw = WIDE ? 160 : 180;
-    const byy = WIDE ? 30 : 56;
+    const bx = 560;
+    const bw = 160;
+    const byy = 30;
     this.ptBar.clear().fillStyle(0x0b2f2e, 1).fillRoundedRect(bx, byy, bw, 10, 5);
     this.ptBar.fillStyle(n >= DECK_RULES.max ? 0xf2c14e : 0x58c096, 1).fillRoundedRect(bx, byy, Math.max(10, (bw * Math.min(n, DECK_RULES.max)) / DECK_RULES.max), 10, 5);
     for (const b of this.chipBtns) {
@@ -366,7 +360,7 @@ export class DeckScene extends Phaser.Scene {
     this.toastObj?.destroy();
     const t = uiText(this, 0, 0, msg, 13, CSS.ink, 'bold').setOrigin(0.5);
     const w = Math.ceil(t.width + 40);
-    const c = this.add.container(WIDE ? 436 : GAME_W / 2, WIDE ? 680 : 612, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
+    const c = this.add.container(436, 680, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
     this.toastObj = c;
     this.tweens.add({ targets: c, alpha: 0, delay: 1600, duration: 300, onComplete: () => c.destroy() });
   }

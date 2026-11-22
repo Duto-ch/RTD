@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, DOT } from '../config.js';
+import { GAME_W, GAME_H, DOT } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, panelImage, uiText, drawIcon, CSS } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
@@ -12,9 +12,7 @@ import { slideTo } from '../ui/slide.js';
 // 유물 공방 (룰 v2 ③, 2026-11-20 — 대장간 대체): 마정석으로 유물 30종 중 하나를 무작위 생산.
 // 같은 유물이 또 나오면 레벨 +1 (최대 5). 장착 4칸(+명성 강화 '유물 보관함') — 장착한 유물은 매 판 팀 전체에 적용.
 
-const L = WIDE
-  ? { slots: { x: 16, y: 84, w: 840, h: 76 }, grid: { x: 16, y: 172, w: 840, h: 284 }, cols: 10, cell: 84, info: { x: 872, y: 84, w: 392, h: 300 }, craft: { x: 1068, y: 440 }, foot: 668 }
-  : { slots: { x: 12, y: 74, w: 520, h: 76 }, grid: { x: 12, y: 162, w: 520, h: 446 }, cols: 6, cell: 86, info: { x: 12, y: 620, w: 520, h: 196 }, craft: { x: GAME_W / 2 - 132, y: 900 }, foot: 900 };
+const L = { slots: { x: 16, y: 84, w: 840, h: 76 }, grid: { x: 16, y: 172, w: 840, h: 284 }, cols: 10, cell: 84, info: { x: 872, y: 84, w: 392, h: 300 }, craft: { x: 1068, y: 440 }, foot: 668 };
 
 export class WorkshopScene extends Phaser.Scene {
   constructor() {
@@ -26,14 +24,14 @@ export class WorkshopScene extends Phaser.Scene {
     meta.load();
     this.selected = meta.equipped[0] || RELICS.find((r) => meta.relicLevel(r.id))?.id || RELICS[0].id;
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x2a2438).setOrigin(0);
-    uiText(this, 20, WIDE ? 18 : 16, '유물 공방', 22, '#fff3c4', 'bold');
-    uiText(this, 20, WIDE ? 50 : 46, `마정석 ${RELIC_RULES.craftCost}개로 유물 무작위 생산 · 같은 유물은 레벨 업(최대 ${RELIC_RULES.maxLevel})`, 12, '#d8c8f0', '600');
+    uiText(this, 20, 18, '유물 공방', 22, '#fff3c4', 'bold');
+    uiText(this, 20, 50, `마정석 ${RELIC_RULES.craftCost}개로 유물 무작위 생산 · 같은 유물은 레벨 업(최대 ${RELIC_RULES.maxLevel})`, 12, '#d8c8f0', '600');
     this.stoneBox = this.add.container(0, 0);
     this.slotBox = this.add.container(0, 0);
     this.gridBox = this.add.container(0, 0);
     this.info = this.add.container(0, 0);
-    this.craftBtn = new Button(this, L.craft.x, L.craft.y, WIDE ? 300 : 248, 52, '', () => this.craft(), { variant: 'gold', icon: 'gem', fontSize: 14 });
-    new Button(this, WIDE ? 1068 : GAME_W / 2 + 132, WIDE ? L.foot : L.foot, WIDE ? 300 : 248, 52, '영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
+    this.craftBtn = new Button(this, L.craft.x, L.craft.y, 300, 52, '', () => this.craft(), { variant: 'gold', icon: 'gem', fontSize: 14 });
+    new Button(this, 1068, L.foot, 300, 52, '영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.refresh();
   }
@@ -46,7 +44,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.stoneBox.removeAll(true);
     const w = 150;
     const x = GAME_W - 16 - w;
-    const y = WIDE ? 16 : 14;
+    const y = 16;
     this.stoneBox.add(panel(this, x, y, w, 40, 'strip'));
     const g = this.add.graphics();
     g.fillStyle(0x2fbfb2, 1).fillCircle(x + 22, y + 20, 13);
@@ -180,7 +178,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.toastObj?.destroy();
     const t = uiText(this, 0, 0, msg, 13, CSS.ink, 'bold').setOrigin(0.5);
     const w = Math.ceil(t.width + 40);
-    const c = this.add.container(WIDE ? 436 : GAME_W / 2, WIDE ? 660 : 850, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
+    const c = this.add.container(436, 660, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
     this.toastObj = c;
     this.tweens.add({ targets: c, alpha: 0, delay: 1600, duration: 300, onComplete: () => c.destroy() });
   }

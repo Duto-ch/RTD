@@ -1,5 +1,6 @@
 // UI 글자 정렬 점검 (2026-11-21 사용자 요청: UI 디자인이 바뀔 때마다 글자 좌우·상하 간격 정렬을 확인)
-// 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/ui-audit.cjs [tall|wide|all]
+// 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/ui-audit.cjs
+// PC 1080p (2026-11-22): 화면 1920x1080 하나. UI 좌표(1280x720)로 본다 — 전투 장면의 전장(월드 좌표) 물체는 건너뛴다
 // 장면마다 보이는 글자(Text)를 모두 훑어서 알린다:
 //   off    화면 밖으로 나감
 //   overlap 다른 글자와 겹침
@@ -12,7 +13,6 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-const which = process.argv[2] || 'tall'; // 가로 배치는 당분간 꺼 둠 (config WIDE_ENABLED) — 켜면 all
 const OUT = 'ui-audit';
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -36,6 +36,8 @@ async function audit(page) {
     const walk = (list, sceneKey) => {
       for (const o of list) {
         if (!visible(o)) continue;
+        // 전투 장면: 전장(월드 좌표) 물체는 UI 가 아니다 (systems/hires.js 와 같은 기준)
+        if (!o.parentContainer && o.scene.cams && (o.worldLayer || (o.depth < 100 && !o.uiLayer))) continue;
         if (o.type === 'Container' && o.auditBox && !o.auditOk) {
           // 도형 배지 컨테이너(시너지 상징 등): 상자 하나로 본다. auditRest = 통통 튀는 배지 — 커지기 전(배율 1) 크기로 본다
           const m0 = o.getWorldTransformMatrix();
@@ -86,8 +88,9 @@ async function audit(page) {
     const findShades = (list, sceneKey) => {
       for (const o of list) {
         if (!visible(o)) continue;
+        if (!o.parentContainer && o.scene.cams && (o.worldLayer || (o.depth < 100 && !o.uiLayer))) continue;
         if (o.type === 'Container') findShades(o.list, sceneKey);
-        else if (o.type === 'Rectangle' && o.fillAlpha >= 0.3 && o.width >= o.scene.scale.width / o.scene.cameras.main.zoom - 1 && o.height >= o.scene.scale.height / o.scene.cameras.main.zoom - 1) {
+        else if (o.type === 'Rectangle' && o.fillAlpha >= 0.3 && o.width >= o.scene.scale.width / (o.scene.cams?.ui || o.scene.cameras.main).zoom - 1 && o.height >= o.scene.scale.height / (o.scene.cams?.ui || o.scene.cameras.main).zoom - 1) {
           let r = o;
           while (r.parentContainer) r = r.parentContainer;
           shades.push({ sceneKey, depth: r.depth || 0 });
@@ -95,8 +98,9 @@ async function audit(page) {
       }
     };
     for (const s of scenes) findShades(s.children.list, s.scene.key);
-    const W = scenes[0].scale.width / scenes[0].cameras.main.zoom;
-    const H = scenes[0].scale.height / scenes[0].cameras.main.zoom;
+    const uiCam = scenes[0].cams?.ui || scenes[0].cameras.main; // UI 좌표 (1280x720)
+    const W = scenes[0].scale.width / uiCam.zoom;
+    const H = scenes[0].scale.height / uiCam.zoom;
     // 그려지는 깊이: 가장 바깥 컨테이너의 depth
     const depthOf = (o) => {
       let r = o;
@@ -230,12 +234,11 @@ const SCREENS = [
 (async () => {
   const b = await chromium.launch();
   let total = 0;
-  for (const [layout, vp] of [['tall', { width: 544, height: 960 }], ['wide', { width: 1280, height: 720 }]]) {
-    if (which !== 'all' && which !== layout) continue;
+  for (const [layout, vp] of [['pc', { width: 1920, height: 1080 }]]) {
     const p = await b.newPage({ viewport: vp });
     const errs = [];
     p.on('pageerror', (e) => errs.push(e.message));
-    await p.goto(`http://localhost:4173/?layout=${layout}`);
+    await p.goto('http://localhost:4173/');
     await p.waitForFunction(() => window.game?.scene.isActive('Title'));
     await p.evaluate(() => { window.__rtd.meta.reset(); window.__rtd.meta.addStones(20); });
     await p.waitForTimeout(400);

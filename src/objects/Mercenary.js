@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
+import { UNIT_PX, CELL, DEPTH, BALANCE, UI_SCALE } from '../config.js';
 import { GRADES, STYLES } from '../data/roster.js';
 import { STAR_STAT, MAX_STAR, starSkill, maxMana } from '../data/stars.js';
 import { TAVERN } from '../data/tavern.js';
@@ -9,6 +9,7 @@ import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
 import { ringPixels, starPixels, MARK_PX } from '../ui/gradeMark.js';
 import { traitBadge } from '../ui/theme.js';
+import { toWorld } from '../systems/hires.js';
 import { GRID } from '../config.js';
 
 /** 필드 위 유닛 = 캐릭터 70명(data/roster.js) 중 하나 (룰 v2, 2026-11-20).
@@ -98,6 +99,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
 
     this.setSize(CELL, CELL);
     this.setDepth(DEPTH.merc);
+    this.worldLayer = true; // 대기석·끄는 중(깊이 UI 이상)에도 월드 좌표로 그린다 (systems/hires.js)
     this.setInteractive({ draggable: true, useHandCursor: true });
     scene.add.existing(this);
   }
@@ -164,7 +166,9 @@ export class Mercenary extends Phaser.GameObjects.Container {
       const R = this.scene.hud?.reserveSlot;
       if (R) {
         const col = Phaser.Display.Color.HexStringToColor(GRADES[this.grade].color).color;
-        this.ringBack.lineStyle(3, col, 1).strokeRoundedRect(-R.w / 2 + 1.5, -R.h / 2 + 1.5, R.w - 3, R.h - 3, 9);
+        const w = R.w * UI_SCALE; // 칸은 UI 좌표, 용병은 월드 좌표 (2026-11-22)
+        const h = R.h * UI_SCALE;
+        this.ringBack.lineStyle(3, col, 1).strokeRoundedRect(-w / 2 + 1.5, -h / 2 + 1.5, w - 3, h - 3, 9);
       }
       paint(this.pips, starPixels(this.grade, this.star));
       this.pips.setY(-10); // 별 패를 칸 안(아래 테두리 위)으로
@@ -205,8 +209,8 @@ export class Mercenary extends Phaser.GameObjects.Container {
   snapToCell() {
     // 대기석 (2026-11-21): HUD 대기석 칸 위 — UI 보다 위에 그린다
     if (this.reserved) {
-      const p = this.scene.hud.reservePos(this.slot);
-      this.setPosition(p.x, p.y);
+      const p = this.scene.hud.reservePos(this.slot); // UI 좌표 → 월드 (용병은 늘 전장 카메라, 2026-11-22)
+      this.setPosition(toWorld(p.x), toWorld(p.y));
       this.setDepth(DEPTH.ui + 1);
       if (this.drawnReserved !== true) {
         this.drawnReserved = true;

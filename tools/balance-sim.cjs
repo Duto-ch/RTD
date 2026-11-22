@@ -8,7 +8,7 @@
 //   3번째 인자(JSON): 장착 유물 id → 레벨 (예: {"hero_sword":3,"war_drum":1}, 최대 4개). 없으면 유물 없음
 const { chromium } = require('playwright');
 (async () => {
-  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 544, height: 960 } });
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const levels = JSON.parse(process.argv[3] || '{}');
   const relics = JSON.parse(process.argv[4] || '{}');

@@ -1,7 +1,8 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
 import { TRAITS } from '../data/synergy.js';
-import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
+import { pointerFor, uiPosOf, inWorld } from '../systems/hires.js';
+import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES, GAME_W, UI_SCALE } from '../config.js';
 
 export const UI_FONT = COZY ? COZY_FONT : FONT; // 포근한 카드형: 썬플라워 · 픽셀 UI: Galmuri11
 
@@ -368,12 +369,12 @@ function registerTraitTip(s, badge, k, r) {
     };
     const blocked = () => s.tut?.open || s.hud?.menu || s.hud?.popup || s.menu;
     const check = (p) => {
-      const x = p.worldX, y = p.worldY;
       let hit = null;
       if (!blocked()) {
         for (const b of st.list) {
           if (!b.active) { st.list.delete(b); continue; }
           if (!visible(b)) continue;
+          const { x, y } = pointerFor(s, b, p); // 전장(월드) 배지·UI 배지 좌표가 다르다 (2026-11-22 PC 전환)
           const c = b.getWorldTransformMatrix().transformPoint(0, 0);
           if ((x - c.x) ** 2 + (y - c.y) ** 2 <= b.tipR * b.tipR && inMask(b, x, y)) hit = b; // 나중에 만든 것(위에 그려진 것) 우선
         }
@@ -399,14 +400,15 @@ function registerTraitTip(s, badge, k, r) {
 /** 이름 툴팁 상자: 배지 위(자리가 없으면 아래) — '전사 · 계열' */
 function traitTipBox(s, badge) {
   const t = TRAITS[badge.tipKey];
-  const c0 = badge.getWorldTransformMatrix().transformPoint(0, 0);
+  const c0 = uiPosOf(s, badge);
+  const r = inWorld(s, badge) ? badge.tipR / UI_SCALE : badge.tipR;
   const label = uiText(s, 0, 0, `${t.name} · ${t.kind === 'class' ? '계열' : '출신'}`, 12, CSS.ink, 'bold').setOrigin(0.5);
   const w = Math.ceil(label.width + 24);
   const h = 28;
-  const W = s.scale.width / s.cameras.main.zoom;
+  const W = GAME_W;
   const x = Math.round(Math.min(W - 6 - w / 2, Math.max(6 + w / 2, c0.x)));
-  let y = Math.round(c0.y - badge.tipR - 6 - h / 2);
-  if (y - h / 2 < 4) y = Math.round(c0.y + badge.tipR + 6 + h / 2);
+  let y = Math.round(c0.y - r - 6 - h / 2);
+  if (y - h / 2 < 4) y = Math.round(c0.y + r + 6 + h / 2);
   const box = s.add.container(x, y, [panelImage(s, 0, 0, 'strip', w, h), label]).setDepth(5000);
   box.auditOk = true; // 잠깐 뜨는 툴팁 (ui-audit 제외)
   return box;

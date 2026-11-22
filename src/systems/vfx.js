@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PX, DOT, DEPTH, GAME_W, GAME_H } from '../config.js';
+import { PX, DOT, DEPTH, GAME_W, GAME_H, WORLD_W } from '../config.js';
 import { dotImage, dotKey } from '../art/textures.js';
 import { ATTR_INFO } from '../data/elements.js';
 import { FX, FX_SCALE, HIT_FX, fxTexture, fxAnim, FX_SETS, setTexture, setAnim, SET_SCALE, FX_SIG, sigTexture, sigAnim } from '../data/fx.js';
@@ -543,7 +543,7 @@ export class Vfx {
     this.play('ultimate', unit.x, unit.y + 28, { depth: DEPTH.fx + 2, optional: false });
     s.cameras.main.shake(220, 0.006);
     const t = s.add
-      .text(GAME_W / 2, unit.y - 70, def.name, {
+      .text(WORLD_W / 2, unit.y - 70, def.name, { // 전장(월드 좌표) 가운데
         fontFamily: 'Galmuri11', fontSize: '33px', color: '#f2c14e', stroke: '#1b1b26', strokeThickness: 8, fontStyle: 'bold'
       })
       .setOrigin(0.5)
