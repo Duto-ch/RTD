@@ -18,7 +18,7 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 
 ## 키 컬러·고유 무기 (2026-11-22, 유니크 뺀 58명)
 - `python3 docs/drafts/keycolor-v3/key_weapons.py --install` — 게임 그림을 같은 코드로 다시 그리되 옷 주색·그늘색·가슴 보석은 키 컬러 16색(`keys.json`, `recolor.py` 가 배정), 무기는 `roster-v2-art/weapons_v3.py` 모양(같은 종류끼리 겹치지 않게 `weapons.json`)·키 컬러 재질 → `public/assets/custom/chars/<id>.png` 덮어쓰기
-- ⚠️ `roster_art.py && import-roster-art.py` 로 캐릭터를 다시 만들면 58명이 예전 RGB 색·무기로 돌아간다 → 그 뒤 반드시 위 명령을 다시 돌린다
+- ⚠️ `roster_art.py && import-roster-art.py` 로 캐릭터를 다시 만들면 58명이 예전 RGB 색·무기로 돌아간다 → 그 뒤 반드시 위 명령을 다시 돌린다 (순서: `roster_art.py` → `import-roster-art.py` → `key_weapons.py --install`)
 - 몸 오브젝트 시험: 콜린(`colin_objects`) — 손·무기가 덮는 몸통 옆보다 어깨 위·머리 뒤 실루엣이 읽힌다
 
 ## 스킬 이펙트
@@ -29,8 +29,8 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 ## 유물 아이콘
 - 30종 전용 그림 12x12 (2026-11-20 룰 v2: 10종 → 30종) 아트 px(게임에서 2px): `python3 docs/drafts/relic-icons/relics.py` → `public/assets/custom/relics/<id>.png` + manifest `relic_<id>` (미리보기 `preview.png`). 새 유물을 추가하면 이 스크립트에 모양을 더한다
 
-## 공격 모션 28프레임 (2026-11-21 전체 적용)
-- 캐릭터 104명(시안 출신 8명 포함)의 공격은 28프레임 — `roster_art.py` 가 실행될 때 `anim28.install()` 로 공격 함수를 바꿔 끼운다(검·도끼·망치 휘두르기 · 창 찌르기 · 단검 두 번 찌르기 · 지팡이 시전 · 활 · 총·석궁). 대기 8프레임은 그대로
+## 대기·공격 모션 28프레임 (공격 2026-11-21 · 대기 2026-11-22 전체 적용)
+- 캐릭터 104명(시안 출신 8명 포함)의 공격은 28프레임 — `roster_art.py` 가 실행될 때 `anim28.install()` 로 공격 함수를 바꿔 끼운다(검·도끼·망치 휘두르기 · 창 찌르기 · 단검 두 번 찌르기 · 지팡이 시전 · 활 · 총·석궁) + 대기 `idle28`(45ms × 28, 부분마다 다른 박자). 유니크 반짝임은 예전 8박자로 옮겨 다닌다
 - 타격·발사 프레임 `anim28.HIT28` → roster-art.json `attack.hit` → manifest. 동작을 고치면 이 번호도 맞출 것
 - 무기 6종 비교 열람(예전 시안): `python3 docs/drafts/anim28/anim28.py && python3 docs/drafts/anim28/build_view.py`, https://claude.ai/artifact/TZu9ERnEZPFF2mJpixyfzT
 

@@ -5,7 +5,7 @@
   지팡이처럼 사람이 모양 수보다 많은 종류는 몇 명이 겹치지만 키 컬러로 갈린다
 - 무기 색: 날·손잡이·보석·지팡이 머리·시전 고리 = 키 컬러 (weapons_v3 재질: 커먼 쇠·나무 → 언커먼 키 컬러 손잡이 → 레어 은·키 보석)
 - 몸: 게임 그림 그대로 그린 뒤 옷 주색·그늘색·가슴 보석만 키 컬러로 (recolor.py 와 같다)
-- 시안 출신 6명(카이라·베로나·엘린·토른·아델·닉스)은 사용자·시안 몸 그림 그대로 두고 무기만 바꾼다
+- 시안 출신 7명(카이라·베로나·엘린·토른·아델·세레나·닉스)은 사용자·시안 몸 그림 그대로 두고 무기만 바꾼다
 - 시험: 콜린(땜장이)에게 몸 오브젝트 — 올리브 캔버스 배낭(몸 양옆), 오른쪽 어깨 위 큰 톱니바퀴, 왼쪽 머리 뒤 렌치, 이마 고글, 허리 주머니
 실행: python3 docs/drafts/keycolor-v3/key_weapons.py [--install] → sheets/<id>.png · weapons.json · compare.png · colin.png · colin.gif
       --install (2026-11-22 게임 적용): sheets/<id>.png 를 public/assets/custom/chars/<id>.png 로 복사 (프레임 수·타격 프레임은 그대로라 manifest 는 안 바뀜)
@@ -47,7 +47,7 @@ def wtype_of(c):
 
 
 # ── 무기 모양 배정 ──
-ORIG_W = {'kaira': 'sword', 'verona': 'staff', 'elin': 'bow', 'thorn': 'staff', 'adel': 'spear', 'nix': 'dagger'}
+ORIG_W = {'kaira': 'sword', 'verona': 'staff', 'elin': 'bow', 'thorn': 'staff', 'adel': 'spear', 'serena': 'staff', 'nix': 'dagger'}
 
 
 def assign(targets):
@@ -159,7 +159,7 @@ def main():
         R.sheet(frames).save(os.path.join(HERE, 'sheets', f"{c['id']}.png"))
         meta[c['id']] = {'frames': frames}
     # 2) 시안 출신 6명: 몸 그림 그대로, 무기만 (anim.build_all 을 돌리면서 프레임마다 그 캐릭터 무기 설정)
-    TAG = {'red_sword': 'kaira', 'red_mage': 'verona', 'green_archer': 'elin', 'green_druid': 'thorn', 'blue_knight': 'adel', 'blue_rogue': 'nix'}
+    TAG = {'red_sword': 'kaira', 'red_mage': 'verona', 'green_archer': 'elin', 'green_druid': 'thorn', 'blue_knight': 'adel', 'blue_priest': 'serena', 'blue_rogue': 'nix'}
     BYID = {c['id']: c for c in targets}
     orig_char, orig_new, orig_compose = A.char, A.new_body, A.compose
 
@@ -180,7 +180,7 @@ def main():
             A.geo_weapon = A.geo_weapon_orig       # 유니크 세레나·게임에 없는 브란은 예전 무기 그대로 (여기서는 버림)
         return orig_compose(*a, ch=ch, **k)
     A.compose = compose
-    keymap = {'sword': 'kaira', 'staff': 'verona', 'bow': 'elin', 'knight': 'adel', 'leaf': 'thorn', 'dagger': 'nix'}
+    keymap = {'sword': 'kaira', 'staff': 'verona', 'bow': 'elin', 'knight': 'adel', 'leaf': 'thorn', 'ice': 'serena', 'dagger': 'nix'}   # 세레나는 게임에서 레어 (2026-11-22 빠져 있던 것 추가)
     for a in A.build_all():
         cid = keymap.get(a['key'])
         if cid:
@@ -265,8 +265,9 @@ def colin_view():
         c = Image.new('RGBA', (fw * 6, fh * 6), (246, 241, 228, 255))
         c.alpha_composite(new.crop((i * fw, 0, i * fw + fw, fh)).resize((fw * 6, fh * 6), Image.NEAREST))
         gif.append(c.convert('RGB'))
-    ms = [160, 140, 140, 180, 160, 140, 140, 180] * 2 + [40] * (n - 8)
-    seq = gif[:8] * 2 + gif[8:]
+    ni = 28   # 대기 28프레임 (2026-11-22)
+    ms = [45] * ni * 2 + [40] * (n - ni)
+    seq = gif[:ni] * 2 + gif[ni:]
     seq[0].save(os.path.join(HERE, 'colin.gif'), save_all=True, append_images=seq[1:], duration=ms[:len(seq)], loop=0)
 
 
