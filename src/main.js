@@ -54,6 +54,8 @@ const game = new Phaser.Game({
   width: WORLD_W * RES, // 실제 캔버스 해상도. 장면 카메라가 월드(1920x1080)는 zoom RES, UI(1280x720)는 zoom RES×1.5 로 채운다
   height: WORLD_H * RES,
   backgroundColor: '#2b1810',
+  // ?transparent=1: 캔버스 바탕을 투명하게 (화면을 레이어별 PNG·PSD 로 뽑을 때, tools/export-psd.cjs)
+  transparent: new URLSearchParams(window.location.search).has('transparent'),
   pixelArt: true,
   roundPixels: true,
   scale: {
