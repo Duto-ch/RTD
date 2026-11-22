@@ -21,6 +21,7 @@ import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { Vfx } from '../systems/vfx.js';
 import { playOnce, playBase, setArt, setFacing, hitDelay, cancelOnce } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
+import { addBiomeDecor, swapBiomeDecor } from '../art/decor.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { FAME, UPGRADES } from '../data/upgrades.js';
@@ -88,6 +89,7 @@ export class GameScene extends Phaser.Scene {
     this.biome = biomeForWave(1);
     this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setDisplaySize(GAME_W, GAME_H).setDepth(DEPTH.bg);
     this.createFieldLayers();
+    this.decor = addBiomeDecor(this, this.biome.id); // 바람에 흔들리는 나무 등 (2026-11-21)
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hintGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
     this.hpGfx = this.add.graphics().setDepth(DEPTH.hpbar);
@@ -358,6 +360,7 @@ export class GameScene extends Phaser.Scene {
         this.bgImage.setDepth(DEPTH.bg);
       }
     });
+    this.decor = swapBiomeDecor(this, this.decor, biome.id);
     this.time.delayedCall(2300, () => !this.over && this.toast(`새로운 지역: ${biome.name}`));
   }
 

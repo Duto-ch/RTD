@@ -21,7 +21,7 @@
 
 ## 명령어 (package.json 에 없는 것·꼭 지킬 것)
 - `npm run check` — 단위(Vitest) + 브라우저(Playwright) 테스트. **작업이 끝날 때마다 실행.** 브라우저 테스트는 빌드를 띄워 조작하고 화면을 `test-results/screens/` 에 저장
-- `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째: 명성 강화 레벨(없으면 강화 0 = 기준 W10~15). 먼저 `npm run build && npx vite preview --port 4173`
+- `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째: 명성 강화 레벨(없으면 강화 0). 기본은 대기석을 쓰는 봇, `RESERVE=0` 이면 안 씀. 먼저 `npm run build && npx vite preview --port 4173`
 - 데이터를 고친 뒤 문서 다시 만들기: `node tools/gen-roster-doc.mjs`(로스터 → `docs/ROSTER.md`) · `node tools/gen-skill-doc.mjs` · `node tools/gen-upgrade-doc.mjs` · `node tools/gen-art-doc.mjs`
 - **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (테스트 화면은 Actions 결과의 `test-screens`)
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)`. `window.__rtd` 에 ROSTER·audio·setArt·setFacing·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
