@@ -1761,7 +1761,7 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
-test('영지 (2026-11-22): 사용자 배경 그림 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 옆으로 밀어 넘어가고 돌아올 때도 반대로', async ({ page }) => {
+test('영지 (2026-11-22): 사용자 배경 그림(원본 해상도) · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 옆으로 밀어 넘어가고 돌아올 때도 반대로', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -1773,13 +1773,14 @@ test('영지 (2026-11-22): 사용자 배경 그림 · 메뉴 버튼 오른쪽 �
     const l = window.game.scene.getScene('Lobby');
     const rights = Object.values(l.spots).map((c) => Math.round(c.getBounds().right));
     const ys = Object.values(l.spots).map((c) => Math.round(c.y));
-    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_tall');
-    return { rights, ys, bgW: bg?.texture.source[0].width, bgH: bg?.texture.source[0].height };
+    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_bg');
+    return { rights, ys, bgW: bg?.texture.source[0].width, bgH: bg?.texture.source[0].height, bgFull: bg && bg.displayWidth >= 544 && bg.displayHeight >= 960 };
   });
   expect(new Set(r.rights).size).toBe(1); // 오른쪽 끝이 모두 같다
   expect(r.rights[0]).toBeGreaterThanOrEqual(544 - 20);
   expect([...r.ys].sort((a, b) => a - b)).toEqual(r.ys); // 위에서 아래로 한 줄
-  expect([r.bgW, r.bgH]).toEqual([272, 480]); // 2px 도트 그림
+  expect([r.bgW, r.bgH]).toEqual([941, 1672]); // 2026-11-22: 사용자 그림 원본 그대로 (도트로 줄이지 않음)
+  expect(r.bgFull).toBe(true); // 화면을 꽉 채움
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
   // 병영으로: 잠깐 두 장면이 함께 보이며 새 화면 카메라가 오른쪽에서 들어온다
   // 매 프레임 두 장면 카메라 위치를 모아 본다 (전환은 실제 시간 0.36초라 한 번 읽어서는 놓친다)

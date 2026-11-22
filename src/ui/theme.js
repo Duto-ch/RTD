@@ -190,6 +190,17 @@ function cozyKey(scene, style, w, h) {
   return key;
 }
 
+/**
+ * 화면을 꽉 채우는 원본 해상도 그림 (2026-11-22: 영지·성탑 배경 — 도트로 줄이지 않은 사용자 그림).
+ * 게임은 pixelArt(가까운 점) 설정이라 이 텍스처만 부드럽게(LINEAR) 거르고, 비율을 지켜 화면을 덮도록(남는 쪽은 가운데 기준 잘림) 맞춘다
+ */
+export function coverImage(scene, key, W, H) {
+  scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+  const img = scene.add.image(W / 2, H / 2, key);
+  const k = Math.max(W / img.width, H / img.height);
+  return img.setScale(k);
+}
+
 /** 패널 이미지 (가운데 기준) */
 export function panelImage(scene, x, y, style, w, h) {
   return scene.add.image(x, y + (COZY ? 0 : PX / 2), panelKey(scene, style, w, h)).setScale(panelScale());

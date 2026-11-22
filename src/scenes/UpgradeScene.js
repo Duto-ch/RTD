@@ -3,7 +3,7 @@ import { hiRes } from '../systems/hires.js';
 import { Kinetic } from '../ui/kinetic.js';
 import { GAME_W, GAME_H, WIDE } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, coverImage } from '../ui/theme.js';
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
 import { meta } from '../systems/meta.js';
 import { audio } from '../systems/audio.js';
@@ -87,14 +87,17 @@ export class UpgradeScene extends Phaser.Scene {
     this.drag = null;
     this.moved = false;
 
-    // 밤하늘 배경 + 희미한 별
+    // 밤하늘 배경: 사용자 그림(별·은하수 밤하늘)을 원본 그대로 (2026-11-22, 도트로 줄이지 않음). 가로 배치는 예전 그린 별
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x12101e).setOrigin(0);
-    const stars = this.add.graphics();
-    for (let i = 0; i < 70; i++) {
-      stars.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.08, 0.3));
-      stars.fillRect(Phaser.Math.Between(0, GAME_W), Phaser.Math.Between(0, GAME_H), 2, 2);
+    if (!WIDE && this.textures.exists('upgrade_bg')) coverImage(this, 'upgrade_bg', GAME_W, GAME_H);
+    else {
+      const stars = this.add.graphics();
+      for (let i = 0; i < 70; i++) {
+        stars.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.08, 0.3));
+        stars.fillRect(Phaser.Math.Between(0, GAME_W), Phaser.Math.Between(0, GAME_H), 2, 2);
+      }
+      for (const [x, y, r] of [[90, 260, 90], [470, 560, 70], [430, 180, 40]]) this.add.circle(x, y, r, 0x2a2147, 0.5);
     }
-    for (const [x, y, r] of [[90, 260, 90], [470, 560, 70], [430, 180, 40]]) this.add.circle(x, y, r, 0x2a2147, 0.5);
 
     // 트리 (이동·확대되는 컨테이너)
     this.tree = this.add.container(CENTER.x, CENTER.y).setDepth(1);
