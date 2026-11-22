@@ -255,6 +255,38 @@ def stab28(ch, weapon='dagger', hand=(19, 20), keys=None):
     return out
 
 
+# ───────── 대기 28프레임 (2026-11-22 사용자 결정: 대기도 28프레임으로 전부) ─────────
+# 예전 8프레임(머리 숨쉬기 → 무기·손 반 박자 늦게 → 모자 끝 → 깜빡임)을 28프레임 × 45ms(1.26초)로 늘리고,
+# 각 부분을 서로 다른 박자로 움직여(머리 → 무기 → 빈손 → 모자 끝) 1px 움직임이 한꺼번에 튀지 않고 차례로 이어지게 한다
+IDLE_MS28 = 45
+
+
+def _on(t, a, b):
+    t %= 1
+    return 1 if a <= t < b else 0
+
+
+def idle28(ch, weapon, hand, deg=0, hat_rows=0, blink_at=6, extra=None):
+    out = []
+    for f in range(N):
+        t = f / N
+        head = _on(t, 0.36, 0.86)                 # 내쉴 때 머리 1px 내려앉음
+        wpn = _on(t, 0.48, 0.98)                  # 무기·쥔 손은 조금 늦게
+        free = 1 - _on(t, 0.56, 1.06)             # 빈손은 무기와 엇갈려 (예전처럼 반대로)
+        hat = _on(t, 0.50, 0.78) if hat_rows else 0
+        blink_now = 20 <= f <= 22                 # 깜빡임 3프레임 (예전 7번째 프레임 자리)
+        b = A.blink(ch['img'], ch['pal']) if blink_now else ch['img']
+        b = A.pose(b, 0, head, hat, hat_rows)
+        hd = (hand[0], hand[1] + wpn)
+        k = f * 8 // N                            # extra(활 시위 등)에는 예전 8프레임 번호를 넘긴다
+        ex = (lambda c, hx, hy, k=k: extra(c, hx, hy, k)) if extra else None
+        hf = A.hands_for(ch, weapon, deg, free=(0, free), sdy=wpn)
+        if weapon == 'bow':
+            hf = lambda hx, hy, free=free: [(hx, hy, 'top'), (A.OX + A.ELIN_FREE_X, A.OY + 20 + free, 'top')]
+        out.append((A.compose(b, weapon, deg, hd, extra_after=ex, ch=ch, sdy=wpn, hands=hf), IDLE_MS28))
+    return out
+
+
 # ───────── 게임 적용 (2026-11-21 사용자 결정: 28프레임 공격을 전체 캐릭터에) ─────────
 # 타격·발사 프레임 (manifest attack.hit = 이 번호 프레임이 시작될 때 피해·투사체가 나간다, 0부터)
 HIT28 = {'sword': 15, 'axe': 16, 'hammer': 16, 'spear': 16, 'dagger': 9, 'staff': 13, 'staff_ice': 13, 'staff_leaf': 13,
@@ -262,13 +294,14 @@ HIT28 = {'sword': 15, 'axe': 16, 'hammer': 16, 'spear': 16, 'dagger': 9, 'staff'
 
 
 def install():
-    """anim(char-13) 의 공격 함수를 28프레임 판으로 바꿔 끼운다. 반환: 총·석궁용 fire (roster_art 의 fire 자리)"""
+    """anim(char-13) 의 대기·공격 함수를 28프레임 판으로 바꿔 끼운다. 반환: 총·석궁용 fire (roster_art 의 fire 자리)"""
     def swing(ch, weapon, hand=(19, 20), idle_deg=0):
         return swing28(weapon in ('axe', 'hammer'))(ch, weapon, hand, idle_deg)
 
     def thrust(ch, weapon='spear', hand=(19, 20), keys=None):
         return (stab28 if weapon == 'dagger' else thrust28)(ch, weapon, hand, keys)
     A.swing, A.thrust, A.cast, A.shoot = swing, thrust, cast28, shoot28
+    A.idle = idle28                       # 대기도 28프레임 (2026-11-22)
     return fire28
 
 

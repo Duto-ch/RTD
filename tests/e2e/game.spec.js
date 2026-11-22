@@ -350,8 +350,8 @@ test('캐릭터 그림(시안 104명): 시그리드 대기·공격 모션 · 도
     return { key: m.sprite.texture.key, w: m.sprite.displayWidth, h: m.sprite.displayHeight, anim: m.sprite.anims.currentAnim?.key,
       idleFrames: idle.frames.length, idleMs: Math.round(idle.frames.reduce((t, f) => t + f.duration + 1, 0)) };
   });
-  // 56x40 프레임 × UNIT_PX 3 × scale 2/3 = 화면 112x80 (아트 1px = 화면 2px), 대기 8프레임 · 프레임마다 길이(합 1.2초)
-  expect(s).toEqual({ key: 'char_sigrid', w: 112, h: 80, anim: 'char_sigrid:idle', idleFrames: 8, idleMs: 1240 });
+  // 56x40 프레임 × UNIT_PX 3 × scale 2/3 = 화면 112x80 (아트 1px = 화면 2px), 대기 28프레임 × 45ms (합 1.26초, 2026-11-22)
+  expect(s).toEqual({ key: 'char_sigrid', w: 112, h: 80, anim: 'char_sigrid:idle', idleFrames: 28, idleMs: 1260 });
   await page.waitForTimeout(2600);
   await page.screenshot({ path: SHOT('11-char-sigrid') });
 
