@@ -12,7 +12,7 @@ export const GRADES = {
   1: { id: 'common', name: '커먼', mult: 1, price: 1, color: '#9aa7a4' },
   2: { id: 'uncommon', name: '언커먼', mult: 1.35, price: 2, color: '#4fb06a' },
   3: { id: 'rare', name: '레어', mult: 1.8, price: 3, color: '#3f8fe0' },
-  4: { id: 'unique', name: '유니크', mult: 2.5, price: 5, color: '#f2b530' }
+  4: { id: 'unique', name: '유니크', mult: 2.5, price: 5, color: '#ffd23a' }
 };
 /** 덱 (2026-11-20 룰 v2): 최대 30명, 레어 최대 9명, 유니크 최대 3명 */
 export const DECK_RULES = { max: 30, rare: 9, unique: 3 };

@@ -3,16 +3,24 @@
 //  - 별: 고리 아래쪽 가운데 둥근 패 안 작은 별 1~3개 (1성 흰색 · 2성 하늘색 · 3성 금빛)
 //  - 석판(회색)과 확연히 갈리도록 고리는 채도 높은 색 + 진한 외곽선
 // Phaser 없이 도트 목록만 만든다 (칸 중심 = 0,0 · 아트 1px = 화면 MARK_PX)
+import { GRADES } from '../data/roster.js';
+
 export const MARK_PX = 2;
 const MAX_LEVEL = 5;
 const OUT = 0x2b1d2f;
-// 등급색 [진함, 기본, 밝음] — 속성색(빨·파·초)과 겹치지 않게: 커먼 동 · 언커먼 은 · 레어 보라 · 유니크 금
-export const GRADE_COLORS = {
-  1: [0x3e220c, 0x8a5426, 0xb87a40], // 동: 짙은 동색 (2026-11-18)
-  2: [0x3c4656, 0xf0f4fa, 0xffffff], // 은: 거의 흰색 (회색 석판보다 확연히 밝게)
-  3: [0x3e1670, 0xb36cff, 0xdcc0ff], // 보라
-  4: [0x7a4a00, 0xffd23a, 0xfff6b0] // 금
+// 등급색 [진함, 기본, 밝음] — 2026-11-22 사용자 결정: 캐릭터 카드 테두리색(GRADES[g].color)과 통일
+//   커먼 회색 · 언커먼 초록 · 레어 파랑 · 유니크 금 (예전 고리 전용색 동·은·보라·금은 카드와 달라 헷갈렸다)
+const hex = (s) => parseInt(s.replace('#', ''), 16);
+const mix = (c, t, k) => {
+  const ch = (sh) => Math.round(((c >> sh) & 255) * (1 - k) + ((t >> sh) & 255) * k);
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 };
+export const GRADE_COLORS = Object.fromEntries(
+  [1, 2, 3, 4].map((g) => {
+    const base = hex(GRADES[g].color);
+    return [g, [mix(base, 0x000000, 0.55), base, mix(base, 0xffffff, 0.45)]];
+  })
+);
 const LV5 = 0xffe066;
 const DIGIT = { 1: ['.w.', 'ww.', '.w.', '.w.', 'www'], 2: ['ww.', '..w', '.w.', 'w..', 'www'], 3: ['ww.', '..w', '.w.', '..w', 'ww.'], 4: ['w.w', 'w.w', 'www', '..w', '..w'], 5: ['www', 'w..', 'ww.', '..w', 'ww.'] };
 const SHIELD = ['ooooooooo', 'olllllllo', 'olbbbbbbo', 'olbbbbbbo', 'olbbbbbbo', 'olbbbbbbo', '.obbbbbo.', '..obbbo..', '...ooo...'];

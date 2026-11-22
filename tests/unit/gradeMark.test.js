@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { ringPixels, levelPixels, GRADE_COLORS } from '../../src/ui/gradeMark.js';
+import { GRADES } from '../../src/data/roster.js';
 
 // 2026-11-18 사용자 결정: 등급 = 발밑 받침 고리(등급색, 진한 외곽선으로 석판과 분리), 레벨 = 고리 아래쪽 가운데 패 숫자. 속성 표시 없음
 describe('등급 받침 고리 + 레벨 방패', () => {
   it('등급색 4종은 서로 다르고, 고리는 뒤쪽 반(위)·앞쪽 반(아래)으로 나뉜다', () => {
     expect(new Set([1, 2, 3, 4].map((g) => GRADE_COLORS[g][1])).size).toBe(4);
+    // 2026-11-22 사용자 결정: 고리 색 = 캐릭터 카드 테두리색 (GRADES.color)
+    for (const g of [1, 2, 3, 4]) expect(GRADE_COLORS[g][1]).toBe(parseInt(GRADES[g].color.slice(1), 16));
     const back = ringPixels(3, 'back'), front = ringPixels(3, 'front');
     expect(back.length).toBeGreaterThan(10);
     expect(front.length).toBeGreaterThan(10);
