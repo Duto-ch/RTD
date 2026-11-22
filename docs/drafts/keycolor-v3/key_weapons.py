@@ -7,7 +7,9 @@
 - 몸: 게임 그림 그대로 그린 뒤 옷 주색·그늘색·가슴 보석만 키 컬러로 (recolor.py 와 같다)
 - 시안 출신 6명(카이라·베로나·엘린·토른·아델·닉스)은 사용자·시안 몸 그림 그대로 두고 무기만 바꾼다
 - 시험: 콜린(땜장이)에게 몸 오브젝트 — 올리브 캔버스 배낭(몸 양옆), 오른쪽 어깨 위 큰 톱니바퀴, 왼쪽 머리 뒤 렌치, 이마 고글, 허리 주머니
-실행: python3 docs/drafts/keycolor-v3/key_weapons.py → sheets/<id>.png · weapons.json · compare.png · colin.png · colin.gif
+실행: python3 docs/drafts/keycolor-v3/key_weapons.py [--install] → sheets/<id>.png · weapons.json · compare.png · colin.png · colin.gif
+      --install (2026-11-22 게임 적용): sheets/<id>.png 를 public/assets/custom/chars/<id>.png 로 복사 (프레임 수·타격 프레임은 그대로라 manifest 는 안 바뀜)
+      ⚠️ roster-art/roster_art.py + tools/import-roster-art.py 로 캐릭터를 다시 만들면 이 58명이 예전 색으로 덮인다 → 그 뒤 이 스크립트를 --install 로 다시 돌릴 것
 """
 import os, sys, json, types, subprocess
 from collections import Counter
@@ -203,6 +205,12 @@ def main():
               open(os.path.join(HERE, 'weapons.json'), 'w'), ensure_ascii=False, indent=0)
     compare(targets, WVAR)
     colin_view()
+    if '--install' in sys.argv:
+        import shutil
+        dst = os.path.join(ROOT, 'public', 'assets', 'custom', 'chars')
+        for c in targets:
+            shutil.copyfile(os.path.join(HERE, 'sheets', f"{c['id']}.png"), os.path.join(dst, f"{c['id']}.png"))
+        print('installed', len(targets), 'sheets → public/assets/custom/chars')
     print(len(targets), 'chars · weapon designs', len({(c['wtype'], WVAR[c['id']]) for c in targets}),
           dict(Counter(c['wtype'] for c in targets)))
 
