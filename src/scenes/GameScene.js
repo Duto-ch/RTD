@@ -309,6 +309,7 @@ export class GameScene extends Phaser.Scene {
     this.shopRefreshed = true;
     this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
     this.refreshShop();
+    audio.shopRefresh();
   }
 
   /** 바로 시작은 필드의 몬스터를 전부 처치했을 때만 (나올 몬스터도 남아 있지 않을 때) */

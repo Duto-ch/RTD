@@ -74,7 +74,7 @@ const TRACKS = {
 };
 
 const SHOOT_GAP = 0.045; // 같은 종류 공격음 최소 간격(초)
-const MUSIC_GAIN = 0.28; // 볼륨 100% 일 때 배경음 음량
+const MUSIC_GAIN = 0.112; // 볼륨 100% 일 때 배경음 음량 (2026-11-22: 0.28 → 0.112 — 50% 가 예전 20% 크기, 사용자 요청)
 const SFX_GAIN = 0.48; // 볼륨 100% 일 때 효과음 음량
 const ULT_DUCK = 0.35; // 궁극기가 울리는 동안 배경음·다른 효과음 배율
 
@@ -101,7 +101,7 @@ class Chiptune {
     this.wanted = null;
     this.last = {};
     this.muted = load('rtd-muted', '0') === '1';
-    this.musicVol = Number(load('rtd-music-vol', '0.7')); // 0~1
+    this.musicVol = Number(load('rtd-music-vol', '0.5')); // 0~1 (기본 50%)
     this.sfxVol = Number(load('rtd-sfx-vol', '0.8'));
   }
 
@@ -344,6 +344,16 @@ class Chiptune {
     this.tone(o, 'p12', hz('C4'), c, 0.6, 0.25, { attack: 0.02 });
     // 4) 반짝임
     this.noise(o, c, 0.55, 0.12, 'highpass', 5000, 11000);
+  }
+
+  /** 웨이브가 끝나 상점이 새로 채워질 때 (2026-11-22): 카드 넘기는 '샥샥샥' + 올라가는 두 음 '띠링' */
+  shopRefresh() {
+    if (!this.ready || !this.throttle('shopRefresh', 0.3)) return;
+    const t = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) this.noise(this.sfx, t + i * 0.055, 0.05, 0.16, 'bandpass', 3800 + i * 900, 1800);
+    this.tone(this.sfx, 'p25', hz('E6'), t + 0.17, 0.09, 0.16);
+    this.tone(this.sfx, 'p25', hz('B6'), t + 0.25, 0.22, 0.16);
+    this.tone(this.sfx, 'triangle', hz('E5'), t + 0.25, 0.22, 0.12);
   }
 
   kill() {
