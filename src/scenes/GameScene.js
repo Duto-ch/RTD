@@ -66,6 +66,7 @@ export class GameScene extends Phaser.Scene {
     this.estate = Math.min(SHOP.maxLevel, 1 + (this.bonus.startEstate || 0));
     this.shop = [];
     this.freeRerolls = 0; // 황금 길드 9: 웨이브마다 무료 리롤
+    this.rerollCount = 0; // 이번 웨이브에 돈 내고 리롤한 횟수 (리롤 값이 그만큼 오른다)
     this.syn = { counts: {}, tiers: {} };
     this.rootTimer = 0; // 숲의 일족: 덩굴 속박 주기
     this.lakeRevived = false; // 호수의 성역 9: 성벽 부활 1회
@@ -307,6 +308,7 @@ export class GameScene extends Phaser.Scene {
   /** 상점의 잠그지 않은 칸을 새로 채운다 (웨이브가 끝날 때 한 번) */
   refillShopNow() {
     this.shopRefreshed = true;
+    this.rerollCount = 0; // 웨이브 끝 상점 새로 고침과 함께 리롤 값도 처음으로 (2026-11-22)
     this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
     this.refreshShop();
     audio.shopRefresh();
@@ -892,7 +894,7 @@ export class GameScene extends Phaser.Scene {
   /** 지금 리롤 값 (무료 리롤이 남았으면 0) */
   get rerollPrice() {
     if (this.freeRerolls > 0) return 0;
-    return Math.max(0, rerollCost(this.shop) - (this.bonus.rerollDiscount || 0));
+    return Math.max(0, rerollCost(this.shop, { rerolls: this.rerollCount || 0, wave: this.wave }) - (this.bonus.rerollDiscount || 0));
   }
 
   /** 판매 환급 비율 (명성 강화 '깔끔한 정산') */
@@ -1053,7 +1055,10 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
     if (this.freeRerolls > 0) this.freeRerolls -= 1;
-    else this.gold -= cost;
+    else {
+      this.gold -= cost;
+      this.rerollCount = (this.rerollCount || 0) + 1; // 돈 내고 돌릴 때마다 다음 리롤 값이 오른다 (무료 리롤은 세지 않음)
+    }
     this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
     audio.coin();
     this.refreshShop();

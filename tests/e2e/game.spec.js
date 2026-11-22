@@ -1847,3 +1847,26 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   await page.waitForSelector('#rtd-quit', { timeout: 3000 });
   expect(errors).toEqual([]);
 });
+
+test('리롤 값 (2026-11-22): 리롤할 때마다 +10G · 웨이브 끝 상점 새로 고침 때 처음 값 · 10웨이브마다 기본 +10G', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    g.freeRerolls = 0;
+    const p0 = g.rerollPrice;
+    g.reroll();
+    const p1 = g.rerollPrice;
+    g.reroll();
+    const p2 = g.rerollPrice;
+    const label = g.hud.rerollBtn.label.text;
+    g.refillShopNow(); // 웨이브 끝 새로 고침
+    const p3 = g.rerollPrice;
+    g.wave = 10;
+    const p4 = g.rerollPrice;
+    return { p0, p1, p2, p3, p4, label };
+  });
+  expect([r.p0, r.p1, r.p2, r.p3, r.p4]).toEqual([20, 30, 40, 20, 30]);
+  expect(r.label).toContain('40');
+  expect(errors).toEqual([]);
+});
