@@ -317,7 +317,7 @@ export function onLight(color) {
  * 시너지 상징 배지 (2026-11-21): 시너지 색 원 + 하얀 모양 그림(theme trait_<id>, 7칸 × 2px). off 면 옅은 원 + 갈색 모양
  * @returns {Phaser.GameObjects.Container}
  */
-export function traitBadge(s, x, y, k, r = 10, on = true) {
+export function traitBadge(s, x, y, k, r = 10, on = true, { tip = true } = {}) {
   const t = TRAITS[k];
   const col = Phaser.Display.Color.HexStringToColor(t.color).color;
   const c = s.add.container(x, y);
@@ -327,5 +327,76 @@ export function traitBadge(s, x, y, k, r = 10, on = true) {
   drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
   c.add(g);
   c.auditBox = { x: -r - 1, y: -r - 1, w: 2 * r + 2, h: 2 * r + 2 }; // tools/ui-audit.cjs 여백 검사 (외곽선 포함)
+  // 마우스를 올리면 시너지 이름 툴팁 (2026-11-22 사용자 요청: 모든 곳의 시너지 아이콘)
+  if (tip) registerTraitTip(s, c, k, r);
   return c;
+}
+
+/**
+ * 시너지 아이콘 이름 툴팁 (2026-11-22): 장면마다 배지를 모아 두고 포인터 위치로 찾는다.
+ * 배지 위를 덮는 누르기 영역(상점 카드 등)이 있어도 뜨도록 입력 이벤트 대신 pointermove·pointerdown 으로 직접 확인한다
+ */
+function registerTraitTip(s, badge, k, r) {
+  badge.tipKey = k;
+  badge.tipR = r + 1;
+  let st = s.__traitTips;
+  if (!st) {
+    st = s.__traitTips = { list: new Set(), tip: null, badge: null };
+    const hide = () => {
+      st.tip?.destroy();
+      st.tip = null;
+      st.badge = null;
+    };
+    const visible = (o) => {
+      for (let p = o; p; p = p.parentContainer) if (!p.visible || p.alpha === 0) return false;
+      return true;
+    };
+    const inMask = (o, x, y) => {
+      for (let p = o.parentContainer; p; p = p.parentContainer) if (p.maskRect) { const m = p.maskRect; return x >= m.x && x <= m.x + m.w && y >= m.y && y <= m.y + m.h; }
+      return true;
+    };
+    const blocked = () => s.tut?.open || s.hud?.menu || s.hud?.popup || s.menu;
+    const check = (p) => {
+      const x = p.worldX, y = p.worldY;
+      let hit = null;
+      if (!blocked()) {
+        for (const b of st.list) {
+          if (!b.active) { st.list.delete(b); continue; }
+          if (!visible(b)) continue;
+          const c = b.getWorldTransformMatrix().transformPoint(0, 0);
+          if ((x - c.x) ** 2 + (y - c.y) ** 2 <= b.tipR * b.tipR && inMask(b, x, y)) hit = b; // 나중에 만든 것(위에 그려진 것) 우선
+        }
+      }
+      if (hit === st.badge) return;
+      hide();
+      if (hit) {
+        st.badge = hit;
+        st.tip = traitTipBox(s, hit);
+      }
+    };
+    s.input.on('pointermove', check);
+    s.input.on('pointerdown', check);
+    s.events.once('shutdown', () => {
+      hide();
+      s.__traitTips = null;
+    });
+    st.check = check;
+  }
+  st.list.add(badge);
+}
+
+/** 이름 툴팁 상자: 배지 위(자리가 없으면 아래) — '전사 · 계열' */
+function traitTipBox(s, badge) {
+  const t = TRAITS[badge.tipKey];
+  const c0 = badge.getWorldTransformMatrix().transformPoint(0, 0);
+  const label = uiText(s, 0, 0, `${t.name} · ${t.kind === 'class' ? '계열' : '출신'}`, 12, CSS.ink, 'bold').setOrigin(0.5);
+  const w = Math.ceil(label.width + 24);
+  const h = 28;
+  const W = s.scale.width / s.cameras.main.zoom;
+  const x = Math.round(Math.min(W - 6 - w / 2, Math.max(6 + w / 2, c0.x)));
+  let y = Math.round(c0.y - badge.tipR - 6 - h / 2);
+  if (y - h / 2 < 4) y = Math.round(c0.y + badge.tipR + 6 + h / 2);
+  const box = s.add.container(x, y, [panelImage(s, 0, 0, 'strip', w, h), label]).setDepth(5000);
+  box.auditOk = true; // 잠깐 뜨는 툴팁 (ui-audit 제외)
+  return box;
 }

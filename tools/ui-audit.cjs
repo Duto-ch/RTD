@@ -122,7 +122,7 @@ async function audit(page) {
         // 가운데 정렬 글자는 패널 가운데와 비교 (패널 안에 혼자 있을 때만 의미가 있어 버튼에서 따로 본다)
       }
       for (const u of texts) {
-        if (u === t || u.sceneKey !== t.sceneKey || u.o.depth !== t.o.depth) continue;
+        if (u === t || u.sceneKey !== t.sceneKey || depthOf(u.o) !== depthOf(t.o)) continue;
         const inter = Phaser.Geom.Rectangle.Intersection(b, u.b);
         if (inter.width > 3 && inter.height > 3 && texts.indexOf(u) > texts.indexOf(t)) issues.push({ kind: 'overlap', at: `${name(t)} × ${name(u)}`, box: R(inter) });
       }
@@ -215,7 +215,9 @@ const go = (p, key, data) =>
 const SCREENS = [
   ['title', async (p) => {}],
   ['lobby', (p) => go(p, 'Lobby')],
+  ['lobby-menu', (p) => p.evaluate(() => window.game.scene.getScene('Lobby').toggleMenu())], // ESC 메뉴 (2026-11-22)
   ['deck', (p) => go(p, 'Deck')],
+  ['deck-trait', (p) => p.evaluate(() => { const d = window.game.scene.getScene('Deck'); d.filter.trait = 'warrior'; d.refresh(); })], // 시너지 필터 (2026-11-22)
   ['tavern', (p) => go(p, 'Tavern')],
   ['workshop', async (p) => { await p.evaluate(() => { const m = window.__rtd.meta; m.data.relics = { hero_sword: 2, war_drum: 1 }; m.data.equipped = ['hero_sword']; }); await go(p, 'Workshop'); }],
   ['game', async (p) => { await go(p, 'Game'); await p.waitForTimeout(3500); }],

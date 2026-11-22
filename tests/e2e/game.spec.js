@@ -1805,3 +1805,45 @@ test('영지 (2026-11-22): 사용자 배경 그림 · 메뉴 버튼 오른쪽 �
   expect(back[back.length - 1]).toBe(0);
   expect(errors).toEqual([]);
 });
+
+test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 시너지 필터 · 영지 ESC 메뉴 → 게임 종료는 완전히 끝냄', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => { window.__rtd.meta.reset(); window.game.scene.getScene('Title').scene.start('Deck'); });
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await page.waitForTimeout(400);
+  // 병영 시너지 필터: 전사를 누르면 전사 계열만, 다시 누르면 해제
+  const all = await game(page, () => window.game.scene.getScene('Deck').visible.length);
+  await page.mouse.click(16 + 13, 160);
+  const r = await game(page, () => { const d = window.game.scene.getScene('Deck'); return { n: d.visible.length, ok: d.visible.every((c) => c.cls === 'warrior' || c.origin === 'warrior'), f: d.filter.trait }; });
+  expect(r.f).toBe('warrior');
+  expect(r.ok).toBe(true);
+  expect(r.n).toBeLessThan(all);
+  // 마우스를 올리면 이름 툴팁
+  await page.mouse.move(16 + 13 + 42, 160);
+  const tip = await game(page, () => { const st = window.game.scene.getScene('Deck').__traitTips; return st?.tip ? st.tip.list.find((o) => o.type === 'Text').text : null; });
+  expect(tip).toBe('사수 · 계열');
+  await page.mouse.move(272, 900);
+  expect(await game(page, () => !!window.game.scene.getScene('Deck').__traitTips?.tip)).toBe(false);
+  await page.mouse.click(16 + 13, 160);
+  expect(await game(page, () => window.game.scene.getScene('Deck').filter.trait)).toBe(null);
+  // 영지 ESC 메뉴
+  await game(page, () => { window.game.scene.getScene('Deck').scene.start('Lobby'); });
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Escape');
+  expect(await game(page, () => !!window.game.scene.getScene('Lobby').menu)).toBe(true);
+  await page.screenshot({ path: SHOT('51-lobby-menu') });
+  await page.keyboard.press('Escape');
+  expect(await game(page, () => !!window.game.scene.getScene('Lobby').menu)).toBe(false);
+  await page.keyboard.press('Escape');
+  // 게임 종료: 두 번 눌러야 — 끝나면 게임이 멈추고 안내 화면
+  const q = await game(page, () => { const b = window.game.scene.getScene('Lobby').menu.quitBtn; return { x: b.x, y: b.y }; });
+  await page.mouse.click(q.x, q.y);
+  expect(await page.locator('#rtd-quit').count()).toBe(0);
+  await page.mouse.click(q.x, q.y);
+  await page.waitForSelector('#rtd-quit', { timeout: 3000 });
+  expect(errors).toEqual([]);
+});

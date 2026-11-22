@@ -10,6 +10,7 @@ import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Kinetic } from '../ui/kinetic.js';
 import { slideTo } from '../ui/slide.js';
+import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 
 // 로비 = 용병단 영지. 메뉴: 성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용) · 유물 공방(마정석 유물 생산·장착). 출전은 아래 덱 줄의 버튼
 // 2026-11-22 사용자 결정: 배경 = 사용자 그림(해 질 녘 호숫가 성, public/assets/lobby/lobby_tall.png — 272x480, 2px 도트로 줄임)
@@ -42,11 +43,27 @@ export class LobbyScene extends Phaser.Scene {
     this.createTop();
     SPOTS.forEach((id, i) => this.createSpot(id, i));
     this.createDeckStrip();
-    this.input.keyboard?.on('keydown-ENTER', () => this.go('Game'));
-    this.input.keyboard?.on('keydown-SPACE', () => this.go('Game'));
+    this.input.keyboard?.on('keydown-ENTER', () => !this.menu && this.go('Game'));
+    this.input.keyboard?.on('keydown-SPACE', () => !this.menu && this.go('Game'));
+    // ESC 메뉴 (2026-11-22 사용자 요청): 볼륨·음소거·튜토리얼 + 게임 종료(영지에서는 게임을 완전히 끝냄)
+    this.menu = null;
+    this.input.keyboard?.on('keydown-ESC', () => this.toggleMenu());
+  }
+
+  toggleMenu() {
+    if (this.menu) return this.closeMenu();
+    if (this.leaving || this.sliding) return;
+    audio.init();
+    this.menu = openSettingsMenu(this, { onClose: () => this.closeMenu(), onQuit: () => quitApp(this.game) });
+  }
+
+  closeMenu() {
+    this.menu?.destroy(true);
+    this.menu = null;
   }
 
   go(scene, data) {
+    if (this.menu) return;
     if (this.leaving || this.sliding) return; // 영지가 아직 밀려 들어오는 중이면 무시
     this.leaving = true;
     audio.init();

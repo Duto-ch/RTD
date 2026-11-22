@@ -8,7 +8,7 @@ import { meta } from '../systems/meta.js';
 import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_RULES, DEFAULT_DECK, TRAIT_TEXT, deckValid } from '../data/roster.js';
 import { describeSkill } from '../data/skills.js';
 import { starSkill } from '../data/stars.js';
-import { TRAITS } from '../data/synergy.js';
+import { TRAITS, CLASS_IDS, ORIGIN_IDS } from '../data/synergy.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Kinetic } from '../ui/kinetic.js';
 import { slideTo } from '../ui/slide.js';
@@ -18,7 +18,7 @@ import { slideTo } from '../ui/slide.js';
 
 const L = WIDE
   ? { grid: { x: 16, y: 128, w: 840, h: 576 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 } }
-  : { grid: { x: 12, y: 158, w: 520, h: 470 }, cols: 4, cardH: 86, info: { x: 12, y: 640, w: 520, h: 252 }, deck: null };
+  : { grid: { x: 12, y: 192, w: 520, h: 436 }, cols: 4, cardH: 86, info: { x: 12, y: 640, w: 520, h: 252 }, deck: null, synY: 160 }; // 2026-11-22: 시너지 필터 줄(y 160) 자리만큼 격자를 내림
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
@@ -33,7 +33,7 @@ export class DeckScene extends Phaser.Scene {
     hiRes(this);
     meta.load();
     this.deck = [...meta.deck];
-    this.filter = { show: 'all', grade: 0 };
+    this.filter = { show: 'all', grade: 0, trait: null };
     this.selected = ROSTER_BY_ID[this.deck[0]] || ROSTER[0];
     this.scrollY = 0;
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x123b3a).setOrigin(0);
@@ -89,6 +89,43 @@ export class DeckScene extends Phaser.Scene {
       b.kind = ['grade', v];
       this.chipBtns.push(b);
       gx += w + 6;
+    }
+    this.createTraitFilter();
+  }
+
+  /** 시너지(계열 6 · 출신 6) 상징으로 거르기 (2026-11-22 사용자 요청) — 누르면 그 시너지 캐릭터만, 한 번 더 누르면 해제 */
+  createTraitFilter() {
+    if (WIDE) return; // 가로 배치는 꺼져 있다
+    const y = L.synY;
+    const r = 12;
+    const step = 42;
+    this.traitBtns = [];
+    [...CLASS_IDS, ...ORIGIN_IDS].forEach((k, i) => {
+      const x = 16 + r + 1 + i * step + (i >= CLASS_IDS.length ? 14 : 0); // 계열 6 | 출신 6 사이를 조금 더 띄움
+      const holder = this.add.container(x, y);
+      holder.setSize(2 * r + 6, 2 * r + 6).setInteractive({ useHandCursor: true });
+      holder.on('pointerup', () => {
+        this.filter.trait = this.filter.trait === k ? null : k;
+        this.scrollY = 0;
+        this.refresh();
+      });
+      holder.traitId = k;
+      this.traitBtns.push(holder);
+    });
+  }
+
+  /** 시너지 필터 상징 다시 그리기: 고른 것은 자홍 고리, 하나를 고르면 나머지는 옅게 */
+  drawTraitFilter() {
+    if (!this.traitBtns) return;
+    for (const h of this.traitBtns) {
+      h.removeAll(true);
+      const k = h.traitId;
+      const on = !this.filter.trait || this.filter.trait === k;
+      h.add(traitBadge(this, 0, 0, k, 12, on));
+      if (this.filter.trait === k) {
+        const ring = this.add.graphics().lineStyle(3, SELECT_COLOR, 1).strokeCircle(0, 0, 16);
+        h.add(ring);
+      }
     }
   }
 
@@ -154,7 +191,8 @@ export class DeckScene extends Phaser.Scene {
     const G = L.grid;
     this.gridC.removeAll(true);
     const f = this.filter.show;
-    const list = ROSTER.filter((c) => (f === 'all' || (f === 'owned' ? this.owned(c.id) : this.deck.includes(c.id))) && (!this.filter.grade || c.grade === this.filter.grade))
+    const tf = this.filter.trait;
+    const list = ROSTER.filter((c) => (f === 'all' || (f === 'owned' ? this.owned(c.id) : this.deck.includes(c.id))) && (!this.filter.grade || c.grade === this.filter.grade) && (!tf || c.cls === tf || c.origin === tf))
       .sort((a, b) => (this.owned(b.id) ? 1 : 0) - (this.owned(a.id) ? 1 : 0) || b.grade - a.grade || a.cls.localeCompare(b.cls) || a.origin.localeCompare(b.origin));
     this.visible = list;
     const cw = G.w / L.cols;
@@ -310,6 +348,7 @@ export class DeckScene extends Phaser.Scene {
       b.setAlpha(on ? 1 : 0.62);
       b.bg.setTint(on ? 0xd9f0c8 : 0xffffff);
     }
+    this.drawTraitFilter();
     this.drawGrid();
     this.drawInfo();
     this.drawDeck();
