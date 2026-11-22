@@ -1570,3 +1570,29 @@ test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대�
   await page.screenshot({ path: SHOT('48-reserve') });
   expect(errors).toEqual([]);
 });
+
+test('성벽 체력 피해 자국 (2026-11-22): 맞으면 줄어든 만큼 붉게 남았다가 천천히 새 위치까지 줄어든다 · 회복은 바로', async ({ page }) => {
+  const errors = await startGame(page);
+  const r0 = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.wallHp -= 30;
+    g.refreshHud();
+    const h = g.hud;
+    return { shown: h.hpShown, trail: h.hpTrail, tween: !!h.hpTrailTween };
+  });
+  expect(r0.shown).toBeCloseTo(50 / 80, 3);
+  expect(r0.trail).toBe(1); // 바로는 붉은 자국이 남는다
+  expect(r0.tween).toBe(true);
+  await page.waitForFunction(() => !window.game.scene.getScene('Game').hud.hpTrailTween, null, { timeout: 5000 });
+  const r1 = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    const after = h.hpTrail;
+    g.wallHp = 80;
+    g.refreshHud();
+    return { after, healed: h.hpTrail };
+  });
+  expect(r1.after).toBeCloseTo(50 / 80, 3); // 자국이 새 위치까지 따라왔다
+  expect(r1.healed).toBe(1); // 회복은 자국 없이 바로
+  expect(errors).toEqual([]);
+});
