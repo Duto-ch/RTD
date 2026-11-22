@@ -37,11 +37,17 @@ async function audit(page) {
       for (const o of list) {
         if (!visible(o)) continue;
         if (o.type === 'Container' && o.auditBox && !o.auditOk) {
-          // 도형 배지 컨테이너(시너지 상징 등): 상자 하나로 본다
+          // 도형 배지 컨테이너(시너지 상징 등): 상자 하나로 본다. auditRest = 통통 튀는 배지 — 커지기 전(배율 1) 크기로 본다
           const m0 = o.getWorldTransformMatrix();
-          const p0 = m0.transformPoint(o.auditBox.x, o.auditBox.y);
-          const p1 = m0.transformPoint(o.auditBox.x + o.auditBox.w, o.auditBox.y + o.auditBox.h);
-          const b = new Phaser.Geom.Rectangle(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+          let b;
+          if (o.auditRest) {
+            const c0 = m0.transformPoint(0, 0);
+            b = new Phaser.Geom.Rectangle(c0.x + o.auditBox.x, c0.y + o.auditBox.y, o.auditBox.w, o.auditBox.h);
+          } else {
+            const p0 = m0.transformPoint(o.auditBox.x, o.auditBox.y);
+            const p1 = m0.transformPoint(o.auditBox.x + o.auditBox.w, o.auditBox.y + o.auditBox.h);
+            b = new Phaser.Geom.Rectangle(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+          }
           const m = maskBounds(o);
           if (!m || Phaser.Geom.Rectangle.ContainsRect(m, b)) panels.push({ o, sceneKey, b, mark: true });
           continue;
@@ -213,7 +219,8 @@ const SCREENS = [
   ['tavern', (p) => go(p, 'Tavern')],
   ['workshop', async (p) => { await p.evaluate(() => { const m = window.__rtd.meta; m.data.relics = { hero_sword: 2, war_drum: 1 }; m.data.equipped = ['hero_sword']; }); await go(p, 'Workshop'); }],
   ['game', async (p) => { await go(p, 'Game'); await p.waitForTimeout(3500); }],
-  ['game-select', (p) => p.evaluate(() => { const g = window.game.scene.getScene('Game'); g.gold = 999; g.hire('isolde'); g.select(g.mercs[0]); })],
+  // 용병 카드: 아이템 3개(상징 배지 옆 여백) + 살 수 있는 강화 노드("!" 배지와 이웃 버튼 여백) (2026-11-22)
+  ['game-select', (p) => p.evaluate(() => { const g = window.game.scene.getScene('Game'); g.gold = 999; window.__rtd.meta.addFame(500); g.hire('isolde'); const m = g.mercs[0]; m.items = ['whet', 'feath', 'mana']; m.drawPips(); g.select(m); g.refreshHud(); })],
   ['game-menu', (p) => p.evaluate(() => { const g = window.game.scene.getScene('Game'); g.select(null); g.hud.toggleMenu(); })],
   ['upgrade', async (p) => { await p.evaluate(() => window.__rtd.meta.addFame(500)); await go(p, 'Upgrade', { from: 'lobby' }); }]
 ];

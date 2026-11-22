@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, WIDE } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, CSS } from '../ui/theme.js';
+import { panel, uiText, CSS, traitBadge } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_RULES, DEFAULT_DECK, TRAIT_TEXT, deckValid } from '../data/roster.js';
@@ -19,6 +19,9 @@ const L = WIDE
   ? { grid: { x: 16, y: 128, w: 840, h: 576 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 } }
   : { grid: { x: 12, y: 158, w: 520, h: 470 }, cols: 4, cardH: 86, info: { x: 12, y: 640, w: 520, h: 252 }, deck: null };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
+
+/** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
+const SELECT_COLOR = 0xd94fa0;
 
 export class DeckScene extends Phaser.Scene {
   constructor() {
@@ -123,7 +126,9 @@ export class DeckScene extends Phaser.Scene {
       this.kin.up(p.upTime);
       if (!d || d.moved) return;
       const card = this.cardAt(p.worldX, p.worldY);
-      if (card) this.select(card);
+      // 고른 카드를 한 번 더 누르면 덱에 넣기·빼기 (2026-11-22 사용자 요청)
+      if (card && card === this.selected) this.toggle(card);
+      else if (card) this.select(card);
     });
     this.input.on('wheel', (p, _o, _dx, dy) => {
       if (p.worldX >= G.x && p.worldX <= G.x + G.w && p.worldY >= G.y && p.worldY <= G.y + G.h) this.kin.scrollBy(dy * 0.6);
@@ -161,15 +166,17 @@ export class DeckScene extends Phaser.Scene {
       const sel = this.selected === c;
       const g = this.add.graphics();
       g.fillStyle(inDeck ? 0xfff6dc : 0xe7dcbb, 1).fillRoundedRect(x, y, w, L.cardH, 12);
-      g.lineStyle(sel ? 4 : 3, sel ? 0xf2c14e : GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, w, L.cardH, 12);
+      g.lineStyle(3, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, w, L.cardH, 12);
+      // 고른 카드 (2026-11-22): 등급 테두리는 그대로 두고 바깥에 자홍 테두리 — 금색이면 유니크 등급 테두리와 구분이 안 됐다
+      if (sel) g.lineStyle(3, SELECT_COLOR, 1).strokeRoundedRect(x - 2.5, y - 2.5, w + 5, L.cardH + 5, 14);
       if (!inDeck) g.fillStyle(0x0b2f2e, own ? 0.22 : 0.5).fillRoundedRect(x, y, w, L.cardH, 12);
       const img = charImage(this, x + 28, y + L.cardH / 2 + 2, c, 2.5);
       if (!own) img.setTint(0x30403c);
       const nm = uiText(this, x + 52, y + 14, c.name, 13, CSS.ink, 'bold');
       const gr = uiText(this, x + 52 + (inDeck ? 18 : 0), y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
-      const st = uiText(this, x + 52, y + 52, own ? `${TRAITS[c.cls].name}·${TRAITS[c.origin].name}` : '술집에서 고용', 11, CSS.sub, '600');
-      this.fit(st, w - 56);
-      this.gridC.add([g, img, nm, gr, st]);
+      this.gridC.add([g, img, nm, gr]);
+      // 계열·출신 상징 (2026-11-22 사용자 요청: 상점 카드와 같은 시너지 그림 — 글자 줄 대신). 고용 전이면 옅게
+      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, x + 52 + 9 + j * 22, y + 63, k, 8, own)));
       const enh = meta.enhance(c.id);
       if (enh) this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `+${enh}`, 11, CSS.primary, 'bold').setOrigin(1, 1));
       if (inDeck) {
@@ -215,9 +222,11 @@ export class DeckScene extends Phaser.Scene {
     const col = c.grade === 4 ? '#b47a12' : CSS.primary;
     const head = charImage(this, I.x + 34, I.y + 36, c, 3);
     const nm = uiText(this, I.x + 64, I.y + 14, `${c.name}  ·  ${c.title}`, 16.5, col, 'bold');
+    this.fit(nm, I.w - 80 - 52); // 오른쪽에 상징 배지 2개 자리
+    const by = Math.round(nm.y + nm.height / 2);
+    [c.cls, c.origin].forEach((k, j) => this.info.add(traitBadge(this, Math.round(nm.x + nm.width + 8 + 9 + j * 22), by, k, 8)));
     const enh = meta.enhance(c.id);
     const sub = uiText(this, I.x + 64, I.y + 38, `${GRADES[c.grade].name} · ${TRAITS[c.cls].name} · ${TRAITS[c.origin].name} · ${STYLES[c.style].name} (공격력 ${+(STYLES[c.style].dmg * GRADES[c.grade].mult).toFixed(1)} · 공속 ${STYLES[c.style].rate} · 사거리 ${STYLES[c.style].range})${enh ? ` · 강화 +${enh}` : ''}`, 11, CSS.sub, '600');
-    this.fit(nm, I.w - 80);
     this.fit(sub, I.w - 80);
     this.info.add([head, nm, sub]);
     let y = I.y + 64;

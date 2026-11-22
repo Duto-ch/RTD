@@ -1692,3 +1692,69 @@ test('성벽 체력 피해 자국 (2026-11-22): 맞으면 줄어든 만큼 붉�
   expect(r1.healed).toBe(1); // 회복은 자국 없이 바로
   expect(errors).toEqual([]);
 });
+
+test('2026-11-22 화면 점검: 용병 카드 아이템은 상징 배지와 안 겹침 · 카드가 닫히면 아이템 툴팁도 닫힘 · 대기석 캐릭터는 칸 테두리로 등급 표시', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const h = g.hud;
+    g.gold = 999;
+    g.hire('isolde');
+    const m = g.mercs[0];
+    m.items = ['whet', 'feath'];
+    g.select(m);
+    const icons = h.itemRow.list;
+    const firstLeft = icons[0].x - 6; // 아이템 그림 12x12 (툴팁과 같은 크기, 2026-11-22)
+    const badgeRight = h.infoBadgeRight;
+    // 아이템 아이콘에 마우스 → 툴팁, 화면을 여러 번 새로 그려도 아이콘이 그대로 (툴팁이 남지 않게)
+    icons[0].emit('pointerover');
+    const tip1 = !!h.relicTip;
+    for (let i = 0; i < 5; i++) g.refreshHud();
+    const same = h.itemRow.list[0] === icons[0];
+    g.select(null); // 카드 닫기
+    const tipAfter = !!h.relicTip;
+    return { gap: firstLeft - badgeRight, tip1, same, tipAfter };
+  });
+  expect(r.gap).toBeGreaterThanOrEqual(4);
+  expect(r.tip1).toBe(true);
+  expect(r.same).toBe(true);
+  expect(r.tipAfter).toBe(false);
+  // 대기석: 필드를 채우고 하나 더 사면 대기석 — 발밑 고리 대신 칸 테두리
+  const q = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const ids = window.__rtd.ROSTER.filter((c) => c.grade === 1).map((c) => c.id);
+    ids.slice(0, 3).forEach((id) => g.hire(id));
+    g.shop[0] = { id: ids[4], sold: false, locked: false };
+    g.buy(0);
+    const u = g.reserve.find(Boolean);
+    return { reserved: !!u?.reserved, drawn: u?.drawnReserved };
+  });
+  expect(q.reserved).toBe(true);
+  expect(q.drawn).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리 · 카드마다 계열·출신 상징 · 고른 카드를 한 번 더 누르면 덱에서 빼기/넣기', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await game(page, () => { window.__rtd.meta.reset(); window.game.scene.getScene('Title').scene.start('Deck'); });
+  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await page.waitForTimeout(400);
+  // 첫 카드 자리 (격자 왼쪽 위)
+  const pos = await game(page, () => { const d = window.game.scene.getScene('Deck'); const c = d.visible[0]; return { id: c.id, inDeck: d.deck.includes(c.id), badges: d.gridC.list.filter((o) => o.auditBox && o.type === 'Container').length }; });
+  expect(pos.badges).toBeGreaterThanOrEqual(2 * 8); // 보이는 카드마다 상징 2개
+  const tap = () => page.mouse.click(12 + 60, 158 + 6 + 40);
+  await tap(); // 고르기
+  const s1 = await game(page, () => { const d = window.game.scene.getScene('Deck'); return { sel: d.selected?.id, n: d.deck.length }; });
+  expect(s1.sel).toBe(pos.id);
+  await tap(); // 한 번 더 → 덱에서 빼기
+  const s2 = await game(page, (id) => window.game.scene.getScene('Deck').deck.includes(id), pos.id);
+  expect(s2).toBe(!pos.inDeck);
+  await tap(); // 또 한 번 → 다시 넣기
+  const s3 = await game(page, (id) => window.game.scene.getScene('Deck').deck.includes(id), pos.id);
+  expect(s3).toBe(pos.inDeck);
+  await page.screenshot({ path: SHOT('50-deck-select') });
+  expect(errors).toEqual([]);
+});
