@@ -600,14 +600,14 @@ export class Hud {
   }
 
   /** 아이템 그림: 재료는 색 칸 + 글자, 조합품은 두 재료 색 반반 + 금 테두리, 문장은 시너지 색 방패 */
-  itemIcon(id, x, y, size = 30) {
+  itemIcon(id, x, y, size = 30, px = UI_PX) {
     // 아이템 그림 (2026-11-21): 12x12 전용 도트 그림(docs/drafts/item-icons/items.py → item_<id>)을 2px 로. 칸 배경: 조합품은 금 테두리
     const s = this.s;
     const it = ITEM_BY_ID[id];
     const c = s.add.container(x, y);
     // 2026-11-21 사용자 요청: 아이콘 외곽(칸 배경·테두리) 제거 — 그림만. 누르는 영역은 그림 크기
     c.setSize(size, size);
-    if (s.textures.exists(`item_${id}`)) c.add(s.add.image(0, 0, `item_${id}`).setScale(UI_PX));
+    if (s.textures.exists(`item_${id}`)) c.add(s.add.image(0, 0, `item_${id}`).setScale(px));
     else c.add(uiText(s, 0, 0, it.glyph || it.name[0], 13, CSS.ink, 'bold').setOrigin(0.5));
     return c;
   }
@@ -931,10 +931,11 @@ export class Hud {
     this.itemRow.removeAll(true);
     const badgeRight = this.infoBadgeRight ?? this.infoTitle.x + this.infoTitle.width;
     m.items.forEach((id, i) => {
-      const ic = this.itemIcon(id, Math.round(badgeRight + 8 + 12 + i * 28), Math.round(this.infoTitle.y + this.infoTitle.height / 2), 22);
-      ic.setSize(24, 24).setInteractive();
-      ic.auditBox = { x: -12, y: -12, w: 24, h: 24 }; // tools/ui-audit.cjs 여백 검사
-      ic.on('pointerover', () => this.showItemTip(id, ic.x, ic.y, 12));
+      // 2026-11-22 사용자 요청: 툴팁 속 그림과 같은 크기(12x12, 아트 1px = 화면 1px)로, 상징 배지와 12px 띄움
+      const ic = this.itemIcon(id, Math.round(badgeRight + 12 + 6 + i * 18), Math.round(this.infoTitle.y + this.infoTitle.height / 2), 12, 1);
+      ic.setSize(18, 18).setInteractive();
+      ic.auditBox = { x: -6, y: -6, w: 12, h: 12 }; // tools/ui-audit.cjs 여백 검사
+      ic.on('pointerover', () => this.showItemTip(id, ic.x, ic.y, 6));
       ic.on('pointerout', () => this.hideRelicTip());
       this.itemRow.add(ic);
     });
