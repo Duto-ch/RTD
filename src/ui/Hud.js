@@ -770,7 +770,7 @@ export class Hud {
         pill.auditBox = { x: -15, y: -15, w: pw, h: 30 }; // tools/ui-audit.cjs 여백 검사
         c.add(pill);
       }
-      c.add(traitBadge(s, 0, 0, k, 10, on)); // r10: 알약 안쪽·숫자와 4px 이상 (여백 필수 규칙)
+      c.add(traitBadge(s, 0, 0, k, 10, on, { tip: false })); // 칩은 자기 시너지 툴팁이 따로 있다 // r10: 알약 안쪽·숫자와 4px 이상 (여백 필수 규칙)
       const label = next ? `${n}/${next.n}` : `${n}`;
       if (WIDE) {
         c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
