@@ -58,7 +58,7 @@ export const HUD = WIDE
       relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
       // 2026-11-21 사용자 요청: 아래 시트 폭 = 위 카드 폭(12~532), 버튼 줄 높이 56 → 46 (위아래 여백 12)
       dark: { x: 12, y: 776, w: GAME_W - 24, h: 176 },
-      shop: { x: 20, y: 786, w: GAME_W - 40, h: 96 }, // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
+      shop: { x: 20, y: 782, w: GAME_W - 40, h: 96 }, // 2026-11-22: 786 → 782 (아래 "!" 배지와 4px 이상) // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
       estate: { x: 280, y: 917, w: 188, h: 46 }, // 버튼 가운데
       reroll: { x: 453, y: 917, w: 142, h: 46 },
       small: { y: 917, xs: [45, 99, 153], w: 50, h: 46 }, // 배속(→정지) · 메뉴 · 강화
@@ -571,6 +571,11 @@ export class Hud {
     }
   }
 
+  /** 대기석 칸 크기 (Mercenary 가 등급색 테두리를 그릴 때) */
+  get reserveSlot() {
+    return HUD.reserve?.slot;
+  }
+
   /** 대기석 i 칸 가운데 */
   reservePos(i) {
     const R = HUD.reserve;
@@ -820,7 +825,10 @@ export class Hud {
     const s = this.s;
     const x = SM.xs[2], y = SM.y;
     this.upgradeBtn = new Button(s, x, y, SM.w, SM.h, '강화', () => s.openUpgrades(), { variant, icon: 'tower', fontSize });
-    this.upgradeBadge = s.add.container(x + SM.w / 2 - 4, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
+    // 쉬는 크기에서 오른쪽 이웃(영지 버튼)·위 상점 칸과 4px 이상 (2026-11-22) — 톡 커질 때만 잠깐 가까워진다
+    this.upgradeBadge = s.add.container(x + SM.w / 2 - 10, y - SM.h / 2 + 2).setDepth(DEPTH.ui + 2).setVisible(false);
+    this.upgradeBadge.auditBox = { x: -13.5, y: -13.5, w: 27, h: 27 }; // tools/ui-audit.cjs 여백 검사 (쉬는 크기 기준)
+    this.upgradeBadge.auditRest = true;
     // 느낌표 배지 (2026-11-21: 더 크게 r 12, 느낌표는 글자 대신 굵은 도형 — 막대 4x10 + 점 4x4)
     const mark = s.add.graphics();
     mark.fillStyle(0x3a2608, 1).fillRoundedRect(-2, -9, 4, 11, 1.5).fillRect(-2, 4, 4, 4);
@@ -843,7 +851,7 @@ export class Hud {
     this.infoAvatar = panelImage(s, B.x + 40, B.y + B.h / 2, 'soft', 56, 56);
     this.infoPortrait = s.add.sprite(B.x + 40, B.y + B.h / 2, 'pixel').setScale(PX - 1);
     this.infoTitle = uiText(s, B.x + 80, B.y + (WIDE ? 5 : 8), '', 15, CSS.ink, 'bold');
-    this.infoSub = uiText(s, B.x + 80, B.y + (WIDE ? 27 : 31), '', 12, CSS.sub, 'bold');
+    this.infoSub = uiText(s, B.x + 80, B.y + (WIDE ? 27 : 33), '', 12, CSS.sub, 'bold');
     this.infoBody = uiText(s, B.x + 80, B.y + 52, '', 12, CSS.ink, 'bold');
     this.manaBar = s.add.graphics();
     const bx = B.x + B.w - 64;
@@ -866,7 +874,12 @@ export class Hud {
     if (!m) s.selected = null;
     this.shopBox.setVisible(!m);
     this.infoBox.setVisible(!!m);
-    if (!m) return;
+    if (!m) {
+      // 카드가 닫히면 카드 아이템 툴팁도 닫는다 (pointerout 없이 남아 상점 칸을 가리던 문제, 2026-11-22)
+      if (this.infoItemKey) this.hideRelicTip();
+      this.infoItemKey = null;
+      return;
+    }
     const B = HUD.shop;
     const st = m.getStats(s.relics, s.gameTime);
     this.infoAvatar.setTexture(panelKey(s, m.isHero ? 'gold' : 'soft', 56, 56));
@@ -882,6 +895,7 @@ export class Hud {
       const bx0 = this.infoTitle.x + this.infoTitle.width + 6 + 9;
       this.infoBadges = s.add.container(0, 0);
       [m.char.cls, m.char.origin].forEach((k, j) => this.infoBadges.add(traitBadge(s, bx0 + j * 22, by, k, 8)));
+      this.infoBadgeRight = bx0 + 22 + 9; // 두 번째 배지 오른쪽 끝 (외곽선 포함)
       this.infoBox.add(this.infoBadges);
     }
     this.infoSub.setText(`${m.gradeName} · ${m.roleName} · ${STYLES[m.char.style].name}${m.reserved ? ' · 대기석' : m.isFront ? ' · 전열' : ' · 후열'}`);
@@ -897,7 +911,7 @@ export class Hud {
     const mx = B.x + 80, my = B.y + B.h - 18, mw = Math.min(200, textW - 4);
     g.fillStyle(0xd9cdb2, 1).fillRoundedRect(mx, my, mw, 8, 4);
     g.fillStyle(0x4a8fe8, 1).fillRoundedRect(mx, my, Math.max(8, (mw * m.mana) / m.maxMana), 8, 4);
-    this.infoBody.setY(B.y + (WIDE ? 45 : 50)); // 가로(높이 84)는 줄마다 4px 여백이 남게 촘촘히
+    this.infoBody.setY(B.y + (WIDE ? 45 : 51)); // 가로(높이 84)는 줄마다 4px 여백이 남게 촘촘히
     if (!this.manaText) {
       this.manaText = uiText(s, 0, 0, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5);
       this.infoBox.add(this.manaText);
@@ -905,11 +919,21 @@ export class Hud {
     this.manaText.setPosition(mx + mw + 8, my + 4).setText(`${Math.floor(m.mana)}/${m.maxMana} 「${m.def.name}」`);
     this.fitText(this.manaText, textW - mw - 8);
     this.sellBtn.setLabel(`판매 +${Math.floor(m.invested * s.sellRefund)}G`);
-    // 아이템 칸 (최대 3) — 마우스를 올리면 효과
+    // 아이템 칸 (최대 3) — 마우스를 올리면 효과. 상징 배지 오른쪽(4px 이상)에, 바뀔 때만 다시 만든다
+    //   (매번 다시 만들면 올려 둔 아이콘이 사라져 pointerout 이 안 와 툴팁이 남았다, 2026-11-22)
+    const iKey = `${m.char.id}|${m.star}|${this.infoTitle.text}|${m.items.join(',')}|${m.x},${m.y}`;
+    if (this.infoItemKey === iKey) {
+      this.toolBtn.setVisible(s.tools > 0 && m.items.length > 0);
+      return;
+    }
+    this.infoItemKey = iKey;
+    this.hideRelicTip();
     this.itemRow.removeAll(true);
+    const badgeRight = this.infoBadgeRight ?? this.infoTitle.x + this.infoTitle.width;
     m.items.forEach((id, i) => {
-      const ic = this.itemIcon(id, this.infoTitle.x + this.infoTitle.width + 18 + i * 26, B.y + 21, 22);
+      const ic = this.itemIcon(id, Math.round(badgeRight + 8 + 12 + i * 28), Math.round(this.infoTitle.y + this.infoTitle.height / 2), 22);
       ic.setSize(24, 24).setInteractive();
+      ic.auditBox = { x: -12, y: -12, w: 24, h: 24 }; // tools/ui-audit.cjs 여백 검사
       ic.on('pointerover', () => this.showItemTip(id, ic.x, ic.y, 12));
       ic.on('pointerout', () => this.hideRelicTip());
       this.itemRow.add(ic);
