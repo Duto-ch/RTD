@@ -990,6 +990,29 @@ test('유니크 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 (2026-11
   expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeGreaterThan(0.95);
   expect(errors).toEqual([]);
 });
+test('웨이브 끝 상점 갱신 소리 + 배경음 50% = 예전 20% 크기 (2026-11-22)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    let n = 0;
+    const o = a.shopRefresh.bind(a);
+    a.shopRefresh = () => { n += 1; o(); };
+    g.startWave(1);
+    for (let i = 0; i < 400 && (g.spawnQueue.length || !g.monsters.length); i++) g.updateWaves(0.05);
+    for (const m of g.monsters) { m.hp = 0; m.alive = false; }
+    g.cleanupMonsters();
+    g.update(0, 16); // 웨이브 클리어 판정 → 상점 새로 고침
+    const before = n;
+    a.setMusicVolume(0.5);
+    return { n: before, refreshed: g.shopRefreshed, gain50: a.music.gain.value };
+  });
+  expect(r.refreshed).toBe(true);
+  expect(r.n).toBe(1);
+  await page.waitForTimeout(200);
+  expect(await game(page, () => window.__rtd.audio.music.gain.value)).toBeCloseTo(0.28 * 0.2, 3); // 예전 MUSIC_GAIN 0.28 × 20%
+  expect(errors).toEqual([]);
+});
 test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 레어 9 · 유니크 3) → 저장 → 출전하면 그 덱에서만 상점에 나옴', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
