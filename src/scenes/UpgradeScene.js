@@ -7,6 +7,7 @@ import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
 import { meta } from '../systems/meta.js';
 import { audio } from '../systems/audio.js';
+import { slideTo } from '../ui/slide.js';
 
 // 명성 강화 화면: 가운데 뿌리에서 4갈래(공격 위·경제 오른쪽·전술 아래·방어 왼쪽)로 가지가 뻗는 스킬 노드 트리.
 // 노드를 누르면 아래 창에 정보가 나오고 "강화" 버튼으로 명성을 써서 1레벨 올린다.
@@ -148,10 +149,10 @@ export class UpgradeScene extends Phaser.Scene {
       this.input.keyboard?.on('keydown-ESC', () => this.close());
     } else if (WIDE) {
       new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => this.scene.start('Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+      new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
     } else {
       new Button(this, GAME_W / 2 - 92, 916, 236, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      new Button(this, GAME_W / 2 + 140, 916, 200, 60, '영지로', () => this.scene.start('Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+      new Button(this, GAME_W / 2 + 140, 916, 200, 60, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
     }
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
@@ -162,7 +163,7 @@ export class UpgradeScene extends Phaser.Scene {
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
   close() {
-    if (!this.scene.isPaused('Game')) return this.scene.start('Lobby'); // 돌아갈 전투가 없으면 영지로
+    if (!this.scene.isPaused('Game')) return slideTo(this, 'Lobby', undefined, -1); // 돌아갈 전투가 없으면 영지로 (옆으로 밀기)
     this.scene.stop();
     this.scene.resume('Game');
   }
