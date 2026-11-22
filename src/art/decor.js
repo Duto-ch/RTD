@@ -1,0 +1,37 @@
+import { DOT, DEPTH } from '../config.js';
+import { DECOR } from '../data/decor.js';
+import { setArt } from '../systems/customArt.js';
+
+/**
+ * 지역 배경 장식(바람에 흔들리는 나무 등, 2026-11-21)을 놓는다. 그림이 없으면(manifest 미적용) 아무것도 안 한다.
+ * 정지·배속은 장면의 anims(pauseAll·globalTimeScale)를 따른다. 반환: 놓은 스프라이트 배열
+ */
+export function addBiomeDecor(scene, biomeId, alpha = 1) {
+  const out = [];
+  for (const d of DECOR[biomeId] || []) {
+    if (!scene.textures.exists(d.key)) continue;
+    const s = scene.add.sprite(d.x, d.y, d.key);
+    setArt(s, d.key, DOT);
+    if (d.flip) { // 좌우 뒤집기 — 밑동(pivot)이 같은 자리에 오도록 origin 도 뒤집는다
+      const cd = s.texture.customData || {};
+      s.setFlipX(true);
+      if (cd.frameWidth && cd.pivotX != null) s.setOrigin((cd.frameWidth - cd.pivotX) / cd.frameWidth, s.originY);
+    }
+    s.setDepth(DEPTH.bg + 0.8 + d.y / 100000).setAlpha(alpha); // 아래쪽 나무가 앞에
+    const anim = `${d.key}:sway`;
+    if (scene.anims.exists(anim)) {
+      s.play(anim);
+      s.anims.setProgress(d.phase || 0);
+    }
+    out.push(s);
+  }
+  return out;
+}
+
+/** 지역이 바뀔 때: 옛 장식은 서서히 사라지고 새 장식이 서서히 나타난다 */
+export function swapBiomeDecor(scene, old, biomeId, duration = 1200) {
+  for (const s of old || []) scene.tweens.add({ targets: s, alpha: 0, duration, onComplete: () => s.destroy() });
+  const next = addBiomeDecor(scene, biomeId, 0);
+  if (next.length) scene.tweens.add({ targets: next, alpha: 1, duration });
+  return next;
+}
