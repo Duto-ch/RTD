@@ -257,6 +257,11 @@ export class UpgradeScene extends Phaser.Scene {
     return meta.status(u.id) === 'locked' ? 'locked' : 'open';
   }
 
+  /** 보이는 노드 (2026-11-23 사용자 요청): 부모를 배우기 전의 잠긴 노드는 선·노드 모두 숨긴다 — 배우면 바로 아래 노드가 나타난다 */
+  isShown(u) {
+    return this.nodeState(u) !== 'locked';
+  }
+
   redraw() {
     this.fameText.setText(`명성 ${meta.fame.toLocaleString()}`);
     const best = meta.data.best;
@@ -272,16 +277,27 @@ export class UpgradeScene extends Phaser.Scene {
       const a = this.pos[u.parent];
       const b = this.pos[u.id];
       const st = this.nodeState(u);
+      if (st === 'locked') continue; // 숨긴 노드
       const color = BRANCH_BY_ID[u.branch].color;
-      if (st === 'locked') L.lineStyle(2, 0x3a3f55, 1);
-      else if (st === 'open') L.lineStyle(2, color, 0.45);
+      if (st === 'open') L.lineStyle(2, color, 0.45);
       else L.lineStyle(3, color, 1);
       L.lineBetween(a.x, a.y, b.x, b.y);
     }
 
     // 노드
     this.nodeLayer.removeAll(true);
-    for (const u of UPGRADES) this.drawNode(u);
+    const prev = this.shownIds;
+    this.shownIds = new Set();
+    for (const u of UPGRADES) {
+      if (!this.isShown(u)) continue;
+      this.shownIds.add(u.id);
+      const parts = this.drawNode(u);
+      // 새로 열린 노드는 서서히 나타남 (처음 그릴 때는 바로)
+      if (prev && !prev.has(u.id)) {
+        for (const o of parts) o.setAlpha?.(0);
+        this.tweens.add({ targets: parts.filter((o) => o.setAlpha), alpha: 1, duration: 320, ease: 'Sine.Out' });
+      }
+    }
     this.drawRing();
     this.refreshDetail();
   }
@@ -317,6 +333,7 @@ export class UpgradeScene extends Phaser.Scene {
     });
     parts.push(hit);
     this.nodeLayer.add(parts);
+    return parts;
   }
 
   drawRing() {

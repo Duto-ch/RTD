@@ -398,15 +398,16 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   const at = async (id) => { const p = await game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id); return { x: p.x * UI, y: p.y * UI }; };
   const bb = await game(page, () => { const b = window.game.scene.getScene('Upgrade').buyBtn; return { x: b.x, y: b.y }; });
   const buy = { x: bb.x * UI, y: bb.y * UI };
-  // 잠긴 노드(단련된 무기)는 뿌리를 배우기 전엔 강화 불가
-  let p = await at('atk');
-  await page.mouse.click(p.x, p.y);
-  await page.mouse.click(buy.x, buy.y);
-  expect(await game(page, () => window.__rtd.meta.level('atk'))).toBe(0);
+  // 잠긴 노드는 숨김 (2026-11-23): 뿌리를 배우기 전엔 뿌리만 보이고, 배우면 바로 아래 노드(단련된 무기 등)가 나타난다
+  const shown = () => game(page, () => [...window.game.scene.getScene('Upgrade').shownIds]);
+  expect(await shown()).toEqual(['origin']);
+  let p;
   // 뿌리 → 단련된 무기 순서로 강화
   p = await at('origin');
   await page.mouse.click(p.x, p.y);
   await page.mouse.click(buy.x, buy.y);
+  expect(await shown()).toContain('atk');
+  expect((await shown()).length).toBeGreaterThan(1);
   p = await at('atk');
   await page.mouse.click(p.x, p.y);
   await page.mouse.click(buy.x, buy.y);
