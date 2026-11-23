@@ -198,7 +198,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     if (sig === this.synSig) return;
     this.synSig = sig;
     this.synMarks.removeAll(true);
-    keys.slice(0, SYN_MARK.max).forEach((k, i) => this.synMarks.add(traitBadge(this.scene, SYN_MARK.x, SYN_MARK.y + i * SYN_MARK.step, k, SYN_MARK.r)));
+    keys.slice(0, SYN_MARK.max).forEach((k, i) => this.synMarks.add(traitBadge(this.scene, SYN_MARK.x, SYN_MARK.y + i * SYN_MARK.step, k, SYN_MARK.r, true, { world: true })));
   }
 
   preDestroy() {

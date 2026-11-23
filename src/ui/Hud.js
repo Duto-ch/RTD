@@ -6,7 +6,7 @@ import { GAME_W, GAME_H, PX, UI_PX, UI_SCALE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE
 import { charImage } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
-import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, C, CSS, ATTR_CSS_DARK } from './theme.js';
+import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, discImage, pillImage, C, CSS, ATTR_CSS_DARK } from './theme.js';
 export { traitBadge };
 import { describeSkill } from '../data/skills.js';
 import { STYLES, TRAIT_TEXT, GRADES, ROSTER_BY_ID } from '../data/roster.js';
@@ -189,7 +189,7 @@ export class Hud {
     this.relicLabel = null;
     this.relicRow = s.add.container(0, 0).setDepth(D);
     // 빈 유물 자리 4칸 (점선 대신 옅은 칸)
-    this.relicEmpty = [0, 1, 2, 3].map((i) => panelImage(s, this.relicPos(i, 4).x, cy, 'soft', 28, 28).setDepth(D - 1));
+    this.relicEmpty = [0, 1, 2, 3].map((i) => panelImage(s, this.relicPos(i, 4).x, cy, 'round', 28, 28).setDepth(D - 1));
     this.noRelicText = { setVisible: () => {} };
     // 시너지 목록 (왼쪽 세로 카드)
     const SY = HUD.syn;
@@ -203,10 +203,9 @@ export class Hud {
   createHpBar(D, fontSize) {
     const s = this.s;
     const B = HUD.hp;
-    this.hpBg = s.add.graphics().setDepth(D);
-    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px)
-    this.hpBg.fillStyle(0x5a3f20, 1).fillRoundedRect(B.x, B.y, B.w, B.h, B.h / 2);
-    this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, B.w - HP_LINE * 2, B.h - HP_LINE * 2, (B.h - HP_LINE * 2) / 2);
+    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px) — 2026-11-23: 홈은 미리 그린 알약 (곡선이 고르게)
+    this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x3a2a18, 0x5a3f20, HP_LINE).setDepth(D);
+    this.hpBg.layerName = '체력 막대 홈';
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
     this.hpHeart = s.add.graphics();
@@ -567,7 +566,7 @@ export class Hud {
     this.benchRow.removeAll(true);
     for (let i = 0; i < ITEM_RULES.bench; i++) {
       const p = this.benchPos(i);
-      this.benchRow.add(panelImage(s, p.x, p.y, 'soft', 32, 32));
+      this.benchRow.add(panelImage(s, p.x, p.y, 'round', 32, 32)); // 동그란 칸 (2026-11-23: 반지름 14 의 둥근 네모 → 원)
     }
     s.bench.forEach((id, i) => {
       const p = this.benchPos(i);
@@ -702,9 +701,9 @@ export class Hud {
       const c = s.add.container(x, y);
       // 켜진 시너지는 연두 알약으로 강조 (2026-11-21 Stitch 시안)
       if (on) {
-        const pill = s.add.graphics();
+        // 2026-11-23: 미리 그린 알약 (테두리 화면 2px — 예전 1.5 → 1.5배 2.25px 로 곡선 굵기가 들쭉날쭉)
         const pw = 188;
-        pill.fillStyle(0xd8fcb4, 1).fillRoundedRect(-15, -15, pw, 30, 15).lineStyle(1.5, 0x56743f, 1).strokeRoundedRect(-15, -15, pw, 30, 15);
+        const pill = s.add.container(0, 0, [pillImage(s, -15 + pw / 2, 0, pw, 30, 0xd8fcb4, 0x56743f)]);
         pill.auditBox = { x: -15, y: -15, w: pw, h: 30 }; // tools/ui-audit.cjs 여백 검사
         c.add(pill);
       }
@@ -763,9 +762,13 @@ export class Hud {
     this.upgradeBadge.auditBox = { x: -13.5, y: -13.5, w: 27, h: 27 }; // tools/ui-audit.cjs 여백 검사 (쉬는 크기 기준)
     this.upgradeBadge.auditRest = true;
     // 느낌표 배지 (2026-11-21: 더 크게 r 12, 느낌표는 글자 대신 굵은 도형 — 막대 4x10 + 점 4x4)
-    const mark = s.add.graphics();
-    mark.fillStyle(0x3a2608, 1).fillRoundedRect(-2, -9, 4, 11, 1.5).fillRect(-2, 4, 4, 4);
-    this.upgradeBadge.add([s.add.circle(0, 0, 12, 0xffd36a).setStrokeStyle(3, 0x3a2608), mark]);
+    // 2026-11-23: 원·느낌표를 미리 그린 그림 하나로 (곡선이 고르게)
+    const disc = discImage(s, 0, 0, {
+      id: 'upgrade_badge', r: 12, fill: 0xffd36a, line: 0x3a2608, lw: 8 / 3,
+      draw: (ctx) => { ctx.fillStyle = '#3a2608'; ctx.beginPath(); ctx.roundRect(-2, -9, 4, 11, 1.5); ctx.fill(); ctx.fillRect(-2, 4, 4, 4); }
+    });
+    disc.layerName = '느낌표 배지';
+    this.upgradeBadge.add(disc);
     // 스케일 팝 반복 (2026-11-19): 1.3초마다 톡 커졌다 돌아온다. 배속·정지와 상관없이 실제 시간으로 돈다
     const badge = this.upgradeBadge;
     const pop = () => {

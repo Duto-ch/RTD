@@ -261,3 +261,4 @@
 - 2026-11-22 전투 위·아래 바를 화면 좌우 끝까지 (둥근 모서리 없이 화면 끝에 붙임, `theme.edgeBar` — 위 바 높이 72, 아래 독 y 610~) (`feature/pc-1080`)
 - 2026-11-22 전투 화면을 레이어별 PSD 로 뽑는 도구 (`tools/export-psd.cjs` + `make-psd.py`, 게임 `?transparent=1`) — 사용자 요청 (`feature/pc-1080`)
 - 2026-11-22 UI 선명도: 카드·버튼 판을 RES×1.5 해상도로 · 도형 가장자리 안티에일리어싱(antialiasGL, pixelArt 끔 — 도트는 nearest 그대로) · PSD 도구를 낱개 레이어(약 200장 · 그룹 96)로 (`feature/pc-1080`)
+- 2026-11-23 곡선 UI 고침 (사용자 요청): 원·알약·고리를 거리 계산으로 칠한 텍스처로(`discImage`·`pillImage`·`ringImage` — 좌우·상하 정확히 대칭), 아이콘은 안쪽 원으로 잘라 그림, 아이템 칸 진짜 원, 알약 테두리 화면 2px · ui-audit 에 곡선 UI 8배 확대 그림 · e2e 대칭 검사. 도트 스타일 UI 는 폐기 (`feature/pc-1080`)

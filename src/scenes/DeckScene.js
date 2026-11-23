@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, CSS, traitBadge } from '../ui/theme.js';
+import { panel, uiText, CSS, traitBadge, ringImage, discImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_RULES, DEFAULT_DECK, TRAIT_TEXT, deckValid } from '../data/roster.js';
@@ -122,8 +122,7 @@ export class DeckScene extends Phaser.Scene {
       const on = !this.filter.trait || this.filter.trait === k;
       h.add(traitBadge(this, 0, 0, k, 12, on));
       if (this.filter.trait === k) {
-        const ring = this.add.graphics().lineStyle(3, SELECT_COLOR, 1).strokeCircle(0, 0, 16);
-        h.add(ring);
+        h.add(ringImage(this, 0, 0, 16, 3, SELECT_COLOR)); // 미리 그린 고리 (2026-11-23)
       }
     }
   }
@@ -218,12 +217,13 @@ export class DeckScene extends Phaser.Scene {
       const enh = meta.enhance(c.id);
       if (enh) this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `+${enh}`, 11, CSS.primary, 'bold').setOrigin(1, 1));
       if (inDeck) {
-        const chk = this.add.graphics();
-        // 덱 표시 = 등급 글자 앞 작은 체크 (2026-11-21: 오른쪽 위에 두면 이름과 붙어 이름 줄 앞으로 옮김)
+        // 덱 표시 = 등급 글자 앞 작은 체크 (2026-11-21: 오른쪽 위에 두면 이름과 붙어 이름 줄 앞으로 옮김) — 2026-11-23 미리 그린 원
         const cx = x + 59, cy = Math.round(gr.y + gr.height / 2);
-        chk.fillStyle(0x3f9a5a, 1).fillCircle(cx, cy, 7);
-        chk.lineStyle(2, 0xffffff, 1).beginPath().moveTo(cx - 4, cy).lineTo(cx - 1, cy + 3).lineTo(cx + 4, cy - 3).strokePath();
-        chk.auditBox = { x: cx - 7, y: cy - 7, w: 14, h: 14 }; // tools/ui-audit.cjs 여백 검사용
+        const chk = this.add.container(cx, cy, [discImage(this, 0, 0, {
+          id: 'deck_check', r: 7, fill: 0x3f9a5a,
+          draw: (ctx) => { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-1, 3); ctx.lineTo(4, -3); ctx.stroke(); }
+        })]);
+        chk.auditBox = { x: -7, y: -7, w: 14, h: 14 }; // tools/ui-audit.cjs 여백 검사용
         this.gridC.add(chk);
       }
     });

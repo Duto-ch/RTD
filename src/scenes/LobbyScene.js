@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, C, coverImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, C, coverImage, discImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
@@ -78,9 +78,7 @@ export class LobbyScene extends Phaser.Scene {
     const H = 52;
     const nameW = 230;
     panel(this, 16, 14, nameW, H, 'strip');
-    const crest = this.add.graphics();
-    crest.fillStyle(0xf2c14e, 1).fillCircle(44, 40, 18).lineStyle(2, 0xa8801c, 1).strokeCircle(44, 40, 18);
-    drawIcon(crest, 'crown', 44, 40, 14, 0x6b4505);
+    discImage(this, 44, 40, { r: 18, fill: 0xf2c14e, line: 0xa8801c, lw: 2, icon: 'crown', iconColor: 0x6b4505 }); // 미리 그린 원 (2026-11-23)
     uiText(this, 70, 22, '용병단 영지', 16.5, CSS.ink, 'bold');
     uiText(this, 70, 46, `최고 기록 WAVE ${best}`, 11, CSS.sub, '600');
 
@@ -95,9 +93,7 @@ export class LobbyScene extends Phaser.Scene {
       const x = GAME_W - 16 - (cur.length - i) * w - (cur.length - 1 - i) * gap;
       const y = 14;
       panel(this, x, y, w, H, 'strip');
-      const g = this.add.graphics();
-      g.fillStyle(col, 1).fillCircle(x + 26, y + H / 2, 16);
-      drawIcon(g, icon, x + 26, y + H / 2, 12, 0xffffff);
+      discImage(this, x + 26, y + H / 2, { r: 16, fill: col, icon });
       uiText(this, x + 50, y + 8, n.toLocaleString(), 16.5, CSS.ink, 'bold');
       uiText(this, x + 50, y + 31, label, 11, CSS.sub, '600');
     });
@@ -115,12 +111,8 @@ export class LobbyScene extends Phaser.Scene {
     const ty = MENU.top + h / 2 + i * (h + MENU.gap);
     const c = this.add.container(Math.round(tx), Math.round(ty)); // 가운데 기준 (눌림 효과가 가운데로 줄어들게)
     c.add(panel(this, -w / 2, -h / 2, w, h, 'menu'));
-    const g = this.add.graphics();
     const ix = -w / 2 + 26;
-    g.fillStyle(0x6b4e2a, 1).fillCircle(ix, 0, 18);
-    g.fillStyle(0x1f6f66, 1).fillCircle(ix, 0, 15);
-    drawIcon(g, icon, ix, 0, 12, 0xfff3c4);
-    c.add(g);
+    c.add(discImage(this, ix, 0, { r: 16.5, fill: 0x1f6f66, line: 0x6b4e2a, lw: 3, icon, iconColor: 0xfff3c4 })); // 바깥 18 · 안 15 (2026-11-23 미리 그린 원)
     t1.setPosition(ix + 24, -h / 2 + 7);
     t2.setPosition(ix + 24, -h / 2 + 30);
     c.add([t1, t2]);
@@ -128,8 +120,7 @@ export class LobbyScene extends Phaser.Scene {
     if (id === 'tower') {
       const n = UPGRADES.filter((u) => meta.status(u.id) === 'ok').length;
       if (n) {
-        const b = this.add.graphics();
-        b.fillStyle(0xd9603f, 1).fillCircle(w / 2 - 4, -h / 2 + 4, 11).lineStyle(2, 0xfff3dc, 1).strokeCircle(w / 2 - 4, -h / 2 + 4, 11);
+        const b = discImage(this, w / 2 - 4, -h / 2 + 4, { r: 11, fill: 0xd9603f, line: 0xfff3dc, lw: 2 });
         c.add([b, uiText(this, w / 2 - 4, -h / 2 + 4, String(n), 11, '#ffffff', 'bold').setOrigin(0.5)]);
       }
     }

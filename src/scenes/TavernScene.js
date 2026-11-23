@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, discImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER_BY_ID, GRADES, STYLES, TRAIT_TEXT } from '../data/roster.js';
@@ -46,9 +46,7 @@ export class TavernScene extends Phaser.Scene {
     const x = GAME_W - 16 - w;
     const y = 16;
     this.stoneBox.add(panel(this, x, y, w, 40, 'strip'));
-    const g = this.add.graphics();
-    g.fillStyle(0x2fbfb2, 1).fillCircle(x + 22, y + 20, 13);
-    drawIcon(g, 'gem', x + 22, y + 20, 10, 0xffffff);
+    const g = discImage(this, x + 22, y + 20, { r: 13, fill: 0x2fbfb2, icon: 'gem' }); // 미리 그린 원 (2026-11-23)
     this.stoneBox.add([g, uiText(this, x + 42, y + 20, meta.stones.toLocaleString(), 16.5, CSS.ink, 'bold').setOrigin(0, 0.5), uiText(this, x + w - 14, y + 20, '마정석', 11, CSS.sub, '600').setOrigin(1, 0.5)]);
   }
 

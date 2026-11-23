@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, DOT } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, panelImage, uiText, drawIcon, CSS } from '../ui/theme.js';
+import { panel, panelImage, uiText, drawIcon, CSS, discImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { metaBonus } from '../data/upgrades.js';
@@ -46,9 +46,7 @@ export class WorkshopScene extends Phaser.Scene {
     const x = GAME_W - 16 - w;
     const y = 16;
     this.stoneBox.add(panel(this, x, y, w, 40, 'strip'));
-    const g = this.add.graphics();
-    g.fillStyle(0x2fbfb2, 1).fillCircle(x + 22, y + 20, 13);
-    drawIcon(g, 'gem', x + 22, y + 20, 10, 0xffffff);
+    const g = discImage(this, x + 22, y + 20, { r: 13, fill: 0x2fbfb2, icon: 'gem' }); // 미리 그린 원 (2026-11-23)
     this.stoneBox.add([g, uiText(this, x + 42, y + 20, meta.stones.toLocaleString(), 16.5, CSS.ink, 'bold').setOrigin(0, 0.5), uiText(this, x + w - 14, y + 20, '마정석', 11, CSS.sub, '600').setOrigin(1, 0.5)]);
   }
 
@@ -95,9 +93,7 @@ export class WorkshopScene extends Phaser.Scene {
       hit.on('pointerup', () => this.select(r.id));
       this.gridBox.add([g, icon, t, hit]);
       if (eq.includes(r.id)) {
-        const chk = this.add.graphics();
-        chk.fillStyle(0x3f9a5a, 1).fillCircle(x + cw / 2 - 14, y - L.cell / 2 + 14, 8);
-        this.gridBox.add(chk);
+        this.gridBox.add(discImage(this, x + cw / 2 - 14, y - L.cell / 2 + 14, { r: 8, fill: 0x3f9a5a })); // 미리 그린 원 (2026-11-23)
       }
     });
   }

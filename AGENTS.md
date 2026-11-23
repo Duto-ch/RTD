@@ -8,7 +8,7 @@
 - Phaser **3** API만 쓴다 (Phaser 4 문법 금지). 물리 엔진 없이 이동·충돌을 직접 계산한다
 - **PC 1920x1080 한 벌 (2026-11-22)** — 좌표가 두 가지다: **월드 좌표**(`WORLD_W`x`WORLD_H` 1920x1080: 배경·필드·몬스터·용병·이펙트, 도트 2px)와 **UI 좌표**(`GAME_W`x`GAME_H` 1280x720: HUD·창·로비 등 — `UI_SCALE` 1.5배로 그려 UI 도트는 3px). 월드 = UI × 1.5 (`toWorld`·`toUi`). 캔버스는 1920x1080 × `RES`(정수, 1080p 1·4K 2). UI 장면은 `create()` 첫 줄 `hiRes(this)`(zoom RES×1.5), 전투 장면은 `splitCams(this)` — 카메라 4개가 **깊이로** 나눠 그린다: 100 미만 = 월드, 이상 = UI(`DEPTH.overlay-1` 이상은 창 카메라). 용병처럼 깊이가 높아도 월드 좌표인 물체는 `worldLayer = true`(`src/systems/hires.js`). **전투 장면 포인터는 `p.worldX` 를 쓰지 말고 `worldPoint(scene, p)`(전장)·`uiPoint(scene, p)`(HUD)·`pointerFor(scene, obj, p)`** — `p.worldX` 는 마지막에 맞은 카메라 좌표라 섞인다. 모든 `add.text` 는 `main.js` 가 `TEXT_RES`·`crispFontSize()` 로 맞춘다
 - UI 글꼴 썬플라워·고운돋움은 **게임에 쓰는 글자만 서브셋** — 새 한글 문구를 넣으면 `src` 글자를 모아 `pyftsubset` 으로 `public/assets/fonts/` 를 다시 만들 것 (안 하면 글자가 빠져 보인다)
-- UI 는 `COZY`(B-2 카드형, 기본 true) — `src/ui/theme.js` 의 `panel()`·`uiText()`·`drawIcon()` 등과 `Button` variant 를 쓴다. HUD 배치는 `Hud.js` 의 `HUD` (UI 좌표)
+- UI 는 `COZY`(B-2 카드형, 기본 true) — `src/ui/theme.js` 의 `panel()`·`uiText()`·`drawIcon()` 등과 `Button` variant 를 쓴다. **원·알약·고리는 `add.graphics().fillCircle` 대신 `discImage`·`pillImage`·`ringImage`**(화면 해상도로 거리 계산해 칠한 텍스처 — 도형 명령 원은 곡선이 고르지 않다, e2e 가 대칭 검사). HUD 배치는 `Hud.js` 의 `HUD` (UI 좌표)
 - 그림은 기본이 코드 생성(`src/art/`), `public/assets/custom/manifest.json` 에 적힌 PNG 가 같은 키를 대체한다(`src/systems/customArt.js`, 키 목록 `docs/CUSTOM_ART.md`). 유닛 그림을 바꿀 때는 `setArt(obj, key, 기본배율)`, 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')`. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영
 - 픽셀 격자: **모든 도트 그림은 아트 1px = 화면 2px (`DOT`, 2026-11-21)**. 코드로 그린 작은 텍스처를 크게 쓸 때는 `dotKey(scene, key, n)`/`dotImage()`(`src/art/textures.js`, Scale2x·3x 로 n배 해상도)로 만들어 배율 2 로 놓는다 — `setScale(PX)` 같은 4px·소수 배율 금지. `PX`(4)는 배치 단위로만 쓴다. 배경 좌표는 `toArt()` 로 픽셀 경계에 맞춘다. 필드는 레이어(`bg_<지역>` → `field_tile_*` → `field_wall`)를 `GameScene.createFieldLayers()` 가 쌓는다
 - 유닛은 몸 중심이 칸 가운데 — 직접 그린 그림은 manifest `pivotX`·`pivotY` 로 몸 중심을 적는다. 캐릭터 그림은 왼쪽을 보고(`facing: "left"`) 오른쪽 대상이면 반전된다
@@ -26,7 +26,7 @@
 - **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (테스트 화면은 Actions 결과의 `test-screens`)
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)`. `window.__rtd` 에 ROSTER·audio·setArt·setFacing·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 - 작업을 끝낼 때 Stop 훅(`.claude/hooks/missed-changes.py`)이 빠뜨린 후속 작업을 알린다 — 수동 확인 `python3 .claude/hooks/missed-changes.py --print`
-- `node tools/ui-audit.cjs` — UI 글자 정렬 점검 (1920x1080 한 화면, UI 좌표로 봄) (장면별 표 + `ui-audit/` 화면, 문제 글자에 빨간 상자)
+- `node tools/ui-audit.cjs` — UI 글자 정렬 점검 (1920x1080 한 화면, UI 좌표로 봄) (장면별 표 + `ui-audit/` 화면, 문제 글자에 빨간 상자) + **곡선 UI 8배 확대 그림** `ui-audit/pc-game-round.png`·`pc-lobby-round.png` (원·알약을 눈으로 확인)
 - `node tools/export-psd.cjs [폴더]` — 지금 전투 화면을 레이어로 나눈 PSD(1920x1080, 약 200장 — UI 는 글자·판·칸·아이콘·도형 낱개마다, 버튼·카드·배지는 그룹, 전장은 땅·나무·필드·몬스터·이펙트 한 장씩 + 용병 한 명씩) + 레이어 PNG. 레이어 이름은 HUD 속성명·`drawIcon` 이름·`layerName` 으로 붙는다. 먼저 빌드 + preview, `pip install psd-tools`. 게임을 `?transparent=1` 로 띄워 바탕을 투명하게 찍는다
 - `/graphify .` — 코드베이스 지식 그래프(`graphify-out/`, 커밋 안 함) · `/verify` — 작업 루프 한 번에
 - 음악 생성: 스킬 `acestep`(`.claude/skills/acestep/`) — 사용자 컴퓨터에서 `uv run acestep-api`(포트 8001)로 띄운 ACE-Step 1.5 를 부른다. 그 컴퓨터의 Claude Code 세션에서만 동작(클라우드 세션은 그 localhost 에 닿지 않음). 시안은 `docs/drafts/music/`

@@ -1901,3 +1901,38 @@ test('리롤 값 (2026-11-22): 리롤할 때마다 +10G · 웨이브 끝 상점 
   expect(r.label).toContain('40');
   expect(errors).toEqual([]);
 });
+
+test('곡선 UI (2026-11-23): 원·알약·배지는 화면 해상도로 미리 그린 그림 — 좌우·상하 대칭 · 아이템 칸은 진짜 원', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999; window.__rtd.meta.addFame(50);
+    for (let i = 0; i < 6; i++) g.levelUpEstate();
+    for (let k = 0; k < 3; k++) { for (let i = 0; i < 6; i++) g.buy(i); g.reroll(); }
+    g.giveItem('whet'); g.refreshHud();
+    // 원 그림 텍스처마다 알파(모양)가 좌우·상하로 거울처럼 같은지 (아이콘은 원 안이라 모양에 영향 없음)
+    const bad = [];
+    const keys = g.textures.getTextureKeys().filter((k) => k.startsWith('shape_'));
+    for (const k of keys) {
+      const src = g.textures.get(k).getSourceImage();
+      const ctx = src.getContext('2d');
+      const { width: w, height: h } = src;
+      const a = ctx.getImageData(0, 0, w, h).data;
+      let worst = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const v = a[(y * w + x) * 4 + 3];
+        worst = Math.max(worst, Math.abs(v - a[(y * w + (w - 1 - x)) * 4 + 3]), Math.abs(v - a[((h - 1 - y) * w + x) * 4 + 3]));
+      }
+      window.__symWorst = { ...(window.__symWorst || {}), [k]: worst };
+      if (worst > 2) bad.push(`${k}:${worst}`); // 거리로 직접 칠해 정확히 대칭 (브라우저 캔버스 곡선은 최대 67 차이가 났다)
+    }
+    const slot = g.textures.getTextureKeys().find((k) => /^cozy_round_32x32$/.test(k));
+    return { n: keys.length, bad, slot: !!slot, badgeImg: g.hud.upgradeBadge.list[0].type };
+  });
+  expect(r.n).toBeGreaterThan(10);
+  expect(r.bad).toEqual([]);
+  expect(r.slot).toBe(true); // 아이템 칸 = 'round' (정사각이면 원)
+  expect(r.badgeImg).toBe('Image'); // 느낌표 배지도 그림
+  await page.screenshot({ path: SHOT('52-round-ui') });
+  expect(errors).toEqual([]);
+});
