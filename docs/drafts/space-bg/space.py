@@ -5,6 +5,10 @@
 실행: python3 docs/drafts/space-bg/space.py → public/assets/upgrade/space_bg.png · meteor.png · twinkle.png
 """
 import math, os
+
+# 2026-11-23 사용자 요청: 고리 행성·나선 은하는 뺌 (켜려면 True)
+DRAW_GALAXY = False
+DRAW_PLANET = False
 import numpy as np
 from PIL import Image
 
@@ -89,42 +93,44 @@ img[dust] = np.array(NEB[-1], np.uint8)
 
 # 3) 나선 은하 (트리와 오른쪽 정보 창 사이 위쪽 — 오른쪽 1/3 은 창에 가려진다)
 gx, gy = 352, 58
-ang = -0.45
-dx, dy = XX - gx, YY - gy
-rx = dx * math.cos(ang) + dy * math.sin(ang)
-ry = (-dx * math.sin(ang) + dy * math.cos(ang)) / 0.55
-r = np.hypot(rx, ry)
-th = np.arctan2(ry, rx)
-arm = np.cos(2 * (th - np.log(r + 1) * 2.2)) * 0.5 + 0.5
-env = np.clip(1 - r / 60, 0, 1)
-gal = env ** 1.1 * (0.1 + 0.95 * arm ** 4) + np.clip(1 - r / 12, 0, 1) ** 1.4 * 1.0 + env ** 3 * 0.15
-gal = np.clip(gal * (0.75 + noise(8, 3, 5) * 0.5), 0, 1)
-ramp_fade(gal, GAL, 0.3)
-gdust = (rng.random((H, W)) > 0.97) & (gal > 0.3) & (gal < 0.8)
-img[gdust] = np.array(GAL[-2], np.uint8)
+if DRAW_GALAXY:
+    ang = -0.45
+    dx, dy = XX - gx, YY - gy
+    rx = dx * math.cos(ang) + dy * math.sin(ang)
+    ry = (-dx * math.sin(ang) + dy * math.cos(ang)) / 0.55
+    r = np.hypot(rx, ry)
+    th = np.arctan2(ry, rx)
+    arm = np.cos(2 * (th - np.log(r + 1) * 2.2)) * 0.5 + 0.5
+    env = np.clip(1 - r / 60, 0, 1)
+    gal = env ** 1.1 * (0.1 + 0.95 * arm ** 4) + np.clip(1 - r / 12, 0, 1) ** 1.4 * 1.0 + env ** 3 * 0.15
+    gal = np.clip(gal * (0.75 + noise(8, 3, 5) * 0.5), 0, 1)
+    ramp_fade(gal, GAL, 0.3)
+    gdust = (rng.random((H, W)) > 0.97) & (gal > 0.3) & (gal < 0.8)
+    img[gdust] = np.array(GAL[-2], np.uint8)
 
 # 4) 고리 행성 (왼쪽 위) — 고리 뒤쪽 → 행성 → 고리 앞쪽
 px0, py0, pr = 78, 38, 22
-rt = -0.28
-def ring_mask(front):
-    ddx, ddy = XX - px0, YY - py0
-    u = ddx * math.cos(rt) + ddy * math.sin(rt)
-    v = (-ddx * math.sin(rt) + ddy * math.cos(rt)) / 0.26
-    rr = np.hypot(u, v)
-    mm = ((rr > 30) & (rr < 34)) | ((rr > 35.5) & (rr < 41))
-    return mm & ((v > 0) if front else (v <= 0)), rr
-rm, rr = ring_mask(False)
-ringv = np.where(rr < 34.5, 0.75, 0.5)
-ramp(ringv, PLA, rm)
-pd = np.hypot(XX - px0, YY - py0)
-pm = pd <= pr
-lx, ly = -0.55, -0.6
-nz = np.sqrt(np.clip(1 - (pd / pr) ** 2, 0, 1))
-shade = np.clip(((XX - px0) / pr * lx + (YY - py0) / pr * ly + nz * 0.6) * 0.7 + 0.35, 0, 1)
-stripes = np.sin((YY - py0 + (XX - px0) * 0.28) * 0.55) * 0.08
-ramp(np.clip(shade + stripes, 0, 1), PLA, pm)
-rm, rr = ring_mask(True)
-ramp(np.where(rr < 34.5, 0.85, 0.62), PLA, rm)
+if DRAW_PLANET:
+    rt = -0.28
+    def ring_mask(front):
+        ddx, ddy = XX - px0, YY - py0
+        u = ddx * math.cos(rt) + ddy * math.sin(rt)
+        v = (-ddx * math.sin(rt) + ddy * math.cos(rt)) / 0.26
+        rr = np.hypot(u, v)
+        mm = ((rr > 30) & (rr < 34)) | ((rr > 35.5) & (rr < 41))
+        return mm & ((v > 0) if front else (v <= 0)), rr
+    rm, rr = ring_mask(False)
+    ringv = np.where(rr < 34.5, 0.75, 0.5)
+    ramp(ringv, PLA, rm)
+    pd = np.hypot(XX - px0, YY - py0)
+    pm = pd <= pr
+    lx, ly = -0.55, -0.6
+    nz = np.sqrt(np.clip(1 - (pd / pr) ** 2, 0, 1))
+    shade = np.clip(((XX - px0) / pr * lx + (YY - py0) / pr * ly + nz * 0.6) * 0.7 + 0.35, 0, 1)
+    stripes = np.sin((YY - py0 + (XX - px0) * 0.28) * 0.55) * 0.08
+    ramp(np.clip(shade + stripes, 0, 1), PLA, pm)
+    rm, rr = ring_mask(True)
+    ramp(np.where(rr < 34.5, 0.85, 0.62), PLA, rm)
 
 # 5) 달 (아래 가운데 오른쪽, 창에 안 가리는 곳)
 mx0, my0, mr = 372, 318, 13
@@ -139,7 +145,7 @@ ramp(sh, MOON, mm)
 
 # 6) 별 (행성·달·은하 중심 피해서)
 def free(x, y):
-    return np.hypot(x - px0, y - py0) > 48 and np.hypot(x - mx0, y - my0) > 20 and np.hypot(x - gx, y - gy) > 24
+    return (not DRAW_PLANET or np.hypot(x - px0, y - py0) > 48) and np.hypot(x - mx0, y - my0) > 20 and (not DRAW_GALAXY or np.hypot(x - gx, y - gy) > 24)
 def put(x, y, c):
     if 0 <= x < W and 0 <= y < H:
         img[y, x] = c
