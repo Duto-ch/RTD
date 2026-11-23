@@ -8,7 +8,7 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:4173',
-    viewport: { width: 544, height: 960 },
+    viewport: { width: 1920, height: 1080 }, // PC 1080p (2026-11-22)
     trace: 'off',
     screenshot: 'only-on-failure'
   },

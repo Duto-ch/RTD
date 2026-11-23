@@ -2,11 +2,11 @@
 // GameScene 은 게임 진행만 맡고, 화면 표시는 이 클래스에 맡긴다 (scene.hud).
 // 게임 상태는 읽기만 하고, 버튼을 누르면 scene 의 동작(hire, sell, callNextWave …)을 부른다.
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PX, UI_PX, WIDE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
+import { GAME_W, GAME_H, PX, UI_PX, UI_SCALE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
-import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, C, CSS, ATTR_CSS_DARK } from './theme.js';
+import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, discImage, pillImage, C, CSS, ATTR_CSS_DARK } from './theme.js';
 export { traitBadge };
 import { describeSkill } from '../data/skills.js';
 import { STYLES, TRAIT_TEXT, GRADES, ROSTER_BY_ID } from '../data/roster.js';
@@ -19,55 +19,44 @@ import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
 import { setArt, playBase } from '../systems/customArt.js';
 import { audio } from '../systems/audio.js';
+import { worldPoint, uiPoint, toUi } from '../systems/hires.js';
 
 // 몬스터 길 바깥 가장자리 (필드를 둘러싼 사각형)
-const RING = { x0: FIELD_X - PATH_OFF - PATH_WIDTH / 2, y0: FIELD_Y - PATH_OFF - PATH_WIDTH / 2, x1: FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2, y1: FIELD_Y + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2 };
+// 위·아래 바 = 화면 좌우 끝까지, 화면 끝은 각지게 (2026-11-22 사용자 요청)
+const HUD_TOP_H = 72;
+const HUD_DOCK_Y = 610;
+// 월드 좌표(전장) → UI 좌표 (2026-11-22 PC 전환: HUD 는 UI 좌표 1280x720)
+const RING = { x0: (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, y0: (FIELD_Y - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, x1: (FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) / UI_SCALE, y1: (FIELD_Y + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) / UI_SCALE };
 // 알림 띠 위치: 필드·몬스터 길 바깥의 빈 공간 가운데
 //  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
 //  가로(B-2): 위 알약 바(y 16~68)와 위쪽 길 사이 / 아래쪽 길과 아래 독(y 643~) 사이
-const TOP_BAND = WIDE ? [68, RING.y0] : [180, RING.y0];
-const BOTTOM_BAND = WIDE ? [RING.y1 - 8, 616] : null;
+const TOP_BAND = [HUD_TOP_H, RING.y0];
+const BOTTOM_BAND = [RING.y1 - 8, HUD_DOCK_Y];
 export const BANNER_Y = (TOP_BAND[0] + TOP_BAND[1]) / 2;
 // 세로 토스트 (2026-11-21): 아래 길 밑은 대기석 자리라 위 알림 띠(배너와 같은 줄)에 — 토스트가 떠 있는 동안 배너는 잠깐 숨는다
 export const TOAST_Y = BOTTOM_BAND ? (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2 : BANNER_Y;
 /** 배너·토스트 최대 너비: 세로는 화면 폭, 가로는 몬스터 길 사각형 폭 (가로 토스트는 독 바로 위) */
-const NOTICE_W = WIDE ? RING.x1 - RING.x0 + 24 : GAME_W - 24;
+const NOTICE_W = RING.x1 - RING.x0 + 24;
 
 /** HUD 배치. 세로 = 위 상태 창·유물 줄 + 아래 버튼·정보 창.
  *  가로(2026-11-15 B-2 포근한 카드형) = 위 가운데 알약 바(웨이브·타이머·골드·몬스터·유물) + 아래 가운데 독(용병 카드·고용·x1/정지/메뉴) */
-export const HUD = WIDE
-  ? {
-      top: { x: 150, y: 16, w: 980, h: 52 }, // 알약 바
-      cy: 42, // 알약 바 가운데 y
-      relic: { x: 990, y: 24, w: 132 }, // 유물 칸 4개 자리 (알약 바 오른쪽 끝)
-      hp: { x: 836, y: 29, w: 144, h: 26 }, // 성벽 체력 막대 (골드 오른쪽 ~ 유물 칸 왼쪽)
-      dark: { x: 150, y: 616, w: 980, h: 96 }, // 아래 독: 상점 6칸 + 영지·리롤 + 배속·메뉴·강화 (2026-11-21: 위 알약 바와 같은 폭 150~1130)
+export const HUD = {
+      top: { x: 0, y: 0, w: GAME_W, h: HUD_TOP_H }, // 위 바 (화면 위·좌우 끝에 붙음, 내용은 가운데 150~1130)
+      cy: HUD_TOP_H / 2, // 위 바 가운데 y
+      relic: { x: 990, y: HUD_TOP_H / 2 - 18, w: 132 }, // 유물 칸 4개 자리 (위 바 내용 오른쪽 끝)
+      hp: { x: 836, y: HUD_TOP_H / 2 - 13, w: 144, h: 26 }, // 성벽 체력 막대 (골드 오른쪽 ~ 유물 칸 왼쪽)
+      dark: { x: 0, y: HUD_DOCK_Y, w: GAME_W, h: GAME_H - HUD_DOCK_Y }, // 아래 독: 상점 6칸 + 영지·리롤 + 배속·메뉴·강화 (화면 아래·좌우 끝에 붙음, 내용은 가운데 150~1130)
       shop: { x: 172, y: 622, w: 612, h: 84 }, // 상점 칸 (선택한 용병이 있으면 그 자리에 용병 카드)
       estate: { x: 871, y: 645, w: 150, h: 42 }, // 버튼 가운데
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       syn: { x: 16, y: 84, w: 210, h: 372 }, // 시너지 목록 (왼쪽 세로)
-      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 487, w: 96, h: 30 }, tool: { x: 121, y: 590 } } // 아이템 띠 (5×2)
-    }
-  : {
-      top: { x: 12, y: 16, w: GAME_W - 24, h: 120 },
-      // B-2 세로(2026-11-16): 1줄 WAVE·타이머·바로 시작 / 2줄 골드·몬스터 수 / 진행 막대 / 맨 아래 지역·다음·최고 안내
-      line1: COZY ? 44 : 56, line2: COZY ? 44 : 56, line3: COZY ? 80 : 88, info: [34, 53], // 안내 두 줄 (남은 시간 알약 왼쪽, 2026-11-21)
-      hp: { x: 236, y: 66, w: GAME_W - 12 - 20 - 236, h: 28 }, // 성벽 체력 막대 (2026-11-21: 하트·숫자 + 얇은 막대 → 숫자를 가운데에 넣은 막대 하나)
-      timer: { x: GAME_W - 198, w: 86, h: 24 }, next: { x: GAME_W - 66, w: 68, h: 24 }, // 2026-11-21 작게 (Stitch 점검 뒤 76x30 으로 키웠다가 사용자 결정으로 다시 작게, 글자 12 유지)
-      relic: { x: 12, y: 142, w: GAME_W - 24 }, // 시너지 칩(왼쪽) + 유물 4칸(오른쪽)
-      // 2026-11-21 사용자 요청: 아래 시트 폭 = 위 카드 폭(12~532), 버튼 줄 높이 56 → 46 (위아래 여백 12)
-      dark: { x: 12, y: 776, w: GAME_W - 24, h: 176 },
-      shop: { x: 20, y: 782, w: GAME_W - 40, h: 96 }, // 2026-11-22: 786 → 782 (아래 "!" 배지와 4px 이상) // 상점 6칸 (선택한 용병이 있으면 그 자리에 용병 카드)
-      estate: { x: 280, y: 917, w: 188, h: 46 }, // 버튼 가운데
-      reroll: { x: 453, y: 917, w: 142, h: 46 },
-      small: { y: 917, xs: [45, 99, 153], w: 50, h: 46 }, // 배속(→정지) · 메뉴 · 강화
-      // 아이템 띠 (2026-11-21 사용자 결정: 위 카드 안 골드 줄 밑으로 — 원래 자리 몬스터 길 아래는 대기석)
-      bench: { x: 12, y: 94, w: GAME_W - 24, h: 40, inCard: true, smith: { x: 60, y: 114, w: 76, h: 26 }, tool: { x: 502, y: 114 } },
-      reserve: { x: 12, y: 712, w: GAME_W - 24, h: 58, slot: { x0: 64, step: 58, w: 54, h: 50 } } // 대기석 8칸 (몬스터 길 아래)
+      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 487, w: 96, h: 30 }, tool: { x: 121, y: 590 } }, // 아이템 띠 (5×2)
+      // 대기석 8칸 (2026-11-22 PC 전환): 오른쪽 칸(시너지 목록과 마주 보게) 4×2 — 칸 44x48 (월드 66x72, 용병 그림 48px)
+      reserve: { x: 1054, y: 84, w: 210, h: 152, cols: 4, title: true, slot: { x0: 1054 + 13, y0: 84 + 40, step: 48, stepY: 54, w: 44, h: 48 } }
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
-export const MODAL_W = WIDE ? 520 : GAME_W;
+export const MODAL_W = 520;
 
 /** 성벽 체력 막대 외곽 두께 */
 const HP_LINE = 4;
@@ -174,49 +163,7 @@ export class Hud {
 
   // ───────────────────────── 상단: 상태 창 + 유물 줄 ─────────────────────────
   createTop() {
-    if (WIDE) return this.createTopWide();
-    const s = this.s;
-    const D = DEPTH.ui;
-    // 상태 창 (높이 120) + 초록 제목 탭(웨이브)
-    const T = HUD.top;
-    const R = T.x + T.w; // 상태 창 오른쪽 끝
-    panel(s, T.x, T.y, T.w, T.h, 'card').setDepth(D - 1);
-    if (COZY) {
-      // 포근한 카드형: 제목 탭 대신 창 안 왼쪽 위에 큰 WAVE 글자, 안내 줄은 맨 아래
-      this.waveText = uiText(s, T.x + 20, HUD.line1, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
-      // 안내 두 줄 (2026-11-21 사용자 결정): 남은 시간 알약 왼쪽에 붙여 두 줄, 글자는 왼쪽 정렬 — 자리는 refresh 에서 맞춘다
-      this.waveTypeText = uiText(s, 0, HUD.info[0], '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
-      this.waveTypeText2 = uiText(s, 0, HUD.info[1], '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
-    } else {
-      const [tabImg, tabText] = titleTab(s, T.x + T.w / 2, T.y, 'WAVE 0', 220);
-      tabImg.setDepth(D);
-      this.waveText = tabText.setDepth(D);
-      this.waveTypeText = uiText(s, T.x + 20, HUD.line1, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
-    }
-
-    // 타이머 슬롯 + 바로 시작 버튼
-    // 타이머 칸과 버튼 사이 14px 띄움 (2026-11-15 간격 확보)
-    panel(s, HUD.timer.x, HUD.line2 - HUD.timer.h / 2, HUD.timer.w, HUD.timer.h, 'soft').setDepth(D);
-    const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', HUD.timer.x + 15, HUD.line2, 12, C.ink);
-    this.timerText = uiText(s, HUD.timer.x + 27, HUD.line2, '', 12, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, HUD.next.x, HUD.line2, HUD.next.w, HUD.next.h, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 });
-
-    // 골드 / 몬스터 수
-    const coin = s.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', T.x + 30, HUD.line3, 18, 0x6a4a10);
-    this.goldText = uiText(s, T.x + 46, HUD.line3, '', 22, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.createHpBar(D, 16.5);
-
-    // 시너지·유물 줄 (높이 40): 왼쪽 시너지 칩, 오른쪽 유물 4칸 (룰 v2)
-    const RL = HUD.relic;
-    panel(s, RL.x, RL.y, RL.w, 40, 'strip').setDepth(D - 1); // 얇은 테두리 → 아이콘 위아래 여백 (2026-11-15)
-    this.relicLabel = null;
-    this.relicRow = s.add.container(0, 0).setDepth(D);
-    this.relicEmpty = [0, 1, 2, 3].map((i) => panelImage(s, this.relicPos(i, 4).x, this.relicPos(i, 4).y, 'soft', 27, 27).setDepth(D - 1));
-    this.noRelicText = { setVisible: () => {} };
-    this.synRow = s.add.container(0, 0).setDepth(D);
-    this.noSynText = uiText(s, RL.x + 16, RL.y + 20, '시너지: 같은 계열·출신을 모으면 켜져요', 12, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
+    return this.createTopWide();
   }
 
   /** 가로 B-2: 위 가운데 알약 바 한 줄 — [WAVE n] [지역·다음·최고] | [시계 타이머] [바로 시작] [골드] [몬스터 수] [유물 칸] */
@@ -225,23 +172,24 @@ export class Hud {
     const D = DEPTH.ui;
     const T = HUD.top;
     const cy = HUD.cy;
-    panel(s, T.x, T.y, T.w, T.h, 'strip').setDepth(D - 1);
-    this.waveText = uiText(s, T.x + 28, cy, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.waveTypeText = uiText(s, T.x + 140, cy, '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
+    edgeBar(s, T.x, T.y, T.w, T.h, 'top').setDepth(D - 1);
+    const X0 = 150; // 내용 시작 (바는 화면 끝까지, 내용은 예전 알약 바 자리 150~1130)
+    this.waveText = uiText(s, X0 + 28, cy, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
+    this.waveTypeText = uiText(s, X0 + 140, cy, '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
     const sep = s.add.graphics().setDepth(D);
-    sep.fillStyle(C.line, 1).fillRect(T.x + 364, cy - 14, 2, 28);
+    sep.fillStyle(C.line, 1).fillRect(X0 + 364, cy - 14, 2, 28);
     const clock = s.add.graphics().setDepth(D);
-    drawIcon(clock, 'clock', T.x + 388, cy, 14, C.sub);
-    this.timerText = uiText(s, T.x + 402, cy, '', 12, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
-    this.nextWaveBtn = new Button(s, T.x + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 }); // 2026-11-21 작게 (이전 88x32, 74x30 은 되돌림)
+    drawIcon(clock, 'clock', X0 + 388, cy, 14, C.sub);
+    this.timerText = uiText(s, X0 + 402, cy, '', 12, CSS.ink, '600').setOrigin(0, 0.5).setDepth(D);
+    this.nextWaveBtn = new Button(s, X0 + 512, cy, 70, 26, '바로 시작', () => s.callNextWave(), { variant: 'primary', fontSize: 12 }); // 2026-11-21 작게 (이전 88x32, 74x30 은 되돌림)
     const coin = s.add.graphics().setDepth(D);
-    drawIcon(coin, 'coin', T.x + 586, cy, 16, 0x6a4a10);
-    this.goldText = uiText(s, T.x + 600, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
+    drawIcon(coin, 'coin', X0 + 586, cy, 16, 0x6a4a10);
+    this.goldText = uiText(s, X0 + 600, cy, '', 16.5, CSS.ink, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.createHpBar(D, 13);
     this.relicLabel = null;
     this.relicRow = s.add.container(0, 0).setDepth(D);
     // 빈 유물 자리 4칸 (점선 대신 옅은 칸)
-    this.relicEmpty = [0, 1, 2, 3].map((i) => panelImage(s, this.relicPos(i, 4).x, cy, 'soft', 28, 28).setDepth(D - 1));
+    this.relicEmpty = [0, 1, 2, 3].map((i) => panelImage(s, this.relicPos(i, 4).x, cy, 'round', 28, 28).setDepth(D - 1));
     this.noRelicText = { setVisible: () => {} };
     // 시너지 목록 (왼쪽 세로 카드)
     const SY = HUD.syn;
@@ -255,10 +203,9 @@ export class Hud {
   createHpBar(D, fontSize) {
     const s = this.s;
     const B = HUD.hp;
-    this.hpBg = s.add.graphics().setDepth(D);
-    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px)
-    this.hpBg.fillStyle(0x5a3f20, 1).fillRoundedRect(B.x, B.y, B.w, B.h, B.h / 2);
-    this.hpBg.fillStyle(0x3a2a18, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, B.w - HP_LINE * 2, B.h - HP_LINE * 2, (B.h - HP_LINE * 2) / 2);
+    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px) — 2026-11-23: 홈은 미리 그린 알약 (곡선이 고르게)
+    this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x3a2a18, 0x5a3f20, HP_LINE).setDepth(D);
+    this.hpBg.layerName = '체력 막대 홈';
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
     this.hpHeart = s.add.graphics();
@@ -341,12 +288,6 @@ export class Hud {
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */
   relicPos(i, n) {
-    if (!WIDE) {
-      // 오른쪽 4칸 (많으면 좁혀 겹친다)
-      const right = HUD.relic.x + HUD.relic.w - 20;
-      const gap = n > 4 ? 120 / (n - 1) : 32;
-      return { x: right - (Math.max(4, n) - 1 - i) * gap, y: HUD.relic.y + 19 };
-    }
     const gap = n > 4 ? (HUD.relic.w - 28) / (n - 1) : 34;
     return { x: HUD.relic.x + 14 + i * gap, y: HUD.cy };
   }
@@ -384,11 +325,11 @@ export class Hud {
       this.waveTypeText2.setX(x);
     } else {
       this.waveTypeText.setText(lines.join(' · ')).setColor(col);
-      this.fitText(this.waveTypeText, WIDE ? 210 : GAME_W - 236 - 48);
+      this.fitText(this.waveTypeText, 210);
     }
     this.goldText.setText(`${s.gold.toLocaleString()} G`);
     // 가로 알약 바: 골드가 길어지면(수만 G) 체력 막대에 닿지 않게 글자를 줄인다
-    if (WIDE) this.goldText.setFontSize(this.goldText.text.length > 8 ? 13 : 16.5);
+    this.goldText.setFontSize(this.goldText.text.length > 8 ? 13 : 16.5);
 
     // 성벽 체력 막대 (2026-11-21: 가운데에 수치). 실드가 있으면 +n
     const hpN = Math.ceil(s.wallHp);
@@ -411,7 +352,7 @@ export class Hud {
       // 칸 27px, 칸 사이 9px (예전 32px 칸이 4px 간격으로 붙고 띠 테두리에 닿았다)
       const { x, y } = this.relicPos(i, s.ownedRelics.length);
       // 영지 유물 공방에서 장착한 유물 (판 안에서는 끄고 켜기 없음 — 룰 v2 ③). 누르거나 올리면 툴팁
-      const slot = panelImage(s, x, y, 'gold', WIDE ? 28 : 27, WIDE ? 28 : 27);
+      const slot = panelImage(s, x, y, 'gold', 28, 28);
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(UI_PX).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => (this.relicTip?.index === i ? this.hideRelicTip() : this.showRelicTip(i, x, y, true)));
       icon.on('pointerover', () => this.showRelicTip(i, x, y, true));
@@ -461,9 +402,9 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     const K = HUD.dark;
-    panel(s, K.x, K.y, K.w, K.h, 'card').setDepth(D - 2); // 포근한 카드형: 둥근 크림 시트
+    edgeBar(s, K.x, K.y, K.w, K.h, 'bottom').setDepth(D - 2); // 화면 아래·좌우 끝까지 붙는 크림 바 (2026-11-22)
     const SM = HUD.small;
-    const v = WIDE ? 'outline' : 'card';
+    const v = 'outline';
     const fs = 12;
     // 배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (2026-11-18, 정지 버튼 합침)
     this.speedBtn = new Button(s, SM.xs[0], SM.y, SM.w, SM.h, 'x1', () => s.cycleSpeed(), { variant: v, icon: 'speed', fontSize: fs });
@@ -508,7 +449,7 @@ export class Hud {
       g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h, 10);
       g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, 7);
       g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
-      const img = charImage(s, w / 2, WIDE ? 32 : 40, ch);
+      const img = charImage(s, w / 2, 32, ch);
       // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
       const tc = ch.grade === 2 ? CSS.white : '#2b1d2f';
       const pt = uiText(s, w - 5, h - 10, `${price}G`, 12, tc, 'bold').setOrigin(1, 0.5);
@@ -547,8 +488,8 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     const B = HUD.bench;
-    if (!B.inCard) panel(s, B.x, B.y, B.w, B.h, WIDE ? 'card' : 'strip').setDepth(D - 1);
-    if (WIDE) uiText(s, B.x + 18, B.y + 16, '아이템', 15, CSS.primary, 'bold').setDepth(D);
+    if (!B.inCard) panel(s, B.x, B.y, B.w, B.h, 'card').setDepth(D - 1);
+    uiText(s, B.x + 18, B.y + 16, '아이템', 15, CSS.primary, 'bold').setDepth(D);
     const sb = B.smith;
     this.smithBtn = new Button(s, sb.x, sb.y, sb.w, sb.h, '', () => s.smithBuy(), { variant: 'gold', icon: 'anvil', fontSize: 12 });
     this.toolText = uiText(s, B.tool.x, B.tool.y, '', 12, CSS.ink, 'bold').setOrigin(0.5).setDepth(D);
@@ -564,7 +505,9 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     panel(s, R.x, R.y, R.w, R.h, 'card').setDepth(D - 1);
-    this.reserveLabel = uiText(s, R.x + 28, R.y + R.h / 2, '대기', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
+    this.reserveLabel = R.title
+      ? uiText(s, R.x + 18, R.y + 16, '대기석', 15, CSS.primary, 'bold').setDepth(D)
+      : uiText(s, R.x + 28, R.y + R.h / 2, '대기', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
     for (let i = 0; i < SHOP.reserve; i++) {
       const p = this.reservePos(i);
       panelImage(s, p.x, p.y, 'soft', R.slot.w, R.slot.h).setDepth(D);
@@ -579,24 +522,28 @@ export class Hud {
   /** 대기석 i 칸 가운데 */
   reservePos(i) {
     const R = HUD.reserve;
+    if (R.cols) {
+      const col = i % R.cols;
+      const row = Math.floor(i / R.cols);
+      return { x: R.slot.x0 + col * R.slot.step + R.slot.w / 2, y: R.slot.y0 + row * R.slot.stepY + R.slot.h / 2 };
+    }
     return { x: R.slot.x0 + i * R.slot.step + R.slot.w / 2, y: R.y + R.h / 2 };
   }
 
   /** (x, y) 가 대기석 몇 번 칸 위인지 (아니면 -1) */
   reserveSlotAt(x, y) {
     const R = HUD.reserve;
-    if (!R || y < R.y || y > R.y + R.h) return -1;
+    if (!R || y < R.y || y > R.y + R.h || x < R.x || x > R.x + R.w) return -1;
     for (let i = 0; i < SHOP.reserve; i++) {
       const p = this.reservePos(i);
-      if (Math.abs(x - p.x) <= R.slot.step / 2) return i;
+      if (Math.abs(x - p.x) <= R.slot.step / 2 && Math.abs(y - p.y) <= (R.slot.stepY || R.h) / 2) return i;
     }
     return -1;
   }
 
   benchPos(i) {
     const B = HUD.bench;
-    if (WIDE) return { x: B.x + 29 + (i % 5) * 38, y: B.y + 58 + Math.floor(i / 5) * 38 };
-    return { x: B.x + 118 + i * 36, y: B.y + B.h / 2 };
+    return { x: B.x + 29 + (i % 5) * 38, y: B.y + 58 + Math.floor(i / 5) * 38 };
   }
 
   /** 아이템 그림: 재료는 색 칸 + 글자, 조합품은 두 재료 색 반반 + 금 테두리, 문장은 시너지 색 방패 */
@@ -619,7 +566,7 @@ export class Hud {
     this.benchRow.removeAll(true);
     for (let i = 0; i < ITEM_RULES.bench; i++) {
       const p = this.benchPos(i);
-      this.benchRow.add(panelImage(s, p.x, p.y, 'soft', 32, 32));
+      this.benchRow.add(panelImage(s, p.x, p.y, 'round', 32, 32)); // 동그란 칸 (2026-11-23: 반지름 14 의 둥근 네모 → 원)
     }
     s.bench.forEach((id, i) => {
       const p = this.benchPos(i);
@@ -633,16 +580,20 @@ export class Hud {
         ic.setDepth(DEPTH.drag); // UI(200) 위 — 끌고 가는 그림이 상점·시트 아래로 숨지 않게
         s.add.existing(ic);
       });
-      ic.on('drag', (_p, x, y) => ic.setPosition(x, y));
+      ic.on('drag', (ptr) => {
+        const u = uiPoint(s, ptr);
+        ic.setPosition(u.x, u.y);
+      });
       ic.on('dragend', (ptr) => {
-        const m = s.allUnits.find((u) => Math.abs(u.x - ptr.worldX) < 28 && Math.abs(u.y - ptr.worldY) < 28); // 대기석 캐릭터에도 장착
+        const w = worldPoint(s, ptr); // 용병은 월드 좌표 (2026-11-22 PC 전환)
+        const m = s.allUnits.find((u) => Math.abs(u.x - w.x) < 28 && Math.abs(u.y - w.y) < 28); // 대기석 캐릭터에도 장착
         ic.destroy();
         if (!m || !s.equip(i, m)) this.refreshBench();
       });
       this.benchRow.add(ic);
     });
     this.smithBtn?.setLabel(`재료 ${s.smithCost}G`).setEnabled(s.gold >= s.smithCost && s.bench.length < ITEM_RULES.bench);
-    this.toolText?.setText(WIDE ? `해제 도구 ${s.tools}개` : `해제 도구\n${s.tools}개`);
+    this.toolText?.setText(`해제 도구 ${s.tools}개`);
   }
 
   /**
@@ -698,17 +649,10 @@ export class Hud {
     let h = pad;
     for (const l of lines) h += l.height + 4;
     h += pad - 4;
-    const left = Phaser.Math.Clamp(WIDE ? x + 30 : x - w / 2, 8, GAME_W - 8 - w);
+    const left = Phaser.Math.Clamp(x + 30, 8, GAME_W - 8 - w);
     let top;
     let below = true;
-    if (WIDE) top = Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8);
-    else {
-      top = y + half + 6;
-      if (top + h > GAME_H - 8) {
-        below = false;
-        top = Math.max(8, y - half - 6 - h);
-      }
-    }
+    top = Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8);
     c.add(panel(s, left, top, w, h, 'card'));
     let cy = top + pad;
     for (const l of lines) {
@@ -718,8 +662,7 @@ export class Hud {
     }
     // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축.
     // 크기는 배치 그대로 비율만 ITEM_TIP_SCALE 로 줄인다 (2026-11-22 사용자 요청) — 축 쪽으로 줄어 아이콘과 간격 유지
-    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE);
-    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), below ? top : top + h, true, ITEM_TIP_SCALE);
+    springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE);
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -752,33 +695,23 @@ export class Hud {
       const col = Phaser.Display.Color.HexStringToColor(t.color).color;
       const on = ti >= 0;
       let x, y;
-      if (WIDE) {
-        x = HUD.syn.x + 30;
-        y = HUD.syn.y + 54 + i * 38;
-        if (y > HUD.syn.y + HUD.syn.h - 20) return;
-      } else {
-        x = HUD.relic.x + 22 + i * 62;
-        y = HUD.relic.y + 20;
-        if (x > HUD.relic.x + HUD.relic.w - 160) return; // 유물 4칸 자리
-      }
+      x = HUD.syn.x + 30;
+      y = HUD.syn.y + 54 + i * 38;
+      if (y > HUD.syn.y + HUD.syn.h - 20) return;
       const c = s.add.container(x, y);
       // 켜진 시너지는 연두 알약으로 강조 (2026-11-21 Stitch 시안)
       if (on) {
-        const pill = s.add.graphics();
-        const pw = WIDE ? 188 : 56;
-        pill.fillStyle(0xd8fcb4, 1).fillRoundedRect(-15, -15, pw, 30, 15).lineStyle(1.5, 0x56743f, 1).strokeRoundedRect(-15, -15, pw, 30, 15);
+        // 2026-11-23: 미리 그린 알약 (테두리 화면 2px — 예전 1.5 → 1.5배 2.25px 로 곡선 굵기가 들쭉날쭉)
+        const pw = 188;
+        const pill = s.add.container(0, 0, [pillImage(s, -15 + pw / 2, 0, pw, 30, 0xd8fcb4, 0x56743f)]);
         pill.auditBox = { x: -15, y: -15, w: pw, h: 30 }; // tools/ui-audit.cjs 여백 검사
         c.add(pill);
       }
       c.add(traitBadge(s, 0, 0, k, 10, on, { tip: false })); // 칩은 자기 시너지 툴팁이 따로 있다 // r10: 알약 안쪽·숫자와 4px 이상 (여백 필수 규칙)
       const label = next ? `${n}/${next.n}` : `${n}`;
-      if (WIDE) {
-        c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
-        c.add(uiText(s, 168, -1, label, 13, on ? CSS.primary : CSS.sub, 'bold').setOrigin(1, 0.5));
-      } else {
-        c.add(uiText(s, 15, 1, label, 12, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0, 0.5));
-      }
-      const hit = s.add.rectangle(WIDE ? 80 : 10, 0, WIDE ? 180 : 46, 30, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
+      c.add(uiText(s, 168, -1, label, 13, on ? CSS.primary : CSS.sub, 'bold').setOrigin(1, 0.5));
+      const hit = s.add.rectangle(80, 0, 180, 30, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => this.showSynergyTip(k, x, y));
       hit.on('pointerout', () => this.hideRelicTip());
       hit.on('pointerup', () => this.showSynergyTip(k, x, y));
@@ -805,8 +738,8 @@ export class Hud {
     let h = pad;
     for (const l of lines) h += l.height + 6;
     h += pad - 6;
-    const left = Phaser.Math.Clamp(WIDE ? x + 196 : x - 20, 8, GAME_W - 8 - w);
-    const top = WIDE ? Phaser.Math.Clamp(y - 20, 80, GAME_H - h - 8) : y + 24;
+    const left = Phaser.Math.Clamp(x + 196, 8, GAME_W - 8 - w);
+    const top = Phaser.Math.Clamp(y - 20, 80, GAME_H - h - 8);
     c.add(panel(s, left, top, w, h, 'card'));
     let cy = top + pad;
     for (const l of lines) {
@@ -815,8 +748,7 @@ export class Hud {
       c.add(l);
     }
     // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 칩 쪽 가장자리가 축
-    if (WIDE) springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
-    else springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top);
+    springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -830,9 +762,13 @@ export class Hud {
     this.upgradeBadge.auditBox = { x: -13.5, y: -13.5, w: 27, h: 27 }; // tools/ui-audit.cjs 여백 검사 (쉬는 크기 기준)
     this.upgradeBadge.auditRest = true;
     // 느낌표 배지 (2026-11-21: 더 크게 r 12, 느낌표는 글자 대신 굵은 도형 — 막대 4x10 + 점 4x4)
-    const mark = s.add.graphics();
-    mark.fillStyle(0x3a2608, 1).fillRoundedRect(-2, -9, 4, 11, 1.5).fillRect(-2, 4, 4, 4);
-    this.upgradeBadge.add([s.add.circle(0, 0, 12, 0xffd36a).setStrokeStyle(3, 0x3a2608), mark]);
+    // 2026-11-23: 원·느낌표를 미리 그린 그림 하나로 (곡선이 고르게)
+    const disc = discImage(s, 0, 0, {
+      id: 'upgrade_badge', r: 12, fill: 0xffd36a, line: 0x3a2608, lw: 8 / 3,
+      draw: (ctx) => { ctx.fillStyle = '#3a2608'; ctx.beginPath(); ctx.roundRect(-2, -9, 4, 11, 1.5); ctx.fill(); ctx.fillRect(-2, 4, 4, 4); }
+    });
+    disc.layerName = '느낌표 배지';
+    this.upgradeBadge.add(disc);
     // 스케일 팝 반복 (2026-11-19): 1.3초마다 톡 커졌다 돌아온다. 배속·정지와 상관없이 실제 시간으로 돈다
     const badge = this.upgradeBadge;
     const pop = () => {
@@ -850,8 +786,8 @@ export class Hud {
     c.add(panel(s, B.x, B.y, B.w, B.h, 'soft'));
     this.infoAvatar = panelImage(s, B.x + 40, B.y + B.h / 2, 'soft', 56, 56);
     this.infoPortrait = s.add.sprite(B.x + 40, B.y + B.h / 2, 'pixel').setScale(PX - 1);
-    this.infoTitle = uiText(s, B.x + 80, B.y + (WIDE ? 5 : 8), '', 15, CSS.ink, 'bold');
-    this.infoSub = uiText(s, B.x + 80, B.y + (WIDE ? 27 : 33), '', 12, CSS.sub, 'bold');
+    this.infoTitle = uiText(s, B.x + 80, B.y + 5, '', 15, CSS.ink, 'bold');
+    this.infoSub = uiText(s, B.x + 80, B.y + 27, '', 12, CSS.sub, 'bold');
     this.infoBody = uiText(s, B.x + 80, B.y + 52, '', 12, CSS.ink, 'bold');
     this.manaBar = s.add.graphics();
     const bx = B.x + B.w - 64;
@@ -911,7 +847,7 @@ export class Hud {
     const mx = B.x + 80, my = B.y + B.h - 18, mw = Math.min(200, textW - 4);
     g.fillStyle(0xd9cdb2, 1).fillRoundedRect(mx, my, mw, 8, 4);
     g.fillStyle(0x4a8fe8, 1).fillRoundedRect(mx, my, Math.max(8, (mw * m.mana) / m.maxMana), 8, 4);
-    this.infoBody.setY(B.y + (WIDE ? 45 : 51)); // 가로(높이 84)는 줄마다 4px 여백이 남게 촘촘히
+    this.infoBody.setY(B.y + 45); // 가로(높이 84)는 줄마다 4px 여백이 남게 촘촘히
     if (!this.manaText) {
       this.manaText = uiText(s, 0, 0, '', 12, CSS.sub, 'bold').setOrigin(0, 0.5);
       this.infoBox.add(this.manaText);
@@ -963,7 +899,7 @@ export class Hud {
     this.bannerObj?.destroy(); // 가로 배치에선 배너 띠가 창 위쪽과 겹친다
     const w = Math.min(GAME_W, MODAL_W) - 40;
     const x = (GAME_W - w) / 2;
-    const y = WIDE ? 96 : 240;
+    const y = 96;
     // 카드 높이는 내용에 맞춘다: 먼저 글자를 놓고, 마지막에 카드를 뒤에 끼운다
     const c = s.add.container(0, 0).setDepth(DEPTH.overlay - 5);
     const close = () => {
@@ -1010,9 +946,9 @@ export class Hud {
     this.popup = null;
     this.bannerObj?.destroy();
     if (!s.paused) s.tweens.pauseAll();
-    const pw = WIDE ? 440 : GAME_W - 104;
+    const pw = 440;
     const px = (GAME_W - pw) / 2;
-    const py = WIDE ? 80 : 236;
+    const py = 80;
     const ph = 560;
     const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
     this.menu = c;

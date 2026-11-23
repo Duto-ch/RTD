@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { Kinetic } from '../ui/kinetic.js';
-import { GAME_W, GAME_H, WIDE } from '../config.js';
+import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { panel, uiText, drawIcon, CSS, coverImage } from '../ui/theme.js';
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
@@ -18,9 +18,9 @@ const RADIUS = [0, 76, 138, 196, 248]; // 깊이별 거리
 const STAGGER = 30; // 형제가 많을 때 엇갈려 놓는 거리
 const HEX = 17; // 노드 육각형 반지름
 // 세로: 위 머리 창 · 가운데 트리 · 아래 정보 창 / 가로(2026-11-15): 왼쪽 트리 · 오른쪽 칸에 머리 창·정보 창·버튼
-const VIEW = WIDE ? { top: 24, bottom: GAME_H - 24, right: 872 } : { top: 108, bottom: 676, right: GAME_W }; // 트리가 보이는 영역
-const CENTER = { x: WIDE ? 436 : GAME_W / 2, y: (VIEW.top + VIEW.bottom) / 2 };
-const SIDE = WIDE ? { x: 888, w: 380 } : { x: 12, w: GAME_W - 24 }; // 머리 창·정보 창이 놓이는 칸
+const VIEW = { top: 24, bottom: GAME_H - 24, right: 872 }; // 트리가 보이는 영역
+const CENTER = { x: 436, y: (VIEW.top + VIEW.bottom) / 2 };
+const SIDE = { x: 888, w: 380 }; // 머리 창·정보 창이 놓이는 칸
 
 /**
  * 방사형 배치: 4갈래가 위·오른쪽·아래·왼쪽을 향하고 각 갈래는 같은 90° 구역(양옆 여백 제외)을 쓴다.
@@ -89,7 +89,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     // 밤하늘 배경: 사용자 그림(별·은하수 밤하늘)을 원본 그대로 (2026-11-22, 도트로 줄이지 않음). 가로 배치는 예전 그린 별
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x12101e).setOrigin(0);
-    if (!WIDE && this.textures.exists('upgrade_bg')) coverImage(this, 'upgrade_bg', GAME_W, GAME_H);
+    if (false) coverImage(this, 'upgrade_bg', GAME_W, GAME_H);
     else {
       const stars = this.add.graphics();
       for (let i = 0; i < 70; i++) {
@@ -131,32 +131,27 @@ export class UpgradeScene extends Phaser.Scene {
   // ───────────── 아래 정보 창 ─────────────
   createDetail() {
     const D = 10;
-    const y = WIDE ? 108 : 688;
+    const y = 108;
     const X = SIDE.x;
     const R = SIDE.x + SIDE.w;
     const wrap = { wordWrap: { width: SIDE.w - 40 } };
-    panel(this, X, y, SIDE.w, WIDE ? 232 : 176, 'card').setDepth(D);
+    panel(this, X, y, SIDE.w, 232, 'card').setDepth(D);
     this.dBranch = uiText(this, X + 20, y + 22, '', 13, CSS.sub, 'bold').setDepth(D);
     this.dName = uiText(this, X + 20, y + 42, '', 20, CSS.ink, 'bold').setDepth(D);
     this.dLevel = uiText(this, R - 20, y + 24, '', 14, CSS.sub, 'bold').setOrigin(1, 0).setDepth(D);
     this.dEffect = uiText(this, X + 20, y + 80, '', 15, CSS.ink, 'bold', wrap).setDepth(D);
-    this.dNote = uiText(this, X + 20, y + (WIDE ? 130 : 108), '', 13, CSS.sub, 'bold', wrap).setDepth(D);
-    this.buyBtn = new Button(this, R - 110, y + (WIDE ? 188 : 132), 168, 44, '강화', () => this.buySelected(), { variant: 'primary', fontSize: 16 }).setDepth(D);
+    this.dNote = uiText(this, X + 20, y + 130, '', 13, CSS.sub, 'bold', wrap).setDepth(D);
+    this.buyBtn = new Button(this, R - 110, y + 188, 168, 44, '강화', () => this.buySelected(), { variant: 'primary', fontSize: 16 }).setDepth(D);
   }
 
   createControls() {
     const D = 10;
-    const bx = WIDE ? SIDE.x + SIDE.w / 2 : GAME_W / 2;
+    const bx = SIDE.x + SIDE.w / 2;
     if (this.fromGame) {
-      new Button(this, bx, WIDE ? GAME_H - 54 : 916, WIDE ? SIDE.w : GAME_W - 48, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
       this.input.keyboard?.on('keydown-ESC', () => this.close());
-    } else if (WIDE) {
-      new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
-    } else {
-      new Button(this, GAME_W / 2 - 92, 916, 236, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      new Button(this, GAME_W / 2 + 140, 916, 200, 60, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
-    }
+    } else this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
+    this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
     new Button(this, zx, VIEW.top + 24, 40, 40, '+', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);

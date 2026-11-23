@@ -9,8 +9,9 @@
 import os, json, random, math, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GW, GH = 544, 960
-PATH = (42, 250, 502, 710)
+# PC 1080p (2026-11-22): 월드 1920x1080, 필드·몬스터 길 상자 = 필드(820~1100, 400~680) ± 90
+GW, GH = 1920, 1080
+PATH = (730, 310, 1190, 770)
 TREES = ['deco_tree_1', 'deco_tree_2', 'deco_tree_3']
 FSIZE = json.load(open(os.path.join(HERE, '..', 'flowers', 'sizes.json')))
 FLOWERS = sorted(FSIZE)
@@ -56,7 +57,7 @@ def scatter(rnd, n, gap, sampler, ok, keys, placed, yscale=1.4):
 
 
 def even(rnd):
-    return lambda: (rnd.randint(-10, GW + 10), rnd.randint(70, GH + 40))
+    return lambda: (rnd.randint(-10, GW + 10), rnd.randint(30, GH + 40))
 
 
 def clusters(rnd, centers, spread):
@@ -97,7 +98,7 @@ def build(name, seed, n_tree, n_flower, mode):
 
 if __name__ == '__main__':
     V = {
-        'A': build('A', 1, 25, 50, 'even'),
+        'A': build('A', 1, 80, 160, 'even'),  # 1080p: 화면 넓이 약 4배 → 나무 25 → 80 · 꽃 50 → 160
         'B': build('B', 2, 25, 50, 'even'),
         'C': build('C', 3, 26, 56, 'grove'),
         'D': build('D', 4, 15, 80, 'even'),

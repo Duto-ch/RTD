@@ -1,7 +1,7 @@
 import { BASE_PALETTE, ATTR_PALETTES, MERC_SPRITES, HERO_SPRITES, ICON_SPRITES, BUILDING_SPRITES } from './sprites.js';
 import { BOSS_EXTRA_PALETTE } from './monsters.js';
 import { ALL_MONSTER_DESIGNS } from '../data/monsters.js';
-import { GAME_W, GAME_H, PX, UI_PX, BG_PX, HUD_RECTS, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
+import { GAME_W, GAME_H, WORLD_W, WORLD_H, PX, UI_PX, BG_PX, HUD_RECTS, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, PATH_OFF, PATH_WIDTH, GRID, CELL } from '../config.js';
 
 // 배경은 BG_PX(2) 해상도로 그린다. 화면 좌표 → 배경 아트 좌표 (가장 가까운 픽셀 경계로 맞춤)
 // 무늬 크기는 3px 시절 디자인을 기준으로 K 배 (화면에서 보이는 크기는 그대로, 도트만 가늘게)
@@ -190,8 +190,8 @@ function sdRoundRect(px0, py0, x, y, w, h, r) {
 }
 
 function paintBackground(scene, biome) {
-  const W = Math.ceil(GAME_W / BP);
-  const H = Math.ceil(GAME_H / BP);
+  const W = Math.ceil(WORLD_W / BP); // 전장 배경은 월드 좌표 (2026-11-22 PC 전환)
+  const H = Math.ceil(WORLD_H / BP);
   const tex = scene.textures.createCanvas(`bg_${biome.id}`, W, H);
   const ctx = tex.getContext();
   const rand = rng(1234 + biome.id.length * 97 + biome.id.charCodeAt(0));
