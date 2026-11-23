@@ -6,9 +6,10 @@
 """
 import math, os
 
-# 2026-11-23 사용자 요청: 고리 행성·나선 은하는 뺌 (켜려면 True)
+# 2026-11-23 사용자 요청: 고리 행성·나선 은하·달은 뺌 (켜려면 True)
 DRAW_GALAXY = False
 DRAW_PLANET = False
+DRAW_MOON = False
 import numpy as np
 from PIL import Image
 
@@ -134,18 +135,19 @@ if DRAW_PLANET:
 
 # 5) 달 (아래 가운데 오른쪽, 창에 안 가리는 곳)
 mx0, my0, mr = 372, 318, 13
-md = np.hypot(XX - mx0, YY - my0)
-mm = md <= mr
-nz = np.sqrt(np.clip(1 - (md / mr) ** 2, 0, 1))
-sh = np.clip(((XX - mx0) / mr * -0.6 + (YY - my0) / mr * -0.5 + nz * 0.5) * 0.8 + 0.3, 0, 1)
-for (cx_, cy_, cr) in [(-4, -3, 3), (4, 2, 2.5), (-1, 6, 2), (5, -6, 1.6)]:
-    cd = np.hypot(XX - mx0 - cx_, YY - my0 - cy_)
-    sh = np.where(cd < cr, sh - 0.22, sh)
-ramp(sh, MOON, mm)
+if DRAW_MOON:
+    md = np.hypot(XX - mx0, YY - my0)
+    mm = md <= mr
+    nz = np.sqrt(np.clip(1 - (md / mr) ** 2, 0, 1))
+    sh = np.clip(((XX - mx0) / mr * -0.6 + (YY - my0) / mr * -0.5 + nz * 0.5) * 0.8 + 0.3, 0, 1)
+    for (cx_, cy_, cr) in [(-4, -3, 3), (4, 2, 2.5), (-1, 6, 2), (5, -6, 1.6)]:
+        cd = np.hypot(XX - mx0 - cx_, YY - my0 - cy_)
+        sh = np.where(cd < cr, sh - 0.22, sh)
+    ramp(sh, MOON, mm)
 
 # 6) 별 (행성·달·은하 중심 피해서)
 def free(x, y):
-    return (not DRAW_PLANET or np.hypot(x - px0, y - py0) > 48) and np.hypot(x - mx0, y - my0) > 20 and (not DRAW_GALAXY or np.hypot(x - gx, y - gy) > 24)
+    return (not DRAW_PLANET or np.hypot(x - px0, y - py0) > 48) and (not DRAW_MOON or np.hypot(x - mx0, y - my0) > 20) and (not DRAW_GALAXY or np.hypot(x - gx, y - gy) > 24)
 def put(x, y, c):
     if 0 <= x < W and 0 <= y < H:
         img[y, x] = c

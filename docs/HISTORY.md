@@ -265,3 +265,4 @@
 - 2026-11-23 **PC 전환 2단계 — 저장 한 곳으로**: `src/systems/storage.js` (웹 localStorage / 데스크톱 `window.rtdNative.storage` 파일 / 메모리), 시작 때 파일 미리 읽기·쓰기 묶음·창 닫을 때 flush·실패 재시도·진행 저장 .bak 복구·웹 저장 옮겨 오기·내보내기/가져오기. meta·audio 가 직접 쓰던 localStorage 를 옮김. 규약 `docs/SAVE.md` (`feature/save-storage`)
 - 2026-11-23 성탑 노드 화면 배경: 16비트 색 픽셀아트 우주(640x360, 아트 1px = 3x3, 코드로 새로 그림) + 별똥별 28프레임 시트·반짝이는 별 (`feature/ui-space-bg`)
 - 2026-11-23 성탑 우주 배경에서 고리 행성·나선 은하 뺌 (사용자 요청)
+- 2026-11-23 성탑 우주 배경에서 달도 뺌 (사용자 요청)
