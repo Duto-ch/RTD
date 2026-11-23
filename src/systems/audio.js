@@ -2,6 +2,7 @@
 // 배경음: 펄스파 리드 + 삼각파 베이스 + 아르페지오 + 노이즈 드럼 (타이틀 / 전투 / 보스)
 // 효과음: 클래스별 공격음, 스킬, 영웅 궁극기, 처치, 레벨 업, 보스 등장·디버프, 폭죽 등
 // 브라우저 정책상 첫 터치/클릭 이후에만 소리가 난다 (audio.init()).
+import { storage } from './storage.js';
 
 const NOTE = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
 const hz = (n) => {
@@ -78,20 +79,12 @@ const MUSIC_GAIN = 0.112; // 볼륨 100% 일 때 배경음 음량 (2026-11-22: 0
 const SFX_GAIN = 0.48; // 볼륨 100% 일 때 효과음 음량
 const ULT_DUCK = 0.35; // 궁극기가 울리는 동안 배경음·다른 효과음 배율
 
-// 설정 저장 (저장이 막힌 환경에서도 동작하도록)
+// 설정 저장 — systems/storage.js 한 곳으로 (2026-11-23: 웹 localStorage / 데스크톱 파일)
 function load(key, fallback) {
-  try {
-    return localStorage.getItem(key) ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return storage.get(key) ?? fallback;
 }
 function save(key, value) {
-  try {
-    localStorage.setItem(key, String(value));
-  } catch {
-    /* 무시 */
-  }
+  storage.set(key, value);
 }
 
 class Chiptune {
@@ -100,6 +93,11 @@ class Chiptune {
     this.track = null;
     this.wanted = null;
     this.last = {};
+    this.loadSettings();
+  }
+
+  /** 저장된 볼륨·음소거 읽기 (데스크톱 판은 storage.init() 뒤에 다시 부른다) */
+  loadSettings() {
     this.muted = load('rtd-muted', '0') === '1';
     this.musicVol = Number(load('rtd-music-vol', '0.5')); // 0~1 (기본 50%)
     this.sfxVol = Number(load('rtd-sfx-vol', '0.8'));
