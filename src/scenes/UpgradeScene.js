@@ -183,9 +183,9 @@ export class UpgradeScene extends Phaser.Scene {
     this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
-    new Button(this, zx, VIEW.top + 24, 40, 40, '+', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
-    new Button(this, zx, VIEW.top + 70, 40, 40, '-', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
-    new Button(this, zx, VIEW.top + 116, 40, 40, '◎', () => this.recenter(), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    new Button(this, zx, VIEW.top + 24, 40, 40, '', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', icon: 'plus' }).setDepth(D);
+    new Button(this, zx, VIEW.top + 70, 40, 40, '', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', icon: 'minus' }).setDepth(D);
+    new Button(this, zx, VIEW.top + 116, 40, 40, '', () => this.recenter(), { variant: 'outline', icon: 'target' }).setDepth(D);
   }
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
