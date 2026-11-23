@@ -258,6 +258,10 @@ export function uiText(scene, x, y, str, size = 16, color = CSS.ink, weight = '6
 
 // 7x7 픽셀 아이콘
 const ICONS = {
+  // 확대·축소·가운데로 (2026-11-23: 글꼴 기호 '+ - ◎' 는 글꼴 여백 탓에 1~2.5px 어긋나 7x7 대칭 도트로)
+  plus: ['.......', '...x...', '...x...', '.xxxxx.', '...x...', '...x...', '.......'],
+  minus: ['.......', '.......', '.......', '.xxxxx.', '.......', '.......', '.......'],
+  target: ['..xxx..', '.x...x.', 'x.....x', 'x..x..x', 'x.....x', '.x...x.', '..xxx..'],
   clock: ['..xxx..', '.x...x.', 'x..x..x', 'x..xx.x', 'x.....x', '.x...x.', '..xxx..'],
   coin: ['..xxx..', '.xyyyx.', 'xyyxyyx', 'xyxyyyx', 'xyyxyyx', '.xyyyx.', '..xxx..'],
   heart: ['.xx.xx.', 'xxxxxxx', 'xxxxxxx', 'xxxxxxx', '.xxxxx.', '..xxx..', '...x...'],
