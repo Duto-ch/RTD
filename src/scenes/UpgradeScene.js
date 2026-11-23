@@ -177,10 +177,13 @@ export class UpgradeScene extends Phaser.Scene {
     const D = 10;
     const bx = SIDE.x + SIDE.w / 2;
     if (this.fromGame) {
-      new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      // 전투 중에 연 강화 창: '닫고 전투로' 하나만 — '영지로'를 함께 두면 같은 자리에 겹쳐 그것이 눌려 판이 끝나 버렸다 (2026-11-23 버그 수정)
+      this.closeBtn = new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
       this.input.keyboard?.on('keydown-ESC', () => this.close());
-    } else this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => dissolveTo(this, 'Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-    this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    } else {
+      this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => dissolveTo(this, 'Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    }
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
     new Button(this, zx, VIEW.top + 24, 40, 40, '', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', icon: 'plus' }).setDepth(D);
