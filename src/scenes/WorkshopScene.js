@@ -7,7 +7,7 @@ import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { metaBonus } from '../data/upgrades.js';
 import { RELICS, RELIC_RULES, RELIC_CATS, relicText } from '../data/relics.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo } from '../ui/dissolve.js';
 
 // 유물 공방 (룰 v2 ③, 2026-11-20 — 대장간 대체): 마정석으로 유물 30종 중 하나를 무작위 생산.
 // 같은 유물이 또 나오면 레벨 +1 (최대 5). 장착 4칸(+명성 강화 '유물 보관함') — 장착한 유물은 매 판 팀 전체에 적용.
@@ -167,7 +167,7 @@ export class WorkshopScene extends Phaser.Scene {
 
   leave() {
     audio.init();
-    slideTo(this, 'Lobby', undefined, -1); // 영지로 옆으로 밀어 돌아간다 (2026-11-22)
+    dissolveTo(this, 'Lobby'); // 영지로 디졸브 (2026-11-23, 이전 옆으로 밀기)
   }
 
   toast(msg) {

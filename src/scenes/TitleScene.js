@@ -5,6 +5,7 @@ import { Button } from '../ui/Button.js';
 import { audio } from '../systems/audio.js';
 import { uiText } from '../ui/theme.js';
 import { meta } from '../systems/meta.js';
+import { dissolveTo } from '../ui/dissolve.js';
 
 // 타이틀: 사용자가 준 일러스트(public/assets/title/title.webp, 2026-11-15) 한 장 + 깜빡이는 TAP TO START.
 // 화면 아무 곳이나 누르면(또는 Space·Enter) 게임 시작, 아래 금색 버튼은 명성 강화
@@ -35,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
     const best = meta.data.best?.normal || 0;
     this.fameBtn = new Button(this, cx, GAME_H - 76, 384, 48, `명성 강화  ·  보유 ${meta.fame.toLocaleString()}`, () => {
       audio.init();
-      this.scene.start('Upgrade', { from: 'title' });
+      dissolveTo(this, 'Upgrade', { from: 'title' });
     }, { variant: 'gold', fontSize: 16.5 });
     uiText(this, cx, GAME_H - 32, `최고 기록 W${best} · ESC: 메뉴`, 12, '#ffffff', 'bold', { stroke: '#1d2c5a', strokeThickness: 4 }).setOrigin(0.5);
 
@@ -44,7 +45,7 @@ export class TitleScene extends Phaser.Scene {
       if (this.starting) return;
       this.starting = true;
       audio.init();
-      this.scene.start('Lobby'); // 2026-11-17: 타이틀 → 영지(로비)
+      dissolveTo(this, 'Lobby'); // 2026-11-17: 타이틀 → 영지(로비), 디졸브 (2026-11-23)
     };
     this.input.on('pointerup', (_p, objs) => {
       if (!objs.length) start();

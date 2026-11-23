@@ -123,7 +123,7 @@ export class Storage {
       try {
         return JSON.parse(raw);
       } catch {
-        console.warn(`저장이 깨졌습니다: ${k}`);
+        console.warn(`저장이 손상되었습니다: ${k}`);
       }
     }
     return fallback;

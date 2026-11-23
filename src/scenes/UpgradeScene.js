@@ -3,11 +3,14 @@ import { hiRes } from '../systems/hires.js';
 import { Kinetic } from '../ui/kinetic.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, coverImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
+
+// 우주 배경 아트 640x360 → UI 1280x720 (×2) → 화면 1920x1080 에서 아트 1px = 3x3 (2026-11-23 사용자 요청)
+const SPACE_PX = GAME_W / 640;
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
 import { meta } from '../systems/meta.js';
 import { audio } from '../systems/audio.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo, dissolveOut } from '../ui/dissolve.js';
 
 // 명성 강화 화면: 가운데 뿌리에서 4갈래(공격 위·경제 오른쪽·전술 아래·방어 왼쪽)로 가지가 뻗는 스킬 노드 트리.
 // 노드를 누르면 아래 창에 정보가 나오고 "강화" 버튼으로 명성을 써서 1레벨 올린다.
@@ -87,17 +90,10 @@ export class UpgradeScene extends Phaser.Scene {
     this.drag = null;
     this.moved = false;
 
-    // 밤하늘 배경: 사용자 그림(별·은하수 밤하늘)을 원본 그대로 (2026-11-22, 도트로 줄이지 않음). 가로 배치는 예전 그린 별
+    // 우주 배경 (2026-11-23 사용자 요청): 16비트 색 픽셀아트 640x360(코드로 새로 그림) — 화면 1920x1080 에서 아트 1px = 3x3 (`docs/drafts/space-bg/space.py`)
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x12101e).setOrigin(0);
-    if (false) coverImage(this, 'upgrade_bg', GAME_W, GAME_H);
-    else {
-      const stars = this.add.graphics();
-      for (let i = 0; i < 70; i++) {
-        stars.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.08, 0.3));
-        stars.fillRect(Phaser.Math.Between(0, GAME_W), Phaser.Math.Between(0, GAME_H), 2, 2);
-      }
-      for (const [x, y, r] of [[90, 260, 90], [470, 560, 70], [430, 180, 40]]) this.add.circle(x, y, r, 0x2a2147, 0.5);
-    }
+    if (this.textures.exists('space_bg')) this.add.image(0, 0, 'space_bg').setOrigin(0).setScale(SPACE_PX);
+    this.createSpaceFx();
 
     // 트리 (이동·확대되는 컨테이너)
     this.tree = this.add.container(CENTER.x, CENTER.y).setDepth(1);
@@ -115,6 +111,39 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   // ───────────── 머리 창 ─────────────
+  /** 별똥별(28프레임 시트, 오른쪽 위 → 왼쪽 아래) + 반짝이는 십자 별(8프레임) — 트리 뒤(깊이 0), 아트 1px = 화면 3px */
+  createSpaceFx() {
+    if (!this.textures.exists('space_meteor')) return;
+    if (!this.anims.exists('space_meteor')) {
+      this.anims.create({ key: 'space_meteor', frames: this.anims.generateFrameNumbers('space_meteor', { start: 0, end: 27 }), frameRate: 25 }); // 40ms × 28
+      this.anims.create({ key: 'space_twinkle', frames: this.anims.generateFrameNumbers('space_twinkle', { start: 0, end: 7 }), frameRate: 10 });
+    }
+    const R = Phaser.Math;
+    const snap = (v) => Math.round(v / SPACE_PX) * SPACE_PX; // 아트 픽셀 격자에 맞춤
+    // 반짝이는 별: 제자리에서 십자가 커졌다 작아짐 (사이사이 쉬는 시간이 제각각)
+    for (let i = 0; i < 14; i++) {
+      const st = this.add.sprite(snap(R.Between(20, GAME_W - 20)), snap(R.Between(20, GAME_H - 20)), 'space_twinkle', 0).setDepth(0).setScale(SPACE_PX);
+      const blink = () => {
+        if (!st.active) return;
+        st.play('space_twinkle');
+        st.once('animationcomplete', () => this.time.delayedCall(R.Between(600, 3200), blink));
+      };
+      this.time.delayedCall(R.Between(0, 2500), blink);
+    }
+    // 별똥별: 0.7~2.4초마다 하나(가끔 둘), 시트 한 바퀴(1.12초) 재생 후 사라짐
+    const shoot = () => {
+      const m = this.add.sprite(snap(R.Between(GAME_W * 0.2, GAME_W + 60)), snap(R.Between(-40, GAME_H * 0.5)), 'space_meteor', 0);
+      m.setOrigin(1, 0).setDepth(0).setScale(SPACE_PX).play('space_meteor');
+      m.once('animationcomplete', () => m.destroy());
+    };
+    const loop = () => {
+      shoot();
+      if (Math.random() < 0.2) this.time.delayedCall(R.Between(120, 300), shoot);
+      this.time.delayedCall(R.Between(700, 2400), loop);
+    };
+    this.time.delayedCall(300, loop);
+  }
+
   createHeader() {
     const D = 10;
     const X = SIDE.x;
@@ -148,22 +177,28 @@ export class UpgradeScene extends Phaser.Scene {
     const D = 10;
     const bx = SIDE.x + SIDE.w / 2;
     if (this.fromGame) {
-      new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      // 전투 중에 연 강화 창: '닫고 전투로' 하나만 — '영지로'를 함께 두면 같은 자리에 겹쳐 그것이 눌려 판이 끝나 버렸다 (2026-11-23 버그 수정)
+      this.closeBtn = new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
       this.input.keyboard?.on('keydown-ESC', () => this.close());
-    } else this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-    this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    } else {
+      this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => dissolveTo(this, 'Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    }
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
-    new Button(this, zx, VIEW.top + 24, 40, 40, '+', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
-    new Button(this, zx, VIEW.top + 70, 40, 40, '-', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', fontSize: 20 }).setDepth(D);
-    new Button(this, zx, VIEW.top + 116, 40, 40, '◎', () => this.recenter(), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    new Button(this, zx, VIEW.top + 24, 40, 40, '', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', icon: 'plus' }).setDepth(D);
+    new Button(this, zx, VIEW.top + 70, 40, 40, '', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', icon: 'minus' }).setDepth(D);
+    new Button(this, zx, VIEW.top + 116, 40, 40, '', () => this.recenter(), { variant: 'outline', icon: 'target' }).setDepth(D);
   }
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
   close() {
-    if (!this.scene.isPaused('Game')) return slideTo(this, 'Lobby', undefined, -1); // 돌아갈 전투가 없으면 영지로 (옆으로 밀기)
-    this.scene.stop();
-    this.scene.resume('Game');
+    if (!this.scene.isPaused('Game')) return dissolveTo(this, 'Lobby'); // 돌아갈 전투가 없으면 영지로
+    // 전투 위에 겹친 강화 창: 서서히 사라진 뒤 닫고 전투 재개 (2026-11-23 디졸브)
+    dissolveOut(this, () => {
+      this.scene.stop();
+      this.scene.resume('Game');
+    });
   }
 
   setZoom(z) {
@@ -228,6 +263,11 @@ export class UpgradeScene extends Phaser.Scene {
     return meta.status(u.id) === 'locked' ? 'locked' : 'open';
   }
 
+  /** 보이는 노드 (2026-11-23 사용자 요청): 부모를 배우기 전의 잠긴 노드는 선·노드 모두 숨긴다 — 배우면 바로 아래 노드가 나타난다 */
+  isShown(u) {
+    return this.nodeState(u) !== 'locked';
+  }
+
   redraw() {
     this.fameText.setText(`명성 ${meta.fame.toLocaleString()}`);
     const best = meta.data.best;
@@ -243,16 +283,27 @@ export class UpgradeScene extends Phaser.Scene {
       const a = this.pos[u.parent];
       const b = this.pos[u.id];
       const st = this.nodeState(u);
+      if (st === 'locked') continue; // 숨긴 노드
       const color = BRANCH_BY_ID[u.branch].color;
-      if (st === 'locked') L.lineStyle(2, 0x3a3f55, 1);
-      else if (st === 'open') L.lineStyle(2, color, 0.45);
+      if (st === 'open') L.lineStyle(2, color, 0.45);
       else L.lineStyle(3, color, 1);
       L.lineBetween(a.x, a.y, b.x, b.y);
     }
 
     // 노드
     this.nodeLayer.removeAll(true);
-    for (const u of UPGRADES) this.drawNode(u);
+    const prev = this.shownIds;
+    this.shownIds = new Set();
+    for (const u of UPGRADES) {
+      if (!this.isShown(u)) continue;
+      this.shownIds.add(u.id);
+      const parts = this.drawNode(u);
+      // 새로 열린 노드는 서서히 나타남 (처음 그릴 때는 바로)
+      if (prev && !prev.has(u.id)) {
+        for (const o of parts) o.setAlpha?.(0);
+        this.tweens.add({ targets: parts.filter((o) => o.setAlpha), alpha: 1, duration: 320, ease: 'Sine.Out' });
+      }
+    }
     this.drawRing();
     this.refreshDetail();
   }
@@ -288,6 +339,7 @@ export class UpgradeScene extends Phaser.Scene {
     });
     parts.push(hit);
     this.nodeLayer.add(parts);
+    return parts;
   }
 
   drawRing() {

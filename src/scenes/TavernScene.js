@@ -9,7 +9,7 @@ import { ROSTER_BY_ID, GRADES, STYLES, TRAIT_TEXT } from '../data/roster.js';
 import { TRAITS } from '../data/synergy.js';
 import { TAVERN, hireCost } from '../data/tavern.js';
 import { charImage } from '../objects/Mercenary.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo } from '../ui/dissolve.js';
 
 // 술집 (룰 v2 ③, 2026-11-20): 캐릭터 3명이 걸려 있고 3시간마다 새로 바뀐다. 마정석으로 고용 → 가진 캐릭터(병영에서 덱에 넣기).
 // 이미 가진 캐릭터면 강화 +1 (공격력 +10%, 최대 +3), 그 뒤에는 마정석 절반을 돌려받는다. 리롤도 마정석 — 할수록 비싸진다.
@@ -126,7 +126,7 @@ export class TavernScene extends Phaser.Scene {
 
   leave() {
     audio.init();
-    slideTo(this, 'Lobby', undefined, -1); // 영지로 옆으로 밀어 돌아간다 (2026-11-22)
+    dissolveTo(this, 'Lobby'); // 영지로 디졸브 (2026-11-23, 이전 옆으로 밀기)
   }
 
   toast(msg) {

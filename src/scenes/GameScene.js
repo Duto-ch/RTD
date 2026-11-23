@@ -18,6 +18,7 @@ import { STONES } from '../data/tavern.js';
 import { RELIC_BY_ID, relicBonus, addBonus } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
+import { dissolveTo, dissolveIn } from '../ui/dissolve.js';
 import { Vfx } from '../systems/vfx.js';
 import { playOnce, playBase, setArt, setFacing, hitDelay, cancelOnce } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
@@ -142,6 +143,7 @@ export class GameScene extends Phaser.Scene {
     this.hud.hideRelicTip();
     this.scene.launch('Upgrade', { from: 'game' });
     this.scene.bringToTop('Upgrade');
+    dissolveIn(this.scene, 'Upgrade'); // 강화 창이 서서히 나타남 (2026-11-23)
     this.scene.pause();
   }
 
@@ -1532,7 +1534,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
     this.resetAnimClock();
     audio.playMusic(null);
-    this.scene.start('Lobby'); // 게임 종료 → 영지(로비)
+    dissolveTo(this, 'Lobby'); // 게임 종료 → 영지(로비), 디졸브
   }
 
   /** 게임 속도를 바로 정한다 (단축키 1·2·3). 정지 중이면 정지를 푼다 */
@@ -1653,8 +1655,8 @@ export class GameScene extends Phaser.Scene {
     this.endBtns = {}; // 테스트가 누를 자리
     this.endBtns.retry = new Button(this, cx, cy0 + 376, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
     const bw = (cw - 64 - 12) / 2;
-    this.endBtns.fame = new Button(this, cx - bw / 2 - 6, cy0 + 444, bw, 52, '명성 강화', () => this.scene.start('Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
-    this.endBtns.lobby = new Button(this, cx + bw / 2 + 6, cy0 + 444, bw, 52, '영지로', () => this.scene.start('Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(top);
+    this.endBtns.fame = new Button(this, cx - bw / 2 - 6, cy0 + 444, bw, 52, '명성 강화', () => dissolveTo(this, 'Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
+    this.endBtns.lobby = new Button(this, cx + bw / 2 + 6, cy0 + 444, bw, 52, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(top);
   }
 
 }

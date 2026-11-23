@@ -96,7 +96,7 @@ fs.mkdirSync(path.join(OUT, 'layers'), { recursive: true });
     };
     // 레이어 이름: HUD·용병이 들고 있는 이름(속성명)을 한글로
     const PROP = {
-      ringBack: '받침 고리(뒤)', pips: '받침 고리(앞)·별·아이템', hpBg: '체력 막대 홈', hpFill: '체력 막대 채움', hpTrail: '체력 막대 피해 자국', hpHeart: '하트',
+      ringBack: '받침 고리(뒤)', pips: '받침 고리(앞)·별·아이템', hpBg: '체력 막대 바탕', hpFill: '체력 막대 채움', hpTrail: '체력 막대 피해 자국', hpHeart: '하트',
       rangeGfx: '사거리', hpGfx: '몬스터 체력 막대', upgradeBadge: '느낌표 배지', manaBar: '마나 막대'
     };
     const owner = new Map();
