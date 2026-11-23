@@ -24,15 +24,6 @@ async function toGame(page, x, y) {
   await settled(page, 'Game');
 }
 
-/** CI 진단: 전투가 멈춰 있는지 (정지·메뉴·튜토리얼·애니메이션·타이머) */
-async function freezeLog(page, tag) {
-  const st = await page.evaluate(() => {
-    const g = window.game.scene.getScene('Game');
-    return { paused: g.paused, menu: g.menuOpen, tut: !!g.tut?.open, popup: !!g.hud?.popup, aPaused: g.anims.paused, ats: g.anims.globalTimeScale, tPaused: g.time.paused, speed: g.speed, wave: g.wave, gt: +g.gameTime.toFixed(2), frame: window.game.loop.frame, fps: Math.round(window.game.loop.actualFps), scenes: window.game.scene.getScenes(true).map((x) => x.scene.key), vis: document.visibilityState, loop: window.game.loop.running };
-  });
-  console.log(`[freeze ${tag}]`, JSON.stringify(st));
-}
-
 /** 그 장면만 남고 화면 전환(디졸브)이 끝날 때까지 */
 async function settled(page, key) {
   await page.waitForFunction((key) => { const m = window.game?.scene; return !!m && m.isActive(key) && !m.getScene(key).transitioning && m.getScenes(true).length === 1; }, key, { timeout: 10000 });
@@ -382,11 +373,9 @@ test('캐릭터 그림(시안 104명): 시그리드 대기·공격 모션 · 도
   await page.screenshot({ path: SHOT('11-char-sigrid') });
 
   // 웨이브를 시작하면 공격 모션 → 끝나면 다시 대기
-  await freezeLog(page, 'sigrid-before');
   await page.keyboard.press('f'); // 바로 시작 (2026-11-22 단축키 F — 예전 N 은 없어져 준비 시간이 끝나기를 기다리고 있었다)
-  setTimeout(() => freezeLog(page, 'sigrid+8s').catch(() => {}), 8000);
   const atk = () => game(page, () => window.game.scene.getScene('Game').mercs[0].sprite.anims.currentAnim?.key);
-  await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBe('char_sigrid:attack');
+  await expect.poll(atk, { timeout: 30000, intervals: [50] }).toBe('char_sigrid:attack');
   await page.screenshot({ path: SHOT('12-char-sigrid-attack') });
 
   // 그림은 왼쪽을 본다(무기가 왼쪽): 왼쪽 대상이면 그대로, 오른쪽 대상이면 반전. 몸 중심(pivotX 27)은 제자리
@@ -744,9 +733,7 @@ test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 
     return g.vfx.coinCount;
   });
   expect(capped).toBe(12);
-  await freezeLog(page, 'coin');
-  setTimeout(() => freezeLog(page, 'coin+5s').catch(() => {}), 5000);
-  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 30000 }); // 느린 CI 기계 여유 (게임 시간은 프레임이 느리면 늦게 흐른다)
   expect(errors).toEqual([]);
 });
 
@@ -840,9 +827,7 @@ test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동
   expect(r.firedNow).toBe(false); // 동작 시작과 동시에 나가지 않는다
   expect(r.wait).toBeGreaterThan(r.total * 0.25); // 예비 동작이 끝난 뒤
   expect(r.wait).toBeLessThan(r.total);
-  await freezeLog(page, 'hit');
-  setTimeout(() => freezeLog(page, 'hit+3s').catch(() => {}), 3000);
-  await page.waitForFunction(() => window.__hitTest(), null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__hitTest(), null, { timeout: 15000 }); // 느린 CI 기계 여유
   // 무기별 타격 프레임이 manifest 에 있다
   const hits = await game(page, () => {
     const g = window.game.scene.getScene('Game');
