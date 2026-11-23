@@ -3,7 +3,10 @@ import { hiRes } from '../systems/hires.js';
 import { Kinetic } from '../ui/kinetic.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, coverImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
+
+// 우주 배경 아트 640x360 → UI 1280x720 (×2) → 화면 1920x1080 에서 아트 1px = 3x3 (2026-11-23 사용자 요청)
+const SPACE_PX = GAME_W / 640;
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
 import { meta } from '../systems/meta.js';
 import { audio } from '../systems/audio.js';
@@ -87,9 +90,9 @@ export class UpgradeScene extends Phaser.Scene {
     this.drag = null;
     this.moved = false;
 
-    // 우주 배경 (2026-11-23 사용자 요청): 성운·은하·행성 그림(가로 16:9, 원본 그대로) + 별똥별·반짝이는 별(코드)
+    // 우주 배경 (2026-11-23 사용자 요청): 16비트 색 픽셀아트 640x360(코드로 새로 그림) — 화면 1920x1080 에서 아트 1px = 3x3 (`docs/drafts/space-bg/space.py`)
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x12101e).setOrigin(0);
-    if (this.textures.exists('space_bg')) coverImage(this, 'space_bg', GAME_W, GAME_H);
+    if (this.textures.exists('space_bg')) this.add.image(0, 0, 'space_bg').setOrigin(0).setScale(SPACE_PX);
     this.createSpaceFx();
 
     // 트리 (이동·확대되는 컨테이너)
@@ -108,78 +111,30 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   // ───────────── 머리 창 ─────────────
-  /** 별똥별(무작위 간격으로 대각선을 가로지름) + 반짝이는 십자 별 — 트리 뒤(깊이 0) */
+  /** 별똥별(28프레임 시트, 오른쪽 위 → 왼쪽 아래) + 반짝이는 십자 별(8프레임) — 트리 뒤(깊이 0), 아트 1px = 화면 3px */
   createSpaceFx() {
-    const K = 3; // 텍스처를 3배 해상도로 그려 1/3 로 놓는다 (UI 1.5배 × RES 에서도 매끄럽게)
-    if (!this.textures.exists('fx_meteor')) {
-      const w = 220 * K;
-      const h = 10 * K;
-      const t = this.textures.createCanvas('fx_meteor', w, h);
-      const g = t.getContext();
-      const grad = g.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, 'rgba(160,180,255,0)');
-      grad.addColorStop(0.7, 'rgba(200,190,255,0.45)');
-      grad.addColorStop(1, 'rgba(255,255,255,0.95)');
-      g.fillStyle = grad;
-      g.beginPath();
-      g.moveTo(0, h / 2);
-      g.lineTo(w - h / 2, h / 2 - 1.6 * K);
-      g.lineTo(w - h / 2, h / 2 + 1.6 * K);
-      g.closePath();
-      g.fill();
-      const head = g.createRadialGradient(w - h / 2, h / 2, 0, w - h / 2, h / 2, h / 2);
-      head.addColorStop(0, 'rgba(255,255,255,1)');
-      head.addColorStop(0.4, 'rgba(230,225,255,0.8)');
-      head.addColorStop(1, 'rgba(180,170,255,0)');
-      g.fillStyle = head;
-      g.fillRect(w - h, 0, h, h);
-      t.refresh();
-      t.setFilter(Phaser.Textures.FilterMode.LINEAR);
-    }
-    if (!this.textures.exists('fx_twinkle')) {
-      const n = 24 * K;
-      const t = this.textures.createCanvas('fx_twinkle', n, n);
-      const g = t.getContext();
-      const c = n / 2;
-      const glow = g.createRadialGradient(c, c, 0, c, c, c);
-      glow.addColorStop(0, 'rgba(255,255,255,0.9)');
-      glow.addColorStop(0.25, 'rgba(220,215,255,0.35)');
-      glow.addColorStop(1, 'rgba(200,190,255,0)');
-      g.fillStyle = glow;
-      g.fillRect(0, 0, n, n);
-      g.fillStyle = 'rgba(255,255,255,0.85)';
-      for (const [dx, dy] of [[1, 0], [0, 1]]) {
-        g.beginPath();
-        g.moveTo(c - dx * c, c - dy * c);
-        g.lineTo(c + dy * 1.2 * K, c + dx * 1.2 * K);
-        g.lineTo(c + dx * c, c + dy * c);
-        g.lineTo(c - dy * 1.2 * K, c - dx * 1.2 * K);
-        g.closePath();
-        g.fill();
-      }
-      t.refresh();
-      t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    if (!this.textures.exists('space_meteor')) return;
+    if (!this.anims.exists('space_meteor')) {
+      this.anims.create({ key: 'space_meteor', frames: this.anims.generateFrameNumbers('space_meteor', { start: 0, end: 27 }), frameRate: 25 }); // 40ms × 28
+      this.anims.create({ key: 'space_twinkle', frames: this.anims.generateFrameNumbers('space_twinkle', { start: 0, end: 7 }), frameRate: 10 });
     }
     const R = Phaser.Math;
-    // 반짝이는 별: 제자리에서 천천히 밝아졌다 어두워짐 (박자 제각각)
+    const snap = (v) => Math.round(v / SPACE_PX) * SPACE_PX; // 아트 픽셀 격자에 맞춤
+    // 반짝이는 별: 제자리에서 십자가 커졌다 작아짐 (사이사이 쉬는 시간이 제각각)
     for (let i = 0; i < 14; i++) {
-      const st = this.add.image(R.Between(20, GAME_W - 20), R.Between(20, GAME_H - 20), 'fx_twinkle').setDepth(0);
-      const sc = R.FloatBetween(0.18, 0.4);
-      st.setScale(sc).setAlpha(0.15).setBlendMode(Phaser.BlendModes.ADD);
-      this.tweens.add({ targets: st, alpha: R.FloatBetween(0.6, 1), scale: sc * 1.35, duration: R.Between(900, 1900), delay: R.Between(0, 2000), yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      const st = this.add.sprite(snap(R.Between(20, GAME_W - 20)), snap(R.Between(20, GAME_H - 20)), 'space_twinkle', 0).setDepth(0).setScale(SPACE_PX);
+      const blink = () => {
+        if (!st.active) return;
+        st.play('space_twinkle');
+        st.once('animationcomplete', () => this.time.delayedCall(R.Between(600, 3200), blink));
+      };
+      this.time.delayedCall(R.Between(0, 2500), blink);
     }
-    // 별똥별: 오른쪽 위 → 왼쪽 아래로 비스듬히, 0.7~2.4초마다 하나(가끔 둘)
+    // 별똥별: 0.7~2.4초마다 하나(가끔 둘), 시트 한 바퀴(1.12초) 재생 후 사라짐
     const shoot = () => {
-      const ang = R.DegToRad(R.Between(140, 160)); // 왼쪽 아래 방향
-      const len = R.Between(320, 600);
-      const x0 = R.Between(GAME_W * 0.25, GAME_W + 120);
-      const y0 = R.Between(-60, GAME_H * 0.45);
-      const m = this.add.image(x0, y0, 'fx_meteor').setOrigin(1, 0.5).setDepth(0).setRotation(ang);
-      const sc = R.FloatBetween(0.32, 0.5);
-      m.setScale(sc * 0.4, sc).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
-      const dur = R.Between(650, 1100);
-      this.tweens.add({ targets: m, x: x0 + Math.cos(ang) * len, y: y0 + Math.sin(ang) * len, duration: dur, ease: 'Quad.In' });
-      this.tweens.add({ targets: m, scaleX: sc, alpha: 1, duration: dur * 0.35, yoyo: true, hold: dur * 0.3, ease: 'Sine.Out', onComplete: () => m.destroy() });
+      const m = this.add.sprite(snap(R.Between(GAME_W * 0.2, GAME_W + 60)), snap(R.Between(-40, GAME_H * 0.5)), 'space_meteor', 0);
+      m.setOrigin(1, 0).setDepth(0).setScale(SPACE_PX).play('space_meteor');
+      m.once('animationcomplete', () => m.destroy());
     };
     const loop = () => {
       shoot();
