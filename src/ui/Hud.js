@@ -199,13 +199,13 @@ export class Hud {
     this.noSynText = uiText(s, SY.x + 18, SY.y + 50, '같은 계열·출신을\n모으면 켜져요', 12, CSS.sub, 'bold', { lineSpacing: 4 }).setDepth(D);
   }
 
-  /** 성벽 체력 막대: 둥근 홈 + 채움(많을수록 초록 → 노랑 → 빨강) + 실드(하늘색 윗줄) + 가운데 하트·수치 */
+  /** 성벽 체력 막대: 둥근 바탕 + 채움(많을수록 초록 → 노랑 → 빨강) + 실드(하늘색 윗줄) + 가운데 하트·수치 */
   createHpBar(D, fontSize) {
     const s = this.s;
     const B = HUD.hp;
-    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px) — 2026-11-23: 홈은 미리 그린 알약 (곡선이 고르게)
+    // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px) — 2026-11-23: 바탕은 미리 그린 알약 (곡선이 고르게)
     this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x3a2a18, 0x5a3f20, HP_LINE).setDepth(D);
-    this.hpBg.layerName = '체력 막대 홈';
+    this.hpBg.layerName = '체력 막대 바탕';
     this.hpFill = s.add.graphics().setDepth(D);
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
     this.hpHeart = s.add.graphics();
@@ -275,7 +275,7 @@ export class Hud {
     }
     if (fill > 0) {
       const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
-      const w = Math.max(ih, fill); // 둥근 끝이 깨지지 않게 최소 높이만큼
+      const w = Math.max(ih, fill); // 둥근 끝이 뭉개지지 않게 최소 높이만큼
       g.fillStyle(col, 1).fillRoundedRect(x, y, w, ih, ih / 2);
       g.fillStyle(0xffffff, 0.28).fillRoundedRect(x + 4, y + 2, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
     }

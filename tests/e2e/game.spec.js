@@ -9,7 +9,7 @@ async function startGame(page) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('01-title') });
   await toGame(page, 272, 652);
@@ -19,9 +19,14 @@ async function startGame(page) {
 /** 타이틀을 누르면 영지(로비) → Space(출전) 로 전투 시작 (2026-11-17 로비 신설) */
 async function toGame(page, x, y) {
   await page.mouse.click(x, y);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby'); // 화면 전환(디졸브)이 끝나야 영지 입력이 받아진다 (2026-11-23)
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
+}
+
+/** 그 장면만 남고 화면 전환(디졸브)이 끝날 때까지 */
+async function settled(page, key) {
+  await page.waitForFunction((key) => { const m = window.game?.scene; return !!m && m.isActive(key) && !m.getScene(key).transitioning && m.getScenes(true).length === 1; }, key, { timeout: 10000 });
 }
 
 // PC 1080p (2026-11-22): 창 1920x1080 = UI 좌표(1280x720) × 1.5 · 전장(월드 좌표)은 화면 px 그대로
@@ -209,7 +214,7 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   for (const [w, h] of [[1400, 800], [400, 1000]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.goto('/');
-    await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+    await settled(page, 'Title');
     await page.waitForTimeout(200);
     const r = await page.evaluate(() => {
       const c = document.querySelector('canvas').getBoundingClientRect();
@@ -386,10 +391,10 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
   await clickAt(page, () => { const b = window.game.scene.getScene('Title').fameBtn; return { x: b.x, y: b.y }; }); // 명성 강화 (타이틀 아래 금색 버튼)
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await settled(page, 'Upgrade');
   // 우주 배경 + 별똥별 (2026-11-23): 배경 그림이 깔리고 잠시 뒤 별똥별(space_meteor, 28프레임)이 지나간다
   expect(await game(page, () => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'space_bg'))).toBe(true);
   await page.waitForFunction(() => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'space_meteor'), null, { timeout: 8000 });
@@ -419,7 +424,7 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   expect(await game(page, () => window.game.scene.getScene('Upgrade').tree.x)).toBeGreaterThan(tx0);
   await page.screenshot({ path: SHOT('14-upgrade-tree') });
   await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').startBtn; return { x: b.x, y: b.y }; }); // 게임 시작
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
   expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15);
   expect(errors).toEqual([]);
 });
@@ -428,7 +433,7 @@ test('강화 효과: 징집령(무료 용병, 노련한 신병 = 언커먼)·군
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); Object.assign(m.data.levels, { origin: 1, wall: 2, bulwark: 1, conscript: 2, veteran: 1, funds: 1, bounty: 1, stipend: 2 }); m.save(); });
   await toGame(page, 272, 652);
   const s = await game(page, () => {
@@ -500,7 +505,7 @@ test('성탑 삭제: 가운데 칸까지 25칸 모두 용병 자리, 하단 강�
   await page.screenshot({ path: SHOT('17b-upgrade-button') });
   // 강화 버튼 클릭 → 강화 트리 (전투 일시정지)
   await clickAt(page, UPGRADE_BTN);
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await settled(page, 'Upgrade');
   expect(await game(page, () => window.game.scene.isPaused('Game'))).toBe(true);
   const at = (id) => game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id);
   for (const id of ['origin', 'atk']) {
@@ -520,14 +525,14 @@ test('버그 회귀: 전투 중 강화 후 게임 오버 → 명성 강화 → �
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
   // 1) 전투 중 강화 버튼으로 강화 창을 열었다 닫는다
   await clickAt(page, UPGRADE_BTN);
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await settled(page, 'Upgrade');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !window.game.scene.isActive('Upgrade'));
   // 2) 게임 오버 → 결과 창 "명성 강화"
   await game(page, () => window.game.scene.getScene('Game').endGame(false, '테스트'));
   await page.waitForTimeout(400);
   await clickAt(page, () => { const b = window.game.scene.getScene('Game').endBtns.fame; return { x: b.x, y: b.y }; });
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await settled(page, 'Upgrade');
   expect(await game(page, () => window.game.scene.getScene('Upgrade').fromGame)).toBe(false); // 일반 화면 (게임 시작·타이틀로 버튼)
   // 3) 포인트 사용 후 타이틀로
   const p = await game(page, () => window.game.scene.getScene('Upgrade').nodeScreenPos('origin'));
@@ -535,8 +540,8 @@ test('버그 회귀: 전투 중 강화 후 게임 오버 → 명성 강화 → �
   await clickAt(page, BUY_BTN);
   expect(await game(page, () => window.__rtd.meta.level('origin'))).toBe(1);
   await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').lobbyBtn; return { x: b.x, y: b.y }; }); // 영지로
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
-  // 2026-11-22: 옆으로 밀기 전환 동안은 두 장면이 함께 돈다 — 전환이 끝나면 영지만 남아야 한다
+  await settled(page, 'Lobby');
+  // 2026-11-22: 화면 전환(디졸브) 동안은 두 장면이 함께 돈다 — 전환이 끝나면 영지만 남아야 한다
   await page.waitForFunction(() => window.game.scene.getScenes(true).length === 1, null, { timeout: 5000 }).catch(() => null);
   expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Lobby']);
   expect(errors).toEqual([]);
@@ -1042,7 +1047,7 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => {
     const m = window.__rtd.meta;
     m.reset();
@@ -1050,12 +1055,12 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
     m.save();
   });
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('32-lobby') });
   // 병영 이름표를 눌러 덱 편성으로
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   const r = await game(page, () => {
     const d = window.game.scene.getScene('Deck');
     const n0 = d.deck.length;
@@ -1072,10 +1077,10 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
   expect(r).toEqual({ n0: 30, full: false, n: 29, isolde: true, arthur: false, william: false });
   await page.screenshot({ path: SHOT('33-deck') });
   await game(page, () => window.game.scene.getScene('Deck').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   expect(await game(page, () => window.__rtd.meta.deck.length)).toBe(29);
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
   const shopOk = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
@@ -1091,10 +1096,10 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => window.__rtd.meta.reset());
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   const r = await game(page, () => {
     const l = window.game.scene.getScene('Lobby');
     const ys = new Set(l.deckStrip.list.filter((o) => o.type === 'Graphics').map((o) => o.y));
@@ -1114,7 +1119,7 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   await page.screenshot({ path: SHOT('32c-lobby-deck-scroll') });
   // 누르기: 병영
   await page.mouse.click(300 * UI, 650 * UI);
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   expect(errors).toEqual([]);
 });
 
@@ -1122,10 +1127,10 @@ test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘�
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => window.__rtd.meta.reset());
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   const kin = () => game(page, () => { const k = window.game.scene.getScene('Lobby').deckKin; return { v: k.value, max: k.max, moving: k.moving }; });
   // 빠르게 밀고 놓기 → 놓은 뒤에도 더 간다. 자동화 브라우저는 마우스 이동이 0.3초씩 늦게 와서 '튕기기'가 안 되므로
   // 손가락 움직임(시각 포함)을 직접 넣는다: 0.1초에 120px 밀고 바로 놓기
@@ -1158,7 +1163,7 @@ test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘�
   expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(true);
   // 병영 격자도 같은 관성 (세로)
   await game(page, () => window.game.scene.getScene('Lobby').go('Deck'));
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   const d0 = await game(page, () => {
     const d = window.game.scene.getScene('Deck');
     const t0 = performance.now();
@@ -1234,12 +1239,12 @@ test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 �
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addStones(60); });
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('tent'));
-  await page.waitForFunction(() => window.game.scene.isActive('Tavern'));
+  await settled(page, 'Tavern');
   await page.waitForTimeout(200);
   await page.screenshot({ path: SHOT('38-tavern') });
   const t = await game(page, () => {
@@ -1257,9 +1262,9 @@ test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 �
   });
   expect(t).toMatchObject({ n: 3, owned: true, hired: true, r1: true, r2: true, next: 7 });
   await game(page, () => window.game.scene.getScene('Tavern').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').sliding); // 옆으로 밀기 전환이 끝난 뒤 (2026-11-22)
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').transitioning); // 디졸브 전환이 끝난 뒤 (2026-11-23)
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('forge'));
-  await page.waitForFunction(() => window.game.scene.isActive('Workshop'));
+  await settled(page, 'Workshop');
   const w = await game(page, () => {
     const m = window.__rtd.meta;
     const s = window.game.scene.getScene('Workshop');
@@ -1274,10 +1279,10 @@ test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 �
   await page.waitForTimeout(800);
   await page.screenshot({ path: SHOT('39-workshop') });
   await game(page, () => window.game.scene.getScene('Workshop').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.screenshot({ path: SHOT('32b-lobby-stones') });
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
   const g = await game(page, () => { const g = window.game.scene.getScene('Game'); return { relics: g.ownedRelics.map((r) => r.id), eq: window.__rtd.meta.equipped }; });
   expect(g.relics).toEqual(g.eq);
   expect(errors).toEqual([]);
@@ -1315,7 +1320,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
 
 test('타이틀: 일러스트 + 깜빡이는 CLICK TO START, 아무 곳이나 누르면 영지(로비)', async ({ page }) => {
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   const t = await page.evaluate(() => { const s = window.game.scene.getScene('Title'); return { tap: s.tapText.text, bg: s.textures.exists('title_bg') }; });
   expect(t).toEqual({ tap: 'CLICK TO START', bg: true }); // PC (2026-11-22)
   // 깜빡임: 시간에 따라 투명도가 바뀐다
@@ -1473,7 +1478,7 @@ test('UI 여백 (2026-11-21 필수 규칙): 아이콘 버튼은 아이콘·글�
     for (const s of window.game.scene.getScenes(true)) s.scene.stop();
     window.game.scene.start('Deck');
   });
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   await page.waitForTimeout(300);
   const d = await game(page, () => {
     const g = window.game.scene.getScene('Deck').gridC;
@@ -1776,9 +1781,9 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { window.__rtd.meta.reset(); window.game.scene.getScene('Title').scene.start('Deck'); });
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   await page.waitForTimeout(400);
   // 첫 카드 자리 (격자 왼쪽 위)
   const pos = await game(page, () => { const d = window.game.scene.getScene('Deck'); const c = d.visible[0]; return { id: c.id, inDeck: d.deck.includes(c.id), badges: d.gridC.list.filter((o) => o.auditBox && o.type === 'Container').length }; });
@@ -1797,13 +1802,13 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
-test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 옆으로 밀어 넘어가고 돌아올 때도 반대로', async ({ page }) => {
+test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.waitForTimeout(300);
   const r = await game(page, () => {
     const l = window.game.scene.getScene('Lobby');
@@ -1817,28 +1822,40 @@ test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 �
   expect([...r.ys].sort((a, b) => a - b)).toEqual(r.ys); // 위에서 아래로 한 줄
   expect(r.bgFull).toBe(true); // 가로 영지 그림(도트)이 화면을 꽉 채움 — 사용자 세로 그림은 가로 화면에 맞지 않아 PC 에서는 안 씀
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
-  // 병영으로: 잠깐 두 장면이 함께 보이며 새 화면 카메라가 오른쪽에서 들어온다
-  // 매 프레임 두 장면 카메라 위치를 모아 본다 (전환은 실제 시간 0.36초라 한 번 읽어서는 놓친다)
+  // 병영으로: 카드 뒤집기 디졸브 (2026-11-23, 이전 옆으로 밀기) — 잠깐 두 장면이 함께 켜지고 새 화면이 왼쪽 위 칸부터 뒤집혀 드러난다(진행도 0 → 1)
+  // 매 프레임 새 장면 진행도·마스크를 모아 본다 (전환은 실제 시간 0.9초라 한 번 읽어서는 놓친다)
   const watch = (key) => game(page, (key) => {
-    window.__xs = [];
-    const f = () => { const s = window.game.scene.getScene(key); if (window.game.scene.isActive(key)) window.__xs.push(s.cameras.main.x); };
-    window.__xsOff?.();
+    window.__as = [];
+    window.__both = false;
+    const f = () => {
+      const m = window.game.scene;
+      if (m.isActive(key)) window.__as.push(m.getScene(key).wipeProgress ?? 1);
+      if (m.getScenes(true).length >= 2) window.__both = true;
+      if (m.isActive(key) && m.getScene(key).cameras.main.mask) window.__masked = true; // 드러나는 동안 마스크
+      if (m.isActive('Wipe')) window.__wipe = true; // 맨 위 바닥·그늘 장면
+    };
+    window.__asOff?.();
     window.game.events.on('poststep', f);
-    window.__xsOff = () => window.game.events.off('poststep', f);
+    window.__asOff = () => window.game.events.off('poststep', f);
   }, key);
   await watch('Deck');
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
-  await page.waitForFunction(() => !window.game.scene.isActive('Lobby') && window.game.scene.isActive('Deck') && !window.game.scene.getScene('Deck').sliding, null, { timeout: 8000 });
-  const into = await game(page, () => window.__xs);
-  expect(into.some((x) => x > 0)).toBe(true); // 오른쪽에서 들어왔다
-  expect(into[into.length - 1]).toBe(0);
-  // 돌아가기: 영지가 왼쪽에서 들어온다
+  await page.waitForFunction(() => !window.game.scene.isActive('Lobby') && window.game.scene.isActive('Deck') && !window.game.scene.getScene('Deck').transitioning, null, { timeout: 8000 });
+  const into = await game(page, () => ({ as: window.__as, both: window.__both, masked: window.__masked, wipe: window.__wipe, wipeAfter: window.game.scene.isActive('Wipe'), after: !!window.game.scene.getScene('Deck').cameras.main.mask }));
+  expect(into.both).toBe(true); // 두 장면이 겹쳐 보인 순간이 있다
+  expect(into.masked).toBe(true); // 칸 뒤집기 마스크로 드러난다
+  expect(into.wipe).toBe(true); // 뒤집히는 동안 바닥·그늘 장면이 맨 위에
+  expect(into.wipeAfter).toBe(false); // 끝나면 꺼진다
+  expect(into.after).toBe(false); // 끝나면 마스크를 걷는다
+  expect(into.as.some((a) => a > 0.05 && a < 0.95)).toBe(true); // 반쯤 드러난 중간 단계
+  expect(into.as[into.as.length - 1]).toBe(1);
+  // 돌아가기: 영지도 디졸브로
   await watch('Lobby');
   await game(page, () => window.game.scene.getScene('Deck').leave());
-  await page.waitForFunction(() => !window.game.scene.isActive('Deck') && window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').sliding, null, { timeout: 8000 });
-  const back = await game(page, () => { window.__xsOff(); return window.__xs; });
-  expect(back.some((x) => x < 0)).toBe(true);
-  expect(back[back.length - 1]).toBe(0);
+  await page.waitForFunction(() => !window.game.scene.isActive('Deck') && window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').transitioning, null, { timeout: 8000 });
+  const back = await game(page, () => { window.__asOff(); return window.__as; });
+  expect(back.some((a) => a > 0.05 && a < 0.95)).toBe(true);
+  expect(back[back.length - 1]).toBe(1);
   expect(errors).toEqual([]);
 });
 
@@ -1846,9 +1863,9 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { window.__rtd.meta.reset(); window.game.scene.getScene('Title').scene.start('Deck'); });
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   await page.waitForTimeout(400);
   // 병영 시너지 필터: 전사를 누르면 전사 계열만, 다시 누르면 해제
   const all = await game(page, () => window.game.scene.getScene('Deck').visible.length);
@@ -1867,7 +1884,7 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   expect(await game(page, () => window.game.scene.getScene('Deck').filter.trait)).toBe(null);
   // 영지 ESC 메뉴
   await game(page, () => { window.game.scene.getScene('Deck').scene.start('Lobby'); });
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.waitForTimeout(300);
   await page.keyboard.press('Escape');
   expect(await game(page, () => !!window.game.scene.getScene('Lobby').menu)).toBe(true);
@@ -1957,7 +1974,7 @@ test('저장 한 곳 (2026-11-23): 데스크톱 판(native 저장)은 파일로 
     };
   });
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   const r1 = await game(page, async () => {
     const { meta, storage } = window.__rtd;
     meta.reset();
@@ -1973,7 +1990,7 @@ test('저장 한 곳 (2026-11-23): 데스크톱 판(native 저장)은 파일로 
   expect(r1.file).toBe(37);
   // 다시 켜기 (게임 새로 시작) → 파일에서 그대로
   await page.reload();
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   const r2 = await game(page, () => ({ fame: window.__rtd.meta.fame, stones: window.__rtd.meta.stones, vol: window.__rtd.audio.musicVol, kind: window.__rtd.storage.kind }));
   expect(r2).toEqual({ fame: 37, stones: 4, vol: 0.3, kind: 'native' });
 });

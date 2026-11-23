@@ -9,12 +9,12 @@ import { UPGRADES } from '../data/upgrades.js';
 import { ROSTER_BY_ID, GRADES, DECK_RULES } from '../data/roster.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Kinetic } from '../ui/kinetic.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo } from '../ui/dissolve.js';
 import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 
 // 로비 = 용병단 영지. 메뉴: 성탑(스킬 노드) · 병영(덱 편성) · 술집(마정석 고용) · 유물 공방(마정석 유물 생산·장착). 출전은 아래 덱 줄의 버튼
 // 2026-11-22 사용자 결정: 배경 = 사용자 그림(해 질 녘 호숫가 성, public/assets/lobby/lobby_bg.webp — 원본 941x1672 그대로, 도트로 줄이지 않음)
-//   메뉴 버튼은 그림 위 건물 자리 대신 **오른쪽 정렬 세로 줄**, 누르면 화면이 옆으로 밀려 넘어간다(src/ui/slide.js)
+//   메뉴 버튼은 그림 위 건물 자리 대신 **오른쪽 정렬 세로 줄**, 누르면 디졸브로 넘어간다(src/ui/dissolve.js, 2026-11-23 — 이전 옆으로 밀기)
 
 /** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
 const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
@@ -52,7 +52,7 @@ export class LobbyScene extends Phaser.Scene {
 
   toggleMenu() {
     if (this.menu) return this.closeMenu();
-    if (this.leaving || this.sliding) return;
+    if (this.leaving || this.transitioning) return;
     audio.init();
     this.menu = openSettingsMenu(this, { onClose: () => this.closeMenu(), onQuit: () => quitApp(this.game) });
   }
@@ -64,12 +64,10 @@ export class LobbyScene extends Phaser.Scene {
 
   go(scene, data) {
     if (this.menu) return;
-    if (this.leaving || this.sliding) return; // 영지가 아직 밀려 들어오는 중이면 무시
+    if (this.leaving || this.transitioning) return; // 영지가 아직 디졸브로 나타나는 중이면 무시
     this.leaving = true;
     audio.init();
-    // 메뉴 화면은 옆으로 밀어서 (2026-11-22), 출전(전투)은 바로
-    if (scene === 'Game') this.scene.start(scene, data);
-    else if (!slideTo(this, scene, data, 1)) this.leaving = false;
+    if (!dissolveTo(this, scene, data)) this.leaving = false; // 출전(전투)도 디졸브 (2026-11-23)
   }
 
   /** 위: 왼쪽 용병단 이름·최고 기록 / 오른쪽 재화 2종 (2026-11-21: 같은 높이로 오른쪽 위에) */
