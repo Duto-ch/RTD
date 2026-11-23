@@ -29,6 +29,7 @@
 - 작업을 끝낼 때 Stop 훅(`.claude/hooks/missed-changes.py`)이 빠뜨린 후속 작업을 알린다 — 수동 확인 `python3 .claude/hooks/missed-changes.py --print`
 - `node tools/ui-audit.cjs` — UI 글자 정렬 점검 (1920x1080 한 화면, UI 좌표로 봄) (장면별 표 + `ui-audit/` 화면, 문제 글자에 빨간 상자) + **곡선 UI 8배 확대 그림** `ui-audit/pc-game-round.png`·`pc-lobby-round.png` (원·알약을 눈으로 확인)
 - `node tools/export-psd.cjs [폴더]` — 지금 전투 화면을 레이어로 나눈 PSD(1920x1080, 약 200장 — UI 는 글자·판·칸·아이콘·도형 낱개마다, 버튼·카드·배지는 그룹, 전장은 땅·나무·필드·몬스터·이펙트 한 장씩 + 용병 한 명씩) + 레이어 PNG. 레이어 이름은 HUD 속성명·`drawIcon` 이름·`layerName` 으로 붙는다. 먼저 빌드 + preview, `pip install psd-tools`. 게임을 `?transparent=1` 로 띄워 바탕을 투명하게 찍는다
+- 데스크톱(Electron) 판: `cd desktop && npm ci && npm run build:web` → `npm start`(실행) · `npm run pack:win`(Windows .exe) · `xvfb-run -a -s "-screen 0 1920x1080x24" node test/smoke.cjs`(시험). Windows 판은 GitHub Actions 'Desktop Build' 로도. 세부 `docs/DESKTOP.md`
 - `/graphify .` — 코드베이스 지식 그래프(`graphify-out/`, 커밋 안 함) · `/verify` — 작업 루프 한 번에
 - 음악 생성: 스킬 `acestep`(`.claude/skills/acestep/`) — 사용자 컴퓨터에서 `uv run acestep-api`(포트 8001)로 띄운 ACE-Step 1.5 를 부른다. 그 컴퓨터의 Claude Code 세션에서만 동작(클라우드 세션은 그 localhost 에 닿지 않음). 시안은 `docs/drafts/music/`
 

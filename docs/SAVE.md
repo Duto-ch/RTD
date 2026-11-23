@@ -26,7 +26,7 @@
 - 데스크톱 판 첫 실행 때, 파일에 없는 키가 `localStorage` 에 있으면 한 번 옮겨 온다.
 - `storage.exportAll()` / `storage.importAll(obj)` — 저장 내보내기·가져오기 (웹 → 데스크톱 옮기기 등, 아직 화면 버튼은 없음).
 
-## 3단계(Electron)에서 할 일 — `window.rtdNative.storage` 규약
+## 3단계(Electron) — `window.rtdNative.storage` 규약 (구현: `desktop/main.cjs`·`preload.cjs`)
 
 preload 에서 `contextBridge.exposeInMainWorld('rtdNative', { storage: { readAll, write, remove } })`:
 

@@ -8,3 +8,7 @@ graphify-out/
 __pycache__/
 ui-audit/
 psd-export/
+desktop/node_modules/
+desktop/app/
+desktop/out/
+desktop/test/*.png

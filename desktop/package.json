@@ -1,0 +1,18 @@
+{
+  "name": "rtd-desktop",
+  "productName": "Mercenary Corps Siege",
+  "private": true,
+  "version": "0.1.0",
+  "description": "용병단 디펜스 — 데스크톱(Electron) 판",
+  "main": "main.cjs",
+  "scripts": {
+    "build:web": "cd .. && npx vite build --outDir desktop/app --emptyOutDir",
+    "start": "electron .",
+    "pack:win": "electron-packager . MercenaryCorpsSiege --platform=win32 --arch=x64 --out=out --overwrite --asar --ignore=^/out --ignore=^/test",
+    "pack:linux": "electron-packager . MercenaryCorpsSiege --platform=linux --arch=x64 --out=out --overwrite --asar --ignore=^/out --ignore=^/test"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "45.2.3"
+  }
+}

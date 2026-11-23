@@ -1,0 +1,37 @@
+# 데스크톱(Electron) 판 만들기 (2026-11-23 PC 전환 3단계)
+# Actions 탭 → "Desktop Build" → Run workflow (또는 v* 태그를 push) → 결과 화면의 Artifacts 에서
+# MercenaryCorpsSiege-win32-x64 를 내려받아 압축을 풀고 MercenaryCorpsSiege.exe 실행
+name: Desktop Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 데스크톱 판 도구 설치 (Electron)
+        working-directory: desktop
+        run: npm ci
+      - name: 게임 빌드 → desktop/app
+        working-directory: desktop
+        run: npm run build:web
+      - name: Windows 판 포장 (.exe)
+        working-directory: desktop
+        run: npm run pack:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MercenaryCorpsSiege-win32-x64
+          path: desktop/out/MercenaryCorpsSiege-win32-x64/
+          retention-days: 30
