@@ -12,7 +12,7 @@
 ## 브랜치 상태 (2026-11-18)
 - `preview/field-image` — 초원 필드 그림 시험 + `tools/import-art.py`(perfectPixel 자동·manifest `backgrounds`)·`addBackground` (보류. 새 그림을 넣게 되면 스크립트·장치만 main 으로)
 - 미리보기 시험판: https://claude.ai/artifact/HsbNZRZ3U9vBogYMm52FLW
-- **PC 전환 진행 순서 (2026-11-22 사용자 결정)**: ① PC 1080p 전환(구현·main 합침) → ② 저장을 한 곳으로(구현 `feature/save-storage` — `src/systems/storage.js`, 규약 `docs/SAVE.md`) → ③ Electron 포장(.exe 실행은 사용자 PC 에서 확인) → ④ Steamworks(업적·클라우드·오버레이 — 개발자 계정·앱 등록 100달러·스토어는 사용자). 스킬 암전 시험판 `feature/skill-dim` 은 보류
+- **PC 전환 진행 순서 (2026-11-22 사용자 결정)**: ① PC 1080p 전환(구현·main 합침) → ② 저장을 한 곳으로(구현·main 합침 — `src/systems/storage.js`, 규약 `docs/SAVE.md`) → ③ Electron 포장(구현 `feature/electron` — `desktop/`, Windows 판은 Actions 'Desktop Build', 세부 `docs/DESKTOP.md` · .exe 실행은 사용자 PC 에서 확인) → ④ Steamworks(업적·클라우드·오버레이 — 개발자 계정·앱 등록 100달러·스토어는 사용자). 스킬 암전 시험판 `feature/skill-dim` 은 보류
 - **세션 분담 (2026-11-21 사용자 결정)**: UI 전담 세션(`feature/ui-*` — `src/ui/`·`src/scenes/` 배치·`tools/ui-audit.cjs`, `Hud.js` 는 UI 몫) · 게임 아트 전담 세션(`feature/art-*` — `docs/drafts/` 그림 스크립트·`public/assets/`·`src/art/`·`src/data/fx.js`·`vfx.js`). 작업마다 최신 main 에서 브랜치, 합치기 전에 main 다시 받기, main 은 사용자가 "합쳐" 할 때만 PR. `manifest.json` 충돌은 그림 스크립트를 다시 돌려 해결, `docs/HISTORY.md` 충돌은 두 줄 모두 남기기
 
 ## 확인 필요 (사용자 결정 대기)

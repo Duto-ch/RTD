@@ -1,5 +1,6 @@
 // 영지(로비) ESC 메뉴 (2026-11-22 사용자 요청): 전투 메뉴(Hud.openMenu)와 같은 모양 — 볼륨·음소거·튜토리얼 다시 보기 + 계속하기·게임 종료
 // 영지에서 '게임 종료'는 게임을 완전히 끝낸다(quitApp): 창을 닫아 보고, 브라우저가 막으면 게임을 멈추고 '창을 닫아 주세요' 화면
+import { storage } from '../systems/storage.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from './Button.js';
 import { panel, uiText, titleTab, closeButton, CSS, C } from './theme.js';
@@ -89,6 +90,11 @@ export function quitApp(game) {
     audio.ctx?.suspend(); // 소리 멈춤
   } catch {
     /* 소리를 켠 적 없음 */
+  }
+  // 데스크톱 판(Electron): 저장을 파일에 다 쓰고 앱을 끈다 (2026-11-23)
+  if (window.rtdNative?.quit) {
+    storage.flush().finally(() => window.rtdNative.quit());
+    return;
   }
   try {
     window.close();

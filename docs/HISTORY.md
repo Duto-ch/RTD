@@ -272,3 +272,4 @@
 - 2026-11-23 화면 전환 디졸브를 대각선(왼쪽 위 → 오른쪽 아래, 도트 디더 경계, 0.52초)으로 · e2e 는 `settled()` 로 전환이 끝난 뒤 조작 (사용자 요청)
 - 2026-11-23 화면 전환을 150x150 칸 카드 뒤집기(↘ 대각선 순서, 0.9초)로 — 이전 도트 디더 대각선 디졸브 대체 (사용자 요청)
 - 2026-11-23 버그 수정: 전투 중 강화 창의 '영지로' 버튼이 '닫고 전투로' 위에 겹쳐 그려져(PC 전환 때 버튼 이름 붙이며 조건문 밖으로 빠짐) 닫으면 영지로 나가 판이 새로 시작되던 문제 — 전투 중에는 '닫고 전투로'만, e2e 회귀 테스트 (`fix/upgrade-close`)
+- 2026-11-23 **PC 전환 3단계 — Electron 포장**: `desktop/`(main.cjs·preload.cjs — app:// 로 게임, 저장 파일 임시 파일→이름 바꾸기, 키 화이트리스트, F11·Alt+Enter 전체 화면, 게임 종료 = 저장 flush 후 앱 끔), Windows .exe 포장(@electron/packager, 컨테이너에서 성공 · 압축 160MB), Actions 'Desktop Build' 로 Windows 판 아티팩트, 시험 `desktop/test/smoke.cjs`(xvfb 로 Electron 실행 — 저장·다시 켜기·종료 통과). 세부 `docs/DESKTOP.md` (`feature/electron`)
