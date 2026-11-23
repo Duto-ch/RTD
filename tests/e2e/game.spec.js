@@ -1822,8 +1822,8 @@ test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 �
   expect([...r.ys].sort((a, b) => a - b)).toEqual(r.ys); // 위에서 아래로 한 줄
   expect(r.bgFull).toBe(true); // 가로 영지 그림(도트)이 화면을 꽉 채움 — 사용자 세로 그림은 가로 화면에 맞지 않아 PC 에서는 안 씀
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
-  // 병영으로: 대각선 디졸브 (2026-11-23, 이전 옆으로 밀기) — 잠깐 두 장면이 함께 켜지고 새 화면이 왼쪽 위부터 드러난다(진행도 0 → 1)
-  // 매 프레임 새 장면 진행도·마스크를 모아 본다 (전환은 실제 시간 0.52초라 한 번 읽어서는 놓친다)
+  // 병영으로: 카드 뒤집기 디졸브 (2026-11-23, 이전 옆으로 밀기) — 잠깐 두 장면이 함께 켜지고 새 화면이 왼쪽 위 칸부터 뒤집혀 드러난다(진행도 0 → 1)
+  // 매 프레임 새 장면 진행도·마스크를 모아 본다 (전환은 실제 시간 0.9초라 한 번 읽어서는 놓친다)
   const watch = (key) => game(page, (key) => {
     window.__as = [];
     window.__both = false;
@@ -1832,6 +1832,7 @@ test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 �
       if (m.isActive(key)) window.__as.push(m.getScene(key).wipeProgress ?? 1);
       if (m.getScenes(true).length >= 2) window.__both = true;
       if (m.isActive(key) && m.getScene(key).cameras.main.mask) window.__masked = true; // 드러나는 동안 마스크
+      if (m.isActive('Wipe')) window.__wipe = true; // 맨 위 바닥·그늘 장면
     };
     window.__asOff?.();
     window.game.events.on('poststep', f);
@@ -1840,9 +1841,11 @@ test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 �
   await watch('Deck');
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
   await page.waitForFunction(() => !window.game.scene.isActive('Lobby') && window.game.scene.isActive('Deck') && !window.game.scene.getScene('Deck').transitioning, null, { timeout: 8000 });
-  const into = await game(page, () => ({ as: window.__as, both: window.__both, masked: window.__masked, after: !!window.game.scene.getScene('Deck').cameras.main.mask }));
+  const into = await game(page, () => ({ as: window.__as, both: window.__both, masked: window.__masked, wipe: window.__wipe, wipeAfter: window.game.scene.isActive('Wipe'), after: !!window.game.scene.getScene('Deck').cameras.main.mask }));
   expect(into.both).toBe(true); // 두 장면이 겹쳐 보인 순간이 있다
-  expect(into.masked).toBe(true); // 대각선 마스크로 드러난다
+  expect(into.masked).toBe(true); // 칸 뒤집기 마스크로 드러난다
+  expect(into.wipe).toBe(true); // 뒤집히는 동안 바닥·그늘 장면이 맨 위에
+  expect(into.wipeAfter).toBe(false); // 끝나면 꺼진다
   expect(into.after).toBe(false); // 끝나면 마스크를 걷는다
   expect(into.as.some((a) => a > 0.05 && a < 0.95)).toBe(true); // 반쯤 드러난 중간 단계
   expect(into.as[into.as.length - 1]).toBe(1);
