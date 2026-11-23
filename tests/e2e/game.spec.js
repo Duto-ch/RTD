@@ -390,6 +390,9 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
   await clickAt(page, () => { const b = window.game.scene.getScene('Title').fameBtn; return { x: b.x, y: b.y }; }); // 명성 강화 (타이틀 아래 금색 버튼)
   await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  // 우주 배경 + 별똥별 (2026-11-23): 배경 그림이 깔리고 잠시 뒤 별똥별(fx_meteor)이 지나간다
+  expect(await game(page, () => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'space_bg'))).toBe(true);
+  await page.waitForFunction(() => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'fx_meteor'), null, { timeout: 8000 });
   await page.waitForTimeout(200);
   const at = async (id) => { const p = await game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id); return { x: p.x * UI, y: p.y * UI }; };
   const bb = await game(page, () => { const b = window.game.scene.getScene('Upgrade').buyBtn; return { x: b.x, y: b.y }; });

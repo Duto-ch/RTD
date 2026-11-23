@@ -21,7 +21,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('lobby_wide', 'assets/lobby/lobby_wide.png');
     // 2026-11-22 사용자 결정: 세로 영지·성탑(강화) 배경은 사용자 그림을 도트로 줄이지 않고 원본 그대로(941x1672, 부드럽게 맞춤 — 2px 도트 규칙 예외)
     this.load.image('lobby_bg', 'assets/lobby/lobby_bg.webp');
-    this.load.image('upgrade_bg', 'assets/upgrade/upgrade_bg.webp');
+    this.load.image('space_bg', 'assets/upgrade/space_bg.webp');
   }
 
   create() {

@@ -87,17 +87,10 @@ export class UpgradeScene extends Phaser.Scene {
     this.drag = null;
     this.moved = false;
 
-    // 밤하늘 배경: 사용자 그림(별·은하수 밤하늘)을 원본 그대로 (2026-11-22, 도트로 줄이지 않음). 가로 배치는 예전 그린 별
+    // 우주 배경 (2026-11-23 사용자 요청): 성운·은하·행성 그림(가로 16:9, 원본 그대로) + 별똥별·반짝이는 별(코드)
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x12101e).setOrigin(0);
-    if (false) coverImage(this, 'upgrade_bg', GAME_W, GAME_H);
-    else {
-      const stars = this.add.graphics();
-      for (let i = 0; i < 70; i++) {
-        stars.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.08, 0.3));
-        stars.fillRect(Phaser.Math.Between(0, GAME_W), Phaser.Math.Between(0, GAME_H), 2, 2);
-      }
-      for (const [x, y, r] of [[90, 260, 90], [470, 560, 70], [430, 180, 40]]) this.add.circle(x, y, r, 0x2a2147, 0.5);
-    }
+    if (this.textures.exists('space_bg')) coverImage(this, 'space_bg', GAME_W, GAME_H);
+    this.createSpaceFx();
 
     // 트리 (이동·확대되는 컨테이너)
     this.tree = this.add.container(CENTER.x, CENTER.y).setDepth(1);
@@ -115,6 +108,87 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   // ───────────── 머리 창 ─────────────
+  /** 별똥별(무작위 간격으로 대각선을 가로지름) + 반짝이는 십자 별 — 트리 뒤(깊이 0) */
+  createSpaceFx() {
+    const K = 3; // 텍스처를 3배 해상도로 그려 1/3 로 놓는다 (UI 1.5배 × RES 에서도 매끄럽게)
+    if (!this.textures.exists('fx_meteor')) {
+      const w = 220 * K;
+      const h = 10 * K;
+      const t = this.textures.createCanvas('fx_meteor', w, h);
+      const g = t.getContext();
+      const grad = g.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0, 'rgba(160,180,255,0)');
+      grad.addColorStop(0.7, 'rgba(200,190,255,0.45)');
+      grad.addColorStop(1, 'rgba(255,255,255,0.95)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.moveTo(0, h / 2);
+      g.lineTo(w - h / 2, h / 2 - 1.6 * K);
+      g.lineTo(w - h / 2, h / 2 + 1.6 * K);
+      g.closePath();
+      g.fill();
+      const head = g.createRadialGradient(w - h / 2, h / 2, 0, w - h / 2, h / 2, h / 2);
+      head.addColorStop(0, 'rgba(255,255,255,1)');
+      head.addColorStop(0.4, 'rgba(230,225,255,0.8)');
+      head.addColorStop(1, 'rgba(180,170,255,0)');
+      g.fillStyle = head;
+      g.fillRect(w - h, 0, h, h);
+      t.refresh();
+      t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+    if (!this.textures.exists('fx_twinkle')) {
+      const n = 24 * K;
+      const t = this.textures.createCanvas('fx_twinkle', n, n);
+      const g = t.getContext();
+      const c = n / 2;
+      const glow = g.createRadialGradient(c, c, 0, c, c, c);
+      glow.addColorStop(0, 'rgba(255,255,255,0.9)');
+      glow.addColorStop(0.25, 'rgba(220,215,255,0.35)');
+      glow.addColorStop(1, 'rgba(200,190,255,0)');
+      g.fillStyle = glow;
+      g.fillRect(0, 0, n, n);
+      g.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const [dx, dy] of [[1, 0], [0, 1]]) {
+        g.beginPath();
+        g.moveTo(c - dx * c, c - dy * c);
+        g.lineTo(c + dy * 1.2 * K, c + dx * 1.2 * K);
+        g.lineTo(c + dx * c, c + dy * c);
+        g.lineTo(c - dy * 1.2 * K, c - dx * 1.2 * K);
+        g.closePath();
+        g.fill();
+      }
+      t.refresh();
+      t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+    const R = Phaser.Math;
+    // 반짝이는 별: 제자리에서 천천히 밝아졌다 어두워짐 (박자 제각각)
+    for (let i = 0; i < 14; i++) {
+      const st = this.add.image(R.Between(20, GAME_W - 20), R.Between(20, GAME_H - 20), 'fx_twinkle').setDepth(0);
+      const sc = R.FloatBetween(0.18, 0.4);
+      st.setScale(sc).setAlpha(0.15).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: st, alpha: R.FloatBetween(0.6, 1), scale: sc * 1.35, duration: R.Between(900, 1900), delay: R.Between(0, 2000), yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    }
+    // 별똥별: 오른쪽 위 → 왼쪽 아래로 비스듬히, 0.7~2.4초마다 하나(가끔 둘)
+    const shoot = () => {
+      const ang = R.DegToRad(R.Between(140, 160)); // 왼쪽 아래 방향
+      const len = R.Between(320, 600);
+      const x0 = R.Between(GAME_W * 0.25, GAME_W + 120);
+      const y0 = R.Between(-60, GAME_H * 0.45);
+      const m = this.add.image(x0, y0, 'fx_meteor').setOrigin(1, 0.5).setDepth(0).setRotation(ang);
+      const sc = R.FloatBetween(0.32, 0.5);
+      m.setScale(sc * 0.4, sc).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+      const dur = R.Between(650, 1100);
+      this.tweens.add({ targets: m, x: x0 + Math.cos(ang) * len, y: y0 + Math.sin(ang) * len, duration: dur, ease: 'Quad.In' });
+      this.tweens.add({ targets: m, scaleX: sc, alpha: 1, duration: dur * 0.35, yoyo: true, hold: dur * 0.3, ease: 'Sine.Out', onComplete: () => m.destroy() });
+    };
+    const loop = () => {
+      shoot();
+      if (Math.random() < 0.2) this.time.delayedCall(R.Between(120, 300), shoot);
+      this.time.delayedCall(R.Between(700, 2400), loop);
+    };
+    this.time.delayedCall(300, loop);
+  }
+
   createHeader() {
     const D = 10;
     const X = SIDE.x;
