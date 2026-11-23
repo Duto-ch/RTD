@@ -10,7 +10,7 @@ const SPACE_PX = GAME_W / 640;
 import { UPGRADES, UPGRADE_BY_ID, BRANCH_BY_ID, START_ONLY, childrenOf, upgradeCost, formatEffect } from '../data/upgrades.js';
 import { meta } from '../systems/meta.js';
 import { audio } from '../systems/audio.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo, dissolveOut } from '../ui/dissolve.js';
 
 // 명성 강화 화면: 가운데 뿌리에서 4갈래(공격 위·경제 오른쪽·전술 아래·방어 왼쪽)로 가지가 뻗는 스킬 노드 트리.
 // 노드를 누르면 아래 창에 정보가 나오고 "강화" 버튼으로 명성을 써서 1레벨 올린다.
@@ -179,8 +179,8 @@ export class UpgradeScene extends Phaser.Scene {
     if (this.fromGame) {
       new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
       this.input.keyboard?.on('keydown-ESC', () => this.close());
-    } else this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => this.scene.start('Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-    this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => slideTo(this, 'Lobby', undefined, -1), { variant: 'outline', fontSize: 16 }).setDepth(D);
+    } else this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => dissolveTo(this, 'Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
+    this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
     // 확대·축소·가운데로
     const zx = VIEW.right - 36;
     new Button(this, zx, VIEW.top + 24, 40, 40, '', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', icon: 'plus' }).setDepth(D);
@@ -190,9 +190,12 @@ export class UpgradeScene extends Phaser.Scene {
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */
   close() {
-    if (!this.scene.isPaused('Game')) return slideTo(this, 'Lobby', undefined, -1); // 돌아갈 전투가 없으면 영지로 (옆으로 밀기)
-    this.scene.stop();
-    this.scene.resume('Game');
+    if (!this.scene.isPaused('Game')) return dissolveTo(this, 'Lobby'); // 돌아갈 전투가 없으면 영지로
+    // 전투 위에 겹친 강화 창: 서서히 사라진 뒤 닫고 전투 재개 (2026-11-23 디졸브)
+    dissolveOut(this, () => {
+      this.scene.stop();
+      this.scene.resume('Game');
+    });
   }
 
   setZoom(z) {

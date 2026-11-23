@@ -3,6 +3,7 @@ import { hiRes } from '../systems/hires.js';
 import { generateTextures } from '../art/textures.js';
 import { preloadManifest, loadCustomArt } from '../systems/customArt.js';
 import { preloadFx, createFxAnims } from '../data/fx.js';
+import { dissolveTo } from '../ui/dissolve.js';
 
 // 1) 모든 픽셀아트 텍스처를 코드로 생성
 // 2) PixelLab 이펙트 시트(public/assets/fx/) 읽기 + 애니메이션 등록
@@ -30,6 +31,6 @@ export class BootScene extends Phaser.Scene {
     hiRes(this);
     generateTextures(this);
     createFxAnims(this);
-    loadCustomArt(this, () => this.scene.start('Title'));
+    loadCustomArt(this, () => dissolveTo(this, 'Title')); // 로딩 → 타이틀도 디졸브 (2026-11-23)
   }
 }

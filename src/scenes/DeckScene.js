@@ -11,7 +11,7 @@ import { starSkill } from '../data/stars.js';
 import { TRAITS, CLASS_IDS, ORIGIN_IDS } from '../data/synergy.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Kinetic } from '../ui/kinetic.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo } from '../ui/dissolve.js';
 
 // 병영 = 덱 편성 (룰 v2, 2026-11-20). 가진 캐릭터(술집에서 고용) 중 최대 30명 — 레어 9명·유니크 3명까지.
 // 판 안 상점은 이 덱의 캐릭터만 내놓는다. 카드를 누르면 정보 창에 계열·출신·특성·스킬(별마다), '덱에 넣기/빼기'.
@@ -321,7 +321,7 @@ export class DeckScene extends Phaser.Scene {
   leave() {
     if (!meta.setDeck(this.deck)) return this.toast(`덱을 저장할 수 없습니다 (1~${DECK_RULES.max}명 · 레어 ${DECK_RULES.rare} · 유니크 ${DECK_RULES.unique} 이하)`);
     audio.init();
-    slideTo(this, 'Lobby', undefined, -1); // 영지로 옆으로 밀어 돌아간다 (2026-11-22)
+    dissolveTo(this, 'Lobby'); // 영지로 디졸브 (2026-11-23, 이전 옆으로 밀기)
   }
 
   refresh() {
