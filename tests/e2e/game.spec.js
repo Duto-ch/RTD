@@ -1994,3 +1994,24 @@ test('저장 한 곳 (2026-11-23): 데스크톱 판(native 저장)은 파일로 
   const r2 = await game(page, () => ({ fame: window.__rtd.meta.fame, stones: window.__rtd.meta.stones, vol: window.__rtd.audio.musicVol, kind: window.__rtd.storage.kind }));
   expect(r2).toEqual({ fame: 37, stones: 4, vol: 0.3, kind: 'native' });
 });
+
+test('버그 회귀 (2026-11-23): 전투 중 강화 창 → 닫고 전투로 버튼을 눌러도 판이 그대로 (영지로 버튼이 겹쳐 있지 않음)', async ({ page }) => {
+  const errors = await startGame(page);
+  const before = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 777;
+    g.hire('helga');
+    g.startWave(3);
+    return { wave: g.wave, gold: g.gold, mercs: g.mercs.length };
+  });
+  await clickAt(page, UPGRADE_BTN);
+  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  const btns = await game(page, () => { const u = window.game.scene.getScene('Upgrade'); return { lobby: !!u.lobbyBtn, start: !!u.startBtn, close: !!u.closeBtn }; });
+  expect(btns).toEqual({ lobby: false, start: false, close: true }); // 전투 중에는 '닫고 전투로'만
+  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').closeBtn; return { x: b.x, y: b.y }; });
+  await page.waitForFunction(() => !window.game.scene.isActive('Upgrade') && window.game.scene.isActive('Game') && !window.game.scene.isPaused('Game'));
+  const after = await game(page, () => { const g = window.game.scene.getScene('Game'); return { wave: g.wave, gold: g.gold, mercs: g.mercs.length }; });
+  expect(after).toEqual(before); // 판이 그대로
+  expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(false);
+  expect(errors).toEqual([]);
+});
