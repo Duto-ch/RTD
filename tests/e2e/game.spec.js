@@ -1936,3 +1936,39 @@ test('곡선 UI (2026-11-23): 원·알약·배지는 화면 해상도로 미리 
   await page.screenshot({ path: SHOT('52-round-ui') });
   expect(errors).toEqual([]);
 });
+
+test('저장 한 곳 (2026-11-23): 데스크톱 판(native 저장)은 파일로 저장하고 다시 켜면 그대로 · 웹 저장(localStorage)은 안 씀', async ({ page }) => {
+  // Electron preload 가 열어 줄 window.rtdNative.storage 를 흉내 — '파일'은 sessionStorage 에 둬서 새로고침해도 남게
+  await page.addInitScript(() => {
+    const disk = () => JSON.parse(sessionStorage.getItem('__fake_disk') || '{}');
+    const put = (o) => sessionStorage.setItem('__fake_disk', JSON.stringify(o));
+    window.__writes = 0;
+    window.rtdNative = {
+      storage: {
+        readAll: async () => disk(),
+        write: async (k, v) => { const o = disk(); o[k] = v; put(o); window.__writes++; },
+        remove: async (k) => { const o = disk(); delete o[k]; put(o); }
+      }
+    };
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  const r1 = await game(page, async () => {
+    const { meta, storage } = window.__rtd;
+    meta.reset();
+    meta.addFame(37);
+    meta.addStones(4);
+    window.__rtd.audio.setMusicVolume(0.3);
+    await storage.flush();
+    return { kind: storage.kind, writes: window.__writes, ls: localStorage.getItem('rtd_meta_v3'), file: JSON.parse(JSON.parse(sessionStorage.getItem('__fake_disk')).rtd_meta_v3).fame };
+  });
+  expect(r1.kind).toBe('native');
+  expect(r1.writes).toBeGreaterThan(0);
+  expect(r1.ls).toBe(null); // 웹 저장소에는 쓰지 않는다
+  expect(r1.file).toBe(37);
+  // 다시 켜기 (게임 새로 시작) → 파일에서 그대로
+  await page.reload();
+  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  const r2 = await game(page, () => ({ fame: window.__rtd.meta.fame, stones: window.__rtd.meta.stones, vol: window.__rtd.audio.musicVol, kind: window.__rtd.storage.kind }));
+  expect(r2).toEqual({ fame: 37, stones: 4, vol: 0.3, kind: 'native' });
+});

@@ -17,6 +17,7 @@
 - 튜토리얼(`src/ui/Tutorial.js`)은 자동화 브라우저에서 꺼진다 — e2e 는 localStorage `rtd_tutorial_test` 로 켠다. 새 기능을 넣으면 `TUTORIAL_STEPS` 에 단계도 하나 추가. 떠 있는 동안 `tut.open` 이라 전투 dt 0·키 입력 무시
 - 스킬은 데이터(area/fx/buff/gold)로만 정의하고 `GameScene.castSkill` 이 실행한다 — 새 효과 타입은 거기에 추가. 스킬 연출은 `vfx.sigSkill`(레어·유니크 전용, 키 = 스킬 def.id) → `vfx.setSkill`(커먼·언커먼 공용) → 예전 `vfx.skill` 순으로 고른다. 이펙트 동시 48개·동전 12개 상한
 - 예전 `src/data/heroes.js`·`skillOptions` 는 그림·문서용으로만 남은 것 — 게임 규칙은 `src/data/roster.js`(104명)
+- **저장은 `src/systems/storage.js` 만** (`storage.get/set/getJSON/setJSON`) — `localStorage` 직접 금지. 새 저장 키는 `SAVE_KEYS` 에 넣는다(데스크톱 파일·내보내기 대상). 규약·Steam 클라우드 `docs/SAVE.md`
 - 명성 강화 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`(강화 창을 닫으면 `applyBonus()` 로 다시 읽음)·Mercenary `getStats` 에서 쓴다. 판 시작 때만 쓰는 효과는 다음 판부터
 
 ## 명령어 (package.json 에 없는 것·꼭 지킬 것)

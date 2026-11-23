@@ -15,6 +15,7 @@ import { DeckScene } from './scenes/DeckScene.js';
 import { TavernScene } from './scenes/TavernScene.js';
 import { WorkshopScene } from './scenes/WorkshopScene.js';
 import { meta } from './systems/meta.js';
+import { storage } from './systems/storage.js';
 
 async function loadFonts() {
   const faces = [
@@ -34,6 +35,10 @@ async function loadFonts() {
 }
 
 await loadFonts();
+// 저장 한 곳 (2026-11-23): 데스크톱 판은 파일 저장을 먼저 읽어 둔다 — 그 뒤 진행 상황·소리 설정을 다시 읽음
+await storage.init();
+meta.load();
+audio.loadSettings();
 
 // 브라우저 정책: 첫 터치/클릭 후에만 소리를 낼 수 있다
 window.addEventListener('pointerdown', () => audio.init());
@@ -75,4 +80,4 @@ window.addEventListener('resize', () => game.scale.setZoom(displayScale() / RES)
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
 window.game = game;
 window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
-window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta }; // 디버그·테스트용
+window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta, storage }; // 디버그·테스트용
