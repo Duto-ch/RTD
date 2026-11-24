@@ -1502,6 +1502,44 @@ test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·
   expect(errors).toEqual([]);
 });
 
+test('스킬 정예 (2026-11-24): 정예 10마리마다 1마리 — 수호 오라는 주변 몬스터 받는 피해 -30% · 저주는 가까운 용병 2명에게 디버프', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    const R = window.__rtd.ROSTER;
+    for (const c of R.slice(0, 3)) g.hire(c.id);
+    g.startWave(5);
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const elites = g.monsters.filter((m) => m.kind === 'elite');
+    const casters = elites.filter((m) => m.eliteSkill);
+    const c = casters[0];
+    const near = g.monsters.find((m) => m !== c && m.kind === 'normal');
+    // 수호 오라: 같은 자리에 둔 몬스터가 받는 피해 30% 감소
+    c.eliteSkill = { id: 'aura_guard', name: '수호 오라', type: 'aura', range: 90, effect: { guard: 0.3 }, color: 0x7ab8ff };
+    near.x = c.x; near.y = c.y;
+    g.updateAuras();
+    const hp0 = near.hp;
+    g.damageMonster(near, 10, { source: g.mercs[0] });
+    const guarded = (hp0 - near.hp) / 10;
+    // 저주: 가까운 용병 2명에게 공격력 -35%
+    c.eliteSkill = { id: 'elite_weaken', name: '쇠약의 저주', type: 'debuff', cd: 8, range: 9999, targets: 2, dur: 5, effect: { dmg: -0.35 } };
+    c.skillCd = 0;
+    g.updateEliteSkills(0.1);
+    const cursed = g.mercs.filter((u) => u.debuffState(g.gameTime).dmg < 0).length;
+    return { elites: elites.length, casters: casters.length, guarded, cursed, cd: Math.round(c.skillCd), banner: g.hud.bannerObj?.list?.map((o) => o.text).filter(Boolean).join(' ') };
+  });
+  expect(r.elites).toBe(10);
+  expect(r.casters).toBe(1);
+  expect(r.guarded).toBeCloseTo(0.7, 2);
+  expect(r.cursed).toBe(2);
+  expect(r.cd).toBe(8);
+  expect(r.banner).toContain('정예 10기');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31d-elite-skill') });
+  expect(errors).toEqual([]);
+});
+
 test('특수 몬스터 (2026-11-24): 웨이브 안에 섞여 나오고 — 물리 저항은 물리 35%·마법 100% · 방어력은 한 대마다 줄고 지속 피해는 무시 · 빠름은 1.6배 속도', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {

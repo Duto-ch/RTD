@@ -90,6 +90,14 @@ export const TUTORIAL_STEPS = {
       return m ? { x: toUi(m.x) - 22, y: toUi(m.y) - 22, w: 44, h: 44 } : null; // 몬스터는 월드 좌표
     }
   },
+  eliteSkill: {
+    title: '스킬 정예',
+    text: '정예 10마리 중 1마리는 스킬을 써요.\n보라 고리 = 용병 2명에게 저주(공격력·공속·스킬 봉쇄)\n색 원 = 주변 몬스터 수호·가속·재생 오라. 먼저 잡으세요!',
+    rect: (s) => {
+      const m = s.monsters?.find((o) => o.eliteSkill && o.active);
+      return m ? { x: toUi(m.x) - 30, y: toUi(m.y) - 30, w: 60, h: 60 } : null; // 몬스터는 월드 좌표
+    }
+  },
   stones: {
     title: '마정석',
     text: '보스를 쓰러뜨리면 마정석이 떨어져요.\n영지의 술집(캐릭터 고용)·유물 공방(유물 생산)에서 씁니다.',

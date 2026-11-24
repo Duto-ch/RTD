@@ -6,11 +6,12 @@ import { monsterDesign, variantDesign } from '../data/monsters.js';
 import { playBase, setArt } from '../systems/customArt.js';
 import { dotKey } from '../art/textures.js';
 import { BOSS_ABILITIES } from '../data/bossAbilities.js';
+import { ELITE_SKILLS } from '../data/eliteSkills.js';
 import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Sprite {
   constructor(scene, kind, attr, wave, milestone = false, variant = null) {
-    const design = variant ? variantDesign(variant, wave) : monsterDesign(kind, wave);
+    const design = variant && kind === 'normal' ? variantDesign(variant, wave) : monsterDesign(kind, wave);
     super(scene, 0, 0, Monster.texKey(scene, design, attr, kind));
     this.design = design; // { id, name } — 웨이브별 전용 외형 (특수 몬스터는 종류별 외형)
     const s = monsterStats(kind, wave, milestone, variant);
@@ -20,6 +21,12 @@ export class Monster extends Phaser.GameObjects.Sprite {
     this.resist = s.resist || null; // 'phys' | 'magic' — 그 종류 피해를 BALANCE.special.resist 만큼만 받는다
     this.stun = s.stun || null; // 기절: { cd, dur, range } — GameScene.updateStunners
     this.stunCd = this.stun ? 2 + Math.random() * 3 : 0; // 처음엔 2~5초 뒤
+    // 스킬 정예 (2026-11-24): 용병 디버프 또는 주변 몬스터 오라 — GameScene.updateEliteSkills
+    this.eliteSkill = kind === 'elite' && variant === 'caster' ? Phaser.Utils.Array.GetRandom(ELITE_SKILLS) : null;
+    this.skillCd = this.eliteSkill ? 2 + Math.random() * 2 : 0;
+    this.auraGuard = 0; // 오라를 받는 중: 받는 피해 감소
+    this.auraHaste = 0; // 이동 속도 +
+    this.auraRegen = 0; // 초당 최대 체력 비율 회복
     this.milestone = milestone; // 강화 보스 (30·60·90)
     this.isFinal = kind === 'boss' && isFinalWave(wave); // 최종 보스 (100웨이브마다)
     this.revived = false;
@@ -96,7 +103,7 @@ export class Monster extends Phaser.GameObjects.Sprite {
   }
 
   damageTakenMult(now) {
-    return now < this.vulnUntil ? 1 + this.vulnPct : 1;
+    return (now < this.vulnUntil ? 1 + this.vulnPct : 1) * (1 - this.auraGuard);
   }
 
   /** 저항 배율: 공격한 용병의 피해 종류(물리·마법·폭발)가 이 몬스터의 저항과 같으면 BALANCE.special.resist */
@@ -155,7 +162,8 @@ export class Monster extends Phaser.GameObjects.Sprite {
   tick(dt, now, speedMul) {
     if (now > this.slowUntil) this.slowPct = 0;
     const rage = this.enraged ? BALANCE.milestone.enrageSpeed : 1;
-    if (now >= this.stunUntil) this.dist += this.baseSpeed * rage * (1 - this.slowPct) * speedMul * dt;
+    if (now >= this.stunUntil) this.dist += this.baseSpeed * rage * (1 - this.slowPct) * (1 + this.auraHaste) * speedMul * dt;
+    if (this.auraRegen > 0 && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * this.auraRegen * dt); // 재생 오라
     this.place();
 
     // 지속 피해

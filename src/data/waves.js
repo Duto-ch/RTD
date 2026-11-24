@@ -35,12 +35,24 @@ export function normalCount(w) {
   return Math.round(base * k * (BALANCE.horde.countScale ?? 1));
 }
 
+/** 정예 수 (2026-11-24): 5웨이브 10마리 → 75웨이브 30마리 (정예가 나올 때마다 늘어남), 그 뒤 30 */
+export function eliteCount(w) {
+  const E = BALANCE.eliteCount;
+  const t = Math.min(1, Math.max(0, (w - E.startWave) / (E.maxWave - E.startWave)));
+  return Math.round(E.start + (E.max - E.start) * t);
+}
+
+/** 그 웨이브 정예 중 스킬 정예 수 (정예 10마리마다 1마리) */
+export function eliteCasters(w) {
+  return Math.floor(waveInfo(w).elite / BALANCE.eliteCount.perCaster);
+}
+
 export function waveInfo(w) {
   const normal = normalCount(w);
   if (isFinalWave(w)) return { type: 'final', normal, elite: 0, boss: 1 };
-  if (isMilestoneWave(w)) return { type: 'milestone', normal, elite: BALANCE.milestone.extraElites, boss: 1 };
+  if (isMilestoneWave(w)) return { type: 'milestone', normal, elite: eliteCount(w), boss: 1 };
   if (isBossWave(w)) return { type: 'boss', normal, elite: 0, boss: 1 };
-  if (isEliteWave(w)) return { type: 'elite', normal, elite: 10, boss: 0 };
+  if (isEliteWave(w)) return { type: 'elite', normal, elite: eliteCount(w), boss: 0 };
   return { type: 'normal', normal, elite: 0, boss: 0 };
 }
 
@@ -94,8 +106,11 @@ export function spawnList(w) {
   for (let i = 0; groups.some((g) => i < g.length); i++) for (const g of groups) if (i < g.length) sp.push(g[i]);
   const list = Array(info.normal - sp.length).fill('normal');
   for (let i = 0; i < sp.length; i++) list.splice(Math.floor(((i + 0.5) * (list.length + 1)) / (sp.length + 1)) + i, 0, sp[i]);
+  const casters = Math.floor(info.elite / BALANCE.eliteCount.perCaster);
   for (let i = 0; i < info.elite; i++) {
-    list.splice(Math.floor(((i + 0.5) * list.length) / info.elite) + i, 0, 'elite');
+    // 스킬 정예('elite:caster')는 정예 사이에 고르게
+    const caster = casters && i % Math.floor(info.elite / casters) === Math.floor(info.elite / casters / 2) && Math.floor(i / Math.floor(info.elite / casters)) < casters;
+    list.splice(Math.floor(((i + 0.5) * list.length) / info.elite) + i, 0, caster ? 'elite:caster' : 'elite');
   }
   if (info.boss) list.unshift('boss');
   return list;
@@ -117,7 +132,7 @@ export function monsterStats(kind, w, milestone = false, variant = null) {
     const base = monsterStats('normal', w);
     const v = BALANCE.special.types[variant];
     return {
-      hp: base.hp * (v.hp || 1),
+      hp: base.hp * (v.hp || 1) * (BALANCE.special.hpMult || 1),
       speed: base.speed * (v.speed || 1),
       gold: base.gold * Math.max(1, v.hp || 1),
       armor: base.hp * (v.armor || 0),

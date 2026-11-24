@@ -190,10 +190,12 @@ export class GameScene extends Phaser.Scene {
         elite: Math.max(0.4, 1 - relicSlow - b.monsterSlow - b.eliteSlow),
         boss: Math.max(0.4, 1 - relicSlow - b.bossSlow)
       };
+      this.updateAuras(); // 스킬 정예의 오라 (몬스터가 움직이기 전에)
       for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, mul[m.kind] ?? mul.normal);
       this.checkLaps();
       this.updateBosses(dt);
       this.updateStunners(dt);
+      this.updateEliteSkills(dt);
       this.updateRoots(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
@@ -310,7 +312,7 @@ export class GameScene extends Phaser.Scene {
       info.type === 'final' ? `최종 보스 출현! 쓰러뜨려도 한 번 되살아납니다` :
       info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
-      info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
+      info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 ${info.elite}기` : `몬스터 ${info.normal}기`;
     // 특수 몬스터 (2026-11-24): 배너 아래 줄에 종류·수 (예: '빠름 7 · 방어력 5')
     const sp = Object.entries(specialCounts(w)).filter(([, n]) => n > 0).map(([id, n]) => `${BALANCE.special.types[id].name} ${n}`);
     const subLine = sp.length ? `${sub} · ${sp.join(' · ')}` : sub;
@@ -432,7 +434,11 @@ export class GameScene extends Phaser.Scene {
     const [kind, variant = null] = entry.split(':'); // 특수 몬스터는 'normal:<종류>' (2026-11-24)
     const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave), variant);
     this.monsters.push(m);
-    if (variant) this.tut.show('special');
+    if (variant && kind === 'normal') this.tut.show('special');
+    if (m.eliteSkill) {
+      this.floatText(m.x, m.y - 40, m.eliteSkill.name, '#d6a8ff', 16, true);
+      this.tut.show('eliteSkill');
+    }
     if (m.isBoss) {
       audio.bossAppear(); // 전쟁나팔(audio.warHorn)은 2026-11-24 사용자 결정으로 보류 — 예전 우르릉 소리
       this.tut.show('boss');
@@ -588,6 +594,51 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** 보스 디버프 능력: 쿨타임마다 랜덤 용병/영웅에게 시전 */
+  /** 스킬 정예 오라 (2026-11-24): 매 프레임 범위 안 몬스터(자신 포함)에 수호·가속·재생 — 여러 오라가 겹치면 큰 값 */
+  updateAuras() {
+    const casters = this.monsters.filter((m) => m.alive && m.eliteSkill?.type === 'aura');
+    for (const m of this.monsters) m.auraGuard = m.auraHaste = m.auraRegen = 0;
+    for (const c of casters) {
+      const { range, effect } = c.eliteSkill;
+      const r2 = range * range;
+      for (const m of this.monsters) {
+        if (!m.alive || d2(m, c) > r2) continue;
+        if (effect.guard) m.auraGuard = Math.max(m.auraGuard, effect.guard);
+        if (effect.haste) m.auraHaste = Math.max(m.auraHaste, effect.haste);
+        if (effect.regen) m.auraRegen = Math.max(m.auraRegen, effect.regen);
+      }
+    }
+  }
+
+  /** 스킬 정예 디버프 (2026-11-24): cd 초마다 가까운 용병 targets 명에게 (그 디버프가 아직 없는 용병 먼저) */
+  updateEliteSkills(dt) {
+    const now = this.gameTime;
+    for (const m of this.monsters) {
+      const sk = m.eliteSkill;
+      if (!m.alive || sk?.type !== 'debuff') continue;
+      m.skillCd -= dt;
+      if (m.skillCd > 0) continue;
+      const r2 = sk.range * sk.range;
+      const near = this.mercs
+        .map((u) => ({ u, d: d2(u, m), has: u.debuffs.some((x) => x.def.id === sk.id && x.until > now) }))
+        .filter((o) => o.d <= r2)
+        .sort((a, b) => a.has - b.has || a.d - b.d)
+        .slice(0, sk.targets)
+        .map((o) => o.u);
+      if (!near.length) {
+        m.skillCd = 0.5;
+        continue;
+      }
+      m.skillCd = sk.cd;
+      for (const u of near) {
+        u.addDebuff(sk, now, Math.max(0.2, 1 - this.bonus.debuffDur));
+        this.floatText(u.x, u.y - 36, sk.name, '#d6a8ff', 14);
+      }
+      this.vfx.curse(m, near);
+      audio.debuff();
+    }
+  }
+
   /** 기절 몬스터 (2026-11-24): cd 초마다 가까운 용병 1명을 잠깐 행동 불가 (이미 기절한 용병은 건너뜀) */
   updateStunners(dt) {
     const now = this.gameTime;
@@ -1513,6 +1564,12 @@ export class GameScene extends Phaser.Scene {
     }
     for (const m of this.monsters) {
       // 물량: 일반 몬스터는 체력 막대 없음 (정예·보스만)
+      // 스킬 정예 (2026-11-24): 오라는 범위 원(종류 색), 디버프 정예는 보라 고리
+      if (m.alive && m.eliteSkill) {
+        const sk = m.eliteSkill;
+        if (sk.type === 'aura') g.fillStyle(sk.color, 0.1).fillCircle(m.x, m.y, sk.range).lineStyle(2, sk.color, 0.55).strokeCircle(m.x, m.y, sk.range);
+        else g.lineStyle(3, 0xb47cff, 0.9).strokeCircle(m.x, m.y, 26);
+      }
       if (!m.alive || m.kind === 'normal' || (m.hp >= m.maxHp && !m.isBoss)) continue;
       const w = m.isBoss ? 72 : m.kind === 'elite' ? 48 : 36;
       const h = m.isBoss ? 8 : 4;

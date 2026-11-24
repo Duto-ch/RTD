@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalCount, waveInfo, spawnList, speedMultiplier, monsterStats, isFinalWave, earlyHpMult, specialTypes, specialCounts } from '../../src/data/waves.js';
+import { normalCount, waveInfo, spawnList, speedMultiplier, monsterStats, isFinalWave, earlyHpMult, specialTypes, specialCounts, eliteCount, eliteCasters } from '../../src/data/waves.js';
 import { variantDesign, monsterDesign } from '../../src/data/monsters.js';
 import { STYLES } from '../../src/data/roster.js';
 import { biomeForWave, BIOMES } from '../../src/data/biomes.js';
@@ -47,11 +47,21 @@ describe('웨이브 규칙', () => {
     for (const w of [5, 10, 30, 100]) expect(waveInfo(w).normal).toBe(normalCount(w));
   });
 
-  it('출현 목록: 보스가 맨 앞, 정예 수가 맞다', () => {
+  it('출현 목록: 보스가 맨 앞, 정예 수가 맞다 (2026-11-24: 정예 5웨이브 10 → 75웨이브 30, 10마리마다 스킬 정예 1)', () => {
     const l = spawnList(30);
+    const elites = (w) => spawnList(w).filter((k) => k.startsWith('elite'));
     expect(l[0]).toBe('boss');
-    expect(l.filter((k) => k === 'elite')).toHaveLength(BALANCE.milestone.extraElites);
-    expect(spawnList(15).filter((k) => k === 'elite')).toHaveLength(10);
+    expect(elites(5)).toHaveLength(10);
+    expect(elites(15)).toHaveLength(13);
+    expect(elites(30)).toHaveLength(17); // 강화 보스 웨이브도 같은 식
+    expect(elites(75)).toHaveLength(30);
+    expect(elites(95)).toHaveLength(30); // 그 뒤 30 고정
+    for (let w = 15; w <= 75; w += 10) expect(eliteCount(w)).toBeGreaterThan(eliteCount(w - 10));
+    // 스킬 정예: 정예 10마리마다 1마리
+    expect(spawnList(5).filter((k) => k === 'elite:caster')).toHaveLength(1);
+    expect(spawnList(45).filter((k) => k === 'elite:caster')).toHaveLength(2);
+    expect(spawnList(75).filter((k) => k === 'elite:caster')).toHaveLength(3);
+    expect(eliteCasters(75)).toBe(3);
     expect(spawnList(3)).toHaveLength(normalCount(3));
   });
 
@@ -76,7 +86,7 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 1.0) / 1.8) * earlyHpMult(2));
     expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 1.0) / 1.8) * earlyHpMult(10));
     expect(monsterStats('normal', 70).hp).toBeCloseTo(((40 * Math.pow(1.08, 69) * 1.0) / 1.8) * 1.5); // 11웨이브부터 ×1.5
-    expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 1.0 * 10);
+    expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 1.0 * 15); // 정예 스펙 ×1.5 (2026-11-24, 이전 10배)
     expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 1.0 * 110);
     expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 1.8) * 2); // 골드 총량 유지
     expect(monsterStats('normal', 71).hp / monsterStats('normal', 70).hp).toBeCloseTo(1.08);
@@ -89,7 +99,7 @@ describe('웨이브 규칙', () => {
     expect(earlyHpMult(60)).toBe(1);
     expect(earlyHpMult(80)).toBe(1);
     for (let w = 2; w <= 70; w++) expect(monsterStats('normal', w).hp).toBeGreaterThanOrEqual(monsterStats('normal', w - 1).hp);
-    expect(monsterStats('elite', 5).hp).toBeCloseTo(40 * Math.pow(1.08, 4) * 1.0 * 10); // 정예·보스는 그대로
+    expect(monsterStats('elite', 5).hp).toBeCloseTo(40 * Math.pow(1.08, 4) * 1.0 * 15); // 정예·보스는 초반 배율 없음
   });
 
   it('특수 몬스터 (2026-11-24): 웨이브 안에 섞기 — 빠름 2·방어력 5·물리 저항 8·마법 저항 11웨이브부터, 한 웨이브 최대 2종, 15% → 40%', () => {
@@ -120,13 +130,13 @@ describe('웨이브 규칙', () => {
     expect(firstHalf / l.filter((k) => k.startsWith('normal:')).length).toBeGreaterThan(0.35);
   });
 
-  it('특수 몬스터 능력치: 빠름(속도 ×1.6·체력 ×0.7) · 방어력(체력 ×1.3, 방어력 = 일반 체력의 12%) · 저항(그 공격 35%)', () => {
+  it('특수 몬스터 능력치: 빠름(속도 ×1.6·체력 ×0.7) · 방어력(체력 ×1.3, 방어력 = 일반 체력의 12%) · 저항(그 공격 35%) — 체력은 모두 ×1.5 (2026-11-24)', () => {
     const base = monsterStats('normal', 20);
     const swift = monsterStats('normal', 20, false, 'swift');
     expect(swift.speed).toBeCloseTo(base.speed * 1.6);
-    expect(swift.hp).toBeCloseTo(base.hp * 0.7);
+    expect(swift.hp).toBeCloseTo(base.hp * 0.7 * 1.5); // 특수 몬스터 스펙 ×1.5 (2026-11-24)
     const arm = monsterStats('normal', 20, false, 'armored');
-    expect(arm.hp).toBeCloseTo(base.hp * 1.3);
+    expect(arm.hp).toBeCloseTo(base.hp * 1.3 * 1.5);
     expect(arm.armor).toBeCloseTo(base.hp * 0.12);
     expect(monsterStats('normal', 20, false, 'physResist').resist).toBe('phys');
     expect(monsterStats('normal', 20, false, 'magicResist').resist).toBe('magic');
@@ -147,8 +157,8 @@ describe('웨이브 규칙', () => {
   it('11웨이브부터 상향 (2026-11-24 사용자 결정): 모든 몬스터 체력 ×1.5 · 기절 몬스터는 11웨이브부터', () => {
     expect(BALANCE.monster.midHp).toEqual({ from: 11, mult: 1.5 });
     const raw = (w) => 40 * Math.pow(1.08, w - 1) * BALANCE.monster.hpScale;
-    expect(monsterStats('elite', 5).hp).toBeCloseTo(raw(5) * 10);
-    expect(monsterStats('elite', 15).hp).toBeCloseTo(raw(15) * 10 * 1.5);
+    expect(monsterStats('elite', 5).hp).toBeCloseTo(raw(5) * 15);
+    expect(monsterStats('elite', 15).hp).toBeCloseTo(raw(15) * 15 * 1.5);
     expect(monsterStats('boss', 10).hp).toBeCloseTo(raw(10) * 110);
     expect(monsterStats('boss', 20).hp).toBeCloseTo(raw(20) * 110 * 1.5);
     expect(monsterStats('normal', 11).hp / monsterStats('normal', 10).hp).toBeGreaterThan(1.5);

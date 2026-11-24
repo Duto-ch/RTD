@@ -102,7 +102,7 @@ export const BALANCE = {
     earlyHp: { mult: 4, untilWave: 60 }, // 2026-11-24 사용자 결정: 중반 긴장감 — 30 → 60웨이브까지
     // 11웨이브부터 난이도 상향 (2026-11-24 사용자 결정): 이 웨이브부터 모든 몬스터(일반·정예·보스) 체력 ×mult. 수치는 가안 ⚠️
     midHp: { from: 11, mult: 1.5 }, // 봇 비교: ×1.3 은 W50·W60(한 판은 60웨이브까지 성벽 피해 0), ×1.5 는 W60·W60(중간에 성벽 47·30·6까지) → 1.5
-    eliteHpMult: 10,
+    eliteHpMult: 15, // 2026-11-24 사용자 요청: 정예 스펙 ×1.5 (이전 10)
     bossHpMult: 110, // 2026-11-12 사용자 결정
     // 이동 속도: 일반·정예 1.3배, 보스 1.5배 (2026-11-12)
     normalSpeed: 91,
@@ -129,7 +129,7 @@ export const BALANCE = {
     hpMult: 1.5, // 보스 체력 추가 배율
     abilityCount: 2, // 디버프 능력 개수 고정
     extraTargets: 2, // 디버프 대상 추가 인원
-    extraElites: 10, // 함께 나오는 정예 수
+    extraElites: 10, // (사용 안 함 — 2026-11-24 부터 정예 수는 eliteCount 가 웨이브로 정한다)
     enrageAt: 0.5, // 체력 비율 이하에서 분노
     enrageSpeed: 1.3, // 분노 시 이동 속도 배율
     enrageCdMult: 0.5 // 분노 시 디버프 쿨타임 배율
@@ -145,6 +145,7 @@ export const BALANCE = {
   // 특수 몬스터 (2026-11-24 사용자 결정: 웨이브 안에 섞기 · 저항은 그 공격 피해 35%만). 수치는 가안 ⚠️
   // 일반 몬스터 중 일부가 특수 몬스터 — 종류마다 정해진 외형(design: 웨이브 기본 외형과 같으면 다음 것)
   special: {
+    hpMult: 1.5, // 2026-11-24 사용자 요청: 특수 몬스터 스펙 ×1.5 (종류별 체력 배율에 더 곱한다)
     share: [0.15, 0.4], // 일반 몬스터 중 특수 비율: 처음 나오는 웨이브 → fullWave 부터 (2026-11-24 중반 긴장감: 10·25% → 15·40%)
     fullWave: 33,
     typesPerWave: 2, // 한 웨이브에 섞이는 종류 수 (열린 종류 중)
@@ -159,6 +160,8 @@ export const BALANCE = {
       stunner: { name: '기절', from: 11, stun: { cd: 10, dur: 1.2, range: 220 }, design: ['eye', 'jelly'] }
     }
   },
+  // 정예 수 (2026-11-24 사용자 요청): 정예가 나올 때마다 늘어 maxWave 에서 max 마리, 그 뒤 고정 · 정예 perCaster 마리마다 1마리는 스킬 정예(data/eliteSkills.js)
+  eliteCount: { start: 10, startWave: 5, max: 30, maxWave: 75, perCaster: 10 },
   horde: {
     mult: HORDE_MULT,
     countScale: 2 / 3, // 출현 수 배율 (2026-11-20 사용자 결정: 1/3 줄임 → 그때 1웨이브 167기, 2026-11-24 물량 배수 1.8 로 60기). 마리당 체력·골드는 그대로 — 봇 W61·W62 로 도달 웨이브는 같고 후반 골드가 덜 쌓인다
