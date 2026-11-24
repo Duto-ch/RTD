@@ -1462,7 +1462,7 @@ test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 
       banner: g.hud.bannerObj?.y,
       field: [m.x / 1.5 > ring.x0, m.x / 1.5 < ring.x1],
       dock: [g.hud.estateBtn.y > ring.y1, g.hud.nextWaveBtn.y < ring.y0],
-      reserveRight: g.hud.reservePos(0).x > ring.x1 && g.hud.reservePos(7).x > ring.x1,
+      reserveBelow: g.hud.reservePos(0).y > ring.y1 && g.hud.reservePos(7).y > ring.y1, // 2026-11-24: 아래 독 탭 한 줄 (몬스터 길 아래)
       unitScale: m.sprite.scaleX
     };
   });
@@ -1471,7 +1471,7 @@ test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 
   expect(r.banner).toBeLessThan(207); // 배너는 필드 위 빈 띠
   expect(r.field).toEqual([true, true]);
   expect(r.dock).toEqual([true, true]);
-  expect(r.reserveRight).toBe(true);
+  expect(r.reserveBelow).toBe(true);
   // 위·아래 바는 화면 좌우 끝까지, 화면 끝에 붙는다 (2026-11-22 사용자 요청)
   // WebGL 캔버스는 바로 읽을 수 없어 화면 캡처를 그림으로 읽는다
   const shot = (await page.screenshot()).toString('base64');
@@ -1757,12 +1757,13 @@ test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 �
     const imgs = [];
     const walk = (o) => (o.type === 'Image' ? imgs.push(o.texture.key) : o.each?.(walk));
     c.each(walk);
-    return { paused: g.paused, alpha: c.alpha, scale: c.scale, top: b.y, bottom: b.bottom, right: b.x > px + 12, imgs: imgs.length, sword: imgs.includes('item_giant_sword') };
+    return { paused: g.paused, alpha: c.alpha, scale: c.scale, top: b.y, bottom: b.bottom, side: b.right < px - 12 || b.x > px + 12, inside: b.x >= 0 && b.right <= 1280, imgs: imgs.length, sword: imgs.includes('item_giant_sword') };
   }, p.x);
   expect(tip.paused).toBe(true);
   expect(tip.alpha).toBe(1);
   expect(tip.scale).toBe(0.75); // 원래 배치 그대로 작게 (2026-11-22)
-  expect(tip.right).toBe(true); // PC: 아이템 띠(왼쪽 아래) 오른쪽에 — 아이콘을 가리지 않고 화면 안
+  expect(tip.side).toBe(true); // 아이콘 옆(2026-11-24: 아이템 띠가 오른쪽 아래라 왼쪽에) — 아이콘을 가리지 않고
+  expect(tip.inside).toBe(true); // 화면 안
   expect(tip.top).toBeGreaterThanOrEqual(0);
   expect(tip.bottom).toBeLessThanOrEqual(720); // UI 좌표 높이
   expect(tip.imgs).toBeGreaterThanOrEqual(10); // 머리 1 + 조합 줄마다 재료·결과
@@ -2073,7 +2074,7 @@ test('곡선 UI (2026-11-23): 원·알약·배지는 화면 해상도로 미리 
     g.giveItem('whet'); g.refreshHud();
     // 원 그림 텍스처마다 알파(모양)가 좌우·상하로 거울처럼 같은지 (아이콘은 원 안이라 모양에 영향 없음)
     const bad = [];
-    const keys = g.textures.getTextureKeys().filter((k) => k.startsWith('shape_'));
+    const keys = g.textures.getTextureKeys().filter((k) => k.startsWith('shape_') && !k.includes('tabbar')); // 탭 바(2026-11-24)는 위아래가 다른 모양이라 제외
     for (const k of keys) {
       const src = g.textures.get(k).getSourceImage();
       const ctx = src.getContext('2d');
@@ -2180,5 +2181,38 @@ test('VHS 효과 시험판 (2026-11-24): 기본은 꺼짐 · ESC 메뉴에서 �
   await page.waitForTimeout(200);
   const off = await page.evaluate(() => ({ on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: document.getElementById('rtd-vhs')?.style.display }));
   expect(off).toEqual({ on: false, saved: '0', shown: 'none' });
+  expect(errors).toEqual([]);
+});
+
+test('가운데 탭 바 (2026-11-24 사용자 시안): 시너지는 위 탭 한 줄 · 대기석은 아래 탭 한 줄 · 아이템 띠는 오른쪽 아래 · 영지도 같은 탭 바', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const R = window.__rtd.ROSTER;
+    g.gold = 9999;
+    R.filter((c) => c.grade === 1).slice(0, 3).forEach((c) => g.hire(c.id));
+    g.recomputeSynergy?.();
+    g.hud.refreshSynergy();
+    const syn = g.hud.synRow.list.map((c) => ({ x: c.x, y: c.y }));
+    const res = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => g.hud.reservePos(i));
+    const bench = g.hud.benchPos(0);
+    const bars = g.children.list.filter((o) => /^shape_u_tabbar_/.test(o.texture?.key || '')).length;
+    return { syn, res, bench, bars };
+  });
+  expect(r.bars).toBe(2); // 위 바 + 아래 독
+  expect(r.syn.length).toBeGreaterThan(0);
+  expect(new Set(r.syn.map((p) => p.y)).size).toBe(1); // 한 줄
+  r.syn.forEach((p) => expect(p.y).toBeLessThan(100)); // 위 바 탭 안 (UI 좌표)
+  expect(new Set(r.res.map((p) => p.y)).size).toBe(1); // 대기석 한 줄
+  r.res.forEach((p) => expect(p.y).toBeGreaterThan(560)); // 아래 독 탭 안
+  expect(r.bench.x).toBeGreaterThan(1000); // 아이템 띠 오른쪽
+  expect(r.bench.y).toBeGreaterThan(400);
+  await page.screenshot({ path: SHOT('54-tab-bar-game') });
+  // 영지도 같은 탭 바
+  await game(page, () => window.game.scene.getScene('Game').scene.start('Lobby'));
+  await settled(page, 'Lobby');
+  const lb = await game(page, () => window.game.scene.getScene('Lobby').children.list.filter((o) => /^shape_u_tabbar_/.test(o.texture?.key || '')).length);
+  expect(lb).toBe(2);
+  await page.screenshot({ path: SHOT('55-tab-bar-lobby') });
   expect(errors).toEqual([]);
 });

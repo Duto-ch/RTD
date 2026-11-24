@@ -669,9 +669,11 @@ export class Hud {
     let h = pad;
     for (const l of lines) h += l.height + 4;
     h += pad - 4;
-    const left = Phaser.Math.Clamp(x + 30, 8, GAME_W - 8 - w);
+    // 아이콘 오른쪽에 — 자리가 없으면(2026-11-24: 아이템 띠가 오른쪽 아래) 왼쪽에. 줄어든 크기(ITEM_TIP_SCALE)로 판단
+    const sw = w * ITEM_TIP_SCALE;
+    const toLeft = x + 30 + sw > GAME_W - 8;
+    const left = toLeft ? x - 30 - w : Math.max(8, x + 30); // 오른쪽은 줄어든 폭으로 이미 화면 안 (원래 폭으로 맞추면 아이콘 위로 당겨졌다)
     let top;
-    let below = true;
     top = Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8);
     c.add(panel(s, left, top, w, h, 'card'));
     let cy = top + pad;
@@ -682,7 +684,7 @@ export class Hud {
     }
     // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축.
     // 크기는 배치 그대로 비율만 ITEM_TIP_SCALE 로 줄인다 (2026-11-22 사용자 요청) — 축 쪽으로 줄어 아이콘과 간격 유지
-    springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE);
+    springTip(s, c, toLeft ? left + w : left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE); // 축 = 아이콘 쪽 가장자리
     this.relicTip = { index: -1, x, y, container: c };
   }
 
