@@ -129,6 +129,7 @@ def main():
     # roster_art 의 무기 그리기를 weapons_v3 로 바꿔 끼운다
     R.fire = A28.install()
     OV.install(R, A)          # PSD 로 고친 몸·무기 (2026-11-24, docs/drafts/psd-import/)
+    OV.rig_install(R, A)      # 고친 무기는 게임이 돌려 그린다 (시트에서 뺀다)
     A.geo_weapon = W3.geo
     R.W2 = types.SimpleNamespace(CTX=W3.CTX, GEO_LEN_V=W3.GEO_LEN_V, geo=W3.geo,
                                  pick_variant=lambda w, look, grade, cid: WVAR[cid])
@@ -219,6 +220,7 @@ def main():
         for c in targets:
             shutil.copyfile(os.path.join(HERE, 'sheets', f"{c['id']}.png"), os.path.join(dst, f"{c['id']}.png"))
         print('installed', len(targets), 'sheets → public/assets/custom/chars')
+        OV.rig_manifest(ROOT)
     print(len(targets), 'chars · weapon designs', len({(c['wtype'], WVAR[c['id']]) for c in targets}),
           dict(Counter(c['wtype'] for c in targets)))
 

@@ -504,6 +504,7 @@ if __name__ == '__main__':
     sys.path.insert(0, os.path.join(HERE, '..', 'psd-import'))
     import psd_overrides as OV
     OV.install(sys.modules[__name__], A)
+    OV.rig_install(sys.modules[__name__], A)     # 고친 무기는 게임이 돌려 그린다 (시트에서 뺀다)
     hit_of = lambda w: A28.HIT28[w]
     os.makedirs(os.path.join(HERE, 'sheets'), exist_ok=True)
     os.makedirs(os.path.join(HERE, 'bodies'), exist_ok=True)

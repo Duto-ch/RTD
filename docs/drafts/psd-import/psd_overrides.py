@@ -209,3 +209,120 @@ def install(R, A):
         return orig_blink(img, pal)
     R.body, R.pick_weapon, R.animate = body, pick_weapon, animate
     A.weapon_img, A.tip_of, A.blink = weapon_img, tip_of, blink
+
+
+# ── 무기 분리 (2026-11-24 사용자 결정: 무기는 게임이 돌려 그린다) ──
+# 고친 무기가 있는 캐릭터는 시트에서 무기·앞손을 빼고(휘두름 잔상·효과는 남김), 프레임마다
+# 쥐는 점 자리·무기 각도·앞손 자리를 rig/<id>.json 에 적는다. 시트 끝에는 무기까지 그린 정지 프레임 1장(로비·병영 그림용)
+RIG_DIR = os.path.join(HERE, 'rig')
+RIG = {'on': False, 'hide': False, 'data': {}}
+
+
+def _rig_hooks(R, A):
+    import inspect
+    orig_compose, orig_sheet = A.compose, R.sheet
+    sig = inspect.signature(orig_compose)
+
+    def compose(*a, **k):
+        cid = _cur['id']
+        if not (RIG['on'] and cid and has_weapon(cid)):
+            return orig_compose(*a, **k)
+        b = sig.bind(*a, **k)
+        b.apply_defaults()
+        g = dict(b.arguments)
+        if not g['weapon']:
+            return orig_compose(**g)
+        full = orig_compose(**g)
+        ch = g['ch'] or {}
+        hx, hy = A.OX + g['hand'][0] + g['bdx'], A.OY + g['hand'][1]
+        armless = bool(g['hands'] and ch.get('armless'))
+        hl = g['hands'](hx, hy) if armless else []
+        RIG['hide'] = True
+        try:
+            bare = orig_compose(**dict(g, hands=(lambda x, y, f=g['hands']: [h for h in f(x, y) if h[2] != 'top']) if armless else None))
+        finally:
+            RIG['hide'] = False
+        mirror = bool(ch.get('mirror'))
+        d = _rig_new(cid, mirror, ch, A)
+        fx = lambda x: A.W - x if mirror else x            # 연속 좌표 뒤집기
+        deg0 = _meta['weapons'][cid]['deg']
+        tops = [[(A.W - (x - 2) - 4) if mirror else x - 2, y - 2] for x, y, lay in hl if lay == 'top']
+        d['frames'].append([round(fx(hx + 0.5), 2), hy + 0.5, round(((-1 if mirror else 1) * (g['deg'] - deg0) + 180) % 360 - 180, 2), bool(g['behind']), tops])
+        if d['still'] is None:
+            d['still'] = full
+        bare.info = dict(full.info, rig_cid=cid)
+        return bare
+
+    def sheet(frames):
+        cid = next((f.info.get('rig_cid') for f, _ in frames if f.info.get('rig_cid')), None)
+        if cid and RIG['data'].get(cid, {}).get('still') is not None:
+            d = RIG['data'][cid]
+            assert len(d['frames']) == len(frames), (cid, len(d['frames']), len(frames))
+            frames = list(frames) + [(d['still'], 0)]
+            _rig_save(cid)
+        return orig_sheet(frames)
+    A.compose, R.sheet = compose, sheet
+
+
+def _rig_new(cid, mirror, ch, A):
+    d = RIG['data'].get(cid)
+    if d is None or d.get('saved'):
+        d = RIG['data'][cid] = {'frames': [], 'still': None, 'mirror': mirror, 'hand': A.hand_img(ch.get('pal', {})) if ch.get('armless') else None}
+    return d
+
+
+def _rig_save(cid):
+    d = RIG['data'][cid]
+    os.makedirs(RIG_DIR, exist_ok=True)
+    im, (pvx, pvy), _, _, _ = _samples(cid)
+    w = im.transpose(Image.FLIP_LEFT_RIGHT) if d['mirror'] else im
+    piv = [round(im.width - (pvx + 0.5), 2) if d['mirror'] else pvx + 0.5, pvy + 0.5]
+    w.save(os.path.join(RIG_DIR, f'{cid}_wpn.png'))
+    if d['hand'] is not None:
+        d['hand'].save(os.path.join(RIG_DIR, f'{cid}_hand.png'))
+    json.dump({'pivot': piv, 'hand': d['hand'] is not None, 'still': len(d['frames']), 'frames': d['frames']},
+              open(os.path.join(RIG_DIR, f'{cid}.json'), 'w'))
+    d['saved'] = True
+
+
+def rig_install(R, A):
+    """roster_art·key_weapons 가 OV.install 다음에 부른다 — 무기 분리 켜기"""
+    if getattr(A, '_psd_rig', False):
+        return
+    A._psd_rig = True
+    RIG['on'] = True
+    _rig_hooks(R, A)
+    orig_wimg = A.weapon_img
+
+    def weapon_img(name, deg, silhouette=None):
+        if RIG['hide'] and silhouette is None:
+            return Image.new('RGBA', (1, 1), (0, 0, 0, 0)), (0, 0)
+        return orig_wimg(name, deg, silhouette)
+    A.weapon_img = weapon_img
+
+
+def rig_manifest(root):
+    """manifest 에 무기 분리 정보를 쓴다 (char_<id>.rig · rig_<id>_wpn/hand 그림). key_weapons --install 끝에서 부른다"""
+    import shutil
+    mp = os.path.join(root, 'public', 'assets', 'custom', 'manifest.json')
+    mf = json.load(open(mp))
+    sp = {k: v for k, v in mf['sprites'].items() if not k.startswith('rig_')}
+    n = 0
+    for cid in sorted(_meta['weapons']):
+        jp = os.path.join(RIG_DIR, f'{cid}.json')
+        if not os.path.exists(jp) or f'char_{cid}' not in sp:
+            continue
+        r = json.load(open(jp))
+        dst = os.path.join(root, 'public', 'assets', 'custom', 'chars')
+        shutil.copyfile(os.path.join(RIG_DIR, f'{cid}_wpn.png'), os.path.join(dst, f'{cid}_wpn.png'))
+        sp[f'rig_{cid}_wpn'] = {'file': f'chars/{cid}_wpn.png'}
+        if r['hand']:
+            shutil.copyfile(os.path.join(RIG_DIR, f'{cid}_hand.png'), os.path.join(dst, f'{cid}_hand.png'))
+            sp[f'rig_{cid}_hand'] = {'file': f'chars/{cid}_hand.png'}
+        e = sp[f'char_{cid}']
+        e['still'] = r['still']
+        e['rig'] = {'weapon': f'rig_{cid}_wpn', 'hand': f'rig_{cid}_hand' if r['hand'] else None, 'pivot': r['pivot'], 'frames': r['frames']}
+        n += 1
+    mf['sprites'] = sp
+    json.dump(mf, open(mp, 'w'), ensure_ascii=False, indent=1)
+    print('rig manifest', n)

@@ -11,6 +11,7 @@
 - UI 는 `COZY`(B-2 카드형, 기본 true) — `src/ui/theme.js` 의 `panel()`·`uiText()`·`drawIcon()` 등과 `Button` variant 를 쓴다. 가로 HUD 는 `createTopWide`/`createBottomWide`/`refreshInfoWide` 가 따로 있다
 - 그림은 기본이 코드 생성(`src/art/`), `public/assets/custom/manifest.json` 에 적힌 PNG 가 같은 키를 대체한다(`src/systems/customArt.js`, 키 목록 `docs/CUSTOM_ART.md`). 유닛 그림을 바꿀 때는 `setArt(obj, key, 기본배율)`, 텍스처를 바꾸면 `playBase(sprite, 'idle'|'walk')`. 새 텍스처 키를 만들면 `tools/gen-art-doc.mjs` 에도 반영
 - 픽셀 격자: **모든 도트 그림은 아트 1px = 화면 2px (`DOT`, 2026-11-21)**. 코드로 그린 작은 텍스처를 크게 쓸 때는 `dotKey(scene, key, n)`/`dotImage()`(`src/art/textures.js`, Scale2x·3x 로 n배 해상도)로 만들어 배율 2 로 놓는다 — `setScale(PX)` 같은 4px·소수 배율 금지. `PX`(4)는 배치 단위로만 쓴다. 배경 좌표는 `toArt()` 로 픽셀 경계에 맞춘다. 필드는 레이어(`bg_<지역>` → `field_tile_*` → `field_wall`)를 `GameScene.createFieldLayers()` 가 쌓는다
+- **무기 분리 (2026-11-24)**: manifest `char_<id>.rig` 가 있는 캐릭터(PSD 로 무기를 고친 27명)는 시트에 무기·앞손이 없고, `setArt` 가 `src/art/weaponRig.js` 로 원본 무기 그림(`rig_<id>_wpn`)·손(`rig_<id>_hand`)을 스프라이트 옆에 붙여 프레임마다 돌려 그린다(위치·배율·반전·투명도·색조를 따라감). 로비·병영 그림은 시트 끝 정지 프레임(`still`, 무기 포함) — 캐릭터 그림을 바꿀 때 `setArt` 를 거치지 않으면 무기가 안 나온다
 - 유닛은 몸 중심이 칸 가운데 — 직접 그린 그림은 manifest `pivotX`·`pivotY` 로 몸 중심을 적는다. 캐릭터 그림은 왼쪽을 보고(`facing: "left"`) 오른쪽 대상이면 반전된다
 - GameObject 하위 클래스에 `name`·`type`·`state` 같은 Phaser 예약 속성명 getter 금지 (용병 이름은 `heroName`)
 - 새 HUD 요소는 GameScene 이 아니라 `src/ui/Hud.js` 에 넣는다(GameScene 은 `toast`·`showBanner`·`refreshHud` 등으로 넘기기만). **배너·토스트는 필드·몬스터 길(세로 y 272~688)을 가리지 않는 띠(`BANNER_Y`/`TOAST_Y`)에만**

@@ -1871,7 +1871,7 @@ test('리롤 값 (2026-11-22): 리롤할 때마다 +10G · 웨이브 끝 상점 
   expect(errors).toEqual([]);
 });
 
-test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임 · 리처드 2배 시트', async ({ page }) => {
+test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임 · 고친 무기는 게임이 돌려 그린다', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1881,16 +1881,25 @@ test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 �
     });
   });
   expect(r).toEqual([[14, 28, 28], [15, 28, 28], [15, 28, 28], [14, 28, 28]]); // 퍼거스 창 → 총 · 리처드 석궁 → 검 (PSD 에서 그림을 바꿈) · 윌리엄 활 · 콜린 석궁
-  // 무기만 촘촘하게 돌려 구운 2배 시트 (시험: 리처드) — 프레임은 2배, 화면 크기는 다른 캐릭터와 같다
-  const sz = await game(page, () => {
+  // 무기 분리 (2026-11-24): PSD 로 고친 무기는 시트에서 빠지고 게임이 원본 그림을 돌려 그린다 — 손·무기가 스프라이트를 따라간다
+  await game(page, () => ['richard', 'sigrid'].forEach((id) => window.game.scene.getScene('Game').hire(id)));
+  await page.waitForTimeout(400); // 다음 화면에서 무기·손이 용병 안에 자리 잡는다 (고용 때 통통 튀는 연출도 끝난 뒤)
+  const rig = await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    return ['richard', 'arthur'].map((id) => {
-      g.hire(id);
-      const m = g.mercs[g.mercs.length - 1];
-      const f = g.textures.get(`char_${id}`).get(0);
-      return [f.width, f.height, Math.round(m.sprite.displayWidth), Math.round(m.sprite.displayHeight)];
+    return ['richard', 'sigrid'].map((id) => {
+      const m = g.mercs.filter((x) => x.char.id === id).pop();
+      const r = m.sprite._rig;
+      const cd = g.textures.get(`char_${id}`).customData;
+      const w = r?.weapon;
+      return {
+        rig: !!cd.rig, still: cd.still ?? null, frames: cd.rig?.frames.length ?? 0,
+        weapon: w ? { inBox: w.parentContainer === m, visible: w.visible, scale: w.scaleX === m.sprite.scaleX, above: m.getIndex(w) > m.getIndex(m.sprite) } : null,
+        hands: r ? r.hands.length : 0, size: [Math.round(m.sprite.displayWidth), Math.round(m.sprite.displayHeight)]
+      };
     });
   });
-  expect(sz).toEqual([[112, 80, 112, 80], [56, 40, 112, 80]]);
+  expect(rig[0]).toEqual({ rig: true, still: 56, frames: 56, weapon: { inBox: true, visible: true, scale: true, above: true }, hands: 2, size: [112, 80] });
+  expect(rig[1]).toEqual({ rig: false, still: null, frames: 0, weapon: null, hands: 0, size: [112, 80] });
+  await page.screenshot({ path: SHOT('psd-weapon-rig') });
   expect(errors).toEqual([]);
 });
