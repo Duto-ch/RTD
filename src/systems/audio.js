@@ -161,6 +161,12 @@ class Chiptune {
     this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = this.noiseBuf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    // 전쟁나팔용 잔향 (합성 임펄스 2.2초, 넓은 전장 느낌) → 궁극기 버스(덕 안 거침)
+    this.verb = ctx.createConvolver();
+    this.verb.buffer = this.impulse(2.2, 3);
+    const vg = ctx.createGain();
+    vg.gain.value = 0.5;
+    this.verb.connect(vg).connect(this.ultBus);
 
     if (this.wanted) this.playMusic(this.wanted, true);
   }
@@ -342,6 +348,107 @@ class Chiptune {
     this.tone(o, 'p12', hz('C4'), c, 0.6, 0.25, { attack: 0.02 });
     // 4) 반짝임
     this.noise(o, c, 0.55, 0.12, 'highpass', 5000, 11000);
+  }
+
+  /** 스테레오 잔향 임펄스 (지수 감쇠 잡음) */
+  impulse(secs, decay) {
+    const ctx = this.ctx;
+    const n = Math.floor(ctx.sampleRate * secs);
+    const buf = ctx.createBuffer(2, n, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let lp = 0;
+      for (let i = 0; i < n; i++) {
+        lp = lp * 0.5 + (Math.random() * 2 - 1) * 0.5;
+        d[i] = lp * Math.pow(1 - i / n, decay);
+      }
+    }
+    return buf;
+  }
+
+  /** 금관 한 음 (32비트 샘플 음원 느낌): 톱니 3개 + 한 옥타브 아래 사각, 아래에서 올려 잡는 음, 필터가 열리며 '뿌—', 늦은 비브라토 */
+  hornNote(m, t, dur, vol) {
+    const ctx = this.ctx;
+    const f0 = 440 * Math.pow(2, (m - 69) / 12);
+    const end = t + dur;
+    const stop = end + 0.5;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.Q.value = 2.5;
+    f.frequency.setValueAtTime(220, t);
+    f.frequency.linearRampToValueAtTime(2000, t + 0.22);
+    f.frequency.setTargetAtTime(1300, t + 0.22, 0.3);
+    f.frequency.setTargetAtTime(200, end, 0.1);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.09);
+    g.gain.setValueAtTime(vol, end);
+    g.gain.setTargetAtTime(0, end, 0.12);
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 5.2;
+    const lg = ctx.createGain();
+    lg.gain.setValueAtTime(0, t);
+    lg.gain.setValueAtTime(0, t + Math.min(0.45, dur * 0.5));
+    lg.gain.linearRampToValueAtTime(14, t + Math.min(0.75, dur * 0.8));
+    lfo.connect(lg);
+    lfo.start(t);
+    lfo.stop(stop);
+    for (const [type, mul, det, amp] of [['sawtooth', 1, -12, 1], ['sawtooth', 1, 0, 1], ['sawtooth', 1, 10, 1], ['square', 0.5, 0, 0.45]]) {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(f0 * mul * 0.89, t); // 2반음 아래에서 올려 잡기
+      o.frequency.exponentialRampToValueAtTime(f0 * mul, t + 0.11);
+      o.detune.value = det;
+      lg.connect(o.detune);
+      const og = ctx.createGain();
+      og.gain.value = amp / 3;
+      o.connect(og).connect(f);
+      o.start(t);
+      o.stop(stop);
+    }
+    // 숨 들어가는 소리
+    this.noise(f, t, 0.12, 0.25, 'bandpass', 900);
+    f.connect(g);
+    g.connect(this.ultBus);
+    g.connect(this.verb);
+  }
+
+  /**
+   * 보스 등장 전쟁나팔 (2026-11-22): '뿌우— 뿌우우———' 두 번 부는 금관 + 잔향. 울리는 동안 배경음·효과음을 낮춘다.
+   * level 0 보스 · 1 강화 보스(더 낮게 + 아래 옥타브 겹침 + 북) · 2 최종 보스(더 낮게 + 겹침 + 북 + 세 번째 긴 음)
+   */
+  warHorn(level = 0) {
+    if (!this.ready || !this.throttle('horn', 1)) return;
+    const t = this.ctx.currentTime + 0.02;
+    const tr = [0, -2, -5][level] ?? 0;
+    const D3 = 50 + tr;
+    const A3 = 57 + tr;
+    const calls = level >= 2 ? [[D3, 0, 0.42], [A3, 0.5, 0.42], [D3 + 12, 1.0, 1.6]] : [[D3, 0, 0.45], [A3, 0.55, 1.45]];
+    const total = calls.at(-1)[1] + calls.at(-1)[2] + 0.3;
+    const dg = this.duck.gain;
+    dg.cancelScheduledValues(t);
+    dg.setValueAtTime(dg.value, t);
+    dg.linearRampToValueAtTime(0.4, t + 0.08);
+    dg.setValueAtTime(0.4, t + total - 0.3);
+    dg.linearRampToValueAtTime(1, t + total + 0.5);
+    for (const [m, at, dur] of calls) {
+      this.hornNote(m, t + at, dur, 0.42);
+      if (level >= 1) this.hornNote(m - 12, t + at, dur, 0.3); // 아래 옥타브 나팔이 함께
+      if (level >= 1) {
+        // 큰북: 낮게 떨어지는 사인 + 잡음
+        this.tone(this.ultBus, 'sine', 90, t + at, 0.6, 0.7, { to: 40 });
+        this.noise(this.ultBus, t + at, 0.3, 0.35, 'lowpass', 500, 80);
+      }
+    }
+  }
+
+  /** UI 버튼 클릭 (2026-11-22): 짧고 부드러운 '톡' */
+  click() {
+    if (!this.ready || !this.throttle('click', 0.04)) return;
+    const t = this.ctx.currentTime;
+    this.tone(this.sfx, 'triangle', 1500, t, 0.035, 0.22, { to: 900, attack: 0.002 });
+    this.tone(this.sfx, 'sine', 3000, t, 0.02, 0.06, { attack: 0.001 });
+    this.noise(this.sfx, t, 0.015, 0.06, 'highpass', 5000);
   }
 
   /** 웨이브가 끝나 상점이 새로 채워질 때 (2026-11-22): 카드 넘기는 '샥샥샥' + 올라가는 두 음 '띠링' */

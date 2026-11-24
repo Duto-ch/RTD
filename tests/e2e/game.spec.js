@@ -1020,6 +1020,33 @@ test('유니크·레어 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 
   expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeGreaterThan(0.95);
   expect(errors).toEqual([]);
 });
+test('보스 등장 전쟁나팔 (보스·강화·최종 3단계) + 버튼 클릭음 (2026-11-22)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    const horns = [];
+    let clicks = 0;
+    const oh = a.warHorn.bind(a);
+    a.warHorn = (lv) => { horns.push(lv); a.last.horn = -9; oh(lv); };
+    const oc = a.click.bind(a);
+    a.click = () => { clicks += 1; oc(); };
+    for (const w of [10, 30, 100]) {
+      g.wave = w;
+      g.spawnMonster('boss');
+    }
+    // 버튼 하나를 눌렀다 떼면 클릭음 1번
+    const btn = g.children.list.find((o) => typeof o.setLabel === 'function' && 'pressed' in o && o.enabled && o.visible);
+    btn.emit('pointerdown');
+    btn.emit('pointerup');
+    return { horns, clicks, ducked: a.duck.gain.value };
+  });
+  expect(r.horns).toEqual([0, 1, 2]);
+  expect(r.clicks).toBe(1);
+  await page.waitForTimeout(400);
+  expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeLessThan(0.6); // 나팔이 울리는 동안 배경음 낮춤
+  expect(errors).toEqual([]);
+});
 test('웨이브 끝 상점 갱신 소리 + 배경음 50% = 예전 20% 크기 (2026-11-22)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {

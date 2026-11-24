@@ -388,7 +388,7 @@ export class GameScene extends Phaser.Scene {
     const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
     this.monsters.push(m);
     if (m.isBoss) {
-      audio.bossAppear();
+      audio.warHorn(m.isFinal ? 2 : m.milestone ? 1 : 0); // 보스 등장 전쟁나팔 (2026-11-22)
       this.tut.show('boss');
       this.showBanner(m.isFinal ? `최종 보스: ${m.design.name}` : `${m.milestone ? '강화 보스' : '보스'}: ${m.design.name}`, m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
     }
