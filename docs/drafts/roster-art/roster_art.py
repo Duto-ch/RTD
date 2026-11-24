@@ -500,6 +500,10 @@ if __name__ == '__main__':
     sys.path.insert(0, os.path.join(HERE, '..', 'anim28'))
     import anim28 as A28
     fire = A28.install()
+    # 사용자가 PSD 로 고친 몸·무기 (2026-11-24, docs/drafts/psd-import/) — 고친 캐릭터만 바뀐다
+    sys.path.insert(0, os.path.join(HERE, '..', 'psd-import'))
+    import psd_overrides as OV
+    OV.install(sys.modules[__name__], A)
     hit_of = lambda w: A28.HIT28[w]
     os.makedirs(os.path.join(HERE, 'sheets'), exist_ok=True)
     os.makedirs(os.path.join(HERE, 'bodies'), exist_ok=True)

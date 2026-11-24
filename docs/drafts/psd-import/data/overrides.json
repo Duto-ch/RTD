@@ -1,0 +1,698 @@
+{
+ "bodies": {
+  "colin": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f6d2b0"
+  },
+  "gareth": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ecc09a"
+  },
+  "gilbert": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "helga": {
+   "eyes": [
+    [
+     9,
+     16
+    ],
+    [
+     13,
+     16
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "kaira": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "nix": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "olaf": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#a8acb4"
+  },
+  "sigrid": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "einar": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "fergus": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#efcbb8"
+  },
+  "greta": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f4e8e4"
+  },
+  "sigurd": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "siri": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe0c2"
+  },
+  "thea": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f6e8db"
+  },
+  "thorn": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "elva": {
+   "eyes": [],
+   "split": null,
+   "skin": "#ecc09a"
+  },
+  "gwen": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f6d2b0"
+  },
+  "halvard": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "rowena": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "serena": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "thorsten": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "ulf": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f6d2b0"
+  },
+  "winston": {
+   "eyes": [],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "arthur": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#fef1de"
+  },
+  "asta": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "bjorn": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "eleanor": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ecc09a"
+  },
+  "freydis": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f6d2b0"
+  },
+  "isolde": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "ivar": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "oberon": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "ragnar": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#d9a27a"
+  },
+  "richard": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "solveig": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#ffe2c8"
+  },
+  "william": {
+   "eyes": [
+    [
+     9,
+     15
+    ],
+    [
+     13,
+     15
+    ]
+   ],
+   "split": null,
+   "skin": "#f6d2b0"
+  }
+ },
+ "weapons": {
+  "agnes": {
+   "pivot": [
+    3,
+    12
+   ],
+   "deg": 25,
+   "name": "staff_ice"
+  },
+  "bridget": {
+   "pivot": [
+    3,
+    12
+   ],
+   "deg": 25,
+   "name": "staff"
+  },
+  "gilbert": {
+   "pivot": [
+    5,
+    6
+   ],
+   "deg": 25,
+   "name": "staff_ice"
+  },
+  "helga": {
+   "pivot": [
+    3,
+    13
+   ],
+   "deg": 25,
+   "name": "staff"
+  },
+  "olaf": {
+   "pivot": [
+    3,
+    14
+   ],
+   "deg": 25,
+   "name": "staff_ice"
+  },
+  "thea": {
+   "pivot": [
+    3,
+    13
+   ],
+   "deg": 25,
+   "name": "staff_leaf"
+  },
+  "gwen": {
+   "pivot": [
+    3,
+    14
+   ],
+   "deg": 25,
+   "name": "staff_leaf"
+  },
+  "asta": {
+   "pivot": [
+    3,
+    13
+   ],
+   "deg": 25,
+   "name": "staff_ice"
+  },
+  "eleanor": {
+   "pivot": [
+    5,
+    13
+   ],
+   "deg": 25,
+   "name": "staff_ice"
+  },
+  "isolde": {
+   "pivot": [
+    8,
+    16
+   ],
+   "deg": 25,
+   "name": "staff"
+  },
+  "solveig": {
+   "pivot": [
+    4,
+    15
+   ],
+   "deg": 25,
+   "name": "staff_ice"
+  },
+  "winston": {
+   "pivot": [
+    5,
+    12
+   ],
+   "deg": 45,
+   "name": "crossbow"
+  },
+  "richard": {
+   "pivot": [
+    4,
+    16
+   ],
+   "deg": 45,
+   "name": "crossbow"
+  },
+  "bjorn": {
+   "pivot": [
+    9,
+    10
+   ],
+   "deg": -30,
+   "name": "bow"
+  },
+  "william": {
+   "pivot": [
+    8,
+    11
+   ],
+   "deg": -30,
+   "name": "bow"
+  },
+  "gareth": {
+   "pivot": [
+    4,
+    11
+   ],
+   "deg": 45,
+   "name": "hammer"
+  },
+  "thorsten": {
+   "pivot": [
+    4,
+    13
+   ],
+   "deg": 45,
+   "name": "sword"
+  },
+  "vivian": {
+   "pivot": [
+    4,
+    10
+   ],
+   "deg": 45,
+   "name": "sword"
+  },
+  "arthur": {
+   "pivot": [
+    5,
+    16
+   ],
+   "deg": 45,
+   "name": "sword"
+  },
+  "siri": {
+   "pivot": [
+    3,
+    9
+   ],
+   "deg": 45,
+   "name": "dagger"
+  },
+  "ulf": {
+   "pivot": [
+    5,
+    9
+   ],
+   "deg": 45,
+   "name": "dagger"
+  },
+  "freydis": {
+   "pivot": [
+    4,
+    7
+   ],
+   "deg": 45,
+   "name": "dagger"
+  },
+  "ivar": {
+   "pivot": [
+    4,
+    7
+   ],
+   "deg": 45,
+   "name": "dagger"
+  },
+  "einar": {
+   "pivot": [
+    4,
+    10
+   ],
+   "deg": 45,
+   "name": "axe"
+  },
+  "halvard": {
+   "pivot": [
+    7,
+    10
+   ],
+   "deg": 45,
+   "name": "axe"
+  },
+  "ragnar": {
+   "pivot": [
+    7,
+    11
+   ],
+   "deg": 45,
+   "name": "axe"
+  },
+  "fergus": {
+   "pivot": [
+    5,
+    13
+   ],
+   "deg": 45,
+   "name": "spear"
+  }
+ },
+ "wtype": {
+  "richard": "sword",
+  "fergus": "gun"
+ }
+}

@@ -19,6 +19,7 @@ description: 용병단 디펜스(RTD) 그림·이펙트 작업 절차 — 캐릭
 ## 키 컬러·고유 무기 (2026-11-22, 유니크 뺀 58명)
 - `python3 docs/drafts/keycolor-v3/key_weapons.py --install` — 게임 그림을 같은 코드로 다시 그리되 옷 주색·그늘색·가슴 보석은 키 컬러 16색(`keys.json`, `recolor.py` 가 배정), 무기는 `roster-v2-art/weapons_v3.py` 모양(같은 종류끼리 겹치지 않게 `weapons.json`)·키 컬러 재질 → `public/assets/custom/chars/<id>.png` 덮어쓰기
 - ⚠️ `roster_art.py && import-roster-art.py` 로 캐릭터를 다시 만들면 58명이 예전 RGB 색·무기로 돌아간다 → 그 뒤 반드시 위 명령을 다시 돌린다 (순서: `roster_art.py` → `import-roster-art.py` → `key_weapons.py --install`)
+- **PSD 로 고친 그림 (2026-11-24)**: 사용자가 `docs/drafts/psd-export/characters_weapons.psd` 를 고쳐 보내면 `docs/drafts/psd-import/edited.psd` 로 두고 `python3 docs/drafts/psd-import/import_psd.py` → `data/`(몸 24x24·무기 대기 각도·`overrides.json`). 위 세 스크립트가 `psd_overrides` 로 자동으로 끼운다(몸·피부색·눈, 무기는 대기 각도 그대로 + 다른 각도 RotSprite, 무기 종류 바꿈). 쥐는 점 계산은 내보낼 때 무기 배정 `psd-import/export_weapons.json` 기준 — PSD 를 새로 내보내면 이 파일도 그때 `weapons.json` 으로 바꾼다
 - 몸 오브젝트 시험: 콜린(`colin_objects`) — 손·무기가 덮는 몸통 옆보다 어깨 위·머리 뒤 실루엣이 읽힌다
 
 ## 스킬 이펙트

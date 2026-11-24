@@ -259,9 +259,9 @@
 },
 "fergus": {
 "key": "brown",
-"wtype": "spear",
-"wvar": "harpoon",
-"wname": "작살"
+"wtype": "gun",
+"wvar": "",
+"wname": "기본"
 },
 "ylva": {
 "key": "ivory",
