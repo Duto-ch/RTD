@@ -371,7 +371,7 @@ class Chiptune {
    * o.attack 부풀어 오르는 시간 · o.scoop 아래에서 올려 잡는 반음 수 · o.fall 끝에서 내려앉는 반음 수
    */
   hornNote(m, t, dur, vol, o = {}) {
-    const { attack = 0.09, scoop = 2, scoopTime = 0.11, fall = 0, vibDelay = 0.45, vib = 14 } = o;
+    const { attack = 0.09, scoop = 2, scoopTime = 0.11, fall = 0, vibDelay = 0.45, vib = 14, sub = true } = o;
     const ctx = this.ctx;
     const f0 = 440 * Math.pow(2, (m - 69) / 12);
     const end = t + dur;
@@ -400,7 +400,9 @@ class Chiptune {
     lfo.connect(lg);
     lfo.start(t);
     lfo.stop(stop);
-    for (const [type, mul, det, amp] of [['sawtooth', 1, -12, 1], ['sawtooth', 1, 0, 1], ['sawtooth', 1, 10, 1], ['square', 0.5, 0, 0.45]]) {
+    const layers = [['sawtooth', 1, -12, 1], ['sawtooth', 1, 0, 1], ['sawtooth', 1, 10, 1]];
+    if (sub) layers.push(['square', 0.5, 0, 0.45]); // 한 옥타브 아래 (아주 낮은 음은 들리지 않고 탁해지기만 해서 끈다)
+    for (const [type, mul, det, amp] of layers) {
       const osc = ctx.createOscillator();
       osc.type = type;
       const fr = f0 * mul;
@@ -427,26 +429,27 @@ class Chiptune {
   /**
    * 보스 등장 전쟁나팔 (2026-11-24 사용자 요청: '우우우우우우웅~' 한 음이 길게) — 아래에서 천천히 올려 잡아 부풀어 오르고,
    * 떨림이 점점 커지다 끝에서 살짝 내려앉으며 잔향으로 사라진다. 울리는 동안 배경음·효과음을 낮춘다.
-   * level 0 보스 2.4초 · 1 강화 보스(더 낮게 + 아래 옥타브 겹침 + 큰북) 2.8초 · 2 최종 보스(가장 낮게 + 겹침 + 5도 위 + 큰북 두 번) 3.4초
+   * level 0 보스 D2 2.4초 · 1 강화 보스 C2(+ 큰북) 2.8초 · 2 최종 보스 A1(+ 5도 위 + 큰북 두 번) 3.4초. 모두 한 옥타브 위를 옅게 겹침
    */
   warHorn(level = 0) {
     if (!this.ready || !this.throttle('horn', 1)) return;
     const t = this.ctx.currentTime + 0.02;
-    const m = 50 + ([0, -2, -5][level] ?? 0); // D3 → C3 → A2
+    // 2026-11-24 사용자 요청: 한 옥타브 더 낮게 (무겁게) — D2 → C2 → A1
+    const m = 38 + ([0, -2, -5][level] ?? 0);
     const dur = [2.4, 2.8, 3.4][level] ?? 2.4;
-    const opt = { attack: 0.7, scoop: 3, scoopTime: 0.45, fall: 1.5, vibDelay: 0.8, vib: 18 };
+    const opt = { attack: 0.7, scoop: 3, scoopTime: 0.45, fall: 1.5, vibDelay: 0.8, vib: 18, sub: false };
     const dg = this.duck.gain;
     dg.cancelScheduledValues(t);
     dg.setValueAtTime(dg.value, t);
     dg.linearRampToValueAtTime(0.4, t + 0.25);
     dg.setValueAtTime(0.4, t + dur);
     dg.linearRampToValueAtTime(1, t + dur + 0.8);
-    const v = level >= 1 ? 0.32 : 0.42;
-    this.hornNote(m, t, dur, v, opt);
-    if (level >= 1) this.hornNote(m - 12, t + 0.03, dur, 0.22, opt); // 아래 옥타브 나팔이 함께
-    if (level >= 2) this.hornNote(m + 7, t + 0.08, dur - 0.1, 0.1, opt); // 5도 위가 옅게 — 더 웅장하게
+    this.hornNote(m, t, dur, level >= 1 ? 0.46 : 0.42, opt);
+    // 한 옥타브 위를 옅게 겹친다 — 작은 스피커에서도 나팔 소리가 또렷하게 (낮은 기본음은 노트북 스피커가 잘 못 낸다)
+    this.hornNote(m + 12, t + 0.03, dur, level >= 1 ? 0.1 : 0.14, opt);
+    if (level >= 2) this.hornNote(m + 7, t + 0.08, dur - 0.1, 0.12, opt); // 5도 위 — 더 웅장하게
     const drum = (at, v) => {
-      this.tone(this.ultBus, 'sine', 90, at, 0.7, v, { to: 38 });
+      this.tone(this.ultBus, 'sine', 70, at, 0.8, v, { to: 32 });
       this.noise(this.ultBus, at, 0.35, v * 0.5, 'lowpass', 500, 80);
     };
     if (level >= 1) drum(t + 0.55, 0.5);
