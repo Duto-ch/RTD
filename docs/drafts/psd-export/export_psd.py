@@ -94,7 +94,7 @@ def weapon_of(c, wvar):
         top, bot = A.bow_tips(deg, pv[0] + pad, pv[1] + pad)
         ImageDraw.Draw(big).line([top, bot], fill=(238, 246, 255, 255))
         im, pv = big, (pv[0] + pad, pv[1] + pad)
-    return im, name, v
+    return im, name, v, pv
 
 
 def KW_set_ctx(c, wvar):
@@ -108,9 +108,9 @@ def KW_set_ctx(c, wvar):
             A.GEO_LEN[n] = L
 
 
-def main():
-    KW.orig_body_fn = R.body
-    wjson = json.load(open(os.path.join(KV, 'weapons.json')))
+def build_chars(wjson_path=None):
+    """PSD 에 싣는 70명 (게임 등급순) + 무기 모양 배정 — psd-import 는 내보낼 때의 무기 배정(psd-import/export_weapons.json)으로 부른다"""
+    wjson = json.load(open(wjson_path or os.path.join(KV, 'weapons.json')))
     wvar = {k: v['wvar'] for k, v in wjson.items()}
     chars = []
     for g in RC.game:
@@ -120,6 +120,12 @@ def main():
         c['wtype'] = wjson[g['id']]['wtype'] if g['id'] in wjson else ('staff' if R.pick_weapon(c).startswith('staff') else R.pick_weapon(c))
         chars.append(c)
     chars.sort(key=lambda c: (c['game_grade'], c['id']))
+    return chars, wvar
+
+
+def main():
+    KW.orig_body_fn = R.body
+    chars, wvar = build_chars()
     rows = (len(chars) + PER - 1) // PER
     W, H = PER * CELL_W, rows * CELL_H
     psd = PSDImage.new('RGBA', (W, H))
@@ -136,7 +142,7 @@ def main():
         bx, by = x0 + 4, y0 + (CELL_H - 24) // 2
         named(PixelLayer.frompil(body, gb[c['game_grade']], c['id'], by, bx), f"{c['name']} ({c['id']})")
         preview.alpha_composite(body, (bx, by))
-        wim, name, v = weapon_of(c, wvar)
+        wim, name, v, _pv = weapon_of(c, wvar)
         bbox = wim.getbbox()
         if bbox:
             wim = wim.crop(bbox)

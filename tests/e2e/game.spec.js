@@ -2027,6 +2027,42 @@ test('리롤 값 (2026-11-22): 리롤할 때마다 +10G · 웨이브 끝 상점 
   expect(errors).toEqual([]);
 });
 
+test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임 · 무기는 게임이 돌려 그린다 (70명 전부)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    return ['fergus', 'richard', 'william', 'colin'].map((id) => {
+      const idle = g.anims.get(`char_${id}:idle`), atk = g.anims.get(`char_${id}:attack`);
+      return [g.textures.get(`char_${id}`).customData.hitFrame.attack, idle.frames.length, atk.frames.length];
+    });
+  });
+  expect(r).toEqual([[14, 28, 28], [15, 28, 28], [15, 28, 28], [14, 28, 28]]); // 퍼거스 창 → 총 · 리처드 석궁 → 검 (PSD 에서 그림을 바꿈) · 윌리엄 활 · 콜린 석궁
+  // 무기 분리 (2026-11-24): PSD 로 고친 무기는 시트에서 빠지고 게임이 원본 그림을 돌려 그린다 — 손·무기가 스프라이트를 따라간다
+  await game(page, () => ['richard', 'sigrid'].forEach((id) => window.game.scene.getScene('Game').hire(id)));
+  await page.waitForTimeout(400); // 다음 화면에서 무기·손이 용병 안에 자리 잡는다 (고용 때 통통 튀는 연출도 끝난 뒤)
+  const rig = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    return ['richard', 'sigrid'].map((id) => {
+      const m = g.mercs.filter((x) => x.char.id === id).pop();
+      const r = m.sprite._rig;
+      const cd = g.textures.get(`char_${id}`).customData;
+      const w = r?.weapon;
+      return {
+        rig: !!cd.rig, still: cd.still ?? null, frames: cd.rig?.frames.length ?? 0,
+        weapon: w ? { inBox: w.parentContainer === m, visible: w.visible, scale: w.scaleX === m.sprite.scaleX, above: m.getIndex(w) > m.getIndex(m.sprite) } : null,
+        hands: r ? r.hands.length : 0, size: [Math.round(m.sprite.displayWidth), Math.round(m.sprite.displayHeight)]
+      };
+    });
+  });
+  expect(rig[0]).toEqual({ rig: true, still: 56, frames: 56, weapon: { inBox: true, visible: true, scale: true, above: true }, hands: 2, size: [112, 80] });
+  expect(rig[1]).toEqual({ rig: true, still: 56, frames: 56, weapon: { inBox: true, visible: true, scale: true, above: true }, hands: 2, size: [112, 80] }); // 시그리드 = 활 (앞손 칸 2 — 당길 때 두 손)
+  // 같은 날 전체로 (2026-11-24): 게임 캐릭터 70명 모두 무기 분리
+  const noRig = await game(page, () => window.__rtd.ROSTER.filter((c) => !window.game.scene.getScene('Game').textures.get(`char_${c.id}`).customData.rig).map((c) => c.id));
+  expect(noRig).toEqual([]);
+  await page.screenshot({ path: SHOT('psd-weapon-rig') });
+  expect(errors).toEqual([]);
+});
+
 test('곡선 UI (2026-11-23): 원·알약·배지는 화면 해상도로 미리 그린 그림 — 좌우·상하 대칭 · 아이템 칸은 진짜 원', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {

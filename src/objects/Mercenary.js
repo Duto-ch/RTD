@@ -43,7 +43,8 @@ export function charTexture(scene, c) {
 export function charImage(scene, x, y, c, base) {
   const key = charTexture(scene, c);
   const tex = scene.textures.get(key);
-  const frame = tex.frameTotal > 2 && tex.has(0) ? 0 : undefined;
+  const still = tex.customData?.still; // 무기 분리 그림은 무기까지 그린 정지 프레임 (2026-11-24)
+  const frame = still != null && tex.has(still) ? still : tex.frameTotal > 2 && tex.has(0) ? 0 : undefined;
   // 도트 2px 통일 (2026-11-21): 크기 인자 대신 언제나 아트 1px = 화면 2px. base === 'head' 면 머리 쪽만 (작은 칸용)
   const img = scene.add.image(x, y, key, frame).setScale(UNIT_PX * artScale(scene, key));
   if (base === 'head') {

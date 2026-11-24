@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { syncRigTexture } from '../art/weaponRig.js';
 
 // 직접 그린 이미지·애니메이션으로 코드 그림을 바꾸는 장치
 // public/assets/custom/manifest.json 에 적힌 이미지만 교체하고, 나머지는 코드 그림을 그대로 쓴다.
@@ -49,6 +50,8 @@ export function loadCustomArt(scene, onDone) {
       cd.pivotY = def.pivotY; // 몸 중심 y (프레임 기준 아트 px) — 칸 가운데에 몸통을 맞춘다
       cd.frameWidth = def.frameWidth;
       cd.frameHeight = def.frameHeight;
+      cd.still = def.still; // 무기까지 그린 정지 프레임 (무기 분리 그림 — 로비·병영 그림용)
+      cd.rig = def.rig || null; // 무기 분리: 프레임마다 쥐는 점·각도·앞손 (src/art/weaponRig.js)
       applied++;
       cd.hitFrame = {};
       for (const [name, a] of Object.entries(def.animations || {})) {
@@ -88,6 +91,7 @@ export function setArt(obj, key, base) {
   obj.setTexture(key);
   obj.setScale(base * artScale(obj.scene, key));
   setFacing(obj, !!obj.texture?.customData?.facesLeft); // 처음에는 그림을 그린 방향 그대로
+  syncRigTexture(obj); // 무기 분리 그림이면 무기·손을 붙여 그린다 (2026-11-24)
   return obj;
 }
 

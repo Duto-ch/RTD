@@ -26,6 +26,8 @@ import keys as KC
 import weapons_v3 as W3
 import anim28 as A28
 import recolor as RC
+sys.path.insert(0, os.path.join(HERE, '..', 'psd-import'))
+import psd_overrides as OV
 A, D = R.A, R.D
 
 BASE_LEN = dict(R.BASE_LEN)
@@ -118,7 +120,7 @@ def main():
             continue
         c = {**RC.BY[g['id']], **g}
         c['grade'] = RC.BY[g['id']]['grade']        # 그림 등급 = 지금 게임 그림을 만든 등급 (몸 장식과 맞춘다)
-        c['wtype'] = ORIG_W.get(c['id']) or wtype_of(c)
+        c['wtype'] = OV.wtype(c['id']) or ORIG_W.get(c['id']) or wtype_of(c)
         targets.append(c)
     WVAR = assign(targets)
     for c in targets:
@@ -126,12 +128,15 @@ def main():
             WVAR[c['id']] = ''
     # roster_art 의 무기 그리기를 weapons_v3 로 바꿔 끼운다
     R.fire = A28.install()
+    OV.install(R, A)          # PSD 로 고친 몸·무기 (2026-11-24, docs/drafts/psd-import/)
+    OV.rig_install(R, A)      # 고친 무기는 게임이 돌려 그린다 (시트에서 뺀다)
     A.geo_weapon = W3.geo
     R.W2 = types.SimpleNamespace(CTX=W3.CTX, GEO_LEN_V=W3.GEO_LEN_V, geo=W3.geo,
                                  pick_variant=lambda w, look, grade, cid: WVAR[cid])
     STAFF_NAMES = ('staff', 'staff_ice', 'staff_leaf')
 
     def set_ctx(c):
+        OV.set_current(c['id'])
         v = WVAR[c['id']]
         W3.CTX.update(grade=c['grade'], key=KEY_OF[c['id']], var={**{n: v for n in STAFF_NAMES}, c['wtype']: v})
         A.GEO_LEN.clear(), A.GEO_LEN.update(BASE_LEN)
@@ -149,7 +154,7 @@ def main():
         set_ctx(c)
         old_fx = R.FX_BY_ATTR[c['attr']]
         R.FX_BY_ATTR[c['attr']] = fx_of(KEY_OF[c['id']])
-        R.body = (lambda cc: (lambda *a: (lambda r: (colin_objects(r[0]), *r[1:]))(orig_body(cc))))(c) if c['id'] == 'colin' else orig_body
+        R.body = (lambda cc: (lambda *a: (lambda r: (colin_objects(r[0]), *r[1:]))(orig_body(cc))))(c) if c['id'] == 'colin' and not OV.has_body('colin') else orig_body
         try:
             r = R.animate(c)
         finally:
@@ -168,6 +173,10 @@ def main():
         ch['cid'] = cid
         if cid:
             ch['fx'] = fx_of(KEY_OF[cid])
+            if OV.has_body(cid):          # PSD 로 고친 몸
+                ch['img'] = OV.body_img(cid, ch['img'].info)
+                if OV.body_skin(cid):
+                    ch['pal'] = {**ch['pal'], 'S': OV.body_skin(cid)}
         return ch
     A.char = lambda key, *a, **k: tag(orig_char(key, *a, **k), key)
     A.new_body = lambda key: tag(orig_new(key), key)
@@ -177,6 +186,7 @@ def main():
             set_ctx(BYID[ch['cid']])
             A.geo_weapon = W3.geo
         else:
+            OV.set_current(None)                   # 게임에 없는 브란 — 앞 캐릭터 이름이 남지 않게 (무기 분리 기록이 섞인다)
             A.geo_weapon = A.geo_weapon_orig       # 유니크 세레나·게임에 없는 브란은 예전 무기 그대로 (여기서는 버림)
         return orig_compose(*a, ch=ch, **k)
     A.compose = compose
@@ -211,6 +221,7 @@ def main():
         for c in targets:
             shutil.copyfile(os.path.join(HERE, 'sheets', f"{c['id']}.png"), os.path.join(dst, f"{c['id']}.png"))
         print('installed', len(targets), 'sheets → public/assets/custom/chars')
+        OV.rig_manifest(ROOT)
     print(len(targets), 'chars · weapon designs', len({(c['wtype'], WVAR[c['id']]) for c in targets}),
           dict(Counter(c['wtype'] for c in targets)))
 

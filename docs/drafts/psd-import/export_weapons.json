@@ -1,0 +1,350 @@
+{
+"helga": {
+"key": "orange",
+"wtype": "staff",
+"wvar": "bell",
+"wname": "방울"
+},
+"bridget": {
+"key": "cobalt",
+"wtype": "staff",
+"wvar": "",
+"wname": "기본"
+},
+"karsten": {
+"key": "ivory",
+"wtype": "hammer",
+"wvar": "war",
+"wname": "전쟁 망치"
+},
+"siri": {
+"key": "rose",
+"wtype": "dagger",
+"wvar": "fan",
+"wname": "부채"
+},
+"oscar": {
+"key": "olive",
+"wtype": "gun",
+"wvar": "cannon",
+"wname": "손대포"
+},
+"greta": {
+"key": "violet",
+"wtype": "staff",
+"wvar": "skull",
+"wname": "해골"
+},
+"leo": {
+"key": "olive",
+"wtype": "sword",
+"wvar": "short",
+"wname": "짧은 검"
+},
+"bern": {
+"key": "orange",
+"wtype": "bow",
+"wvar": "recurve",
+"wname": "곡궁"
+},
+"claire": {
+"key": "amber",
+"wtype": "sword",
+"wvar": "cross",
+"wname": "성검"
+},
+"einar": {
+"key": "cobalt",
+"wtype": "axe",
+"wvar": "double",
+"wname": "양날"
+},
+"elva": {
+"key": "crimson",
+"wtype": "staff",
+"wvar": "flame",
+"wname": "불꽃"
+},
+"thorsten": {
+"key": "crimson",
+"wtype": "sword",
+"wvar": "great",
+"wname": "대검"
+},
+"cecilia": {
+"key": "amber",
+"wtype": "bow",
+"wvar": "horn",
+"wname": "뿔 활"
+},
+"ulf": {
+"key": "charcoal",
+"wtype": "dagger",
+"wvar": "claw",
+"wname": "갈퀴"
+},
+"aidan": {
+"key": "brown",
+"wtype": "staff",
+"wvar": "feather",
+"wname": "깃털"
+},
+"rosalind": {
+"key": "orange",
+"wtype": "staff",
+"wvar": "lantern",
+"wname": "등불"
+},
+"brynhild": {
+"key": "teal",
+"wtype": "spear",
+"wvar": "winged",
+"wname": "날개 창"
+},
+"ingrid": {
+"key": "navy",
+"wtype": "staff",
+"wvar": "branch",
+"wname": "나뭇가지"
+},
+"emma": {
+"key": "leaf",
+"wtype": "staff",
+"wvar": "eye",
+"wname": "눈알"
+},
+"aud": {
+"key": "sky",
+"wtype": "staff",
+"wvar": "star",
+"wname": "별"
+},
+"lucy": {
+"key": "ivory",
+"wtype": "sword",
+"wvar": "rapier",
+"wname": "세검"
+},
+"sigrid": {
+"key": "ivory",
+"wtype": "bow",
+"wvar": "long",
+"wname": "장궁"
+},
+"olaf": {
+"key": "charcoal",
+"wtype": "staff",
+"wvar": "moon",
+"wname": "초승달"
+},
+"henrik": {
+"key": "violet",
+"wtype": "spear",
+"wvar": "lance",
+"wname": "랜스"
+},
+"liv": {
+"key": "violet",
+"wtype": "staff",
+"wvar": "ring",
+"wname": "고리"
+},
+"jonathan": {
+"key": "plum",
+"wtype": "gun",
+"wvar": "",
+"wname": "기본"
+},
+"agnes": {
+"key": "navy",
+"wtype": "staff",
+"wvar": "skull",
+"wname": "해골"
+},
+"stein": {
+"key": "sky",
+"wtype": "hammer",
+"wvar": "maul",
+"wname": "큰 망치"
+},
+"nora": {
+"key": "sky",
+"wtype": "dagger",
+"wvar": "fan",
+"wname": "부채"
+},
+"gilbert": {
+"key": "sky",
+"wtype": "staff",
+"wvar": "tome",
+"wname": "책"
+},
+"kristin": {
+"key": "sky",
+"wtype": "gun",
+"wvar": "harpoon",
+"wname": "작살총"
+},
+"haakon": {
+"key": "plum",
+"wtype": "spear",
+"wvar": "trident",
+"wname": "삼지창"
+},
+"theodore": {
+"key": "teal",
+"wtype": "staff",
+"wvar": "ring",
+"wname": "고리"
+},
+"winston": {
+"key": "teal",
+"wtype": "crossbow",
+"wvar": "heavy",
+"wname": "공성"
+},
+"vivian": {
+"key": "cobalt",
+"wtype": "sword",
+"wvar": "cleaver",
+"wname": "넓은 칼"
+},
+"leif": {
+"key": "olive",
+"wtype": "dagger",
+"wvar": "kris",
+"wname": "물결 단검"
+},
+"freya": {
+"key": "amber",
+"wtype": "staff",
+"wvar": "flower",
+"wname": "꽃"
+},
+"sigurd": {
+"key": "teal",
+"wtype": "sword",
+"wvar": "cleaver",
+"wname": "넓은 칼"
+},
+"edda": {
+"key": "charcoal",
+"wtype": "staff",
+"wvar": "totem",
+"wname": "토템"
+},
+"colin": {
+"key": "brown",
+"wtype": "crossbow",
+"wvar": "repeating",
+"wname": "연사"
+},
+"thea": {
+"key": "plum",
+"wtype": "staff",
+"wvar": "star",
+"wname": "별"
+},
+"gareth": {
+"key": "emerald",
+"wtype": "hammer",
+"wvar": "mace",
+"wname": "철퇴"
+},
+"marit": {
+"key": "leaf",
+"wtype": "dagger",
+"wvar": "curved",
+"wname": "곡도"
+},
+"fergus": {
+"key": "brown",
+"wtype": "spear",
+"wvar": "harpoon",
+"wname": "작살"
+},
+"ylva": {
+"key": "ivory",
+"wtype": "staff",
+"wvar": "moon",
+"wname": "초승달"
+},
+"elias": {
+"key": "leaf",
+"wtype": "bow",
+"wvar": "composite",
+"wname": "복합 활"
+},
+"rowena": {
+"key": "emerald",
+"wtype": "staff",
+"wvar": "feather",
+"wname": "깃털"
+},
+"atle": {
+"key": "brown",
+"wtype": "sword",
+"wvar": "curved",
+"wname": "곡도"
+},
+"gwen": {
+"key": "rose",
+"wtype": "staff",
+"wvar": "branch",
+"wname": "나뭇가지"
+},
+"celeste": {
+"key": "leaf",
+"wtype": "staff",
+"wvar": "flame",
+"wname": "불꽃"
+},
+"halvard": {
+"key": "leaf",
+"wtype": "axe",
+"wvar": "great",
+"wname": "대형 도끼"
+},
+"kaira": {
+"key": "rose",
+"wtype": "sword",
+"wvar": "wavy",
+"wname": "물결검"
+},
+"verona": {
+"key": "plum",
+"wtype": "staff",
+"wvar": "totem",
+"wname": "토템"
+},
+"elin": {
+"key": "rose",
+"wtype": "bow",
+"wvar": "",
+"wname": "기본"
+},
+"thorn": {
+"key": "olive",
+"wtype": "staff",
+"wvar": "leaf",
+"wname": "새싹"
+},
+"adel": {
+"key": "charcoal",
+"wtype": "spear",
+"wvar": "",
+"wname": "기본"
+},
+"serena": {
+"key": "ivory",
+"wtype": "staff",
+"wvar": "crystal",
+"wname": "수정"
+},
+"nix": {
+"key": "navy",
+"wtype": "dagger",
+"wvar": "stiletto",
+"wname": "송곳"
+}
+}
