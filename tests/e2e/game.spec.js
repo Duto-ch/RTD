@@ -1047,6 +1047,59 @@ test('보스 등장 전쟁나팔 (보스·강화·최종 3단계) + 버튼 클�
   expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeLessThan(0.6); // 나팔이 울리는 동안 배경음 낮춤
   expect(errors).toEqual([]);
 });
+test('전용 효과음 채우기 (2026-11-24): 판매·잠금·리롤·아이템·성벽·웨이브·지역·마정석·배치·시너지', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    const calls = {};
+    const names = ['sell', 'lock', 'reroll', 'itemGet', 'itemEquip', 'itemCombine', 'itemRemove', 'wallHit', 'wallWarn', 'waveStart', 'regionChange', 'gem', 'place', 'synergy'];
+    for (const k of names) {
+      const o = a[k].bind(a);
+      a[k] = (...x) => { calls[k] = (calls[k] || 0) + 1; a.last = {}; o(...x); };
+    }
+    g.gold = 99999;
+    // 같은 계열 두 명 → 계열 2단계 켜짐
+    const R = window.__rtd.ROSTER;
+    const cls = R.find((c) => R.filter((d) => d.cls === c.cls && d.grade === 1).length >= 2).cls;
+    const [c1, c2] = R.filter((d) => d.cls === cls && d.grade === 1);
+    const m1 = g.hire(c1.id);
+    g.hire(c2.id);
+    // 끌어서 옆 칸으로
+    const fromX = m1.x;
+    g.handleDrop(m1, m1.x + 56, m1.y);
+    const moved = m1.x !== fromX;
+    g.toggleLock(0);
+    g.toggleLock(0);
+    g.reroll();
+    g.smithBuy();
+    g.smithBuy();
+    g.equip(0, m1);
+    g.equip(0, m1); // 재료 두 개 → 조합
+    g.tools = 1;
+    g.useTool(m1);
+    g.earnStones(2, 400, 400);
+    g.startWave(11); // 일반 웨이브 + 지역 바뀜
+    g.startWave(15); // 정예 웨이브
+    g.spawnMonster('normal');
+    g.spawnMonster('elite');
+    const [n, e] = g.monsters.slice(-2);
+    g.wallHp = g.wallMax * 0.6;
+    g.hitWall(n);
+    g.wallFxAt = -9;
+    g.wallHp = g.wallMax * 0.31;
+    g.hitWall(e); // 정예 → 30% 아래로 → 경고
+    const m2 = g.mercs.find((m) => m !== m1);
+    g.sell(m2);
+    return { calls, moved, items: m1.items.length };
+  });
+  for (const k of ['sell', 'reroll', 'itemGet', 'itemEquip', 'itemCombine', 'itemRemove', 'wallWarn', 'regionChange', 'gem', 'synergy']) expect(r.calls[k], k).toBeGreaterThanOrEqual(1);
+  expect(r.calls.lock).toBe(2);
+  expect(r.calls.waveStart).toBe(2);
+  expect(r.calls.wallHit).toBeGreaterThanOrEqual(2);
+  if (r.moved) expect(r.calls.place).toBe(1);
+  expect(errors).toEqual([]);
+});
 test('웨이브 끝 상점 갱신 소리 + 배경음 50% = 예전 20% 크기 (2026-11-22)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {

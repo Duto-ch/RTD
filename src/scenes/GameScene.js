@@ -252,8 +252,10 @@ export class GameScene extends Phaser.Scene {
     if (this.gameTime - this.wallFxAt > 0.15) {
       this.wallFxAt = this.gameTime;
       this.circleFx(m.x, m.y, 26, 0xff5040);
-      audio.debuff?.();
+      audio.wallHit(false);
     }
+    if (m.kind !== 'normal') audio.wallHit(true);
+    audio.wallHealth(this.wallHp, this.wallMax); // 위험하면 경고음
   }
 
   // ───────────────────────── 웨이브 ─────────────────────────
@@ -290,6 +292,7 @@ export class GameScene extends Phaser.Scene {
     this.shopRefreshed = false;
     this.wave = w;
     const info = waveInfo(w);
+    if (info.type === 'normal' || info.type === 'elite') audio.waveStart(info.type, w); // 보스 웨이브는 보스가 나올 때 전쟁나팔
     const list = spawnList(w);
     this.spawnQueue.push(...list);
     // 몬스터 그림 색 (룰 v2: 속성 상성 없음 — 색만 섞는다)
@@ -369,6 +372,7 @@ export class GameScene extends Phaser.Scene {
   changeBiome(biome) {
     if (biome.id === this.biome.id) return;
     this.biome = biome;
+    audio.regionChange();
     const old = this.bgImage;
     this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H).setDepth(DEPTH.bg + 0.5).setAlpha(0);
     this.tweens.add({
@@ -625,6 +629,7 @@ export class GameScene extends Phaser.Scene {
     this.vfx.attack(merc, target, this.kindOf(merc));
     audio.shoot(this.kindOf(merc));
     const crit = Math.random() < st.crit;
+    if (crit) audio.crit();
     const now = this.gameTime;
     if (st.slow) target.applySlow(Math.min(0.85, st.slow * st.hex), st.slowDur, now);
     // 고유 특성 (data/roster.js): 지속 피해·약화·밀치기·확률 기절·처형 — 주술 효과는 주술사 시너지만큼 세진다
@@ -848,6 +853,7 @@ export class GameScene extends Phaser.Scene {
   earnStones(n, x, y) {
     if (!n) return;
     meta.addStones(n);
+    audio.gem();
     this.stonesEarned += n;
     this.floatText(x, y - 54, `마정석 +${n}`, '#6fe0d6');
     this.toast(`마정석 +${n} (보유 ${meta.stones}) — 영지 술집·유물 공방에서 사용`, '#6fe0d6');
@@ -1063,7 +1069,7 @@ export class GameScene extends Phaser.Scene {
       this.rerollCount = (this.rerollCount || 0) + 1; // 돈 내고 돌릴 때마다 다음 리롤 값이 오른다 (무료 리롤은 세지 않음)
     }
     this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
-    audio.coin();
+    audio.reroll();
     this.refreshShop();
     this.refreshHud();
     return true;
@@ -1074,6 +1080,7 @@ export class GameScene extends Phaser.Scene {
     const slot = this.shop[i];
     if (!slot || slot.sold) return;
     slot.locked = !slot.locked;
+    audio.lock(slot.locked);
     this.tut.show('lock');
     this.refreshShop();
   }
@@ -1100,6 +1107,7 @@ export class GameScene extends Phaser.Scene {
     merc.items = [];
     const refund = Math.floor(merc.invested * this.sellRefund);
     this.gold += refund;
+    audio.sell();
     this.unplace(merc);
     this.floatText(merc.x, merc.y - 20, `+${refund}G`, '#f2c14e');
     merc.destroy();
@@ -1117,6 +1125,7 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
     this.bench.push(id);
+    audio.itemGet();
     if (x != null) this.floatText(x, y - 30, ITEM_BY_ID[id].name, '#d6a8ff', 16, true);
     this.tut.show('item');
     this.hud?.refreshBench?.();
@@ -1162,7 +1171,8 @@ export class GameScene extends Phaser.Scene {
     this.bench.splice(benchIndex, 1);
     if (ITEM_BY_ID[id].kind === 'mat' && !result) merc.mana = Math.max(merc.mana, merc.ifx.startMana || 0); // 마력석: 시작 마나
     merc.drawPips();
-    audio.coin();
+    if (result) audio.itemCombine();
+    else audio.itemEquip();
     if (result) {
       this.levelUpFx(merc, ITEM_BY_ID[result].name);
       this.toast(`조합: ${ITEM_BY_ID[result].name} — ${ITEM_BY_ID[result].text}`, '#f2c14e');
@@ -1199,6 +1209,7 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
     this.tools -= 1;
+    audio.itemRemove();
     this.returnItems(merc.items);
     merc.items = [];
     merc.mana = Math.min(merc.mana, merc.maxMana);
@@ -1254,6 +1265,13 @@ export class GameScene extends Phaser.Scene {
     // 필드 캐릭터마다 켜진 시너지 상징 (2026-11-22)
     for (const m of this.mercs) m.setSynMarks(m.dragging ? [] : [...new Set([m.cls, m.origin, ...m.extraTraits])].filter((k) => tiers[k]));
     for (const m of this.reserve || []) m?.setSynMarks?.([]);
+    // 시너지 단계가 올라가면 소리 (끄는 중엔 세지 않고, 놓은 뒤 끌기 전과 비교)
+    if (!this.mercs.some((m) => m.dragging)) {
+      const idx = (k, t) => (t ? TRAITS[k].tiers.indexOf(t) : -1);
+      const up = TRAIT_IDS.some((k) => idx(k, tiers[k]) > idx(k, this.synHeard?.[k]));
+      if (up && this.synHeard) audio.synergy();
+      this.synHeard = tiers;
+    }
     // 새로 켜진 시너지 알림
     for (const k of TRAIT_IDS) if (tiers[k] && tiers[k] !== before[k]) this.tut.show('synergy');
     this.hud?.refreshSynergy?.();
@@ -1308,6 +1326,7 @@ export class GameScene extends Phaser.Scene {
     if (other) this.unplace(other);
     if (slot >= 0) this.toReserve(merc, slot);
     else this.toField(merc, cell.col, cell.row);
+    audio.place();
     if (other) {
       if (from.slot != null) this.toReserve(other, from.slot);
       else this.toField(other, from.col, from.row);
@@ -1362,6 +1381,7 @@ export class GameScene extends Phaser.Scene {
       if (!(obj instanceof Mercenary) || this.over) return;
       const w = worldPoint(this, p);
       obj.dragging = true;
+      audio.pick();
       obj.setReserveClip(null); // 대기석에서 끌어내면 칸 모양 자르기 풀기 (2026-11-24)
       obj.dragOff = { x: obj.x - w.x, y: obj.y - w.y };
       obj.setDepth(DEPTH.drag);

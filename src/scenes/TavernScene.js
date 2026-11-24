@@ -120,6 +120,7 @@ export class TavernScene extends Phaser.Scene {
     audio.init();
     const cost = meta.tavernRerollCost;
     if (!meta.rerollTavern()) return this.toast(`마정석이 부족합니다 (리롤 ${cost}개)`);
+    audio.reroll();
     this.toast(`새 손님이 들어왔어요 — 다음 리롤 마정석 ${meta.tavernRerollCost}`);
     this.refresh();
   }
