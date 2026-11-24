@@ -34,6 +34,9 @@ const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 /** 전열·후열 칸 대비 (2026-11-21 사용자 결정): 전열 밝게(흰빛 겹침), 후열 어둡게(틴트) */
 const FIELD_ROWS = { frontLift: 0.14, backTint: 0x7c7c8c }; // 2026-11-21: 후열 더 어둡게 (이전 0x9c9ca8)
 
+
+/** 기절 몬스터가 거는 디버프 (보스 디버프와 같은 틀 — stun: 공격·스킬 정지) */
+const STUN_GAZE = (dur) => ({ id: 'stun_gaze', name: '기절', dur, effect: { stun: true }, desc: '행동 불가' });
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('Game');
@@ -190,6 +193,7 @@ export class GameScene extends Phaser.Scene {
       for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, mul[m.kind] ?? mul.normal);
       this.checkLaps();
       this.updateBosses(dt);
+      this.updateStunners(dt);
       this.updateRoots(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
@@ -584,6 +588,36 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** 보스 디버프 능력: 쿨타임마다 랜덤 용병/영웅에게 시전 */
+  /** 기절 몬스터 (2026-11-24): cd 초마다 가까운 용병 1명을 잠깐 행동 불가 (이미 기절한 용병은 건너뜀) */
+  updateStunners(dt) {
+    const now = this.gameTime;
+    for (const m of this.monsters) {
+      if (!m.alive || !m.stun) continue;
+      m.stunCd -= dt;
+      if (m.stunCd > 0) continue;
+      const r2 = m.stun.range * m.stun.range;
+      let best = null;
+      let bd = r2;
+      for (const u of this.mercs) {
+        if (u.debuffState?.(now)?.stun) continue;
+        const dd = d2(u, m);
+        if (dd < bd) {
+          bd = dd;
+          best = u;
+        }
+      }
+      if (!best) {
+        m.stunCd = 0.5; // 가까이 올 때까지 자주 본다
+        continue;
+      }
+      m.stunCd = m.stun.cd;
+      best.addDebuff(STUN_GAZE(m.stun.dur), now, Math.max(0.2, 1 - this.bonus.debuffDur));
+      this.vfx.curse(m, [best]);
+      this.floatText(best.x, best.y - 36, '기절', '#d6a8ff', 14);
+      audio.debuff();
+    }
+  }
+
   updateBosses(dt) {
     const now = this.gameTime;
     for (const boss of this.monsters) {

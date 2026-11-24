@@ -110,7 +110,8 @@ export function speedMultiplier(w) {
 /** 몬스터 능력치 (수치는 config.js BALANCE.monster) */
 export function monsterStats(kind, w, milestone = false, variant = null) {
   const M = BALANCE.monster;
-  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1)) * M.hpScale;
+  const mid = M.midHp && w >= M.midHp.from ? M.midHp.mult : 1; // 11웨이브부터 상향 (2026-11-24)
+  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1)) * M.hpScale * mid;
   if (kind === 'normal' && variant) {
     // 특수 몬스터 (2026-11-24): 체력·속도 배율 · 방어력(그 웨이브 일반 몬스터 체력의 비율) · 저항
     const base = monsterStats('normal', w);
@@ -120,7 +121,8 @@ export function monsterStats(kind, w, milestone = false, variant = null) {
       speed: base.speed * (v.speed || 1),
       gold: base.gold * Math.max(1, v.hp || 1),
       armor: base.hp * (v.armor || 0),
-      resist: v.resist || null
+      resist: v.resist || null,
+      stun: v.stun || null
     };
   }
   switch (kind) {

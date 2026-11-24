@@ -100,6 +100,8 @@ export const BALANCE = {
     // 초반 내구성 (2026-11-24 사용자 결정: 1웨이브부터 한 방에 터져 긴장감이 없다 → 초반만 단단하게).
     // 일반 몬스터 체력 ×mult(1웨이브) → 점점 줄어 untilWave 에서 ×1 (후반 곡선은 그대로). 수치는 가안 ⚠️
     earlyHp: { mult: 4, untilWave: 60 }, // 2026-11-24 사용자 결정: 중반 긴장감 — 30 → 60웨이브까지
+    // 11웨이브부터 난이도 상향 (2026-11-24 사용자 결정): 이 웨이브부터 모든 몬스터(일반·정예·보스) 체력 ×mult. 수치는 가안 ⚠️
+    midHp: { from: 11, mult: 1.3 },
     eliteHpMult: 10,
     bossHpMult: 110, // 2026-11-12 사용자 결정
     // 이동 속도: 일반·정예 1.3배, 보스 1.5배 (2026-11-12)
@@ -152,7 +154,9 @@ export const BALANCE = {
       swift: { name: '빠름', from: 2, speed: 1.6, hp: 0.7, design: ['wolf', 'hound'] },
       armored: { name: '방어력', from: 5, hp: 1.3, armor: 0.12, design: ['beetle', 'golem'] }, // armor: 그 웨이브 일반 몬스터 체력의 12%
       physResist: { name: '물리 저항', from: 8, resist: 'phys', design: ['ghost', 'wraith'] }, // 연사·속공·저격·근접
-      magicResist: { name: '마법 저항', from: 11, resist: 'magic', design: ['imp', 'gargoyle'] } // 주술·지원 (폭발은 어느 저항에도 안 막힘)
+      magicResist: { name: '마법 저항', from: 11, resist: 'magic', design: ['imp', 'gargoyle'] }, // 주술·지원 (폭발은 어느 저항에도 안 막힘)
+      // 기절 (2026-11-24 사용자 요청: 캐릭터 하나에 스턴): cd 초마다 range 안 가장 가까운(기절 안 한) 용병 1명을 dur 초 행동 불가
+      stunner: { name: '기절', from: 11, stun: { cd: 10, dur: 1.2, range: 220 }, design: ['eye', 'jelly'] }
     }
   },
   horde: {
@@ -168,7 +172,7 @@ export const BALANCE = {
   // 몬스터가 길을 한 바퀴 돌 때마다 성벽 체력이 깎이고 0이 되면 게임 오버. 몬스터는 계속 돈다
   wall: {
     hp: 80, // 최초 체력 (사용자 결정). 명성 강화: 성벽 보강(+체력)·방패벽(시작 실드)·성벽 수리(웨이브마다 회복)
-    dmg: { normal: 1.5, elite: 3, boss: 30, milestone: 40, final: 80 } // 한 바퀴마다 피해 (2026-11-24 중반 긴장감: 일반 1/1.8 → 1.5, 놓치면 바로 티가 나게)
+    dmg: { normal: 1, elite: 3, boss: 30, milestone: 40, final: 80 } // 한 바퀴마다 피해 (2026-11-24 사용자 결정: 일반 1)
   },
   // 정비 시간 (2026-11-24 사용자 결정): 웨이브마다 시작 전 15초 — 용병 구매·배치·아이템 장착은 정비 시간에만.
   // 웨이브는 그 웨이브 몬스터를 모두 잡으면 끝난다(이전: 30초마다 다음 웨이브가 겹쳐 시작 — waveDuration 폐지)

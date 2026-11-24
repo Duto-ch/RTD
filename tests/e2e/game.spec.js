@@ -481,7 +481,7 @@ test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은
     while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
     return g.monsters.at(-1).maxHp;
   });
-  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 1.0) / 1.8, 0); // 물량 ×1.8 (2026-11-24, 이전 ×5): 마리당 체력 1/1.8 · 전체 배율 1.0 (2026-11-24, 이전 0.7)
+  expect(hp).toBeCloseTo(((40 * Math.pow(1.08, 100) * 1.0) / 1.8) * 1.3, 0); // 물량 ×1.8: 마리당 체력 1/1.8 · 전체 배율 1.0 · 11웨이브부터 ×1.3 (2026-11-24)
   await page.waitForTimeout(600);
   await page.screenshot({ path: SHOT('16-endless') });
   expect(errors).toEqual([]);
@@ -1512,7 +1512,7 @@ test('특수 몬스터 (2026-11-24): 웨이브 안에 섞여 나오고 — 물�
     const magic = R.find((c) => c.style === 'hex');
     g.hire(phys.id); g.hire(magic.id);
     const [mp, mm] = [g.mercs.find((m) => m.char.id === phys.id), g.mercs.find((m) => m.char.id === magic.id)];
-    g.startWave(22); // 물리 저항 + 방어력
+    g.startWave(21); // 물리 저항 + 방어력
     const banner = g.hud.bannerObj ? g.hud.bannerObj.list?.map((o) => o.text).filter(Boolean).join(' ') : '';
     while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
     const ms = g.monsters;
@@ -1554,6 +1554,26 @@ test('특수 몬스터 (2026-11-24): 웨이브 안에 섞여 나오고 — 물�
   expect(r.swift).toBeCloseTo(1.6, 2);
   expect(r.swiftDesign).toBe('wolf');
   expect(r.banner).toContain('물리 저항'); // 웨이브 배너에 특수 몬스터 종류·수
+  // 기절 (2026-11-24): 가까운 용병 1명을 잠깐 행동 불가 — 이미 기절한 용병은 건너뛴다
+  const st = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (const m of [...g.monsters]) m.destroy();
+    g.monsters = [];
+    g.startWave(14); // 기절 + 물리 저항
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const s = g.monsters.find((m) => m.variant === 'stunner');
+    const [a, b] = g.mercs;
+    s.x = a.x; s.y = a.y; // a 가 가장 가깝다
+    s.stunCd = 0;
+    g.updateStunners(0.1);
+    const first = [a.debuffState(g.gameTime).stun, b.debuffState(g.gameTime).stun];
+    const others = g.monsters.filter((m) => m.stun && m !== s);
+    for (const o of others) o.stunCd = 99;
+    s.stunCd = 0;
+    g.updateStunners(0.1); // a 는 이미 기절 → 다음으로 가까운 b
+    return { design: s.design.id, first, second: b.debuffState(g.gameTime).stun, cd: Math.round(s.stunCd) };
+  });
+  expect(st).toEqual({ design: 'eye', first: [true, false], second: true, cd: 10 });
   await page.waitForTimeout(400);
   await page.screenshot({ path: SHOT('31b-special') });
   expect(errors).toEqual([]);

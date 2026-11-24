@@ -63,9 +63,9 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('boss', 100).speed).toBe(BALANCE.monster.bossSpeed);
   });
 
-  it('패배 조건: 성벽 체력 80, 한 바퀴마다 일반 1.5(2026-11-24 중반 긴장감)·정예 3·보스 30·강화 보스 40·최종 보스 80', () => {
+  it('패배 조건: 성벽 체력 80, 한 바퀴마다 일반 1(2026-11-24 사용자 결정)·정예 3·보스 30·강화 보스 40·최종 보스 80', () => {
     expect(BALANCE.wall.hp).toBe(80);
-    expect(BALANCE.wall.dmg).toEqual({ normal: 1.5, elite: 3, boss: 30, milestone: 40, final: 80 });
+    expect(BALANCE.wall.dmg).toEqual({ normal: 1, elite: 3, boss: 30, milestone: 40, final: 80 });
   });
 
   it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 전체 배율 ×1.0(2026-11-24, 이전 ×0.7), 강화 보스 체력 1.5배', () => {
@@ -75,7 +75,7 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('normal', 1).hp).toBeCloseTo(((34 * 1.0) / 1.8) * 4);
     expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 1.0) / 1.8) * earlyHpMult(2));
     expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 1.0) / 1.8) * earlyHpMult(10));
-    expect(monsterStats('normal', 70).hp).toBeCloseTo((40 * Math.pow(1.08, 69) * 1.0) / 1.8);
+    expect(monsterStats('normal', 70).hp).toBeCloseTo(((40 * Math.pow(1.08, 69) * 1.0) / 1.8) * 1.3); // 11웨이브부터 ×1.3
     expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 1.0 * 10);
     expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 1.0 * 110);
     expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 1.8) * 2); // 골드 총량 유지
@@ -107,10 +107,10 @@ describe('웨이브 규칙', () => {
       expect(list.filter((k) => k.startsWith('normal')).length).toBe(normalCount(w));
       expect(sp).toBe(Object.values(specialCounts(w)).reduce((a, b) => a + b, 0));
     }
-    // 네 종류 모두 언젠가 나온다
+    // 다섯 종류 모두 언젠가 나온다 (기절 2026-11-24)
     const seen = new Set();
     for (let w = 1; w <= 100; w++) for (const id of specialTypes(w)) seen.add(id);
-    expect([...seen].sort()).toEqual(['armored', 'magicResist', 'physResist', 'swift']);
+    expect([...seen].sort()).toEqual(['armored', 'magicResist', 'physResist', 'stunner', 'swift']);
     // 비율: 처음 15%, 33웨이브부터 40%
     expect(spawnList(2).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(2) * 0.15));
     expect(spawnList(40).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(40) * 0.4));
@@ -142,5 +142,18 @@ describe('웨이브 규칙', () => {
   it('정비 시간 (2026-11-24 사용자 결정): 웨이브마다 시작 전 15초 · 웨이브 간격 타이머(waveDuration)는 없다 — 몬스터를 다 잡아야 끝', () => {
     expect(BALANCE.prepTime).toBe(15);
     expect(BALANCE.waveDuration).toBeUndefined();
+  });
+
+  it('11웨이브부터 상향 (2026-11-24 사용자 결정): 모든 몬스터 체력 ×1.3 · 기절 몬스터는 11웨이브부터', () => {
+    expect(BALANCE.monster.midHp).toEqual({ from: 11, mult: 1.3 });
+    const raw = (w) => 40 * Math.pow(1.08, w - 1) * BALANCE.monster.hpScale;
+    expect(monsterStats('elite', 5).hp).toBeCloseTo(raw(5) * 10);
+    expect(monsterStats('elite', 15).hp).toBeCloseTo(raw(15) * 10 * 1.3);
+    expect(monsterStats('boss', 10).hp).toBeCloseTo(raw(10) * 110);
+    expect(monsterStats('boss', 20).hp).toBeCloseTo(raw(20) * 110 * 1.3);
+    expect(monsterStats('normal', 11).hp / monsterStats('normal', 10).hp).toBeGreaterThan(1.3);
+    expect(BALANCE.special.types.stunner.from).toBe(11);
+    expect(specialTypes(10)).not.toContain('stunner');
+    expect(monsterStats('normal', 14, false, 'stunner').stun).toEqual({ cd: 10, dur: 1.2, range: 220 });
   });
 });

@@ -18,6 +18,8 @@ export class Monster extends Phaser.GameObjects.Sprite {
     this.variant = variant;
     this.armor = s.armor || 0; // 한 대마다 이만큼 피해가 줄어든다 (최소 BALANCE.special.minDmg, 지속 피해는 무시)
     this.resist = s.resist || null; // 'phys' | 'magic' — 그 종류 피해를 BALANCE.special.resist 만큼만 받는다
+    this.stun = s.stun || null; // 기절: { cd, dur, range } — GameScene.updateStunners
+    this.stunCd = this.stun ? 2 + Math.random() * 3 : 0; // 처음엔 2~5초 뒤
     this.milestone = milestone; // 강화 보스 (30·60·90)
     this.isFinal = kind === 'boss' && isFinalWave(wave); // 최종 보스 (100웨이브마다)
     this.revived = false;
