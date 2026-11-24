@@ -1,7 +1,9 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
 import { TRAITS } from '../data/synergy.js';
-import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES } from '../config.js';
+import { GRADES } from '../data/roster.js';
+import { pointerFor, uiPosOf, inWorld } from '../systems/hires.js';
+import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES, GAME_W, UI_SCALE } from '../config.js';
 
 export const UI_FONT = COZY ? COZY_FONT : FONT; // 포근한 카드형: 썬플라워 · 픽셀 UI: Galmuri11
 
@@ -132,12 +134,14 @@ export function panel(scene, x, y, w, h, style = 'card') {
   return scene.add.image(x - SHADOW_PAD, y - SHADOW_PAD, panelKey(scene, style, w, h)).setOrigin(0).setScale(panelScale());
 }
 
-/** panelKey 텍스처를 화면에 놓을 배율 — 픽셀 패널은 아트 해상도 ×PX, 포근한 카드형은 캔버스 해상도 ×1/RES */
+/** panelKey 텍스처를 화면에 놓을 배율 — 픽셀 패널은 아트 해상도 ×PX, 포근한 카드형은 화면 해상도 ×1/PANEL_RES */
 export function panelScale() {
-  return COZY ? 1 / RES : PX;
+  return COZY ? 1 / PANEL_RES : PX;
 }
 
-// ── 포근한 카드형 패널 (B-2): 둥근 모서리 · 얇은 테두리 · 부드러운 그림자, 캔버스 해상도(RES 배)로 매끈하게 ──
+// ── 포근한 카드형 패널 (B-2): 둥근 모서리 · 얇은 테두리 · 부드러운 그림자, 화면 해상도로 매끈하게 ──
+// PC (2026-11-22): UI 는 RES × UI_SCALE(1.5)배로 그려지므로 그 해상도로 만든다 — RES 로 만들어 1.5배로 늘리면 흐릿하고 모서리가 고르지 않았다
+const PANEL_RES = RES * UI_SCALE;
 const COZY_STYLES = {
   card: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 22 },
   header: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.14)', r: 22 },
@@ -148,19 +152,22 @@ const COZY_STYLES = {
   gold: { fill: '#e2b54a', line: '#a8801c', lip: '#a8801c', r: 18 },
   outline: { fill: '#fbf7ec', line: '#e3d6b6', lip: 'rgba(120,95,50,0.16)', r: 18 },
   soft: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
+  round: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 999 }, // 동그란 칸 (정사각이면 원 — 2026-11-23)
   ghost: { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 14 },
   // 영지 메뉴 버튼 (2026-11-21): 진한 갈색 굵은 테두리 + 아래 입술로 '누르는 버튼' 느낌을 강조
   menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
+// 대기석 칸 등급 테두리 (2026-11-24 사용자 요청: 상점 카드 테두리처럼) — 'soft' 칸과 같은 모양, 테두리 3 = 등급색, 안쪽 = 상점 카드 바탕 (Hud.paintReserve)
+for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, lip: null, r: 14, lw: 3 };
 
 function cozyKey(scene, style, w, h) {
   const key = `cozy_${style}_${Math.round(w)}x${Math.round(h)}`;
   if (scene.textures.exists(key)) return key;
   const S = COZY_STYLES[style] || COZY_STYLES.card;
   const pad = SHADOW_PAD; // 픽셀 패널과 같은 여백 (그림자 자리)
-  const tex = scene.textures.createCanvas(key, Math.round((w + pad * 2) * RES), Math.round((h + pad * 2) * RES));
+  const tex = scene.textures.createCanvas(key, Math.round((w + pad * 2) * PANEL_RES), Math.round((h + pad * 2) * PANEL_RES));
   const ctx = tex.getContext();
-  ctx.scale(RES, RES);
+  ctx.scale(PANEL_RES, PANEL_RES);
   const r = Math.min(S.r, h / 2, w / 2);
   const shape = (x, y, ww, hh, rr = r) => {
     ctx.beginPath();
@@ -188,6 +195,17 @@ function cozyKey(scene, style, w, h) {
   ctx.fill();
   tex.refresh();
   return key;
+}
+
+/**
+ * 화면을 꽉 채우는 원본 해상도 그림 (2026-11-22: 영지·성탑 배경 — 도트로 줄이지 않은 사용자 그림).
+ * 게임은 pixelArt(가까운 점) 설정이라 이 텍스처만 부드럽게(LINEAR) 거르고, 비율을 지켜 화면을 덮도록(남는 쪽은 가운데 기준 잘림) 맞춘다
+ */
+export function coverImage(scene, key, W, H) {
+  scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+  const img = scene.add.image(W / 2, H / 2, key);
+  const k = Math.max(W / img.width, H / img.height);
+  return img.setScale(k);
 }
 
 /** 패널 이미지 (가운데 기준) */
@@ -243,6 +261,10 @@ export function uiText(scene, x, y, str, size = 16, color = CSS.ink, weight = '6
 
 // 7x7 픽셀 아이콘
 const ICONS = {
+  // 확대·축소·가운데로 (2026-11-23: 글꼴 기호 '+ - ◎' 는 글꼴 여백 탓에 1~2.5px 어긋나 7x7 대칭 도트로)
+  plus: ['.......', '...x...', '...x...', '.xxxxx.', '...x...', '...x...', '.......'],
+  minus: ['.......', '.......', '.......', '.xxxxx.', '.......', '.......', '.......'],
+  target: ['..xxx..', '.x...x.', 'x.....x', 'x..x..x', 'x.....x', '.x...x.', '..xxx..'],
   clock: ['..xxx..', '.x...x.', 'x..x..x', 'x..xx.x', 'x.....x', '.x...x.', '..xxx..'],
   coin: ['..xxx..', '.xyyyx.', 'xyyxyyx', 'xyxyyyx', 'xyyxyyx', '.xyyyx.', '..xxx..'],
   heart: ['.xx.xx.', 'xxxxxxx', 'xxxxxxx', 'xxxxxxx', '.xxxxx.', '..xxx..', '...x...'],
@@ -283,6 +305,7 @@ const ICONS = {
 export function drawIcon(g, type, x, y, s, color) {
   const map = ICONS[type];
   if (!map) return;
+  g.iconName ||= type; // 이름표 (tools/export-psd.cjs 레이어 이름)
   // 아이콘 1칸 = 2px (도트 2px 통일, 2026-11-21) — 7칸 = 14px. s 는 예전 크기 인자(무시)
   const b = 2;
   const ox = Math.round(x - (7 * b) / 2);
@@ -317,15 +340,14 @@ export function onLight(color) {
  * 시너지 상징 배지 (2026-11-21): 시너지 색 원 + 하얀 모양 그림(theme trait_<id>, 7칸 × 2px). off 면 옅은 원 + 갈색 모양
  * @returns {Phaser.GameObjects.Container}
  */
-export function traitBadge(s, x, y, k, r = 10, on = true, { tip = true } = {}) {
+export function traitBadge(s, x, y, k, r = 10, on = true, { tip = true, world = false } = {}) {
   const t = TRAITS[k];
   const col = Phaser.Display.Color.HexStringToColor(t.color).color;
   const c = s.add.container(x, y);
-  const g = s.add.graphics();
-  g.fillStyle(on ? col : 0xd9cdb2, 1).fillCircle(0, 0, r);
-  g.lineStyle(2, on ? 0x2b1d2f : 0xa8875a, 1).strokeCircle(0, 0, r);
-  drawIcon(g, `trait_${k}`, 0, 0, 14, on ? 0xffffff : 0x8c6f45);
-  c.add(g);
+  // 2026-11-23: 도형 명령 대신 화면 해상도로 미리 그린 원 (곡선이 고르게) — world = 필드 캐릭터 위(전장 해상도)
+  const img = discImage(s, 0, 0, { r, fill: on ? col : 0xd9cdb2, line: on ? 0x2b1d2f : 0xa8875a, lw: 2, icon: `trait_${k}`, iconColor: on ? 0xffffff : 0x8c6f45, world });
+  img.layerName = '배지 원·상징';
+  c.add(img);
   c.auditBox = { x: -r - 1, y: -r - 1, w: 2 * r + 2, h: 2 * r + 2 }; // tools/ui-audit.cjs 여백 검사 (외곽선 포함)
   // 마우스를 올리면 시너지 이름 툴팁 (2026-11-22 사용자 요청: 모든 곳의 시너지 아이콘)
   if (tip) registerTraitTip(s, c, k, r);
@@ -357,12 +379,12 @@ function registerTraitTip(s, badge, k, r) {
     };
     const blocked = () => s.tut?.open || s.hud?.menu || s.hud?.popup || s.menu;
     const check = (p) => {
-      const x = p.worldX, y = p.worldY;
       let hit = null;
       if (!blocked()) {
         for (const b of st.list) {
           if (!b.active) { st.list.delete(b); continue; }
           if (!visible(b)) continue;
+          const { x, y } = pointerFor(s, b, p); // 전장(월드) 배지·UI 배지 좌표가 다르다 (2026-11-22 PC 전환)
           const c = b.getWorldTransformMatrix().transformPoint(0, 0);
           if ((x - c.x) ** 2 + (y - c.y) ** 2 <= b.tipR * b.tipR && inMask(b, x, y)) hit = b; // 나중에 만든 것(위에 그려진 것) 우선
         }
@@ -388,15 +410,186 @@ function registerTraitTip(s, badge, k, r) {
 /** 이름 툴팁 상자: 배지 위(자리가 없으면 아래) — '전사 · 계열' */
 function traitTipBox(s, badge) {
   const t = TRAITS[badge.tipKey];
-  const c0 = badge.getWorldTransformMatrix().transformPoint(0, 0);
+  const c0 = uiPosOf(s, badge);
+  const r = inWorld(s, badge) ? badge.tipR / UI_SCALE : badge.tipR;
   const label = uiText(s, 0, 0, `${t.name} · ${t.kind === 'class' ? '계열' : '출신'}`, 12, CSS.ink, 'bold').setOrigin(0.5);
   const w = Math.ceil(label.width + 24);
   const h = 28;
-  const W = s.scale.width / s.cameras.main.zoom;
+  const W = GAME_W;
   const x = Math.round(Math.min(W - 6 - w / 2, Math.max(6 + w / 2, c0.x)));
-  let y = Math.round(c0.y - badge.tipR - 6 - h / 2);
-  if (y - h / 2 < 4) y = Math.round(c0.y + badge.tipR + 6 + h / 2);
+  let y = Math.round(c0.y - r - 6 - h / 2);
+  if (y - h / 2 < 4) y = Math.round(c0.y + r + 6 + h / 2);
   const box = s.add.container(x, y, [panelImage(s, 0, 0, 'strip', w, h), label]).setDepth(5000);
   box.auditOk = true; // 잠깐 뜨는 툴팁 (ui-audit 제외)
   return box;
+}
+
+/**
+ * 화면 끝에 붙는 바 (2026-11-22 사용자 요청: 위·아래 UI 바를 좌우 끝까지, 화면 끝은 둥근 모서리 없이).
+ * 크림 판 + 화면 안쪽 가장자리에만 테두리 선과 옅은 그림자. edge = 'top'(화면 위에 붙음) | 'bottom'
+ */
+export function edgeBar(scene, x, y, w, h, edge = 'top') {
+  const g = scene.add.graphics();
+  g.layerName = edge === 'top' ? '위 바 판' : '아래 바 판'; // 이름표 (tools/export-psd.cjs)
+  g.fillStyle(0xfbf7ec, 1).fillRect(x, y, w, h);
+  if (edge === 'top') {
+    g.fillStyle(0x785f32, 0.14).fillRect(x, y + h, w, 3); // 아래 그림자
+    g.fillStyle(0xe3d6b6, 1).fillRect(x, y + h - 2, w, 2);
+  } else {
+    g.fillStyle(0x785f32, 0.1).fillRect(x, y - 3, w, 3); // 위 그림자
+    g.fillStyle(0xe3d6b6, 1).fillRect(x, y, w, 2);
+  }
+  return g;
+}
+
+// ── 곡선 UI 를 그림으로 (2026-11-23 사용자 요청: 원형 UI 곡선이 어긋나던 문제) ──
+// 도형 명령(Graphics)의 원은 다각형 + 4배 표본 안티에일리어싱이라 작은 원일수록 곡선이 고르지 않고, 1.5배 확대에서
+// 선 두께·중심이 픽셀과 어긋났다 → 캔버스로 화면 해상도 그대로 미리 그려 1:1 로 놓는다 (roundPixels 로 픽셀 경계에 맞음).
+// 텍스처 크기의 짝·홀은 안에 든 도트 아이콘(7칸 × 2 = 14 논리 px)이 픽셀 경계에 맞게 고른다 → 좌우·상하 대칭
+
+/** 캔버스 텍스처 (가운데가 원점인 논리 좌표로 draw(ctx)). world = 전장 해상도(RES), 아니면 UI 해상도(RES × 1.5) */
+export function shapeKey(scene, id, w, h, draw, { world = false, odd = null } = {}) {
+  const R = world ? RES : PANEL_RES;
+  const key = `shape_${world ? 'w' : 'u'}_${id}`;
+  if (scene.textures.exists(key)) return key;
+  const fit = (v, wantOdd) => {
+    let n = Math.ceil(v * R) + 2;
+    if (wantOdd !== null && n % 2 !== (wantOdd ? 1 : 0)) n += 1;
+    return n;
+  };
+  const cw = fit(w, odd);
+  const ch = fit(h, odd);
+  const tex = scene.textures.createCanvas(key, cw, ch);
+  const ctx = tex.getContext();
+  ctx.translate(cw / 2, ch / 2);
+  ctx.scale(R, R);
+  draw(ctx);
+  tex.refresh();
+  return key;
+}
+
+/** shapeKey 그림을 (x, y) 가운데에 화면 1:1 로 놓는다 */
+export function shapeImage(scene, x, y, id, w, h, draw, opts = {}) {
+  const R = opts.world ? RES : PANEL_RES;
+  const img = scene.add.image(x, y, shapeKey(scene, id, w, h, draw, opts)).setScale(1 / R);
+  img.shapeR = R;
+  return img;
+}
+
+const hex = (c) => `#${(c >>> 0).toString(16).padStart(6, '0')}`;
+
+/** 캔버스에 도트 아이콘(theme ICONS, 7칸 × 2 논리 px)을 가운데 (0,0) 에 */
+export function paintIcon(ctx, type, color) {
+  const map = ICONS[type];
+  if (!map) return;
+  map.forEach((row, j) =>
+    [...row].forEach((ch, i) => {
+      if (ch === '.') return;
+      ctx.fillStyle = ch === 'y' ? '#ffd36a' : hex(color);
+      ctx.fillRect(-7 + i * 2, -7 + j * 2, 2, 2);
+    })
+  );
+}
+
+/** 아이콘이 든 원 텍스처의 짝·홀: 아이콘 폭(14 × 해상도)이 홀수면 홀수 */
+const iconOdd = (world) => (Math.round(14 * (world ? RES : PANEL_RES)) % 2 === 1);
+
+/**
+ * 거리로 직접 칠한 모양 텍스처 (2026-11-23): 픽셀 가운데에서 모양 가장자리까지 거리로 덮임 정도(0~1)를 계산해
+ * 가장자리를 부드럽게 — 브라우저 캔버스 곡선은 그래픽 카드 표본 위치 탓에 좌우·상하가 조금씩 달랐다(최대 알파 67 차이).
+ * layers: [{ sdf(x, y) → 화면 px 거리(안쪽 음수), color }] 아래부터. top(ctx) = 맨 위 덧그림(아이콘 등, 논리 좌표·가운데 원점),
+ * clip(x, y) = 덧그림을 자를 모양의 거리. 크기는 논리 w×h, odd = 텍스처 픽셀 수 홀수(가운데가 픽셀 한가운데)
+ */
+function sdfKey(scene, id, w, h, { layers, top, clip, world = false, odd = false }) {
+  const R = world ? RES : PANEL_RES;
+  const key = `shape_${world ? 'w' : 'u'}_${id}`;
+  if (scene.textures.exists(key)) return key;
+  const fit = (v) => { let n = Math.ceil(v * R) + 2; if (n % 2 !== (odd ? 1 : 0)) n += 1; return n; };
+  const cw = fit(w);
+  const ch = fit(h);
+  const tex = scene.textures.createCanvas(key, cw, ch);
+  const ctx = tex.getContext();
+  const img = ctx.createImageData(cw, ch);
+  const d = img.data;
+  const cx = cw / 2;
+  const cy = ch / 2;
+  const cover = (dist) => Math.max(0, Math.min(1, 0.5 - dist));
+  // 겹 칠하기 (src-over)
+  for (const L of layers) {
+    const r = (L.color >> 16) & 255, g = (L.color >> 8) & 255, b = L.color & 255;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+      const a = cover(L.sdf(x + 0.5 - cx, y + 0.5 - cy));
+      if (!a) continue;
+      const i = (y * cw + x) * 4;
+      const da = d[i + 3] / 255;
+      const oa = a + da * (1 - a);
+      d[i] = (r * a + d[i] * da * (1 - a)) / oa;
+      d[i + 1] = (g * a + d[i + 1] * da * (1 - a)) / oa;
+      d[i + 2] = (b * a + d[i + 2] * da * (1 - a)) / oa;
+      d[i + 3] = oa * 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  if (top) {
+    // 덧그림은 따로 그려 clip 모양 덮임만큼만 얹는다
+    const t = document.createElement('canvas');
+    t.width = cw;
+    t.height = ch;
+    const tc = t.getContext('2d');
+    tc.translate(cx, cy);
+    tc.scale(R, R);
+    top(tc);
+    const td = tc.getImageData(0, 0, cw, ch);
+    const q = td.data;
+    if (clip) for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) q[(y * cw + x) * 4 + 3] *= cover(clip(x + 0.5 - cx, y + 0.5 - cy));
+    tc.setTransform(1, 0, 0, 1, 0, 0);
+    tc.putImageData(td, 0, 0);
+    ctx.drawImage(t, 0, 0);
+  }
+  tex.refresh();
+  return key;
+}
+
+const circleSdf = (rad) => (x, y) => Math.hypot(x, y) - rad;
+
+/**
+ * 원(테두리 선택) + 가운데 도트 아이콘 + 덧그리기. 테두리는 바깥 원을 선 색으로, 안쪽 원을 바탕색으로 (선 겹침 흐림 없음).
+ * 아이콘·덧그림은 안쪽 원으로 잘라 그린다(7칸 아이콘 모서리가 작은 원 밖으로 삐져나오던 것)
+ * @param {{ r: number, fill: number, line?: number, lw?: number, ring?: { color: number, w: number }, icon?: string, iconColor?: number, draw?: (ctx) => void, world?: boolean, id?: string }} o
+ */
+export function discImage(scene, x, y, o) {
+  const R = o.world ? RES : PANEL_RES;
+  const lw = o.line != null ? o.lw ?? 2 : 0;
+  const ring = o.ring ? o.ring.w : 0;
+  const outer = o.r + lw / 2 + ring;
+  const id = o.id || `disc_${o.r}_${o.fill}_${o.line}_${lw}_${o.ring?.color}_${ring}_${o.icon}_${o.iconColor}`;
+  const layers = [];
+  if (ring) layers.push({ sdf: circleSdf(outer * R), color: o.ring.color });
+  if (lw) layers.push({ sdf: circleSdf((o.r + lw / 2) * R), color: o.line });
+  layers.push({ sdf: circleSdf((o.r - lw / 2) * R), color: o.fill });
+  const top = o.icon || o.draw ? (ctx) => { if (o.icon) paintIcon(ctx, o.icon, o.iconColor ?? 0xffffff); o.draw?.(ctx); } : null;
+  const key = sdfKey(scene, id, outer * 2, outer * 2, { layers, top, clip: circleSdf((o.r - lw / 2) * R), world: o.world, odd: o.icon ? iconOdd(o.world) : false });
+  const img = scene.add.image(x, y, key).setScale(1 / R);
+  if (o.icon) img.iconName = o.icon;
+  return img;
+}
+
+/** 알약(가로로 긴 둥근 판) — 테두리 lw 는 화면에서 정수 px 이 되게 (UI 1.5배: 4/3 → 2px) */
+export function pillImage(scene, x, y, w, h, fill, line, lw = 4 / 3) {
+  const R = PANEL_RES;
+  const capsule = (ww, hh) => (px, py) => Math.hypot(Math.max(Math.abs(px) - (ww - hh) / 2, 0), py) - hh / 2;
+  const key = sdfKey(scene, `pill_${w}x${h}_${fill}_${line}_${lw.toFixed(2)}`, w, h, {
+    layers: [{ sdf: capsule(w * R, h * R), color: line }, { sdf: capsule((w - lw * 2) * R, (h - lw * 2) * R), color: fill }],
+    odd: Math.round(h * R) % 2 === 1
+  });
+  return scene.add.image(x, y, key).setScale(1 / R);
+}
+
+/** 고리(속이 빈 원) */
+export function ringImage(scene, x, y, r, lw, color) {
+  const R = PANEL_RES;
+  const key = sdfKey(scene, `ring_${r}_${lw}_${color}`, (r + lw) * 2, (r + lw) * 2, {
+    layers: [{ sdf: (px, py) => Math.abs(Math.hypot(px, py) - r * R) - (lw * R) / 2, color }]
+  });
+  return scene.add.image(x, y, key).setScale(1 / R);
 }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, FONT, BALANCE, RES, crispFontSize, COZY_FONT, COZY_HEAD } from './config.js';
+import { WORLD_W, WORLD_H, FONT, BALANCE, RES, TEXT_RES, crispFontSize, displayScale } from './config.js';
 import { skillOptions } from './data/skills.js';
 import { setArt, setFacing, playOnce, animMs, hitDelay } from './systems/customArt.js';
 import { cellCenter } from './systems/path.js';
@@ -15,6 +15,8 @@ import { DeckScene } from './scenes/DeckScene.js';
 import { TavernScene } from './scenes/TavernScene.js';
 import { WorkshopScene } from './scenes/WorkshopScene.js';
 import { meta } from './systems/meta.js';
+import { storage } from './systems/storage.js';
+import { vhs } from './systems/vhs.js';
 
 async function loadFonts() {
   const faces = [
@@ -34,6 +36,10 @@ async function loadFonts() {
 }
 
 await loadFonts();
+// 저장 한 곳 (2026-11-23): 데스크톱 판은 파일 저장을 먼저 읽어 둔다 — 그 뒤 진행 상황·소리 설정을 다시 읽음
+await storage.init();
+meta.load();
+audio.loadSettings();
 
 // 브라우저 정책: 첫 터치/클릭 후에만 소리를 낼 수 있다
 window.addEventListener('pointerdown', () => audio.init());
@@ -41,7 +47,7 @@ window.addEventListener('pointerdown', () => audio.init());
 // 모든 글자: 크기를 픽셀 글꼴 격자에 맞추고 RES 배 해상도로 그린다 (흐림·뭉개짐 없이 선명하게)
 const addText = Phaser.GameObjects.GameObjectFactory.prototype.text;
 Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style = {}) {
-  const st = { ...style, resolution: RES };
+  const st = { ...style, resolution: TEXT_RES };
   const px = parseFloat(st.fontSize);
   // 픽셀 글꼴(Galmuri11)만 격자 크기로 맞춘다 (고운 글꼴은 어떤 크기든 매끈하다)
   if (px && (!st.fontFamily || st.fontFamily === FONT)) st.fontSize = `${crispFontSize(px)}px`;
@@ -51,19 +57,29 @@ Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, styl
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  width: GAME_W * RES, // 실제 캔버스 해상도. 각 장면 카메라가 zoom RES 로 게임 좌표(GAME_W x GAME_H)를 채운다
-  height: GAME_H * RES,
+  width: WORLD_W * RES, // 실제 캔버스 해상도. 장면 카메라가 월드(1920x1080)는 zoom RES, UI(1280x720)는 zoom RES×1.5 로 채운다
+  height: WORLD_H * RES,
   backgroundColor: '#2b1810',
-  pixelArt: true,
+  // ?transparent=1: 캔버스 바탕을 투명하게 (화면을 레이어별 PNG·PSD 로 뽑을 때, tools/export-psd.cjs)
+  transparent: new URLSearchParams(window.location.search).has('transparent'),
+  // 도트는 nearest 로 반듯하게(antialias false = pixelArt 의 텍스처 설정), 도형(Graphics: 시너지 알약·동그란 배지·체력 막대) 가장자리는
+  // WebGL 안티에일리어싱으로 매끈하게 (2026-11-22 — pixelArt: true 는 antialiasGL 까지 꺼서 도형 테두리가 계단졌다)
+  pixelArt: false,
+  antialias: false,
+  antialiasGL: true,
   roundPixels: true,
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.NONE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    zoom: displayScale() / RES
   },
   scene: [BootScene, TitleScene, LobbyScene, DeckScene, TavernScene, WorkshopScene, GameScene, UpgradeScene]
 });
+// 창 크기가 바뀌면 다시 정수 배율로 (1080p 보다 작으면 부드럽게 줄임) — 남는 곳은 검정 (2026-11-22)
+window.addEventListener('resize', () => game.scale.setZoom(displayScale() / RES));
 
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
 window.game = game;
+vhs.init(game); // VHS 홈비디오 효과 시험판 (2026-11-24, ESC 메뉴·?vhs=1)
 window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
-window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta }; // 디버그·테스트용
+window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta, storage, vhs }; // 디버그·테스트용

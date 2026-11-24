@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE, PX, UNIT_PX, UI_PX, BG_PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, FONT, DEPTH, BALANCE } from '../config.js';
+import { splitCams, worldPoint, toUi } from '../systems/hires.js';
+import { GAME_W, GAME_H, WORLD_W, WORLD_H, PX, UNIT_PX, UI_PX, BG_PX, GRID, CELL, FIELD_X, FIELD_Y, FIELD_SIZE, WALL, FONT, DEPTH, BALANCE } from '../config.js';
 import { TILE_KEYS } from '../art/textures.js';
 import { Monster } from '../objects/Monster.js';
 import { Mercenary } from '../objects/Mercenary.js';
@@ -18,6 +18,7 @@ import { STONES } from '../data/tavern.js';
 import { RELIC_BY_ID, relicBonus, addBonus } from '../data/relics.js';
 import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
+import { dissolveTo, dissolveIn } from '../ui/dissolve.js';
 import { Vfx } from '../systems/vfx.js';
 import { playOnce, playBase, setArt, setFacing, hitDelay, cancelOnce } from '../systems/customArt.js';
 import { biomeForWave } from '../data/biomes.js';
@@ -39,7 +40,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    hiRes(this);
+    splitCams(this); // 전장(월드 1920x1080) + UI(1280x720 × 1.5) 카메라 (2026-11-22 PC 전환)
     this.gameTime = 0;
     this.speed = 1;
     this.paused = false;
@@ -88,7 +89,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
 
     this.biome = biomeForWave(1);
-    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setDisplaySize(GAME_W, GAME_H).setDepth(DEPTH.bg);
+    this.bgImage = this.add.image(0, 0, `bg_${this.biome.id}`).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H).setDepth(DEPTH.bg);
     this.createFieldLayers();
     this.decor = addBiomeDecor(this, this.biome.id); // 바람에 흔들리는 나무 등 (2026-11-21)
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.merc - 1);
@@ -142,6 +143,7 @@ export class GameScene extends Phaser.Scene {
     this.hud.hideRelicTip();
     this.scene.launch('Upgrade', { from: 'game' });
     this.scene.bringToTop('Upgrade');
+    dissolveIn(this.scene, 'Upgrade'); // 강화 창이 서서히 나타남 (2026-11-23)
     this.scene.pause();
   }
 
@@ -167,6 +169,7 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
+    this.hud?.paintReserve(); // 대기석 칸 등급색 (바뀐 칸만, 2026-11-24)
     if (this.over) return;
     const frozen = !!(this.paused || this.menuOpen || this.tut.open);
     this.syncFreeze(frozen);
@@ -249,8 +252,10 @@ export class GameScene extends Phaser.Scene {
     if (this.gameTime - this.wallFxAt > 0.15) {
       this.wallFxAt = this.gameTime;
       this.circleFx(m.x, m.y, 26, 0xff5040);
-      audio.debuff?.();
+      audio.wallHit(false);
     }
+    if (m.kind !== 'normal') audio.wallHit(true);
+    audio.wallHealth(this.wallHp, this.wallMax); // 위험하면 경고음
   }
 
   // ───────────────────────── 웨이브 ─────────────────────────
@@ -275,7 +280,7 @@ export class GameScene extends Phaser.Scene {
     const income = b.waveGold + Math.min(Math.floor(this.gold * b.interest), w * 20);
     if (income > 0) {
       this.gold += income;
-      this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 128 : 100, `+${income}G`, '#f2c14e');
+      this.floatText(300, 128, `+${income}G`, '#f2c14e', 16, false, true);
     }
     // 명성 강화 '성벽 수리': 웨이브마다 성벽 회복
     if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
@@ -287,6 +292,7 @@ export class GameScene extends Phaser.Scene {
     this.shopRefreshed = false;
     this.wave = w;
     const info = waveInfo(w);
+    if (info.type === 'normal' || info.type === 'elite') audio.waveStart(info.type, w); // 보스 웨이브는 보스가 나올 때 전쟁나팔
     const list = spawnList(w);
     this.spawnQueue.push(...list);
     // 몬스터 그림 색 (룰 v2: 속성 상성 없음 — 색만 섞는다)
@@ -366,8 +372,9 @@ export class GameScene extends Phaser.Scene {
   changeBiome(biome) {
     if (biome.id === this.biome.id) return;
     this.biome = biome;
+    audio.regionChange();
     const old = this.bgImage;
-    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setDisplaySize(GAME_W, GAME_H).setDepth(DEPTH.bg + 0.5).setAlpha(0);
+    this.bgImage = this.add.image(0, 0, `bg_${biome.id}`).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H).setDepth(DEPTH.bg + 0.5).setAlpha(0);
     this.tweens.add({
       targets: this.bgImage,
       alpha: 1,
@@ -385,7 +392,7 @@ export class GameScene extends Phaser.Scene {
     const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
     this.monsters.push(m);
     if (m.isBoss) {
-      audio.bossAppear();
+      audio.bossAppear(); // 전쟁나팔(audio.warHorn)은 2026-11-24 사용자 결정으로 보류 — 예전 우르릉 소리
       this.tut.show('boss');
       this.showBanner(m.isFinal ? `최종 보스: ${m.design.name}` : `${m.milestone ? '강화 보스' : '보스'}: ${m.design.name}`, m.abilities.map((a) => `${a.def.name}(${a.def.desc} ${a.def.dur}초)`).join(' / '), '#d6a8ff');
     }
@@ -622,6 +629,7 @@ export class GameScene extends Phaser.Scene {
     this.vfx.attack(merc, target, this.kindOf(merc));
     audio.shoot(this.kindOf(merc));
     const crit = Math.random() < st.crit;
+    if (crit) audio.crit();
     const now = this.gameTime;
     if (st.slow) target.applySlow(Math.min(0.85, st.slow * st.hex), st.slowDur, now);
     // 고유 특성 (data/roster.js): 지속 피해·약화·밀치기·확률 기절·처형 — 주술 효과는 주술사 시너지만큼 세진다
@@ -845,6 +853,7 @@ export class GameScene extends Phaser.Scene {
   earnStones(n, x, y) {
     if (!n) return;
     meta.addStones(n);
+    audio.gem();
     this.stonesEarned += n;
     this.floatText(x, y - 54, `마정석 +${n}`, '#6fe0d6');
     this.toast(`마정석 +${n} (보유 ${meta.stones}) — 영지 술집·유물 공방에서 사용`, '#6fe0d6');
@@ -1060,7 +1069,7 @@ export class GameScene extends Phaser.Scene {
       this.rerollCount = (this.rerollCount || 0) + 1; // 돈 내고 돌릴 때마다 다음 리롤 값이 오른다 (무료 리롤은 세지 않음)
     }
     this.shop = refillShop(this.shop, this.deck, this.estate, Math.random, this.maxedIds(), this.bonus);
-    audio.coin();
+    audio.reroll();
     this.refreshShop();
     this.refreshHud();
     return true;
@@ -1071,6 +1080,7 @@ export class GameScene extends Phaser.Scene {
     const slot = this.shop[i];
     if (!slot || slot.sold) return;
     slot.locked = !slot.locked;
+    audio.lock(slot.locked);
     this.tut.show('lock');
     this.refreshShop();
   }
@@ -1097,6 +1107,7 @@ export class GameScene extends Phaser.Scene {
     merc.items = [];
     const refund = Math.floor(merc.invested * this.sellRefund);
     this.gold += refund;
+    audio.sell();
     this.unplace(merc);
     this.floatText(merc.x, merc.y - 20, `+${refund}G`, '#f2c14e');
     merc.destroy();
@@ -1114,6 +1125,7 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
     this.bench.push(id);
+    audio.itemGet();
     if (x != null) this.floatText(x, y - 30, ITEM_BY_ID[id].name, '#d6a8ff', 16, true);
     this.tut.show('item');
     this.hud?.refreshBench?.();
@@ -1159,7 +1171,8 @@ export class GameScene extends Phaser.Scene {
     this.bench.splice(benchIndex, 1);
     if (ITEM_BY_ID[id].kind === 'mat' && !result) merc.mana = Math.max(merc.mana, merc.ifx.startMana || 0); // 마력석: 시작 마나
     merc.drawPips();
-    audio.coin();
+    if (result) audio.itemCombine();
+    else audio.itemEquip();
     if (result) {
       this.levelUpFx(merc, ITEM_BY_ID[result].name);
       this.toast(`조합: ${ITEM_BY_ID[result].name} — ${ITEM_BY_ID[result].text}`, '#f2c14e');
@@ -1196,6 +1209,7 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
     this.tools -= 1;
+    audio.itemRemove();
     this.returnItems(merc.items);
     merc.items = [];
     merc.mana = Math.min(merc.mana, merc.maxMana);
@@ -1234,7 +1248,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (gold) {
       this.gold += gold;
-      this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 170 : 140, `+${gold}G 아이템`, '#f2c14e');
+      this.floatText(300, 170, `+${gold}G 아이템`, '#f2c14e', 16, false, true);
     }
   }
 
@@ -1251,6 +1265,13 @@ export class GameScene extends Phaser.Scene {
     // 필드 캐릭터마다 켜진 시너지 상징 (2026-11-22)
     for (const m of this.mercs) m.setSynMarks(m.dragging ? [] : [...new Set([m.cls, m.origin, ...m.extraTraits])].filter((k) => tiers[k]));
     for (const m of this.reserve || []) m?.setSynMarks?.([]);
+    // 시너지 단계가 올라가면 소리 (끄는 중엔 세지 않고, 놓은 뒤 끌기 전과 비교)
+    if (!this.mercs.some((m) => m.dragging)) {
+      const idx = (k, t) => (t ? TRAITS[k].tiers.indexOf(t) : -1);
+      const up = TRAIT_IDS.some((k) => idx(k, tiers[k]) > idx(k, this.synHeard?.[k]));
+      if (up && this.synHeard) audio.synergy();
+      this.synHeard = tiers;
+    }
     // 새로 켜진 시너지 알림
     for (const k of TRAIT_IDS) if (tiers[k] && tiers[k] !== before[k]) this.tut.show('synergy');
     this.hud?.refreshSynergy?.();
@@ -1266,7 +1287,7 @@ export class GameScene extends Phaser.Scene {
     if (w >= 2 && T.guild?.interest) gold += Math.min(T.guild.interestMax, Math.floor(this.gold * T.guild.interest));
     if (gold) {
       this.gold += gold;
-      this.floatText(WIDE ? 300 : GAME_W - 120, WIDE ? 150 : 120, `+${gold}G 시너지`, '#f2c14e');
+      this.floatText(300, 150, `+${gold}G 시너지`, '#f2c14e', 16, false, true);
     }
     this.freeRerolls = (T.guild?.freeReroll || 0) + (this.bonus.waveFreeReroll || 0);
     if (!T.north?.keepRage) for (const m of this.mercs) m.rage = 0;
@@ -1287,8 +1308,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** 끌어 놓기: 필드 칸 ↔ 필드 칸 · 필드 ↔ 대기석 · 대기석 ↔ 대기석 (2026-11-21 대기석) */
+  /** 끌어 놓기 (x, y 는 월드 좌표 — 대기석은 UI 좌표로 바꿔 찾는다) */
   handleDrop(merc, x, y) {
-    const slot = this.hud.reserveSlotAt?.(x, y) ?? -1;
+    const slot = this.hud.reserveSlotAt?.(toUi(x), toUi(y)) ?? -1;
     const cell = slot < 0 ? cellAt(x, y) : null;
     if (slot < 0 && !cell) return merc.snapToCell();
     if (slot >= 0 && merc.reserved && merc.slot === slot) return merc.snapToCell();
@@ -1304,6 +1326,7 @@ export class GameScene extends Phaser.Scene {
     if (other) this.unplace(other);
     if (slot >= 0) this.toReserve(merc, slot);
     else this.toField(merc, cell.col, cell.row);
+    audio.place();
     if (other) {
       if (from.slot != null) this.toReserve(other, from.slot);
       else this.toField(other, from.col, from.row);
@@ -1320,6 +1343,9 @@ export class GameScene extends Phaser.Scene {
     const free = () => !(this.over || this.menuOpen || this.tut.open || this.hud.popup);
     this.input.keyboard?.on('keydown-SPACE', () => free() && this.togglePause());
     this.input.keyboard?.on('keydown-R', () => free() && this.reroll());
+    // PC 단축키 (2026-11-22): E 영지 레벨 업 · F 바로 시작 (다음 웨이브)
+    this.input.keyboard?.on('keydown-E', () => free() && this.levelUpEstate());
+    this.input.keyboard?.on('keydown-F', () => free() && this.callNextWave());
     this.input.keyboard?.on('keydown-S', () => {
       if (this.over || this.menuOpen || this.tut.open || this.hud.popup) return;
       if (this.selected?.active) this.sell(this.selected);
@@ -1330,24 +1356,46 @@ export class GameScene extends Phaser.Scene {
       this.input.keyboard?.on(`keydown-${k}`, go);
       this.input.keyboard?.on(`keydown-${n}`, go);
     });
-    this.input.on('gameobjectdown', (_p, obj) => {
+    // 마우스 (PC, 2026-11-22): 왼쪽 = 고르기 · 오른쪽 = 고르기 풀기·툴팁 닫기 (브라우저 메뉴 대신) · 올리면 사거리
+    this.input.mouse?.disableContextMenu();
+    this.input.on('gameobjectdown', (p, obj) => {
+      if (p.rightButtonDown()) return;
       if (obj instanceof Mercenary) this.select(obj);
     });
-    this.input.on('pointerdown', (_p, objs) => {
+    this.input.on('pointerdown', (p, objs) => {
+      if (p.rightButtonDown()) {
+        this.select(null);
+        this.hud.hideRelicTip();
+        return;
+      }
       if (!objs.length) this.select(null);
     });
-    this.input.on('dragstart', (_p, obj) => {
+    this.input.on('gameobjectover', (_p, obj) => {
+      if (obj instanceof Mercenary) this.hovered = obj;
+    });
+    this.input.on('gameobjectout', (_p, obj) => {
+      if (this.hovered === obj) this.hovered = null;
+    });
+    // 용병 끌기: 월드 좌표로 (포인터의 worldX 는 마지막에 맞은 카메라 좌표라 UI 위에서는 다르다 — 직접 바꾼다)
+    this.input.on('dragstart', (p, obj) => {
       if (!(obj instanceof Mercenary) || this.over) return;
+      const w = worldPoint(this, p);
       obj.dragging = true;
+      audio.pick();
+      obj.setReserveClip(null); // 대기석에서 끌어내면 칸 모양 자르기 풀기 (2026-11-24)
+      obj.dragOff = { x: obj.x - w.x, y: obj.y - w.y };
       obj.setDepth(DEPTH.drag);
     });
-    this.input.on('drag', (_p, obj, dx, dy) => {
-      if (obj.dragging) obj.setPosition(dx, dy);
+    this.input.on('drag', (p, obj) => {
+      if (!obj.dragging) return;
+      const w = worldPoint(this, p);
+      obj.setPosition(w.x + obj.dragOff.x, w.y + obj.dragOff.y);
     });
     this.input.on('dragend', (p, obj) => {
       if (!obj.dragging) return;
       obj.dragging = false;
-      this.handleDrop(obj, p.worldX, p.worldY);
+      const w = worldPoint(this, p);
+      this.handleDrop(obj, w.x, w.y);
     });
   }
 
@@ -1368,8 +1416,9 @@ export class GameScene extends Phaser.Scene {
   drawRange() {
     const g = this.rangeGfx;
     g.clear();
-    const m = this.selected;
-    if (!m || !m.active || m.reserved) return;
+    // PC (2026-11-22): 고른 용병이 없으면 마우스를 올린 용병의 사거리
+    const m = this.selected?.active ? this.selected : this.hovered;
+    if (!m || !m.active || m.reserved || m.dragging) return;
     const st = m.getStats(this.relics, this.gameTime);
     const color = ATTR_INFO[m.attr].color;
     g.fillStyle(color, 0.08).fillCircle(m.x, m.y, st.range);
@@ -1422,12 +1471,13 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: merc.sprite, scale: merc.sprite.scaleX * 1.2, duration: 90, yoyo: true });
   }
 
-  floatText(x, y, str, color = '#ffffff', size = 16, force = false) {
+  /** 떠오르는 글자. 기본은 전장(월드 좌표), ui = true 면 HUD 위(UI 좌표) */
+  floatText(x, y, str, color = '#ffffff', size = 16, force = false, ui = false) {
     if (this.activeTexts > 30 && !force) return;
     this.activeTexts++;
     const t = text(this, x, y, str, size, color, { stroke: '#1b1b26', strokeThickness: 4 })
       .setOrigin(0.5)
-      .setDepth(DEPTH.fx + 1);
+      .setDepth(ui ? DEPTH.ui + 5 : DEPTH.fx + 1);
     this.tweens.add({
       targets: t,
       y: y - 28,
@@ -1506,7 +1556,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
     this.resetAnimClock();
     audio.playMusic(null);
-    this.scene.start('Lobby'); // 게임 종료 → 영지(로비)
+    dissolveTo(this, 'Lobby'); // 게임 종료 → 영지(로비), 디졸브
   }
 
   /** 게임 속도를 바로 정한다 (단축키 1·2·3). 정지 중이면 정지를 푼다 */
@@ -1584,7 +1634,7 @@ export class GameScene extends Phaser.Scene {
     const cw = 440;
     const ch = 510; // X·별 아이콘이 제목 탭에서 떨어지도록 위 여백 확보 (2026-11-15)
     const cx = GAME_W / 2;
-    const cy0 = WIDE ? (GAME_H - ch) / 2 : 248;
+    const cy0 = (GAME_H - ch) / 2;
     panel(this, cx - cw / 2, cy0, cw, ch, 'card').setDepth(top);
     for (const o of titleTab(this, cx, cy0, victory ? 'WIN!' : 'TRY AGAIN', 200)) o.setDepth(top);
     // 승리: 별 3개 (가운데 큰 별) / 패배: 큰 X
@@ -1624,10 +1674,11 @@ export class GameScene extends Phaser.Scene {
       uiText(this, cx - cw / 2 + 36, y, k, 15, CSS.sub, '600').setOrigin(0, 0.5).setDepth(top);
       uiText(this, cx + cw / 2 - 36, y, v, 17, CSS.ink, '700').setOrigin(1, 0.5).setDepth(top);
     });
-    new Button(this, cx, cy0 + 376, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
+    this.endBtns = {}; // 테스트가 누를 자리
+    this.endBtns.retry = new Button(this, cx, cy0 + 376, cw - 64, 56, '다시 하기', () => this.scene.restart(), { variant: 'primary', fontSize: 18 }).setDepth(top);
     const bw = (cw - 64 - 12) / 2;
-    new Button(this, cx - bw / 2 - 6, cy0 + 444, bw, 52, '명성 강화', () => this.scene.start('Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
-    new Button(this, cx + bw / 2 + 6, cy0 + 444, bw, 52, '영지로', () => this.scene.start('Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(top);
+    this.endBtns.fame = new Button(this, cx - bw / 2 - 6, cy0 + 444, bw, 52, '명성 강화', () => dissolveTo(this, 'Upgrade', { from: 'result' }), { variant: 'gold', fontSize: 16 }).setDepth(top);
+    this.endBtns.lobby = new Button(this, cx + bw / 2 + 6, cy0 + 444, bw, 52, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(top);
   }
 
 }

@@ -1,10 +1,12 @@
 // 영지(로비) ESC 메뉴 (2026-11-22 사용자 요청): 전투 메뉴(Hud.openMenu)와 같은 모양 — 볼륨·음소거·튜토리얼 다시 보기 + 계속하기·게임 종료
 // 영지에서 '게임 종료'는 게임을 완전히 끝낸다(quitApp): 창을 닫아 보고, 브라우저가 막으면 게임을 멈추고 '창을 닫아 주세요' 화면
-import { GAME_W, GAME_H, WIDE } from '../config.js';
+import { storage } from '../systems/storage.js';
+import { GAME_W, GAME_H } from '../config.js';
 import { Button } from './Button.js';
 import { panel, uiText, titleTab, closeButton, CSS, C } from './theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
+import { vhs } from '../systems/vhs.js';
 
 /**
  * @param {Phaser.Scene} s
@@ -12,9 +14,9 @@ import { meta } from '../systems/meta.js';
  * @returns {Phaser.GameObjects.Container}
  */
 export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
-  const pw = WIDE ? 440 : GAME_W - 104;
+  const pw = 440;
   const px = (GAME_W - pw) / 2;
-  const py = WIDE ? 80 : 200;
+  const py = 80;
   const ph = 520;
   const c = s.add.container(0, 0).setDepth(depth);
   const shade = s.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, 0.55).setOrigin(0).setInteractive();
@@ -52,11 +54,19 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
   volRow(py + 148, '효과음', () => audio.sfxVol, (v) => audio.setSfxVolume(v));
 
   const bw = pw - 56;
-  const mute = new Button(s, GAME_W / 2, py + 216, bw, 50, '', () => {
+  // 음소거 · VHS 효과(2026-11-24 시험판)를 한 줄에 반씩
+  const hw = (bw - 8) / 2;
+  const mute = new Button(s, GAME_W / 2 - hw / 2 - 4, py + 216, hw, 50, '', () => {
     audio.toggleMute();
-    mute.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+    mute.setLabel(`음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
   }, { variant: 'outline', fontSize: 16 });
-  mute.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+  mute.setLabel(`음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+  const vhsBtn = new Button(s, GAME_W / 2 + hw / 2 + 4, py + 216, hw, 50, '', () => {
+    vhs.toggle();
+    vhsBtn.setLabel(`VHS 효과 ${vhs.enabled ? '켜짐' : '꺼짐'}`);
+  }, { variant: 'outline', fontSize: 16 });
+  vhsBtn.setLabel(`VHS 효과 ${vhs.enabled ? '켜짐' : '꺼짐'}`);
+  c.vhsBtn = vhsBtn;
   const resume = new Button(s, GAME_W / 2, py + 286, bw, 56, '계속하기', onClose, { variant: 'primary', fontSize: 18 });
   let confirm = false;
   const quit = new Button(s, GAME_W / 2, py + 358, bw, 56, '게임 종료', () => {
@@ -77,7 +87,7 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
     meta.resetTutorial();
     tut.setLabel('튜토리얼이 다시 켜졌어요');
   }, { variant: 'outline', fontSize: 12 });
-  c.add([mute, resume, quit, tut]);
+  c.add([mute, vhsBtn, resume, quit, tut]);
   c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   c.quitBtn = quit;
   return c;
@@ -89,6 +99,11 @@ export function quitApp(game) {
     audio.ctx?.suspend(); // 소리 멈춤
   } catch {
     /* 소리를 켠 적 없음 */
+  }
+  // 데스크톱 판(Electron): 저장을 파일에 다 쓰고 앱을 끈다 (2026-11-23)
+  if (window.rtdNative?.quit) {
+    storage.flush().finally(() => window.rtdNative.quit());
+    return;
   }
   try {
     window.close();

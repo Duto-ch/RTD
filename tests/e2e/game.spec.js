@@ -9,7 +9,7 @@ async function startGame(page) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('01-title') });
   await toGame(page, 272, 652);
@@ -19,14 +19,31 @@ async function startGame(page) {
 /** 타이틀을 누르면 영지(로비) → Space(출전) 로 전투 시작 (2026-11-17 로비 신설) */
 async function toGame(page, x, y) {
   await page.mouse.click(x, y);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby'); // 화면 전환(디졸브)이 끝나야 영지 입력이 받아진다 (2026-11-23)
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
 }
 
-// 세로 상점 칸 가운데 (룰 v2 하단 시트 2026-11-21: x 20~524, y 786~882, 6칸)
-const SHOP_X = (i) => 20 + ((504 - 30) / 6) * (i + 0.5) + 6 * i;
-const SHOP_Y = 820;
+/** 그 장면만 남고 화면 전환(디졸브)이 끝날 때까지 */
+async function settled(page, key) {
+  await page.waitForFunction((key) => { const m = window.game?.scene; return !!m && m.isActive(key) && !m.getScene(key).transitioning && m.getScenes(true).length === 1; }, key, { timeout: 10000 });
+}
+
+// PC 1080p (2026-11-22): 창 1920x1080 = UI 좌표(1280x720) × 1.5 · 전장(월드 좌표)은 화면 px 그대로
+const UI = 1.5;
+/** UI 좌표를 눌러 본다 */
+const uiClick = (page, x, y) => page.mouse.click(x * UI, y * UI);
+/** 게임 안 물체(UI 좌표 x, y 를 돌려주는 함수)를 눌러 본다 */
+async function clickAt(page, fn, arg) {
+  const p = await page.evaluate(fn, arg);
+  await page.mouse.click(p.x * UI, p.y * UI);
+}
+const NEXT_BTN = () => { const b = window.game.scene.getScene('Game').hud.nextWaveBtn; return { x: b.x, y: b.y }; };
+const UPGRADE_BTN = () => { const b = window.game.scene.getScene('Game').hud.upgradeBtn; return { x: b.x, y: b.y }; };
+const BUY_BTN = () => { const b = window.game.scene.getScene('Upgrade').buyBtn; return { x: b.x, y: b.y }; }; // 강화 창의 '강화'
+// 상점 칸 가운데 (HUD.shop x 172~784, y 622~706, 6칸 · 간격 6) → 화면 px
+const SHOP_X = (i) => (172 + i * 103 + 48.5) * UI;
+const SHOP_Y = 664 * UI;
 
 test('상점에서 사기 → 웨이브 진행 → 처치', async ({ page }) => {
   const errors = await startGame(page);
@@ -44,7 +61,7 @@ test('상점에서 사기 → 웨이브 진행 → 처치', async ({ page }) => 
   expect(r0.gold).toBe(120 - 30); // 커먼 10G × 3 (영지 Lv1 은 커먼만)
   await page.mouse.click(SHOP_X(3), SHOP_Y); // 4번째: 인원이 가득 (영지 레벨을 올려야)
   expect(await game(page, () => window.game.scene.getScene('Game').mercs.length)).toBe(3);
-  await page.mouse.click(544 - 68, 56); // 바로 시작
+  await clickAt(page, NEXT_BTN); // 바로 시작
   expect(await game(page, () => window.game.scene.getScene('Game').wave)).toBe(1);
   // 첫 처치가 나올 때까지 기다린다 (고정 대기는 느린 환경에서 가끔 실패)
   await page.waitForFunction(() => window.game.scene.getScene('Game').totalKills > 0, null, { timeout: 20000 });
@@ -91,7 +108,7 @@ test('같은 캐릭터 3장 → 별 승급 (인원이 꽉 차도 3장째는 살 
   // 드래그로 빈 칸에 옮기기 (합성 없음 — 자리 교체만)
   await page.mouse.move(r.from.x, r.from.y);
   await page.mouse.down();
-  await page.mouse.move(272, 480, { steps: 8 });
+  await page.mouse.move(960, 540, { steps: 8 }); // 필드 가운데 칸 (월드 좌표 = 화면 px)
   await page.mouse.up();
   const after = await game(page, () => { const m = window.game.scene.getScene('Game').mercs.find((x) => x.char.id === 'helga'); return { col: m.col, row: m.row, star: m.star }; });
   expect(after).toEqual({ col: 2, row: 2, star: 2 });
@@ -102,11 +119,11 @@ test('같은 캐릭터 3장 → 별 승급 (인원이 꽉 차도 3장째는 살 
 test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼) · 단축키 Space = 정지/다시 · R = 리롤', async ({ page }) => {
   const errors = await startGame(page);
   const wave = () => game(page, () => window.game.scene.getScene('Game').wave);
-  await page.mouse.click(544 - 68, 56); // 시작 전 필드는 비어 있음 → 동작
-  await page.mouse.click(544 - 68, 56); // 몬스터가 나오는 중 → 무시
+  await clickAt(page, NEXT_BTN); // 시작 전 필드는 비어 있음 → 동작
+  await clickAt(page, NEXT_BTN); // 몬스터가 나오는 중 → 무시
   expect(await wave()).toBe(1);
   await page.waitForTimeout(700);
-  await page.mouse.click(544 - 68, 56); // 몬스터가 남아 있음 → 무시
+  await clickAt(page, NEXT_BTN); // 몬스터가 남아 있음 → 무시
   expect(await wave()).toBe(1);
   // Space = 게임 정지/다시 (2026-11-21, 이전 바로 시작)
   await page.keyboard.press('Space');
@@ -121,7 +138,7 @@ test('바로 시작: 필드의 몬스터를 전부 처치했을 때만 (버튼) 
   // 전부 처치하면 다시 활성화
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.spawnQueue = []; for (const m of [...g.monsters]) g.killMonster(m); g.cleanupMonsters(); g.refreshHud(); });
   expect(await game(page, () => window.game.scene.getScene('Game').hud.nextWaveBtn.enabled)).toBe(true);
-  await page.mouse.click(544 - 68, 56);
+  await clickAt(page, NEXT_BTN);
   expect(await wave()).toBe(2);
   expect(errors).toEqual([]);
 });
@@ -184,7 +201,7 @@ test('패배 화면: 도달 웨이브·최고 기록 저장 → 다시 하기', 
   expect(await game(page, () => window.game.scene.getScene('Game').hud.countText.text)).toBe('0 / 80');
   // 다시 하기 — 결과 창 버튼이 준비되기 전에 누르면 무시되므로, 다시 시작될 때까지 몇 번 눌러 본다
   for (let i = 0; i < 6; i++) {
-    await page.mouse.click(272, 248 + 376);
+    await clickAt(page, () => { const b = window.game.scene.getScene('Game').endBtns.retry; return { x: b.x, y: b.y }; });
     const ok = await page.waitForFunction(() => { const g = window.game.scene.getScene('Game'); return !g.over && g.wave === 0; }, null, { timeout: 4000 }).catch(() => null);
     if (ok) break;
   }
@@ -197,7 +214,7 @@ test('화면 비율이 달라도 게임 화면은 정중앙, 여백은 검은색
   for (const [w, h] of [[1400, 800], [400, 1000]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.goto('/');
-    await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+    await settled(page, 'Title');
     await page.waitForTimeout(200);
     const r = await page.evaluate(() => {
       const c = document.querySelector('canvas').getBoundingClientRect();
@@ -260,9 +277,9 @@ test('아이템 조합: 대장장이에서 재료 구매 → 끌어다 장착 �
   // 띠의 첫 아이템(숫돌)을 레오에게 실제로 끌어다 놓는다
   const slot = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
   for (let i = 0; i < 2; i++) {
-    await page.mouse.move(slot.x, slot.y);
+    await page.mouse.move(slot.x * UI, slot.y * UI); // 아이템 띠 = UI 좌표
     await page.mouse.down();
-    await page.mouse.move(r.at.x, r.at.y, { steps: 10 });
+    await page.mouse.move(r.at.x, r.at.y, { steps: 10 }); // 용병 = 월드 좌표
     await page.mouse.up();
   }
   const s = await game(page, () => {
@@ -327,11 +344,11 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   });
   expect(await tip()).toBeNull();
   const p0 = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(0, 4));
-  await page.mouse.move(p0.x, p0.y); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
+  await page.mouse.move(p0.x * UI, p0.y * UI); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
   await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%', '영지 유물 공방에서 바꿔 끼울 수 있어요']);
   await page.waitForTimeout(100);
   await page.screenshot({ path: SHOT('10-relic-tooltip') });
-  await page.mouse.move(272, 500); // 아이콘 밖
+  await page.mouse.move(960, 600); // 아이콘 밖
   await expect.poll(tip).toBeNull();
   expect(errors).toEqual([]);
 });
@@ -356,9 +373,9 @@ test('캐릭터 그림(시안 104명): 시그리드 대기·공격 모션 · 도
   await page.screenshot({ path: SHOT('11-char-sigrid') });
 
   // 웨이브를 시작하면 공격 모션 → 끝나면 다시 대기
-  await page.keyboard.press('n');
+  await page.keyboard.press('f'); // 바로 시작 (2026-11-22 단축키 F — 예전 N 은 없어져 준비 시간이 끝나기를 기다리고 있었다)
   const atk = () => game(page, () => window.game.scene.getScene('Game').mercs[0].sprite.anims.currentAnim?.key);
-  await expect.poll(atk, { timeout: 20000, intervals: [50] }).toBe('char_sigrid:attack');
+  await expect.poll(atk, { timeout: 30000, intervals: [50] }).toBe('char_sigrid:attack');
   await page.screenshot({ path: SHOT('12-char-sigrid-attack') });
 
   // 그림은 왼쪽을 본다(무기가 왼쪽): 왼쪽 대상이면 그대로, 오른쪽 대상이면 반전. 몸 중심(pivotX 27)은 제자리
@@ -374,33 +391,40 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
-  await page.mouse.click(272, 960 - 92); // 명성 강화 (타이틀 아래 금색 버튼)
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await clickAt(page, () => { const b = window.game.scene.getScene('Title').fameBtn; return { x: b.x, y: b.y }; }); // 명성 강화 (타이틀 아래 금색 버튼)
+  await settled(page, 'Upgrade');
+  // 우주 배경 + 별똥별 (2026-11-23): 배경 그림이 깔리고 잠시 뒤 별똥별(space_meteor, 28프레임)이 지나간다
+  expect(await game(page, () => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'space_bg'))).toBe(true);
+  await page.waitForFunction(() => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'space_meteor'), null, { timeout: 8000 });
+  expect(await game(page, () => window.game.anims.get('space_meteor').frames.length)).toBe(28);
   await page.waitForTimeout(200);
-  const at = (id) => game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id);
-  const buy = { x: 544 - 112, y: 688 + 140 };
-  // 잠긴 노드(단련된 무기)는 뿌리를 배우기 전엔 강화 불가
-  let p = await at('atk');
-  await page.mouse.click(p.x, p.y);
-  await page.mouse.click(buy.x, buy.y);
-  expect(await game(page, () => window.__rtd.meta.level('atk'))).toBe(0);
+  const at = async (id) => { const p = await game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id); return { x: p.x * UI, y: p.y * UI }; };
+  const bb = await game(page, () => { const b = window.game.scene.getScene('Upgrade').buyBtn; return { x: b.x, y: b.y }; });
+  const buy = { x: bb.x * UI, y: bb.y * UI };
+  // 잠긴 노드는 숨김 (2026-11-23): 뿌리를 배우기 전엔 뿌리만 보이고, 배우면 바로 아래 노드(단련된 무기 등)가 나타난다
+  const shown = () => game(page, () => [...window.game.scene.getScene('Upgrade').shownIds]);
+  expect(await shown()).toEqual(['origin']);
+  let p;
   // 뿌리 → 단련된 무기 순서로 강화
   p = await at('origin');
   await page.mouse.click(p.x, p.y);
   await page.mouse.click(buy.x, buy.y);
+  expect(await shown()).toContain('atk');
+  expect((await shown()).length).toBeGreaterThan(1);
   p = await at('atk');
   await page.mouse.click(p.x, p.y);
   await page.mouse.click(buy.x, buy.y);
   const s = await game(page, () => ({ origin: window.__rtd.meta.level('origin'), atk: window.__rtd.meta.level('atk'), fame: window.__rtd.meta.fame }));
   expect(s).toEqual({ origin: 1, atk: 1, fame: 50 - 1 - 3 });
   // 드래그로 트리 이동
-  await page.mouse.move(272, 300); await page.mouse.down(); await page.mouse.move(330, 360, { steps: 5 }); await page.mouse.up();
-  expect(await game(page, () => window.game.scene.getScene('Upgrade').tree.x)).toBeGreaterThan(272);
+  const tx0 = await game(page, () => window.game.scene.getScene('Upgrade').tree.x);
+  await page.mouse.move(300 * UI, 200 * UI); await page.mouse.down(); await page.mouse.move(360 * UI, 260 * UI, { steps: 5 }); await page.mouse.up();
+  expect(await game(page, () => window.game.scene.getScene('Upgrade').tree.x)).toBeGreaterThan(tx0);
   await page.screenshot({ path: SHOT('14-upgrade-tree') });
-  await page.mouse.click(272 - 92, 916); // 게임 시작
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').startBtn; return { x: b.x, y: b.y }; }); // 게임 시작
+  await settled(page, 'Game');
   expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15);
   expect(errors).toEqual([]);
 });
@@ -409,7 +433,7 @@ test('강화 효과: 징집령(무료 용병, 노련한 신병 = 언커먼)·군
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); Object.assign(m.data.levels, { origin: 1, wall: 2, bulwark: 1, conscript: 2, veteran: 1, funds: 1, bounty: 1, stipend: 2 }); m.save(); });
   await toGame(page, 272, 652);
   const s = await game(page, () => {
@@ -457,7 +481,7 @@ test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은
     while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
     return g.monsters.at(-1).maxHp;
   });
-  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 0.7) / 5, 0); // 물량 ×5: 마리당 체력 1/5
+  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 0.7) / 1.8, 0); // 물량 ×1.8 (2026-11-24, 이전 ×5): 마리당 체력 1/1.8
   await page.waitForTimeout(600);
   await page.screenshot({ path: SHOT('16-endless') });
   expect(errors).toEqual([]);
@@ -480,15 +504,14 @@ test('성탑 삭제: 가운데 칸까지 25칸 모두 용병 자리, 하단 강�
   expect(await game(page, () => window.game.scene.getScene('Game').hud.upgradeBadge.visible)).toBe(true);
   await page.screenshot({ path: SHOT('17b-upgrade-button') });
   // 강화 버튼 클릭 → 강화 트리 (전투 일시정지)
-  const t = await game(page, () => { const b = window.game.scene.getScene('Game').hud.upgradeBtn; return { x: b.x, y: b.y }; });
-  await page.mouse.click(t.x, t.y);
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await clickAt(page, UPGRADE_BTN);
+  await settled(page, 'Upgrade');
   expect(await game(page, () => window.game.scene.isPaused('Game'))).toBe(true);
   const at = (id) => game(page, (id) => window.game.scene.getScene('Upgrade').nodeScreenPos(id), id);
   for (const id of ['origin', 'atk']) {
     const p = await at(id);
-    await page.mouse.click(p.x, p.y);
-    await page.mouse.click(544 - 112, 688 + 140); // 강화
+    await page.mouse.click(p.x * UI, p.y * UI);
+    await clickAt(page, BUY_BTN); // 강화
   }
   await page.screenshot({ path: SHOT('18-tower-upgrade') });
   await page.keyboard.press('Escape'); // 닫고 전투로
@@ -501,25 +524,24 @@ test('버그 회귀: 전투 중 강화 후 게임 오버 → 명성 강화 → �
   const errors = await startGame(page);
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
   // 1) 전투 중 강화 버튼으로 강화 창을 열었다 닫는다
-  const t = await game(page, () => { const b = window.game.scene.getScene('Game').hud.upgradeBtn; return { x: b.x, y: b.y }; });
-  await page.mouse.click(t.x, t.y);
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await clickAt(page, UPGRADE_BTN);
+  await settled(page, 'Upgrade');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !window.game.scene.isActive('Upgrade'));
   // 2) 게임 오버 → 결과 창 "명성 강화"
   await game(page, () => window.game.scene.getScene('Game').endGame(false, '테스트'));
   await page.waitForTimeout(400);
-  await page.mouse.click(272 - 108, 248 + 444);
-  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  await clickAt(page, () => { const b = window.game.scene.getScene('Game').endBtns.fame; return { x: b.x, y: b.y }; });
+  await settled(page, 'Upgrade');
   expect(await game(page, () => window.game.scene.getScene('Upgrade').fromGame)).toBe(false); // 일반 화면 (게임 시작·타이틀로 버튼)
   // 3) 포인트 사용 후 타이틀로
   const p = await game(page, () => window.game.scene.getScene('Upgrade').nodeScreenPos('origin'));
-  await page.mouse.click(p.x, p.y);
-  await page.mouse.click(544 - 112, 688 + 140);
+  await page.mouse.click(p.x * UI, p.y * UI);
+  await clickAt(page, BUY_BTN);
   expect(await game(page, () => window.__rtd.meta.level('origin'))).toBe(1);
-  await page.mouse.click(272 + 140, 916); // 영지로
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
-  // 2026-11-22: 옆으로 밀기 전환 동안은 두 장면이 함께 돈다 — 전환이 끝나면 영지만 남아야 한다
+  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').lobbyBtn; return { x: b.x, y: b.y }; }); // 영지로
+  await settled(page, 'Lobby');
+  // 2026-11-22: 화면 전환(디졸브) 동안은 두 장면이 함께 돈다 — 전환이 끝나면 영지만 남아야 한다
   await page.waitForFunction(() => window.game.scene.getScenes(true).length === 1, null, { timeout: 5000 }).catch(() => null);
   expect(await game(page, () => window.game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['Lobby']);
   expect(errors).toEqual([]);
@@ -599,7 +621,7 @@ test('PixelLab 이펙트 2: 몬스터 사망·보스 폭발·버프/디버프 �
   expect(errors).toEqual([]);
 });
 
-test('배너·토스트는 필드와 몬스터 길(칸 48px: y 272~688)을 가리지 않는다', async ({ page }) => {
+test('배너·토스트는 필드와 몬스터 길을 가리지 않는다 (PC: 배너는 위 · 토스트는 아래 띠)', async ({ page }) => {
   const errors = await startGame(page);
   await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -612,15 +634,15 @@ test('배너·토스트는 필드와 몬스터 길(칸 48px: y 272~688)을 가�
     const r = (c) => { const k = c.getBounds(); return { top: k.top, bottom: k.bottom, left: k.left, right: k.right }; };
     return { banner: r(h.bannerObj), toast: r(h.toastObj), bannerHidden: !h.bannerObj.visible };
   });
-  expect(b.banner.bottom).toBeLessThanOrEqual(272);
-  expect(b.banner.top).toBeGreaterThanOrEqual(180);
-  // 2026-11-21 대기석: 아래 길 밑은 대기석 자리 → 토스트도 위 알림 띠에, 토스트 동안 배너는 숨김
-  expect(b.toast.top).toBeGreaterThanOrEqual(180);
-  expect(b.toast.bottom).toBeLessThanOrEqual(272);
-  expect(b.bannerHidden).toBe(true);
+  // PC (UI 좌표): 몬스터 길 사각형 = 필드(월드 820~1100, 400~680) ± 90 → UI y 206.7 ~ 513.3
+  // 배너 = 위 알약 바(아래 68)와 위쪽 길 사이 · 토스트 = 아래쪽 길과 아래 독(616) 사이
+  expect(b.banner.top).toBeGreaterThanOrEqual(68);
+  expect(b.banner.bottom).toBeLessThanOrEqual(207);
+  expect(b.toast.top).toBeGreaterThanOrEqual(513);
+  expect(b.toast.bottom).toBeLessThanOrEqual(616);
   for (const k of ['banner', 'toast']) {
     expect(b[k].left).toBeGreaterThanOrEqual(0);
-    expect(b[k].right).toBeLessThanOrEqual(544);
+    expect(b[k].right).toBeLessThanOrEqual(1280);
   }
   await page.screenshot({ path: SHOT('21-notice-bands') });
   expect(errors).toEqual([]);
@@ -711,7 +733,7 @@ test('동전 드랍: 몬스터를 처치하면 골드 동전이 흩뿌려지고 
     return g.vfx.coinCount;
   });
   expect(capped).toBe(12);
-  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.game.scene.getScene('Game').vfx.coinCount === 0, null, { timeout: 30000 }); // 느린 CI 기계 여유 (게임 시간은 프레임이 느리면 늦게 흐른다)
   expect(errors).toEqual([]);
 });
 
@@ -719,7 +741,7 @@ test('배속 버튼 하나로: x1 → x2 → x3 → 정지 → x1 (정지 버튼
   const errors = await startGame(page);
   const step = async () => {
     const b = await game(page, () => { const b = window.game.scene.getScene('Game').hud.speedBtn; return { x: b.x, y: b.y }; });
-    await page.mouse.click(b.x, b.y);
+    await page.mouse.click(b.x * UI, b.y * UI);
     return game(page, () => { const g = window.game.scene.getScene('Game'); return `${g.paused ? '정지' : 'x' + g.speed}:${g.hud.speedBtn.label.text}`; });
   };
   expect(await game(page, () => window.game.scene.getScene('Game').hud.pauseBtn)).toBeUndefined();
@@ -758,7 +780,7 @@ test('정지하면 캐릭터 애니메이션도 멈춤 · 공격 모션은 공�
   await page.keyboard.press('1');
   // 정지 → 대기 애니메이션 프레임이 그대로
   const sb = await game(page, () => { const b = window.game.scene.getScene('Game').hud.speedBtn; return { x: b.x, y: b.y }; });
-  for (let i = 0; i < 3; i++) await page.mouse.click(sb.x, sb.y);
+  for (let i = 0; i < 3; i++) await page.mouse.click(sb.x * UI, sb.y * UI);
   await page.waitForTimeout(100);
   const f0 = await game(page, () => { const m = window.game.scene.getScene('Game').mercs[0]; return { paused: window.game.anims.paused, prog: m.sprite.anims.getProgress(), time: window.game.scene.getScene('Game').time.paused }; });
   await page.waitForTimeout(500);
@@ -766,7 +788,7 @@ test('정지하면 캐릭터 애니메이션도 멈춤 · 공격 모션은 공�
   expect(f0.paused).toBe(true);
   expect(f0.time).toBe(true);
   expect(f1).toBe(f0.prog);
-  await page.mouse.click(sb.x, sb.y); // x1 로 풀림
+  await page.mouse.click(sb.x * UI, sb.y * UI); // x1 로 풀림
   await page.waitForTimeout(100);
   expect(await game(page, () => window.game.anims.paused)).toBe(false);
   // 공격 모션 길이 = 공격 간격 × 0.85 (빠른 공속은 빨리, 느린 공속은 최대 1.6배까지 천천히)
@@ -805,7 +827,7 @@ test('타격 프레임: 기본 공격·스킬의 피해·투사체는 공격 동
   expect(r.firedNow).toBe(false); // 동작 시작과 동시에 나가지 않는다
   expect(r.wait).toBeGreaterThan(r.total * 0.25); // 예비 동작이 끝난 뒤
   expect(r.wait).toBeLessThan(r.total);
-  await page.waitForFunction(() => window.__hitTest(), null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__hitTest(), null, { timeout: 15000 }); // 느린 CI 기계 여유
   // 무기별 타격 프레임이 manifest 에 있다
   const hits = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -851,7 +873,7 @@ test('유물 아이콘 그림(12px 전용 모양) · 툴팁 스프링 등장 · 
   });
   expect(r).toEqual({ w: 12, h: 12 });
   const pos = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(1, 3));
-  await page.mouse.move(pos.x, pos.y);
+  await page.mouse.move(pos.x * UI, pos.y * UI);
   await page.waitForTimeout(40);
   const early = await game(page, () => window.game.scene.getScene('Game').hud.relicTip.container.scale);
   await page.waitForTimeout(700);
@@ -998,6 +1020,88 @@ test('유니크·레어 스킬 = 궁극기 소리 + 다른 소리 잠깐 낮춤 
   expect(await game(page, () => window.__rtd.audio.duck.gain.value)).toBeGreaterThan(0.95);
   expect(errors).toEqual([]);
 });
+test('보스 등장 소리(전쟁나팔 보류 → 예전 소리) + 버튼 클릭음 (2026-11-22)', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    const horns = [];
+    let clicks = 0;
+    let appear = 0;
+    const oh = a.warHorn.bind(a);
+    a.warHorn = (lv) => { horns.push(lv); oh(lv); };
+    const ob = a.bossAppear.bind(a);
+    a.bossAppear = () => { appear += 1; ob(); };
+    const oc = a.click.bind(a);
+    a.click = () => { clicks += 1; oc(); };
+    for (const w of [10, 30, 100]) {
+      g.wave = w;
+      g.spawnMonster('boss');
+    }
+    // 버튼 하나를 눌렀다 떼면 클릭음 1번
+    const btn = g.children.list.find((o) => typeof o.setLabel === 'function' && 'pressed' in o && o.enabled && o.visible);
+    btn.emit('pointerdown');
+    btn.emit('pointerup');
+    return { horns, appear, clicks };
+  });
+  expect(r.horns).toEqual([]); // 전쟁나팔 보류 (2026-11-24 사용자 결정)
+  expect(r.appear).toBe(3);
+  expect(r.clicks).toBe(1);
+  expect(errors).toEqual([]);
+});
+test('전용 효과음 채우기 (2026-11-24): 판매·잠금·리롤·아이템·성벽·웨이브·지역·마정석·배치·시너지', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    const calls = {};
+    const names = ['sell', 'lock', 'reroll', 'itemGet', 'itemEquip', 'itemCombine', 'itemRemove', 'wallHit', 'wallWarn', 'waveStart', 'regionChange', 'gem', 'place', 'synergy'];
+    for (const k of names) {
+      const o = a[k].bind(a);
+      a[k] = (...x) => { calls[k] = (calls[k] || 0) + 1; a.last = {}; o(...x); };
+    }
+    g.gold = 99999;
+    // 같은 계열 두 명 → 계열 2단계 켜짐
+    const R = window.__rtd.ROSTER;
+    const cls = R.find((c) => R.filter((d) => d.cls === c.cls && d.grade === 1).length >= 2).cls;
+    const [c1, c2] = R.filter((d) => d.cls === cls && d.grade === 1);
+    const m1 = g.hire(c1.id);
+    g.hire(c2.id);
+    // 끌어서 옆 칸으로
+    const fromX = m1.x;
+    g.handleDrop(m1, m1.x + 56, m1.y);
+    const moved = m1.x !== fromX;
+    g.toggleLock(0);
+    g.toggleLock(0);
+    g.reroll();
+    g.smithBuy();
+    g.smithBuy();
+    g.equip(0, m1);
+    g.equip(0, m1); // 재료 두 개 → 조합
+    g.tools = 1;
+    g.useTool(m1);
+    g.earnStones(2, 400, 400);
+    g.startWave(11); // 일반 웨이브 + 지역 바뀜
+    g.startWave(15); // 정예 웨이브
+    g.spawnMonster('normal');
+    g.spawnMonster('elite');
+    const [n, e] = g.monsters.slice(-2);
+    g.wallHp = g.wallMax * 0.6;
+    g.hitWall(n);
+    g.wallFxAt = -9;
+    g.wallHp = g.wallMax * 0.31;
+    g.hitWall(e); // 정예 → 30% 아래로 → 경고
+    const m2 = g.mercs.find((m) => m !== m1);
+    g.sell(m2);
+    return { calls, moved, items: m1.items.length };
+  });
+  for (const k of ['sell', 'reroll', 'itemGet', 'itemEquip', 'itemCombine', 'itemRemove', 'wallWarn', 'regionChange', 'gem', 'synergy']) expect(r.calls[k], k).toBeGreaterThanOrEqual(1);
+  expect(r.calls.lock).toBe(2);
+  expect(r.calls.waveStart).toBe(2);
+  expect(r.calls.wallHit).toBeGreaterThanOrEqual(2);
+  if (r.moved) expect(r.calls.place).toBe(1);
+  expect(errors).toEqual([]);
+});
 test('웨이브 끝 상점 갱신 소리 + 배경음 50% = 예전 20% 크기 (2026-11-22)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
@@ -1025,7 +1129,7 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => {
     const m = window.__rtd.meta;
     m.reset();
@@ -1033,12 +1137,12 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
     m.save();
   });
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('32-lobby') });
   // 병영 이름표를 눌러 덱 편성으로
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   const r = await game(page, () => {
     const d = window.game.scene.getScene('Deck');
     const n0 = d.deck.length;
@@ -1055,10 +1159,10 @@ test('영지(로비) → 병영에서 덱 편성 (가진 캐릭터 중 30명 · 
   expect(r).toEqual({ n0: 30, full: false, n: 29, isolde: true, arthur: false, william: false });
   await page.screenshot({ path: SHOT('33-deck') });
   await game(page, () => window.game.scene.getScene('Deck').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   expect(await game(page, () => window.__rtd.meta.deck.length)).toBe(29);
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
   const shopOk = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 99999;
@@ -1074,10 +1178,10 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => window.__rtd.meta.reset());
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   const r = await game(page, () => {
     const l = window.game.scene.getScene('Lobby');
     const ys = new Set(l.deckStrip.list.filter((o) => o.type === 'Graphics').map((o) => o.y));
@@ -1085,18 +1189,19 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   });
   expect(r).toEqual({ spots: ['barracks', 'forge', 'tent', 'tower'], cards: 30, oneRow: true });
   // 밀기: 덱 줄을 왼쪽으로 끌면 넘어가고 병영으로 가지 않는다
-  await page.mouse.move(420, 812);
+  // 덱 줄 = UI y 650 (아래 판 572~704 안 카드 줄)
+  await page.mouse.move(600 * UI, 650 * UI);
   await page.mouse.down();
-  await page.mouse.move(300, 812, { steps: 5 });
-  await page.mouse.move(180, 812, { steps: 5 });
+  await page.mouse.move(480 * UI, 650 * UI, { steps: 5 });
+  await page.mouse.move(360 * UI, 650 * UI, { steps: 5 });
   await page.mouse.up();
   const moved = await game(page, () => ({ s: window.game.scene.getScene('Lobby').deckScroll, lobby: window.game.scene.isActive('Lobby') }));
   expect(moved.s).toBeGreaterThan(100);
   expect(moved.lobby).toBe(true);
   await page.screenshot({ path: SHOT('32c-lobby-deck-scroll') });
   // 누르기: 병영
-  await page.mouse.click(272, 812);
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await page.mouse.click(300 * UI, 650 * UI);
+  await settled(page, 'Deck');
   expect(errors).toEqual([]);
 });
 
@@ -1104,10 +1209,10 @@ test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘�
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => window.__rtd.meta.reset());
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   const kin = () => game(page, () => { const k = window.game.scene.getScene('Lobby').deckKin; return { v: k.value, max: k.max, moving: k.moving }; });
   // 빠르게 밀고 놓기 → 놓은 뒤에도 더 간다. 자동화 브라우저는 마우스 이동이 0.3초씩 늦게 와서 '튕기기'가 안 되므로
   // 손가락 움직임(시각 포함)을 직접 넣는다: 0.1초에 120px 밀고 바로 놓기
@@ -1127,10 +1232,10 @@ test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘�
   expect((await kin()).moving).toBe(false);
   // 끝을 넘겨 끌기 → 끄는 동안 끝 밖, 놓으면 끝으로 돌아온다
   await game(page, () => window.game.scene.getScene('Lobby').setDeckScroll(9999));
-  await page.mouse.move(200, 812);
+  await page.mouse.move(400 * UI, 650 * UI);
   await page.mouse.down();
-  await page.mouse.move(100, 812, { steps: 4 });
-  await page.mouse.move(20, 812, { steps: 4 });
+  await page.mouse.move(250 * UI, 650 * UI, { steps: 4 });
+  await page.mouse.move(100 * UI, 650 * UI, { steps: 4 });
   const over = await kin();
   expect(over.v).toBeGreaterThan(over.max + 10);
   await page.mouse.up();
@@ -1140,7 +1245,7 @@ test('관성 스크롤: 밀다 놓으면 미끄러지다 멈추고, 끝을 넘�
   expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(true);
   // 병영 격자도 같은 관성 (세로)
   await game(page, () => window.game.scene.getScene('Lobby').go('Deck'));
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   const d0 = await game(page, () => {
     const d = window.game.scene.getScene('Deck');
     const t0 = performance.now();
@@ -1184,7 +1289,7 @@ test('2026-11-21 다듬기: 캐릭터 선택 중 리롤 → 상점으로 · 아�
   // 아이템 툴팁도 유물 툴팁처럼 0.6 → 1 스프링
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.giveItem('whet'); });
   const p = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
-  await page.mouse.move(p.x, p.y);
+  await page.mouse.move(p.x * UI, p.y * UI);
   await page.waitForTimeout(40);
   const early = await game(page, () => window.game.scene.getScene('Game').hud.relicTip?.container.scale);
   await page.waitForTimeout(700);
@@ -1195,25 +1300,33 @@ test('2026-11-21 다듬기: 캐릭터 선택 중 리롤 → 상점으로 · 아�
   expect(errors).toEqual([]);
 });
 
-test('렌더 해상도: 화면 실제 픽셀에 맞춰 정수 배율(폰 3배) · 캔버스는 부드럽게 맞춤 (자글거림 방지)', async ({ browser }) => {
-  const p = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
-  await p.goto('/');
-  await p.waitForFunction(() => window.game?.scene.isActive('Title'));
-  const r = await p.evaluate(() => ({ w: window.game.canvas.width, ir: getComputedStyle(window.game.canvas).imageRendering }));
-  expect(r).toEqual({ w: 544 * 3, ir: 'auto' });
-  await p.close();
+test('PC 화면 맞춤 (2026-11-22): 1920x1080 을 정수 배율로 + 남는 곳 검정 · 4K 는 2배 · 작은 창은 부드럽게 줄임', async ({ browser }) => {
+  const size = async (vp, dpr = 1) => {
+    const p = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
+    await p.goto('/');
+    await p.waitForFunction(() => window.game?.scene.isActive('Title'));
+    const r = await p.evaluate(() => { const c = window.game.canvas; const b = c.getBoundingClientRect(); return { w: c.width, cssW: Math.round(b.width), left: Math.round(b.left) }; });
+    await p.close();
+    return r;
+  };
+  expect(await size({ width: 1920, height: 1080 })).toEqual({ w: 1920, cssW: 1920, left: 0 });
+  expect(await size({ width: 2560, height: 1440 })).toEqual({ w: 1920, cssW: 1920, left: 320 }); // 1.33배는 1배 + 검은 테두리
+  expect(await size({ width: 1920, height: 1080 }, 2)).toEqual({ w: 3840, cssW: 1920, left: 0 }); // 4K 화면(배율 2)은 캔버스 2배
+  const small = await size({ width: 1366, height: 768 });
+  expect(small.w).toBe(1920);
+  expect(Math.abs(small.cssW - 1366)).toBeLessThanOrEqual(1); // 1080p 보다 작은 창은 맞춰 줄인다
 });
 
 test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 → 강화) · 리롤 값 상승 / 유물 공방: 생산 → 장착 → 출전하면 효과', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addStones(60); });
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('tent'));
-  await page.waitForFunction(() => window.game.scene.isActive('Tavern'));
+  await settled(page, 'Tavern');
   await page.waitForTimeout(200);
   await page.screenshot({ path: SHOT('38-tavern') });
   const t = await game(page, () => {
@@ -1231,9 +1344,9 @@ test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 �
   });
   expect(t).toMatchObject({ n: 3, owned: true, hired: true, r1: true, r2: true, next: 7 });
   await game(page, () => window.game.scene.getScene('Tavern').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').sliding); // 옆으로 밀기 전환이 끝난 뒤 (2026-11-22)
+  await page.waitForFunction(() => window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').transitioning); // 디졸브 전환이 끝난 뒤 (2026-11-23)
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('forge'));
-  await page.waitForFunction(() => window.game.scene.isActive('Workshop'));
+  await settled(page, 'Workshop');
   const w = await game(page, () => {
     const m = window.__rtd.meta;
     const s = window.game.scene.getScene('Workshop');
@@ -1248,10 +1361,10 @@ test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 �
   await page.waitForTimeout(800);
   await page.screenshot({ path: SHOT('39-workshop') });
   await game(page, () => window.game.scene.getScene('Workshop').leave());
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.screenshot({ path: SHOT('32b-lobby-stones') });
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => window.game.scene.isActive('Game'));
+  await settled(page, 'Game');
   const g = await game(page, () => { const g = window.game.scene.getScene('Game'); return { relics: g.ownedRelics.map((r) => r.id), eq: window.__rtd.meta.equipped }; });
   expect(g.relics).toEqual(g.eq);
   expect(errors).toEqual([]);
@@ -1269,7 +1382,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   await page.screenshot({ path: SHOT('26-tutorial') });
   // 확인 버튼을 실제로 누른다
   const ok = await game(page, () => { const b = window.game.scene.getScene('Game').tut.okBtn; return { x: b.x, y: b.y }; });
-  await page.mouse.click(ok.x, ok.y);
+  await page.mouse.click(ok.x * UI, ok.y * UI);
   expect(await tut()).toBe(null);
   expect(await game(page, () => JSON.parse(localStorage.getItem('rtd_meta_v3')).tutorial.seen.shop)).toBe(true);
   // 용병을 처음 선택 → 정보 창 안내. 같은 단계는 다시 뜨지 않는다
@@ -1279,7 +1392,7 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   await page.screenshot({ path: SHOT('27-tutorial-select') });
   // 끄기 → 이후 단계는 뜨지 않는다
   const off = await game(page, () => { const b = window.game.scene.getScene('Game').tut.offBtn; return { x: b.x, y: b.y }; });
-  await page.mouse.click(off.x, off.y);
+  await page.mouse.click(off.x * UI, off.y * UI);
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.select(null); g.startWave(1); });
   expect(await tut()).toBe(null);
   // 메뉴의 '다시 보기' → 다시 켜진다
@@ -1287,11 +1400,11 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
   expect(errors).toEqual([]);
 });
 
-test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누르면 영지(로비)', async ({ page }) => {
+test('타이틀: 일러스트 + 깜빡이는 CLICK TO START, 아무 곳이나 누르면 영지(로비)', async ({ page }) => {
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   const t = await page.evaluate(() => { const s = window.game.scene.getScene('Title'); return { tap: s.tapText.text, bg: s.textures.exists('title_bg') }; });
-  expect(t).toEqual({ tap: 'TAP TO START', bg: true });
+  expect(t).toEqual({ tap: 'CLICK TO START', bg: true }); // PC (2026-11-22)
   // 깜빡임: 시간에 따라 투명도가 바뀐다
   const alphas = new Set();
   for (let i = 0; i < 8; i++) {
@@ -1303,14 +1416,14 @@ test('타이틀: 일러스트 + 깜빡이는 TAP TO START, 아무 곳이나 누�
   await toGame(page, 120, 500); // 빈 곳 → 영지 → 출전
 });
 
-test('물량: 1웨이브 167기(2026-11-20 1/3 감소)가 길 폭에 퍼져 나오고, 남는 피해는 옆 몬스터로 넘어간다 (관통)', async ({ page }) => {
+test('물량: 1웨이브 60기(2026-11-24 물량 배수 1.8)가 길 폭에 퍼져 나오고, 남는 피해는 옆 몬스터로 넘어간다 (관통)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.gold = 999; g.hire();
     g.startWave(1);
     const queued = g.spawnQueue.length;
-    while (g.spawnQueue.length > 117) g.spawnMonster(g.spawnQueue.shift());
+    while (g.spawnQueue.length > 10) g.spawnMonster(g.spawnQueue.shift()); // 50마리 꺼내기
     const ms = g.monsters;
     for (const [i, m] of ms.entries()) { m.dist = 300 + i * 2; m.place(); } // 한 줄로 촘촘히
     const lanes = new Set(ms.map((m) => Math.round(m.lane)));
@@ -1323,7 +1436,7 @@ test('물량: 1웨이브 167기(2026-11-20 1/3 감소)가 길 폭에 퍼져 나�
     const dead = before - ms.filter((m) => m.alive).length;
     return { queued, scale: ms[0].scaleX, lanes: lanes.size, dead, hurt: ms.filter((m) => m.alive && m.hp < m.maxHp).length };
   });
-  expect(r.queued).toBe(167);
+  expect(r.queued).toBe(60);
   expect(r.scale).toBe(2); // 일반 몬스터는 작게
   expect(r.lanes).toBeGreaterThan(8); // 길 폭 전체에 퍼진다
   expect(r.dead).toBe(6);
@@ -1333,43 +1446,60 @@ test('물량: 1웨이브 167기(2026-11-20 1/3 감소)가 길 폭에 퍼져 나�
   expect(errors).toEqual([]);
 });
 
-test('가로 화면은 당분간 끔: 1280x720 창에서도 세로 배치(544x960)가 가운데', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  await page.goto('/?layout=wide');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
-  const r = await page.evaluate(() => ({ ratio: window.game.canvas.width / window.game.canvas.height }));
-  expect(r.ratio).toBeCloseTo(544 / 960, 3);
-  await page.close();
-});
-
-// 가로 배치는 2026-11-21 사용자 결정으로 당분간 꺼 둠 (src/config.js WIDE_ENABLED) — 다시 켜면 이 테스트도 되살린다
-test.skip('가로 16:9 배치: 1280x720 화면에서 HUD 가 필드·몬스터 길을 가리지 않는다', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
-  expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([2560, 1440]);
-  await page.screenshot({ path: SHOT('29-wide-title') });
-  await toGame(page, 640, 420); // 빈 곳 → 영지 → 출전
+test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 · HUD 가 필드·몬스터 길을 가리지 않는다 · 대기석은 오른쪽 칸 · 위·아래 바는 화면 끝까지', async ({ page }) => {
+  const errors = await startGame(page);
+  expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([1920, 1080]);
   const r = await page.evaluate(() => {
     const g = window.game.scene.getScene('Game');
     g.gold = 999; g.hire(); g.select(g.mercs[0]); g.startWave(1);
-    const ring = { x0: 392, y0: 112, x1: 888, y1: 608 }; // 필드 + 몬스터 길
+    const ring = { x0: 486.6, y0: 206.6, x1: 793.4, y1: 513.4 }; // 필드 + 몬스터 길 (UI 좌표 = 월드 ÷ 1.5)
     const boxes = [g.hud.estateBtn, g.hud.rerollBtn, g.hud.nextWaveBtn, g.hud.skillBtn, g.hud.sellBtn, g.hud.menuBtn].map((b) => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h / 2, y1: b.y + b.h / 2 }));
     const hit = boxes.filter((b) => b.x0 < ring.x1 && b.x1 > ring.x0 && b.y0 < ring.y1 && b.y1 > ring.y0);
-    return { hit: hit.length, banner: g.hud.bannerObj?.y, field: [g.mercs[0].x > ring.x0, g.mercs[0].x < ring.x1], reroll: g.hud.rerollBtn.label.text, dock: [g.hud.estateBtn.y > 608, g.hud.nextWaveBtn.y < 112] };
+    const m = g.mercs[0];
+    return {
+      zoom: [g.cams.world.zoom, g.cams.ui.zoom],
+      hit: hit.length,
+      banner: g.hud.bannerObj?.y,
+      field: [m.x / 1.5 > ring.x0, m.x / 1.5 < ring.x1],
+      dock: [g.hud.estateBtn.y > ring.y1, g.hud.nextWaveBtn.y < ring.y0],
+      reserveRight: g.hud.reservePos(0).x > ring.x1 && g.hud.reservePos(7).x > ring.x1,
+      unitScale: m.sprite.scaleX
+    };
   });
+  expect(r.zoom).toEqual([1, 1.5]);
   expect(r.hit).toBe(0);
-  expect(r.banner).toBeLessThan(112); // 배너는 필드 위 빈 띠
+  expect(r.banner).toBeLessThan(207); // 배너는 필드 위 빈 띠
   expect(r.field).toEqual([true, true]);
-  // B-2 포근한 카드형: 위 알약 바(바로 시작) + 아래 독(상점 6칸·영지·리롤)
-  expect(r.reroll).toMatch(/^리롤 \d+G$/);
   expect(r.dock).toEqual([true, true]);
+  expect(r.reserveRight).toBe(true);
+  // 위·아래 바는 화면 좌우 끝까지, 화면 끝에 붙는다 (2026-11-22 사용자 요청)
+  // WebGL 캔버스는 바로 읽을 수 없어 화면 캡처를 그림으로 읽는다
+  const shot = (await page.screenshot()).toString('base64');
+  const bars = await page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+    const px = (x, y) => [...ctx.getImageData(x, y, 1, 1).data.slice(0, 3)];
+    return { tl: px(1, 1), tr: px(1918, 1), bl: px(1, 1078), br: px(1918, 1078) };
+  }, shot);
+  for (const k of ['tl', 'tr', 'bl', 'br']) expect(bars[k]).toEqual([251, 247, 236]); // 네 귀퉁이까지 크림색 (둥근 모서리 없음)
+  // 대기석: 필드가 차면 산 용병은 오른쪽 대기석 칸 위 (월드 좌표 = UI × 1.5)
+  const res = await page.evaluate(() => {
+    const g = window.game.scene.getScene('Game');
+    while (g.mercs.length < g.cap) g.hire('stein');
+    g.shop[0] = { id: 'helga', locked: false, sold: false };
+    g.buy(0);
+    const u = g.reserve.find(Boolean);
+    const p = g.hud.reservePos(u.slot);
+    return { dx: Math.abs(u.x - p.x * 1.5), dy: Math.abs(u.y - p.y * 1.5) };
+  });
+  expect(res.dx).toBeLessThan(1);
+  expect(res.dy).toBeLessThan(1);
   await page.waitForTimeout(300);
-  await page.screenshot({ path: SHOT('30-wide-battle') });
+  await page.screenshot({ path: SHOT('30-pc-battle') });
   expect(errors).toEqual([]);
-  await page.close();
 });
 
 test('HUD 다듬기 (2026-11-21 Stitch 시안 점검): 진한 주 버튼 글자 · 체력 수치 흰 글자+외곽(알약 없음) · 판매 빨강 · 상점 가격이 이름과 따로', async ({ page }) => {
@@ -1430,7 +1560,7 @@ test('UI 여백 (2026-11-21 필수 규칙): 아이콘 버튼은 아이콘·글�
     for (const s of window.game.scene.getScenes(true)) s.scene.stop();
     window.game.scene.start('Deck');
   });
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   await page.waitForTimeout(300);
   const d = await game(page, () => {
     const g = window.game.scene.getScene('Deck').gridC;
@@ -1541,7 +1671,7 @@ test('배경 나무·꽃 (2026-11-22): 초원 화면 전체에 나무 3종(바�
   expect(errors).toEqual([]);
 });
 
-test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대기석으로 · 대기석은 시너지·인원 제외 · 끌어서 필드와 자리 바꿈 · 별 승급에 함께 셈 · 아이템 띠는 위 카드 안 · 안내 두 줄은 남은 시간 알약 왼쪽', async ({ page }) => {
+test('대기석 (2026-11-21): 필드가 차면 산 용병은 대기석으로 · 대기석은 시너지·인원 제외 · 끌어서 필드와 자리 바꿈 · 별 승급에 함께 셈', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1559,7 +1689,8 @@ test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대�
     // 대기석 → 필드(가득) 끌어 놓기: 빈 칸이면 거절, 필드 유닛 위면 자리 바꿈
     const u = res[0];
     const empty = g.emptyCell(u.char);
-    g.handleDrop(u, 132 + empty.c * 56 + 28, 340 + empty.r * 56 + 28); // 빈 칸 (필드 가득이라 거절)
+    const ec = window.__rtd.cellCenter(empty.c, empty.r);
+    g.handleDrop(u, ec.x, ec.y); // 빈 칸 (필드 가득이라 거절)
     const stillReserved = u.reserved;
     const target = g.mercs[0];
     const tPos = { x: target.x, y: target.y };
@@ -1573,14 +1704,9 @@ test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대�
     const before = g.allUnits.filter((m) => m.char.id === starId).length;
     g.buy(2); // 3장째 → 2성
     const after = g.allUnits.filter((m) => m.char.id === starId);
-    // 위 카드: 아이템 띠 y, 안내 두 줄
-    const timerL = 544 - 198;
-    const t1 = h.waveTypeText.getBounds(), t2 = h.waveTypeText2.getBounds();
     return {
       field0, bought: !!bought, reserved: res.length, fieldAfter: g.mercs.length, inSyn,
-      stillReserved, swapped, before, afterN: after.length, afterStar: after[0]?.star,
-      smithY: h.smithBtn.y, infoLeftSame: Math.round(t1.x) === Math.round(t2.x),
-      infoRightGap: timerL - Math.max(t1.right, t2.right), lines: [h.waveTypeText.text, h.waveTypeText2.text]
+      stillReserved, swapped, before, afterN: after.length, afterStar: after[0]?.star, info: h.waveTypeText.text
     };
   });
   expect(r.field0).toBe(3);
@@ -1593,16 +1719,13 @@ test('대기석 (2026-11-21): 필드가 차면 산 용병은 필드 아래 대�
   expect(r.before).toBe(2);
   expect(r.afterN).toBe(1);
   expect(r.afterStar).toBe(2);
-  expect(r.smithY).toBeLessThan(140); // 아이템 띠는 위 카드 안
-  expect(r.infoLeftSame).toBe(true); // 두 줄 왼쪽 정렬
-  expect(r.infoRightGap).toBeGreaterThanOrEqual(4); // 알약과 여백
-  expect(r.lines[1]).toContain('최고 W');
+  expect(r.info).toContain('최고 W');
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('48-reserve') });
   expect(errors).toEqual([]);
 });
 
-test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 툴팁은 아이콘 아래 + 조합식 그림 · 정지 중에도 툴팁 · 필드 캐릭터마다 켜진 시너지 상징', async ({ page }) => {
+test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 툴팁은 아이콘을 가리지 않고 화면 안 + 조합식 그림 · 정지 중에도 툴팁 · 필드 캐릭터마다 켜진 시너지 상징', async ({ page }) => {
   const errors = await startGame(page);
   // 1) 상점: 웨이브 시작 때는 그대로, 몬스터를 다 잡으면 새로 고침
   const r1 = await game(page, () => {
@@ -1625,23 +1748,23 @@ test('2026-11-22: 상점은 웨이브가 끝날 때 새로 고침 · 아이템 �
   // 2) 정지한 채로 아이템 툴팁: 아이콘 아래에 뜨고, 화면 안, 다 보인다(alpha 1·scale 1), 조합식 줄마다 그림
   await game(page, () => { const g = window.game.scene.getScene('Game'); g.giveItem('whet'); if (!g.paused) g.togglePause(); });
   const p = await game(page, () => window.game.scene.getScene('Game').hud.benchPos(0));
-  await page.mouse.move(p.x, p.y);
+  await page.mouse.move(p.x * UI, p.y * UI);
   await page.waitForTimeout(700);
-  const tip = await game(page, (py) => {
+  const tip = await game(page, (px) => {
     const g = window.game.scene.getScene('Game');
     const c = g.hud.relicTip?.container;
     const b = c.getBounds();
     const imgs = [];
     const walk = (o) => (o.type === 'Image' ? imgs.push(o.texture.key) : o.each?.(walk));
     c.each(walk);
-    return { paused: g.paused, alpha: c.alpha, scale: c.scale, top: b.y, bottom: b.bottom, below: b.y > py, imgs: imgs.length, sword: imgs.includes('item_giant_sword') };
-  }, p.y);
+    return { paused: g.paused, alpha: c.alpha, scale: c.scale, top: b.y, bottom: b.bottom, right: b.x > px + 12, imgs: imgs.length, sword: imgs.includes('item_giant_sword') };
+  }, p.x);
   expect(tip.paused).toBe(true);
   expect(tip.alpha).toBe(1);
   expect(tip.scale).toBe(0.75); // 원래 배치 그대로 작게 (2026-11-22)
-  expect(tip.below).toBe(true);
+  expect(tip.right).toBe(true); // PC: 아이템 띠(왼쪽 아래) 오른쪽에 — 아이콘을 가리지 않고 화면 안
   expect(tip.top).toBeGreaterThanOrEqual(0);
-  expect(tip.bottom).toBeLessThanOrEqual(960);
+  expect(tip.bottom).toBeLessThanOrEqual(720); // UI 좌표 높이
   expect(tip.imgs).toBeGreaterThanOrEqual(10); // 머리 1 + 조합 줄마다 재료·결과
   expect(tip.sword).toBe(true);
   await page.screenshot({ path: SHOT('49-item-tip-paused') });
@@ -1729,10 +1852,31 @@ test('2026-11-22 화면 점검: 용병 카드 아이템은 상징 배지와 안 
     g.shop[0] = { id: ids[4], sold: false, locked: false };
     g.buy(0);
     const u = g.reserve.find(Boolean);
-    return { reserved: !!u?.reserved, drawn: u?.drawnReserved };
+    g.hud.paintReserve();
+    const img = g.hud.reserveImgs[u.slot];
+    const empty = g.hud.reserveImgs.find((im, i) => !g.reserve[i]);
+    return { reserved: !!u?.reserved, drawn: u?.drawnReserved, tex: img.texture.key, size: [img.displayWidth, img.displayHeight], emptySize: [empty.displayWidth, empty.displayHeight], clipped: !!u.mask, grade: u.grade };
   });
   expect(q.reserved).toBe(true);
   expect(q.drawn).toBe(true);
+  // 2026-11-24: 칸 안쪽 = 등급색(칸 모양 그대로라 빈 칸과 크기가 같다) · 캐릭터는 칸 모양으로 잘림
+  expect(q.tex).toContain(`grade${q.grade}`);
+  expect(q.size).toEqual(q.emptySize);
+  expect(q.clipped).toBe(true);
+  // 2026-11-24: 위 바 1/3 얇게(48) · 유물 빈 칸과 장착 칸은 같은 원 · 상점 잠금은 카드 오른쪽 위
+  const top = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.ownedRelics = [{ id: 'hero_sword', level: 1, active: true }];
+    g.hud.refreshRelics();
+    const slot = g.hud.relicRow.list[0];
+    const empty = g.hud.relicEmpty[1];
+    g.hud.refreshShop();
+    const card = g.hud.shopBox.list.find((c) => c.slotIndex != null);
+    const lz = card.list.filter((o) => o.input).pop(); // 잠금 누르기 영역 (마지막에 넣는다)
+    return { slot: [slot.displayWidth, slot.displayHeight], empty: [empty.displayWidth, empty.displayHeight], lockX: lz.x, cardW: card.getBounds().width };
+  });
+  expect(top.slot).toEqual(top.empty);
+  expect(top.lockX).toBeGreaterThan(top.cardW / 2); // 오른쪽 반
   expect(errors).toEqual([]);
 });
 
@@ -1740,14 +1884,14 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { window.__rtd.meta.reset(); window.game.scene.getScene('Title').scene.start('Deck'); });
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   await page.waitForTimeout(400);
   // 첫 카드 자리 (격자 왼쪽 위)
   const pos = await game(page, () => { const d = window.game.scene.getScene('Deck'); const c = d.visible[0]; return { id: c.id, inDeck: d.deck.includes(c.id), badges: d.gridC.list.filter((o) => o.auditBox && o.type === 'Container').length }; });
   expect(pos.badges).toBeGreaterThanOrEqual(2 * 8); // 보이는 카드마다 상징 2개
-  const tap = () => page.mouse.click(12 + 60, 158 + 6 + 40);
+  const tap = () => uiClick(page, 16 + 60, 160 + 6 + 40); // 격자 왼쪽 위 카드 (UI 좌표)
   await tap(); // 고르기
   const s1 = await game(page, () => { const d = window.game.scene.getScene('Deck'); return { sel: d.selected?.id, n: d.deck.length }; });
   expect(s1.sel).toBe(pos.id);
@@ -1761,48 +1905,60 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
-test('영지 (2026-11-22): 사용자 배경 그림 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 옆으로 밀어 넘어가고 돌아올 때도 반대로', async ({ page }) => {
+test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await page.mouse.click(272, 652);
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.waitForTimeout(300);
   const r = await game(page, () => {
     const l = window.game.scene.getScene('Lobby');
     const rights = Object.values(l.spots).map((c) => Math.round(c.getBounds().right));
     const ys = Object.values(l.spots).map((c) => Math.round(c.y));
-    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_tall');
-    return { rights, ys, bgW: bg?.texture.source[0].width, bgH: bg?.texture.source[0].height };
+    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_wide');
+    return { rights, ys, bgFull: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720 };
   });
   expect(new Set(r.rights).size).toBe(1); // 오른쪽 끝이 모두 같다
-  expect(r.rights[0]).toBeGreaterThanOrEqual(544 - 20);
+  expect(r.rights[0]).toBeGreaterThanOrEqual(1280 - 20);
   expect([...r.ys].sort((a, b) => a - b)).toEqual(r.ys); // 위에서 아래로 한 줄
-  expect([r.bgW, r.bgH]).toEqual([272, 480]); // 2px 도트 그림
+  expect(r.bgFull).toBe(true); // 가로 영지 그림(도트)이 화면을 꽉 채움 — 사용자 세로 그림은 가로 화면에 맞지 않아 PC 에서는 안 씀
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
-  // 병영으로: 잠깐 두 장면이 함께 보이며 새 화면 카메라가 오른쪽에서 들어온다
-  // 매 프레임 두 장면 카메라 위치를 모아 본다 (전환은 실제 시간 0.36초라 한 번 읽어서는 놓친다)
+  // 병영으로: 카드 뒤집기 디졸브 (2026-11-23, 이전 옆으로 밀기) — 잠깐 두 장면이 함께 켜지고 새 화면이 왼쪽 위 칸부터 뒤집혀 드러난다(진행도 0 → 1)
+  // 매 프레임 새 장면 진행도·마스크를 모아 본다 (전환은 실제 시간 0.9초라 한 번 읽어서는 놓친다)
   const watch = (key) => game(page, (key) => {
-    window.__xs = [];
-    const f = () => { const s = window.game.scene.getScene(key); if (window.game.scene.isActive(key)) window.__xs.push(s.cameras.main.x); };
-    window.__xsOff?.();
+    window.__as = [];
+    window.__both = false;
+    const f = () => {
+      const m = window.game.scene;
+      if (m.isActive(key)) window.__as.push(m.getScene(key).wipeProgress ?? 1);
+      if (m.getScenes(true).length >= 2) window.__both = true;
+      if (m.isActive(key) && m.getScene(key).cameras.main.mask) window.__masked = true; // 드러나는 동안 마스크
+      if (m.isActive('Wipe')) window.__wipe = true; // 맨 위 바닥·그늘 장면
+    };
+    window.__asOff?.();
     window.game.events.on('poststep', f);
-    window.__xsOff = () => window.game.events.off('poststep', f);
+    window.__asOff = () => window.game.events.off('poststep', f);
   }, key);
   await watch('Deck');
   await game(page, () => window.game.scene.getScene('Lobby').openSpot('barracks'));
-  await page.waitForFunction(() => !window.game.scene.isActive('Lobby') && window.game.scene.isActive('Deck') && !window.game.scene.getScene('Deck').sliding, null, { timeout: 8000 });
-  const into = await game(page, () => window.__xs);
-  expect(into.some((x) => x > 0)).toBe(true); // 오른쪽에서 들어왔다
-  expect(into[into.length - 1]).toBe(0);
-  // 돌아가기: 영지가 왼쪽에서 들어온다
+  await page.waitForFunction(() => !window.game.scene.isActive('Lobby') && window.game.scene.isActive('Deck') && !window.game.scene.getScene('Deck').transitioning, null, { timeout: 8000 });
+  const into = await game(page, () => ({ as: window.__as, both: window.__both, masked: window.__masked, wipe: window.__wipe, wipeAfter: window.game.scene.isActive('Wipe'), after: !!window.game.scene.getScene('Deck').cameras.main.mask }));
+  expect(into.both).toBe(true); // 두 장면이 겹쳐 보인 순간이 있다
+  expect(into.masked).toBe(true); // 칸 뒤집기 마스크로 드러난다
+  expect(into.wipe).toBe(true); // 뒤집히는 동안 바닥·그늘 장면이 맨 위에
+  expect(into.wipeAfter).toBe(false); // 끝나면 꺼진다
+  expect(into.after).toBe(false); // 끝나면 마스크를 걷는다
+  expect(into.as.some((a) => a > 0.05 && a < 0.95)).toBe(true); // 반쯤 드러난 중간 단계
+  expect(into.as[into.as.length - 1]).toBe(1);
+  // 돌아가기: 영지도 디졸브로
   await watch('Lobby');
   await game(page, () => window.game.scene.getScene('Deck').leave());
-  await page.waitForFunction(() => !window.game.scene.isActive('Deck') && window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').sliding, null, { timeout: 8000 });
-  const back = await game(page, () => { window.__xsOff(); return window.__xs; });
-  expect(back.some((x) => x < 0)).toBe(true);
-  expect(back[back.length - 1]).toBe(0);
+  await page.waitForFunction(() => !window.game.scene.isActive('Deck') && window.game.scene.isActive('Lobby') && !window.game.scene.getScene('Lobby').transitioning, null, { timeout: 8000 });
+  const back = await game(page, () => { window.__asOff(); return window.__as; });
+  expect(back.some((a) => a > 0.05 && a < 0.95)).toBe(true);
+  expect(back[back.length - 1]).toBe(1);
   expect(errors).toEqual([]);
 });
 
@@ -1810,28 +1966,28 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.waitForFunction(() => window.game?.scene.isActive('Title'));
+  await settled(page, 'Title');
   await game(page, () => { window.__rtd.meta.reset(); window.game.scene.getScene('Title').scene.start('Deck'); });
-  await page.waitForFunction(() => window.game.scene.isActive('Deck'));
+  await settled(page, 'Deck');
   await page.waitForTimeout(400);
   // 병영 시너지 필터: 전사를 누르면 전사 계열만, 다시 누르면 해제
   const all = await game(page, () => window.game.scene.getScene('Deck').visible.length);
-  await page.mouse.click(16 + 13, 160);
+  await uiClick(page, 16 + 13, 136); // 시너지 필터 첫 상징 (UI 좌표)
   const r = await game(page, () => { const d = window.game.scene.getScene('Deck'); return { n: d.visible.length, ok: d.visible.every((c) => c.cls === 'warrior' || c.origin === 'warrior'), f: d.filter.trait }; });
   expect(r.f).toBe('warrior');
   expect(r.ok).toBe(true);
   expect(r.n).toBeLessThan(all);
   // 마우스를 올리면 이름 툴팁
-  await page.mouse.move(16 + 13 + 42, 160);
+  await page.mouse.move((16 + 13 + 42) * UI, 136 * UI);
   const tip = await game(page, () => { const st = window.game.scene.getScene('Deck').__traitTips; return st?.tip ? st.tip.list.find((o) => o.type === 'Text').text : null; });
   expect(tip).toBe('사수 · 계열');
-  await page.mouse.move(272, 900);
+  await page.mouse.move(400 * UI, 700 * UI);
   expect(await game(page, () => !!window.game.scene.getScene('Deck').__traitTips?.tip)).toBe(false);
-  await page.mouse.click(16 + 13, 160);
+  await uiClick(page, 16 + 13, 136);
   expect(await game(page, () => window.game.scene.getScene('Deck').filter.trait)).toBe(null);
   // 영지 ESC 메뉴
   await game(page, () => { window.game.scene.getScene('Deck').scene.start('Lobby'); });
-  await page.waitForFunction(() => window.game.scene.isActive('Lobby'));
+  await settled(page, 'Lobby');
   await page.waitForTimeout(300);
   await page.keyboard.press('Escape');
   expect(await game(page, () => !!window.game.scene.getScene('Lobby').menu)).toBe(true);
@@ -1841,9 +1997,9 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   await page.keyboard.press('Escape');
   // 게임 종료: 두 번 눌러야 — 끝나면 게임이 멈추고 안내 화면
   const q = await game(page, () => { const b = window.game.scene.getScene('Lobby').menu.quitBtn; return { x: b.x, y: b.y }; });
-  await page.mouse.click(q.x, q.y);
+  await page.mouse.click(q.x * UI, q.y * UI);
   expect(await page.locator('#rtd-quit').count()).toBe(0);
-  await page.mouse.click(q.x, q.y);
+  await page.mouse.click(q.x * UI, q.y * UI);
   await page.waitForSelector('#rtd-quit', { timeout: 3000 });
   expect(errors).toEqual([]);
 });
@@ -1904,5 +2060,125 @@ test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 �
   const noRig = await game(page, () => window.__rtd.ROSTER.filter((c) => !window.game.scene.getScene('Game').textures.get(`char_${c.id}`).customData.rig).map((c) => c.id));
   expect(noRig).toEqual([]);
   await page.screenshot({ path: SHOT('psd-weapon-rig') });
+  expect(errors).toEqual([]);
+});
+
+test('곡선 UI (2026-11-23): 원·알약·배지는 화면 해상도로 미리 그린 그림 — 좌우·상하 대칭 · 아이템 칸은 진짜 원', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999; window.__rtd.meta.addFame(50);
+    for (let i = 0; i < 6; i++) g.levelUpEstate();
+    for (let k = 0; k < 3; k++) { for (let i = 0; i < 6; i++) g.buy(i); g.reroll(); }
+    g.giveItem('whet'); g.refreshHud();
+    // 원 그림 텍스처마다 알파(모양)가 좌우·상하로 거울처럼 같은지 (아이콘은 원 안이라 모양에 영향 없음)
+    const bad = [];
+    const keys = g.textures.getTextureKeys().filter((k) => k.startsWith('shape_'));
+    for (const k of keys) {
+      const src = g.textures.get(k).getSourceImage();
+      const ctx = src.getContext('2d');
+      const { width: w, height: h } = src;
+      const a = ctx.getImageData(0, 0, w, h).data;
+      let worst = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const v = a[(y * w + x) * 4 + 3];
+        worst = Math.max(worst, Math.abs(v - a[(y * w + (w - 1 - x)) * 4 + 3]), Math.abs(v - a[((h - 1 - y) * w + x) * 4 + 3]));
+      }
+      window.__symWorst = { ...(window.__symWorst || {}), [k]: worst };
+      if (worst > 2) bad.push(`${k}:${worst}`); // 거리로 직접 칠해 정확히 대칭 (브라우저 캔버스 곡선은 최대 67 차이가 났다)
+    }
+    const slot = g.textures.getTextureKeys().find((k) => /^cozy_round_32x32$/.test(k));
+    return { n: keys.length, bad, slot: !!slot, badgeImg: g.hud.upgradeBadge.list[0].type };
+  });
+  expect(r.n).toBeGreaterThan(10);
+  expect(r.bad).toEqual([]);
+  expect(r.slot).toBe(true); // 아이템 칸 = 'round' (정사각이면 원)
+  expect(r.badgeImg).toBe('Image'); // 느낌표 배지도 그림
+  await page.screenshot({ path: SHOT('52-round-ui') });
+  expect(errors).toEqual([]);
+});
+
+test('저장 한 곳 (2026-11-23): 데스크톱 판(native 저장)은 파일로 저장하고 다시 켜면 그대로 · 웹 저장(localStorage)은 안 씀', async ({ page }) => {
+  // Electron preload 가 열어 줄 window.rtdNative.storage 를 흉내 — '파일'은 sessionStorage 에 둬서 새로고침해도 남게
+  await page.addInitScript(() => {
+    const disk = () => JSON.parse(sessionStorage.getItem('__fake_disk') || '{}');
+    const put = (o) => sessionStorage.setItem('__fake_disk', JSON.stringify(o));
+    window.__writes = 0;
+    window.rtdNative = {
+      storage: {
+        readAll: async () => disk(),
+        write: async (k, v) => { const o = disk(); o[k] = v; put(o); window.__writes++; },
+        remove: async (k) => { const o = disk(); delete o[k]; put(o); }
+      }
+    };
+  });
+  await page.goto('/');
+  await settled(page, 'Title');
+  const r1 = await game(page, async () => {
+    const { meta, storage } = window.__rtd;
+    meta.reset();
+    meta.addFame(37);
+    meta.addStones(4);
+    window.__rtd.audio.setMusicVolume(0.3);
+    await storage.flush();
+    return { kind: storage.kind, writes: window.__writes, ls: localStorage.getItem('rtd_meta_v3'), file: JSON.parse(JSON.parse(sessionStorage.getItem('__fake_disk')).rtd_meta_v3).fame };
+  });
+  expect(r1.kind).toBe('native');
+  expect(r1.writes).toBeGreaterThan(0);
+  expect(r1.ls).toBe(null); // 웹 저장소에는 쓰지 않는다
+  expect(r1.file).toBe(37);
+  // 다시 켜기 (게임 새로 시작) → 파일에서 그대로
+  await page.reload();
+  await settled(page, 'Title');
+  const r2 = await game(page, () => ({ fame: window.__rtd.meta.fame, stones: window.__rtd.meta.stones, vol: window.__rtd.audio.musicVol, kind: window.__rtd.storage.kind }));
+  expect(r2).toEqual({ fame: 37, stones: 4, vol: 0.3, kind: 'native' });
+});
+
+test('버그 회귀 (2026-11-23): 전투 중 강화 창 → 닫고 전투로 버튼을 눌러도 판이 그대로 (영지로 버튼이 겹쳐 있지 않음)', async ({ page }) => {
+  const errors = await startGame(page);
+  const before = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 777;
+    g.hire('helga');
+    g.startWave(3);
+    return { wave: g.wave, gold: g.gold, mercs: g.mercs.length };
+  });
+  await clickAt(page, UPGRADE_BTN);
+  await page.waitForFunction(() => window.game.scene.isActive('Upgrade'));
+  const btns = await game(page, () => { const u = window.game.scene.getScene('Upgrade'); return { lobby: !!u.lobbyBtn, start: !!u.startBtn, close: !!u.closeBtn }; });
+  expect(btns).toEqual({ lobby: false, start: false, close: true }); // 전투 중에는 '닫고 전투로'만
+  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').closeBtn; return { x: b.x, y: b.y }; });
+  await page.waitForFunction(() => !window.game.scene.isActive('Upgrade') && window.game.scene.isActive('Game') && !window.game.scene.isPaused('Game'));
+  const after = await game(page, () => { const g = window.game.scene.getScene('Game'); return { wave: g.wave, gold: g.gold, mercs: g.mercs.length }; });
+  expect(after).toEqual(before); // 판이 그대로
+  expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('VHS 효과 시험판 (2026-11-24): 기본은 꺼짐 · ESC 메뉴에서 켜면 게임 화면 위에 효과 캔버스(포인터는 통과) · 다시 누르면 꺼짐 · 저장', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Lobby'));
+  await settled(page, 'Lobby');
+  expect(await game(page, () => window.__rtd.vhs.enabled)).toBe(false);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !!window.game.scene.getScene('Lobby').menu);
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').menu.vhsBtn; return { x: b.x, y: b.y }; });
+  await page.waitForTimeout(300);
+  const on = await page.evaluate(() => {
+    const cv = document.getElementById('rtd-vhs');
+    const r = cv?.getBoundingClientRect();
+    const g = window.game.canvas.getBoundingClientRect();
+    return { on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: cv?.style.display, pe: cv?.style.pointerEvents, same: !!r && Math.abs(r.width - g.width) < 1 && Math.abs(r.left - g.left) < 1, label: window.game.scene.getScene('Lobby').menu.vhsBtn.label.text };
+  });
+  expect(on).toEqual({ on: true, saved: '1', shown: 'block', pe: 'none', same: true, label: 'VHS 효과 켜짐' });
+  await page.screenshot({ path: SHOT('53-vhs-on') });
+  // 효과 캔버스가 덮여 있어도 메뉴 버튼은 눌린다 → 끄기
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').menu.vhsBtn; return { x: b.x, y: b.y }; });
+  await page.waitForTimeout(200);
+  const off = await page.evaluate(() => ({ on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: document.getElementById('rtd-vhs')?.style.display }));
+  expect(off).toEqual({ on: false, saved: '0', shown: 'none' });
   expect(errors).toEqual([]);
 });

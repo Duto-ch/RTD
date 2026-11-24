@@ -1,9 +1,11 @@
-// 판을 넘어 유지되는 진행 상황 (명성·강화 레벨·최고 기록) — 브라우저 localStorage 에 저장
-// 저장소를 못 쓰는 환경(사생활 보호 모드 등)에서도 게임은 돌아가고, 그 경우 이번 접속 동안만 유지된다.
+// 판을 넘어 유지되는 진행 상황 (명성·강화 레벨·최고 기록·덱·마정석·유물·술집) — 저장은 systems/storage.js 한 곳으로
+// (웹 = localStorage, 데스크톱·Steam = 파일 → Steam 클라우드, 2026-11-23). 저장소를 못 쓰는 환경에서도 게임은 돌아가고 이번 실행 동안만 유지된다.
+// 저장이 깨지면 직전 저장(.bak)으로 되살린다
 import { UPGRADE_BY_ID, upgradeCost, metaBonus } from '../data/upgrades.js';
 import { DEFAULT_DECK, deckValid, ROSTER_BY_ID } from '../data/roster.js';
 import { RELICS, RELIC_RULES, relicBonus, addBonus } from '../data/relics.js';
 import { TAVERN, hireCost, tavernRerollCost, nextRefresh, rollTavernSlots } from '../data/tavern.js';
+import { storage } from './storage.js';
 
 // v3 (2026-11-20 룰 v2): 상점·시너지·술집·유물 공방으로 바뀌면서 저장 초기화 (사용자 결정). 예전 v2 저장은 읽지 않는다
 const KEY = 'rtd_meta_v3';
@@ -19,21 +21,13 @@ export const meta = {
   data: fresh(),
 
   load() {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) this.data = { ...fresh(), ...JSON.parse(raw) };
-    } catch {
-      /* 저장소 없음: 기본값 */
-    }
+    const saved = storage.getJSON(KEY);
+    this.data = saved && typeof saved === 'object' ? { ...fresh(), ...saved } : fresh();
     return this;
   },
 
   save() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(this.data));
-    } catch {
-      /* 저장 실패: 이번 접속 동안만 유지 */
-    }
+    storage.setJSON(KEY, this.data);
   },
 
   // ── 튜토리얼 (기능별 최초 1회) ──

@@ -1,8 +1,10 @@
 // 기능별 최초 1회 튜토리얼 — 기능을 처음 만나는 순간 전투를 멈추고, 해당 위치를 밝게 비추며 말풍선으로 설명한다.
 // 본 단계는 meta(localStorage)에 저장되어 다시 뜨지 않는다. "튜토리얼 끄기"로 전부 끄고, ESC 메뉴에서 다시 켤 수 있다.
 // 자동화 브라우저(테스트·밸런스 봇)에서는 꺼져 있다 — 테스트는 localStorage 'rtd_tutorial_test' 로 켠다.
-import { GAME_W, GAME_H, WIDE, DEPTH, CELL, FIELD_X, FIELD_Y } from '../config.js';
+import { audio } from '../systems/audio.js';
+import { GAME_W, GAME_H, DEPTH, CELL, FIELD_X, FIELD_Y } from '../config.js';
 import { HUD } from './Hud.js';
+import { toUi } from '../systems/hires.js';
 import { meta } from '../systems/meta.js';
 import { panel, uiText, CSS } from './theme.js';
 import { Button } from './Button.js';
@@ -45,12 +47,12 @@ export const TUTORIAL_STEPS = {
   synergy: {
     title: '시너지',
     text: '용병마다 계열(공격 방식) 1개와 출신(세력) 1개가 있어요.\n서로 다른 용병을 모으면 시너지가 켜집니다 — 계열 2·5·8명, 출신 3·6·9명.',
-    rect: () => (WIDE ? { x: HUD.syn.x - 4, y: HUD.syn.y - 4, w: HUD.syn.w + 8, h: 200 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w - 140, h: 40 })
+    rect: () => ({ x: HUD.syn.x - 4, y: HUD.syn.y - 4, w: HUD.syn.w + 8, h: 200 })
   },
   wave: {
     title: '웨이브 시작',
     text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n몬스터가 한 바퀴 돌 때마다 성벽 체력이 깎이고, 0이 되면 패배!',
-    rect: () => (WIDE ? { x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 } : { x: HUD.top.x - 4, y: HUD.top.y - 20, w: HUD.top.w + 8, h: HUD.top.h + 30 })
+    rect: () => ({ x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 })
   },
   select: {
     title: '용병 정보',
@@ -64,7 +66,7 @@ export const TUTORIAL_STEPS = {
   },
   next: {
     title: '바로 시작',
-    text: '필드의 몬스터를 모두 처치하면\n다음 웨이브를 바로 부를 수 있어요.\n(Space 키는 게임 정지 · R 키는 리롤)',
+    text: '필드의 몬스터를 모두 처치하면\n다음 웨이브를 바로 부를 수 있어요.\n(F 키 · Space 게임 정지 · R 리롤 · E 영지 레벨 업)',
     rect: (s) => btnRect(s.hud.nextWaveBtn, 6)
   },
   boss: {
@@ -72,7 +74,7 @@ export const TUTORIAL_STEPS = {
     text: '보스는 용병에게 디버프를 걸어요.\n한 바퀴를 돌 때마다 성벽 체력이 크게 깎입니다!',
     rect: (s) => {
       const b = s.monsters?.find((m) => m.isBoss && m.active);
-      return b ? { x: b.x - 44, y: b.y - 52, w: 88, h: 88 } : null;
+      return b ? { x: toUi(b.x) - 30, y: toUi(b.y) - 36, w: 60, h: 60 } : null; // 보스는 월드 좌표
     }
   },
   stones: {
@@ -83,7 +85,7 @@ export const TUTORIAL_STEPS = {
   relic: {
     title: '유물',
     text: '영지 유물 공방에서 장착한 유물이에요.\n팀 전체에 매 판 적용됩니다 (아이콘에 올리면 효과).',
-    rect: () => (WIDE ? { x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 } : { x: HUD.relic.x - 4, y: HUD.relic.y, w: HUD.relic.w + 8, h: 40 })
+    rect: () => ({ x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 })
   },
   hero: {
     title: '유니크 등장',
@@ -108,12 +110,13 @@ function btnRect(b, pad = 4) {
   return { x: b.x - b.w / 2 - pad, y: b.y - b.h / 2 - pad, w: b.w + pad * 2, h: b.h + pad * 2 };
 }
 
+/** 필드 칸 상자 (월드 좌표) → 튜토리얼은 UI 좌표 (2026-11-22 PC 전환) */
 function cellsRect(mercs) {
   const xs = mercs.map((m) => FIELD_X + m.col * CELL);
   const ys = mercs.map((m) => FIELD_Y + m.row * CELL);
   const x = Math.min(...xs);
   const y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x + CELL, h: Math.max(...ys) - y + CELL };
+  return { x: toUi(x), y: toUi(y), w: toUi(Math.max(...xs) - x + CELL), h: toUi(Math.max(...ys) - y + CELL) };
 }
 
 /** 자동화 브라우저에서는 끈다 (테스트가 켤 때만 예외) */
@@ -152,6 +155,7 @@ export class Tutorial {
     const step = TUTORIAL_STEPS[id];
     const r = typeof step.rect === 'function' ? step.rect(s) : step.rect;
     this.open = id;
+    audio.tutorial();
     s.hud.hideRelicTip?.();
     const depth = DEPTH.overlay + 20;
     const c = s.add.container(0, 0).setDepth(depth);
@@ -172,14 +176,14 @@ export class Tutorial {
     c.add(s.add.zone(0, 0, GAME_W, GAME_H).setOrigin(0).setInteractive());
 
     // 말풍선: 세로 화면은 비춘 영역의 위·아래 중 넓은 쪽, 가로 화면은 양옆 HUD 를 비추면 그 옆(가운데 쪽)
-    const w = WIDE ? 480 : GAME_W - 48;
+    const w = 480;
     const title = uiText(s, 0, 0, step.title, 22, CSS.primary, 'bold');
     const body = uiText(s, 0, 0, step.text, 16.5, CSS.ink, '600', { wordWrap: { width: w - 40 }, lineSpacing: 6 });
     const h = 24 + title.height + 10 + body.height + 24 + 44 + 18;
     let y = GAME_H / 2 - h / 2;
     let x = (GAME_W - w) / 2;
     const cx = r ? r.x + r.w / 2 : GAME_W / 2;
-    if (r && WIDE && (cx < GAME_W / 3 || cx > (GAME_W * 2) / 3)) {
+    if (r && (cx < GAME_W / 3 || cx > (GAME_W * 2) / 3)) {
       x = cx < GAME_W / 3 ? r.x + r.w + 16 : r.x - w - 16;
       y = Math.max(12, Math.min(GAME_H - h - 12, r.y + r.h / 2 - h / 2));
     } else if (r) y = r.y + r.h / 2 > GAME_H / 2 ? Math.max(12, r.y - h - 14) : Math.min(GAME_H - h - 12, r.y + r.h + 14);

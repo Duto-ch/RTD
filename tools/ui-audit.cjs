@@ -1,5 +1,6 @@
 // UI 글자 정렬 점검 (2026-11-21 사용자 요청: UI 디자인이 바뀔 때마다 글자 좌우·상하 간격 정렬을 확인)
-// 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/ui-audit.cjs [tall|wide|all]
+// 사용법: npm run build && npx vite preview --port 4173 &  →  node tools/ui-audit.cjs
+// PC 1080p (2026-11-22): 화면 1920x1080 하나. UI 좌표(1280x720)로 본다 — 전투 장면의 전장(월드 좌표) 물체는 건너뛴다
 // 장면마다 보이는 글자(Text)를 모두 훑어서 알린다:
 //   off    화면 밖으로 나감
 //   overlap 다른 글자와 겹침
@@ -12,7 +13,6 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-const which = process.argv[2] || 'tall'; // 가로 배치는 당분간 꺼 둠 (config WIDE_ENABLED) — 켜면 all
 const OUT = 'ui-audit';
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -36,6 +36,8 @@ async function audit(page) {
     const walk = (list, sceneKey) => {
       for (const o of list) {
         if (!visible(o)) continue;
+        // 전투 장면: 전장(월드 좌표) 물체는 UI 가 아니다 (systems/hires.js 와 같은 기준)
+        if (!o.parentContainer && o.scene.cams && (o.worldLayer || (o.depth < 100 && !o.uiLayer))) continue;
         if (o.type === 'Container' && o.auditBox && !o.auditOk) {
           // 도형 배지 컨테이너(시너지 상징 등): 상자 하나로 본다. auditRest = 통통 튀는 배지 — 커지기 전(배율 1) 크기로 본다
           const m0 = o.getWorldTransformMatrix();
@@ -86,8 +88,9 @@ async function audit(page) {
     const findShades = (list, sceneKey) => {
       for (const o of list) {
         if (!visible(o)) continue;
+        if (!o.parentContainer && o.scene.cams && (o.worldLayer || (o.depth < 100 && !o.uiLayer))) continue;
         if (o.type === 'Container') findShades(o.list, sceneKey);
-        else if (o.type === 'Rectangle' && o.fillAlpha >= 0.3 && o.width >= o.scene.scale.width / o.scene.cameras.main.zoom - 1 && o.height >= o.scene.scale.height / o.scene.cameras.main.zoom - 1) {
+        else if (o.type === 'Rectangle' && o.fillAlpha >= 0.3 && o.width >= o.scene.scale.width / (o.scene.cams?.ui || o.scene.cameras.main).zoom - 1 && o.height >= o.scene.scale.height / (o.scene.cams?.ui || o.scene.cameras.main).zoom - 1) {
           let r = o;
           while (r.parentContainer) r = r.parentContainer;
           shades.push({ sceneKey, depth: r.depth || 0 });
@@ -95,8 +98,9 @@ async function audit(page) {
       }
     };
     for (const s of scenes) findShades(s.children.list, s.scene.key);
-    const W = scenes[0].scale.width / scenes[0].cameras.main.zoom;
-    const H = scenes[0].scale.height / scenes[0].cameras.main.zoom;
+    const uiCam = scenes[0].cams?.ui || scenes[0].cameras.main; // UI 좌표 (1280x720)
+    const W = scenes[0].scale.width / uiCam.zoom;
+    const H = scenes[0].scale.height / uiCam.zoom;
     // 그려지는 깊이: 가장 바깥 컨테이너의 depth
     const depthOf = (o) => {
       let r = o;
@@ -206,6 +210,52 @@ async function mark(page, issues, file) {
   await page.screenshot({ path: file });
 }
 
+/**
+ * 곡선 UI 확대 확인 그림 (2026-11-23 사용자 요청: 원형 UI 곡선이 어긋나던 것을 눈으로 바로 보게).
+ * 미리 그린 원·알약·고리(shape_*)와 동그란 칸(cozy_round_*)을 화면에서 잘라 8배로 늘려 한 장에 모은다
+ */
+async function roundSheet(page, file) {
+  await page.evaluate(() => window.__auditG?.destroy());
+  const shot = (await page.screenshot()).toString('base64');
+  const url = await page.evaluate(async (b64) => {
+    const scenes = window.game.scene.getScenes(true);
+    const boxes = [];
+    const walk = (list) => {
+      for (const o of list) {
+        if (!o.visible) continue;
+        if (o.type === 'Container') { walk(o.list); continue; }
+        const k = o.texture?.key || '';
+        if (o.type === 'Image' && (k.startsWith('shape_') || k.startsWith('cozy_round_'))) {
+          const b = o.getBounds();
+          const cam = o.scene.cams && !(o.worldLayer || o.depth < 100) ? o.scene.cams.ui : o.scene.cams ? o.scene.cams.world : o.scene.cameras.main;
+          // 월드 물체(필드 캐릭터 배지)는 부모 컨테이너가 월드 — 바깥 컨테이너로 판단
+          let root = o; while (root.parentContainer) root = root.parentContainer;
+          const c2 = o.scene.cams ? (root.worldLayer || (root.depth < 100 && !root.uiLayer) ? o.scene.cams.world : o.scene.cams.ui) : cam;
+          const z = c2.zoom / (window.devicePixelRatio || 1);
+          boxes.push([Math.floor(b.x * z) - 2, Math.floor(b.y * z) - 2, Math.ceil(b.width * z) + 4, Math.ceil(b.height * z) + 4]);
+        }
+      }
+    };
+    for (const s of scenes) walk(s.children.list);
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const Z = 8, cols = 6, cell = 70 * Z / 2;
+    const uniq = boxes.slice(0, 36);
+    const c = document.createElement('canvas');
+    c.width = cols * cell; c.height = Math.ceil(uniq.length / cols) * cell || cell;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+    uniq.forEach(([x, y, w, h], i) => {
+      const s = Math.min(Z, Math.floor((cell - 8) / Math.max(w, h)));
+      ctx.drawImage(img, x, y, w, h, (i % cols) * cell + 4, Math.floor(i / cols) * cell + 4, w * s, h * s);
+    });
+    return c.toDataURL('image/png');
+  }, shot);
+  require('fs').writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
+}
+
 // 다른 장면을 모두 멈추고 하나만 띄운다 (겹쳐 세지 않게)
 const go = (p, key, data) =>
   p.evaluate(([key, data]) => {
@@ -230,12 +280,11 @@ const SCREENS = [
 (async () => {
   const b = await chromium.launch();
   let total = 0;
-  for (const [layout, vp] of [['tall', { width: 544, height: 960 }], ['wide', { width: 1280, height: 720 }]]) {
-    if (which !== 'all' && which !== layout) continue;
+  for (const [layout, vp] of [['pc', { width: 1920, height: 1080 }]]) {
     const p = await b.newPage({ viewport: vp });
     const errs = [];
     p.on('pageerror', (e) => errs.push(e.message));
-    await p.goto(`http://localhost:4173/?layout=${layout}`);
+    await p.goto('http://localhost:4173/');
     await p.waitForFunction(() => window.game?.scene.isActive('Title'));
     await p.evaluate(() => { window.__rtd.meta.reset(); window.__rtd.meta.addStones(20); });
     await p.waitForTimeout(400);
@@ -247,6 +296,7 @@ const SCREENS = [
       console.log(`\n[${layout}] ${name}: 글자 ${count}개, 문제 ${issues.length}개`);
       for (const i of issues) console.log(`  ${i.kind.padEnd(7)} ${i.at}${i.gap ? (i.gap.length === 1 ? ` 간격=${i.gap}px` : ` 여백(좌·우·위·아래)=${i.gap}`) : ''}${i.d ? ` 어긋남=${i.d}` : ''}`);
       await mark(p, issues, `${OUT}/${layout}-${name}.png`); // 문제가 없어도 눈으로 볼 수 있게 저장
+      if (name === 'game' || name === 'lobby') await roundSheet(p, `${OUT}/${layout}-${name}-round.png`); // 곡선 UI 8배 확대 (2026-11-23)
     }
     if (errs.length) console.log('page errors', errs);
     await p.close();

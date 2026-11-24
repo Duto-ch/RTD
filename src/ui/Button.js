@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { DEPTH, UI_PX as PX, COZY } from '../config.js';
+import { audio } from '../systems/audio.js';
 import { panelKey, panelScale, uiText, drawIcon, CSS, C } from './theme.js';
 
 // 버튼 종류: primary(초록) / danger(빨강) / gold(금) / outline·card(양피지) / soft(오목 슬롯)
@@ -65,7 +66,10 @@ export class Button extends Phaser.GameObjects.Container {
       down(false);
     });
     this.on('pointerup', () => {
-      if (this.pressed && this.enabled) onClick();
+      if (this.pressed && this.enabled) {
+        audio.click(); // 버튼 클릭음 (2026-11-22)
+        onClick();
+      }
       this.pressed = false;
       down(false);
     });

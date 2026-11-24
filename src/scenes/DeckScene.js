@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
-import { GAME_W, GAME_H, WIDE } from '../config.js';
+import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, CSS, traitBadge } from '../ui/theme.js';
+import { panel, uiText, CSS, traitBadge, ringImage, discImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_RULES, DEFAULT_DECK, TRAIT_TEXT, deckValid } from '../data/roster.js';
@@ -11,14 +11,13 @@ import { starSkill } from '../data/stars.js';
 import { TRAITS, CLASS_IDS, ORIGIN_IDS } from '../data/synergy.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Kinetic } from '../ui/kinetic.js';
-import { slideTo } from '../ui/slide.js';
+import { dissolveTo } from '../ui/dissolve.js';
 
 // 병영 = 덱 편성 (룰 v2, 2026-11-20). 가진 캐릭터(술집에서 고용) 중 최대 30명 — 레어 9명·유니크 3명까지.
 // 판 안 상점은 이 덱의 캐릭터만 내놓는다. 카드를 누르면 정보 창에 계열·출신·특성·스킬(별마다), '덱에 넣기/빼기'.
 
-const L = WIDE
-  ? { grid: { x: 16, y: 128, w: 840, h: 576 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 } }
-  : { grid: { x: 12, y: 192, w: 520, h: 436 }, cols: 4, cardH: 86, info: { x: 12, y: 640, w: 520, h: 252 }, deck: null, synY: 160 }; // 2026-11-22: 시너지 필터 줄(y 160) 자리만큼 격자를 내림
+// 시너지 필터 줄(synY 136) 아래부터 격자 (2026-11-22)
+const L = { grid: { x: 16, y: 160, w: 840, h: 544 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 }, synY: 136 };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
@@ -52,14 +51,14 @@ export class DeckScene extends Phaser.Scene {
   }
 
   createHeader() {
-    uiText(this, 20, WIDE ? 18 : 16, '병영 · 덱 편성', 22, '#fff3c4', 'bold');
-    this.ptText = uiText(this, WIDE ? 856 : GAME_W - 20, WIDE ? 22 : 20, '', 16.5, '#fff3c4', 'bold').setOrigin(1, 0);
-    this.ptSub = uiText(this, 20, WIDE ? 48 : 46, '', 12, '#bfe1d4', '600');
+    uiText(this, 20, 18, '병영 · 덱 편성', 22, '#fff3c4', 'bold');
+    this.ptText = uiText(this, 856, 22, '', 16.5, '#fff3c4', 'bold').setOrigin(1, 0);
+    this.ptSub = uiText(this, 20, 48, '', 12, '#bfe1d4', '600');
     this.ptBar = this.add.graphics();
   }
 
   createFilters() {
-    const y = WIDE ? 92 : 82;
+    const y = 92;
     const chips = [
       ['all', '전체'], ['owned', '보유'], ['deck', '덱']
     ];
@@ -77,8 +76,8 @@ export class DeckScene extends Phaser.Scene {
       this.chipBtns.push(b);
       x += w + 6;
     }
-    let gx = WIDE ? x + 14 : 16;
-    const gy = WIDE ? y : y + 38;
+    let gx = x + 14;
+    const gy = y;
     for (const [v, label] of grades) {
       const w = v === 2 ? 70 : 62;
       const b = new Button(this, gx + w / 2, gy, w, 30, label, () => {
@@ -95,7 +94,7 @@ export class DeckScene extends Phaser.Scene {
 
   /** 시너지(계열 6 · 출신 6) 상징으로 거르기 (2026-11-22 사용자 요청) — 누르면 그 시너지 캐릭터만, 한 번 더 누르면 해제 */
   createTraitFilter() {
-    if (WIDE) return; // 가로 배치는 꺼져 있다
+    // PC (2026-11-22): 등급 줄 아래 한 줄 (격자는 그만큼 아래)
     const y = L.synY;
     const r = 12;
     const step = 42;
@@ -123,8 +122,7 @@ export class DeckScene extends Phaser.Scene {
       const on = !this.filter.trait || this.filter.trait === k;
       h.add(traitBadge(this, 0, 0, k, 12, on));
       if (this.filter.trait === k) {
-        const ring = this.add.graphics().lineStyle(3, SELECT_COLOR, 1).strokeCircle(0, 0, 16);
-        h.add(ring);
+        h.add(ringImage(this, 0, 0, 16, 3, SELECT_COLOR)); // 미리 그린 고리 (2026-11-23)
       }
     }
   }
@@ -219,12 +217,13 @@ export class DeckScene extends Phaser.Scene {
       const enh = meta.enhance(c.id);
       if (enh) this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `+${enh}`, 11, CSS.primary, 'bold').setOrigin(1, 1));
       if (inDeck) {
-        const chk = this.add.graphics();
-        // 덱 표시 = 등급 글자 앞 작은 체크 (2026-11-21: 오른쪽 위에 두면 이름과 붙어 이름 줄 앞으로 옮김)
+        // 덱 표시 = 등급 글자 앞 작은 체크 (2026-11-21: 오른쪽 위에 두면 이름과 붙어 이름 줄 앞으로 옮김) — 2026-11-23 미리 그린 원
         const cx = x + 59, cy = Math.round(gr.y + gr.height / 2);
-        chk.fillStyle(0x3f9a5a, 1).fillCircle(cx, cy, 7);
-        chk.lineStyle(2, 0xffffff, 1).beginPath().moveTo(cx - 4, cy).lineTo(cx - 1, cy + 3).lineTo(cx + 4, cy - 3).strokePath();
-        chk.auditBox = { x: cx - 7, y: cy - 7, w: 14, h: 14 }; // tools/ui-audit.cjs 여백 검사용
+        const chk = this.add.container(cx, cy, [discImage(this, 0, 0, {
+          id: 'deck_check', r: 7, fill: 0x3f9a5a,
+          draw: (ctx) => { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-1, 3); ctx.lineTo(4, -3); ctx.stroke(); }
+        })]);
+        chk.auditBox = { x: -7, y: -7, w: 14, h: 14 }; // tools/ui-audit.cjs 여백 검사용
         this.gridC.add(chk);
       }
     });
@@ -250,6 +249,7 @@ export class DeckScene extends Phaser.Scene {
       if (!deckValid(next)) return this.toast(`레어는 최대 ${DECK_RULES.rare}명, 유니크는 최대 ${DECK_RULES.unique}명입니다`);
       this.deck.push(c.id);
     }
+    audio.toggle(i < 0);
     this.refresh();
   }
 
@@ -309,14 +309,9 @@ export class DeckScene extends Phaser.Scene {
   }
 
   createFooter() {
-    const y = GAME_H - (WIDE ? 40 : 32);
-    if (WIDE) {
-      new Button(this, 872 + 70, y, 140, 48, '기본 덱', () => this.resetDeck(), { variant: 'outline', fontSize: 13 });
-      new Button(this, 872 + 140 + 12 + 120, y, 240, 52, '저장하고 영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
-    } else {
-      new Button(this, 12 + 70, y, 140, 48, '기본 덱', () => this.resetDeck(), { variant: 'outline', fontSize: 13 });
-      new Button(this, GAME_W - 12 - 170, y, 340, 52, '저장하고 영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
-    }
+    const y = GAME_H - 40;
+    new Button(this, 872 + 70, y, 140, 48, '기본 덱', () => this.resetDeck(), { variant: 'outline', fontSize: 13 });
+    new Button(this, 872 + 140 + 12 + 120, y, 240, 52, '저장하고 영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
   }
 
   resetDeck() {
@@ -327,7 +322,7 @@ export class DeckScene extends Phaser.Scene {
   leave() {
     if (!meta.setDeck(this.deck)) return this.toast(`덱을 저장할 수 없습니다 (1~${DECK_RULES.max}명 · 레어 ${DECK_RULES.rare} · 유니크 ${DECK_RULES.unique} 이하)`);
     audio.init();
-    slideTo(this, 'Lobby', undefined, -1); // 영지로 옆으로 밀어 돌아간다 (2026-11-22)
+    dissolveTo(this, 'Lobby'); // 영지로 디졸브 (2026-11-23, 이전 옆으로 밀기)
   }
 
   refresh() {
@@ -337,9 +332,9 @@ export class DeckScene extends Phaser.Scene {
     const by = [1, 2, 3, 4].map((g) => `${GRADES[g].name} ${cnt(g)}${g === 3 ? `/${DECK_RULES.rare}` : g === 4 ? `/${DECK_RULES.unique}` : ''}`).join(' · ');
     this.ptSub.setText(`${by} · 보유 ${ROSTER.filter((c) => this.owned(c.id)).length}명`);
     // 인원 막대
-    const bx = WIDE ? 560 : GAME_W - 200;
-    const bw = WIDE ? 160 : 180;
-    const byy = WIDE ? 30 : 56;
+    const bx = 560;
+    const bw = 160;
+    const byy = 30;
     this.ptBar.clear().fillStyle(0x0b2f2e, 1).fillRoundedRect(bx, byy, bw, 10, 5);
     this.ptBar.fillStyle(n >= DECK_RULES.max ? 0xf2c14e : 0x58c096, 1).fillRoundedRect(bx, byy, Math.max(10, (bw * Math.min(n, DECK_RULES.max)) / DECK_RULES.max), 10, 5);
     for (const b of this.chipBtns) {
@@ -366,7 +361,7 @@ export class DeckScene extends Phaser.Scene {
     this.toastObj?.destroy();
     const t = uiText(this, 0, 0, msg, 13, CSS.ink, 'bold').setOrigin(0.5);
     const w = Math.ceil(t.width + 40);
-    const c = this.add.container(WIDE ? 436 : GAME_W / 2, WIDE ? 680 : 612, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
+    const c = this.add.container(436, 680, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
     this.toastObj = c;
     this.tweens.add({ targets: c, alpha: 0, delay: 1600, duration: 300, onComplete: () => c.destroy() });
   }

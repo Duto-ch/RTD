@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { UNIT_PX, CELL, DEPTH, BALANCE } from '../config.js';
+import { UNIT_PX, CELL, DEPTH, BALANCE, UI_SCALE } from '../config.js';
 import { GRADES, STYLES } from '../data/roster.js';
 import { STAR_STAT, MAX_STAR, starSkill, maxMana } from '../data/stars.js';
 import { TAVERN } from '../data/tavern.js';
@@ -9,6 +9,7 @@ import { cellCenter } from '../systems/path.js';
 import { playBase, setArt, artScale } from '../systems/customArt.js';
 import { ringPixels, starPixels, MARK_PX } from '../ui/gradeMark.js';
 import { traitBadge } from '../ui/theme.js';
+import { toWorld } from '../systems/hires.js';
 import { GRID } from '../config.js';
 
 /** 필드 위 유닛 = 캐릭터 70명(data/roster.js) 중 하나 (룰 v2, 2026-11-20).
@@ -99,6 +100,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
 
     this.setSize(CELL, CELL);
     this.setDepth(DEPTH.merc);
+    this.worldLayer = true; // 대기석·끄는 중(깊이 UI 이상)에도 월드 좌표로 그린다 (systems/hires.js)
     this.setInteractive({ draggable: true, useHandCursor: true });
     scene.add.existing(this);
   }
@@ -161,12 +163,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.ringBack.clear();
     this.pips.clear();
     if (this.reserved) {
-      // 대기석 (2026-11-22): 발밑 고리 대신 칸 테두리를 등급색으로 — 고리까지 그리면 칸(50px) 밖으로 넘쳤다
-      const R = this.scene.hud?.reserveSlot;
-      if (R) {
-        const col = Phaser.Display.Color.HexStringToColor(GRADES[this.grade].color).color;
-        this.ringBack.lineStyle(3, col, 1).strokeRoundedRect(-R.w / 2 + 1.5, -R.h / 2 + 1.5, R.w - 3, R.h - 3, 9);
-      }
+      // 대기석 (2026-11-24 사용자 요청): 칸 테두리를 상점 카드처럼 등급색으로(Hud.paintReserve) + 캐릭터를 칸 모양으로 잘라 낸다(setReserveClip)
       paint(this.pips, starPixels(this.grade, this.star));
       this.pips.setY(-10); // 별 패를 칸 안(아래 테두리 위)으로
       return;
@@ -195,7 +192,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     if (sig === this.synSig) return;
     this.synSig = sig;
     this.synMarks.removeAll(true);
-    keys.slice(0, SYN_MARK.max).forEach((k, i) => this.synMarks.add(traitBadge(this.scene, SYN_MARK.x, SYN_MARK.y + i * SYN_MARK.step, k, SYN_MARK.r)));
+    keys.slice(0, SYN_MARK.max).forEach((k, i) => this.synMarks.add(traitBadge(this.scene, SYN_MARK.x, SYN_MARK.y + i * SYN_MARK.step, k, SYN_MARK.r, true, { world: true })));
   }
 
   preDestroy() {
@@ -203,18 +200,44 @@ export class Mercenary extends Phaser.GameObjects.Container {
     super.preDestroy(); // 컨테이너 기본 정리(자식 제거)도 반드시 실행
   }
 
+  /** 대기석 칸 모양으로 잘라 그리기 (2026-11-24 사용자 요청) — 칸 테두리(3) 안쪽 둥근 사각형, 월드 좌표. null 이면 풀기 */
+  setReserveClip(p) {
+    if (!p) {
+      if (this.mask) this.clearMask();
+      return;
+    }
+    const R = this.scene.hud?.reserveSlot;
+    if (!R) return;
+    if (!this.clipG) {
+      this.clipG = this.scene.make.graphics({ add: false });
+      this.clipMask = this.clipG.createGeometryMask();
+      this.once('destroy', () => {
+        this.clipMask.destroy();
+        this.clipG.destroy();
+      });
+    }
+    const k = UI_SCALE; // 칸은 UI 좌표, 용병은 월드 좌표
+    const lw = 3 * k; // 칸 테두리(등급색 3) 안쪽만
+    const w = R.w * k - lw * 2;
+    const h = R.h * k - lw * 2;
+    this.clipG.clear().fillStyle(0xffffff, 1).fillRoundedRect(toWorld(p.x) - w / 2, toWorld(p.y) - h / 2, w, h, (14 - 3) * k);
+    this.setMask(this.clipMask);
+  }
+
   snapToCell() {
     // 대기석 (2026-11-21): HUD 대기석 칸 위 — UI 보다 위에 그린다
     if (this.reserved) {
-      const p = this.scene.hud.reservePos(this.slot);
-      this.setPosition(p.x, p.y);
+      const p = this.scene.hud.reservePos(this.slot); // UI 좌표 → 월드 (용병은 늘 전장 카메라, 2026-11-22)
+      this.setPosition(toWorld(p.x), toWorld(p.y));
       this.setDepth(DEPTH.ui + 1);
+      this.setReserveClip(p);
       if (this.drawnReserved !== true) {
         this.drawnReserved = true;
         this.drawPips();
       }
       return;
     }
+    this.setReserveClip(null);
     if (this.drawnReserved) {
       this.drawnReserved = false;
       this.drawPips();
