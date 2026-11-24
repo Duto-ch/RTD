@@ -162,14 +162,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.ringBack.clear();
     this.pips.clear();
     if (this.reserved) {
-      // 대기석 (2026-11-22): 발밑 고리 대신 칸 테두리를 등급색으로 — 고리까지 그리면 칸(50px) 밖으로 넘쳤다
-      const R = this.scene.hud?.reserveSlot;
-      if (R) {
-        const col = Phaser.Display.Color.HexStringToColor(GRADES[this.grade].color).color;
-        const w = R.w * UI_SCALE; // 칸은 UI 좌표, 용병은 월드 좌표 (2026-11-22)
-        const h = R.h * UI_SCALE;
-        this.ringBack.lineStyle(3, col, 1).strokeRoundedRect(-w / 2 + 1.5, -h / 2 + 1.5, w - 3, h - 3, 9);
-      }
+      // 대기석 (2026-11-24 사용자 요청): 테두리 대신 칸 안쪽을 등급색으로(Hud.paintReserve) + 캐릭터를 칸 모양으로 잘라 낸다(setReserveClip)
       paint(this.pips, starPixels(this.grade, this.star));
       this.pips.setY(-10); // 별 패를 칸 안(아래 테두리 위)으로
       return;
@@ -206,18 +199,44 @@ export class Mercenary extends Phaser.GameObjects.Container {
     super.preDestroy(); // 컨테이너 기본 정리(자식 제거)도 반드시 실행
   }
 
+  /** 대기석 칸 모양으로 잘라 그리기 (2026-11-24 사용자 요청) — 칸 테두리(2) 안쪽 둥근 사각형, 월드 좌표. null 이면 풀기 */
+  setReserveClip(p) {
+    if (!p) {
+      if (this.mask) this.clearMask();
+      return;
+    }
+    const R = this.scene.hud?.reserveSlot;
+    if (!R) return;
+    if (!this.clipG) {
+      this.clipG = this.scene.make.graphics({ add: false });
+      this.clipMask = this.clipG.createGeometryMask();
+      this.once('destroy', () => {
+        this.clipMask.destroy();
+        this.clipG.destroy();
+      });
+    }
+    const k = UI_SCALE; // 칸은 UI 좌표, 용병은 월드 좌표
+    const lw = 2 * k;
+    const w = R.w * k - lw * 2;
+    const h = R.h * k - lw * 2;
+    this.clipG.clear().fillStyle(0xffffff, 1).fillRoundedRect(toWorld(p.x) - w / 2, toWorld(p.y) - h / 2, w, h, (14 - 2) * k);
+    this.setMask(this.clipMask);
+  }
+
   snapToCell() {
     // 대기석 (2026-11-21): HUD 대기석 칸 위 — UI 보다 위에 그린다
     if (this.reserved) {
       const p = this.scene.hud.reservePos(this.slot); // UI 좌표 → 월드 (용병은 늘 전장 카메라, 2026-11-22)
       this.setPosition(toWorld(p.x), toWorld(p.y));
       this.setDepth(DEPTH.ui + 1);
+      this.setReserveClip(p);
       if (this.drawnReserved !== true) {
         this.drawnReserved = true;
         this.drawPips();
       }
       return;
     }
+    this.setReserveClip(null);
     if (this.drawnReserved) {
       this.drawnReserved = false;
       this.drawPips();

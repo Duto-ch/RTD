@@ -23,7 +23,7 @@ import { worldPoint, uiPoint, toUi } from '../systems/hires.js';
 
 // 몬스터 길 바깥 가장자리 (필드를 둘러싼 사각형)
 // 위·아래 바 = 화면 좌우 끝까지, 화면 끝은 각지게 (2026-11-22 사용자 요청)
-const HUD_TOP_H = 72;
+const HUD_TOP_H = 48; // 2026-11-24 사용자 요청: 위 바를 1/3 얇게 (이전 72)
 const HUD_DOCK_Y = 610;
 // 월드 좌표(전장) → UI 좌표 (2026-11-22 PC 전환: HUD 는 UI 좌표 1280x720)
 const RING = { x0: (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, y0: (FIELD_Y - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, x1: (FIELD_X + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) / UI_SCALE, y1: (FIELD_Y + FIELD_SIZE + PATH_OFF + PATH_WIDTH / 2) / UI_SCALE };
@@ -50,10 +50,10 @@ export const HUD = {
       estate: { x: 871, y: 645, w: 150, h: 42 }, // 버튼 가운데
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
-      syn: { x: 16, y: 84, w: 210, h: 372 }, // 시너지 목록 (왼쪽 세로)
+      syn: { x: 16, y: 60, w: 210, h: 396 }, // 시너지 목록 (왼쪽 세로)
       bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 487, w: 96, h: 30 }, tool: { x: 121, y: 590 } }, // 아이템 띠 (5×2)
       // 대기석 8칸 (2026-11-22 PC 전환): 오른쪽 칸(시너지 목록과 마주 보게) 4×2 — 칸 44x48 (월드 66x72, 용병 그림 48px)
-      reserve: { x: 1054, y: 84, w: 210, h: 152, cols: 4, title: true, slot: { x0: 1054 + 13, y0: 84 + 40, step: 48, stepY: 54, w: 44, h: 48 } }
+      reserve: { x: 1054, y: 60, w: 210, h: 152, cols: 4, title: true, slot: { x0: 1054 + 13, y0: 60 + 40, step: 48, stepY: 54, w: 44, h: 48 } }
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = 520;
@@ -189,7 +189,8 @@ export class Hud {
     this.relicLabel = null;
     this.relicRow = s.add.container(0, 0).setDepth(D);
     // 빈 유물 자리 4칸 (점선 대신 옅은 칸)
-    this.relicEmpty = [0, 1, 2, 3].map((i) => panelImage(s, this.relicPos(i, 4).x, cy, 'round', 28, 28).setDepth(D - 1));
+    // 2026-11-24: 빈 칸·장착 칸 모두 같은 원(지름 28, 테두리 2) — 장착 칸이 입술 달린 금색 판이라 빈 칸보다 커 보였다
+    this.relicEmpty = [0, 1, 2, 3].map((i) => discImage(s, this.relicPos(i, 4).x, cy, { r: 13, fill: 0xf3ead2, line: 0xe3d6b6, lw: 2 }).setDepth(D - 1));
     this.noRelicText = { setVisible: () => {} };
     // 시너지 목록 (왼쪽 세로 카드)
     const SY = HUD.syn;
@@ -352,7 +353,7 @@ export class Hud {
       // 칸 27px, 칸 사이 9px (예전 32px 칸이 4px 간격으로 붙고 띠 테두리에 닿았다)
       const { x, y } = this.relicPos(i, s.ownedRelics.length);
       // 영지 유물 공방에서 장착한 유물 (판 안에서는 끄고 켜기 없음 — 룰 v2 ③). 누르거나 올리면 툴팁
-      const slot = panelImage(s, x, y, 'gold', 28, 28);
+      const slot = discImage(s, x, y, { r: 13, fill: 0xe2b54a, line: 0xa8801c, lw: 2 });
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(UI_PX).setInteractive({ useHandCursor: true });
       icon.on('pointerdown', () => (this.relicTip?.index === i ? this.hideRelicTip() : this.showRelicTip(i, x, y, true)));
       icon.on('pointerover', () => this.showRelicTip(i, x, y, true));
@@ -459,7 +460,7 @@ export class Hud {
       // 계열·출신 상징 (2026-11-21: 아래 가운데 · 글자 대신 모양 그림) — 이름 띠·서로 4px 이상 띄운다 (여백 필수 규칙)
       [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 13 : -13), h - 20 - 5 - 10, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
-      if (owned) c.add(uiText(s, w - 5, 5, `${owned}장`, 12, CSS.primary, 'bold').setOrigin(1, 0));
+      if (owned) c.add(uiText(s, 5, 5, `${owned}장`, 12, CSS.primary, 'bold').setOrigin(0, 0)); // 2026-11-24: 잠금이 오른쪽 위로 가서 왼쪽 위로
       if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
       const hit = s.add.rectangle(0, 0, w, h - 4, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => c.setScale(0.96));
@@ -469,11 +470,11 @@ export class Hud {
         s.buy(i);
       });
       c.add(hit);
-      // 잠금 (2026-11-21: 위 가운데)
+      // 잠금 (2026-11-24 사용자 요청: 위 가운데 → 오른쪽 위)
       const lk = s.add.graphics();
-      lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w / 2 - 9, 3, 18, 18, 5);
-      drawIcon(lk, slot.locked ? 'lock' : 'unlock', w / 2, 12, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
-      const lz = s.add.rectangle(w / 2 - 13, 0, 26, 24, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
+      lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w - 25, 7, 18, 18, 5);
+      drawIcon(lk, slot.locked ? 'lock' : 'unlock', w - 16, 16, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
+      const lz = s.add.rectangle(w - 30, 2, 28, 28, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       lz.on('pointerup', () => s.toggleLock(i));
       c.add([lk, lz]);
       c.slotIndex = i;
@@ -510,8 +511,21 @@ export class Hud {
       : uiText(s, R.x + 28, R.y + R.h / 2, '대기', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
     for (let i = 0; i < SHOP.reserve; i++) {
       const p = this.reservePos(i);
-      panelImage(s, p.x, p.y, 'soft', R.slot.w, R.slot.h).setDepth(D);
+      (this.reserveImgs ||= [])[i] = panelImage(s, p.x, p.y, 'soft', R.slot.w, R.slot.h).setDepth(D);
     }
+  }
+
+  /** 대기석 칸 바탕 (2026-11-24 사용자 요청): 캐릭터가 있는 칸은 안쪽을 그 등급색으로 — 칸 모양 그대로라 빈 칸과 테두리가 맞는다. 매 프레임 바뀐 칸만 */
+  paintReserve() {
+    const R = HUD.reserve;
+    if (!R || !this.reserveImgs) return;
+    this.s.reserve.forEach((u, i) => {
+      const g = u && u.active && !u.dragging ? u.grade : 0;
+      const img = this.reserveImgs[i];
+      if (img.gradeShown === g) return;
+      img.gradeShown = g;
+      img.setTexture(panelKey(this.s, g ? `grade${g}` : 'soft', R.slot.w, R.slot.h));
+    });
   }
 
   /** 대기석 칸 크기 (Mercenary 가 등급색 테두리를 그릴 때) */

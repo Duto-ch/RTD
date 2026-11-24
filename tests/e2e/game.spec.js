@@ -1770,10 +1770,31 @@ test('2026-11-22 화면 점검: 용병 카드 아이템은 상징 배지와 안 
     g.shop[0] = { id: ids[4], sold: false, locked: false };
     g.buy(0);
     const u = g.reserve.find(Boolean);
-    return { reserved: !!u?.reserved, drawn: u?.drawnReserved };
+    g.hud.paintReserve();
+    const img = g.hud.reserveImgs[u.slot];
+    const empty = g.hud.reserveImgs.find((im, i) => !g.reserve[i]);
+    return { reserved: !!u?.reserved, drawn: u?.drawnReserved, tex: img.texture.key, size: [img.displayWidth, img.displayHeight], emptySize: [empty.displayWidth, empty.displayHeight], clipped: !!u.mask, grade: u.grade };
   });
   expect(q.reserved).toBe(true);
   expect(q.drawn).toBe(true);
+  // 2026-11-24: 칸 안쪽 = 등급색(칸 모양 그대로라 빈 칸과 크기가 같다) · 캐릭터는 칸 모양으로 잘림
+  expect(q.tex).toContain(`grade${q.grade}`);
+  expect(q.size).toEqual(q.emptySize);
+  expect(q.clipped).toBe(true);
+  // 2026-11-24: 위 바 1/3 얇게(48) · 유물 빈 칸과 장착 칸은 같은 원 · 상점 잠금은 카드 오른쪽 위
+  const top = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.ownedRelics = [{ id: 'hero_sword', level: 1, active: true }];
+    g.hud.refreshRelics();
+    const slot = g.hud.relicRow.list[0];
+    const empty = g.hud.relicEmpty[1];
+    g.hud.refreshShop();
+    const card = g.hud.shopBox.list.find((c) => c.slotIndex != null);
+    const lz = card.list.filter((o) => o.input).pop(); // 잠금 누르기 영역 (마지막에 넣는다)
+    return { slot: [slot.displayWidth, slot.displayHeight], empty: [empty.displayWidth, empty.displayHeight], lockX: lz.x, cardW: card.getBounds().width };
+  });
+  expect(top.slot).toEqual(top.empty);
+  expect(top.lockX).toBeGreaterThan(top.cardW / 2); // 오른쪽 반
   expect(errors).toEqual([]);
 });
 
