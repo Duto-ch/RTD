@@ -99,7 +99,7 @@ export const BALANCE = {
     hpScale: 0.7,
     // 초반 내구성 (2026-11-24 사용자 결정: 1웨이브부터 한 방에 터져 긴장감이 없다 → 초반만 단단하게).
     // 일반 몬스터 체력 ×mult(1웨이브) → 점점 줄어 untilWave 에서 ×1 (후반 곡선은 그대로). 수치는 가안 ⚠️
-    earlyHp: { mult: 4, untilWave: 30 },
+    earlyHp: { mult: 4, untilWave: 60 }, // 2026-11-24 사용자 결정: 중반 긴장감 — 30 → 60웨이브까지
     eliteHpMult: 10,
     bossHpMult: 110, // 2026-11-12 사용자 결정
     // 이동 속도: 일반·정예 1.3배, 보스 1.5배 (2026-11-12)
@@ -143,16 +143,16 @@ export const BALANCE = {
   // 특수 몬스터 (2026-11-24 사용자 결정: 웨이브 안에 섞기 · 저항은 그 공격 피해 35%만). 수치는 가안 ⚠️
   // 일반 몬스터 중 일부가 특수 몬스터 — 종류마다 정해진 외형(design: 웨이브 기본 외형과 같으면 다음 것)
   special: {
-    share: [0.1, 0.25], // 일반 몬스터 중 특수 비율: 처음 나오는 웨이브 → fullWave 부터
+    share: [0.15, 0.4], // 일반 몬스터 중 특수 비율: 처음 나오는 웨이브 → fullWave 부터 (2026-11-24 중반 긴장감: 10·25% → 15·40%)
     fullWave: 33,
     typesPerWave: 2, // 한 웨이브에 섞이는 종류 수 (열린 종류 중)
     resist: 0.35, // 저항: 그 종류 공격 피해를 35%만 받는다
     minDmg: 0.25, // 방어력: 한 대 피해는 방어력만큼 줄지만 최소 25%는 들어간다 (지속 피해는 방어력 무시)
     types: {
-      swift: { name: '빠름', from: 3, speed: 1.6, hp: 0.7, design: ['wolf', 'hound'] },
-      armored: { name: '방어력', from: 8, hp: 1.3, armor: 0.12, design: ['beetle', 'golem'] }, // armor: 그 웨이브 일반 몬스터 체력의 12%
-      physResist: { name: '물리 저항', from: 13, resist: 'phys', design: ['ghost', 'wraith'] }, // 연사·속공·저격·근접
-      magicResist: { name: '마법 저항', from: 18, resist: 'magic', design: ['imp', 'gargoyle'] } // 주술·지원 (폭발은 어느 저항에도 안 막힘)
+      swift: { name: '빠름', from: 2, speed: 1.6, hp: 0.7, design: ['wolf', 'hound'] },
+      armored: { name: '방어력', from: 5, hp: 1.3, armor: 0.12, design: ['beetle', 'golem'] }, // armor: 그 웨이브 일반 몬스터 체력의 12%
+      physResist: { name: '물리 저항', from: 8, resist: 'phys', design: ['ghost', 'wraith'] }, // 연사·속공·저격·근접
+      magicResist: { name: '마법 저항', from: 11, resist: 'magic', design: ['imp', 'gargoyle'] } // 주술·지원 (폭발은 어느 저항에도 안 막힘)
     }
   },
   horde: {
@@ -168,7 +168,7 @@ export const BALANCE = {
   // 몬스터가 길을 한 바퀴 돌 때마다 성벽 체력이 깎이고 0이 되면 게임 오버. 몬스터는 계속 돈다
   wall: {
     hp: 80, // 최초 체력 (사용자 결정). 명성 강화: 성벽 보강(+체력)·방패벽(시작 실드)·성벽 수리(웨이브마다 회복)
-    dmg: { normal: 1 / HORDE_MULT, elite: 3, boss: 30, milestone: 40, final: 80 } // 한 바퀴마다 피해 (일반은 물량 배수만큼 = 1 — 1.8마리 = 1, 2026-11-24 이전 0.2)
+    dmg: { normal: 1.5, elite: 3, boss: 30, milestone: 40, final: 80 } // 한 바퀴마다 피해 (2026-11-24 중반 긴장감: 일반 1/1.8 → 1.5, 놓치면 바로 티가 나게)
   },
   // 정비 시간 (2026-11-24 사용자 결정): 웨이브마다 시작 전 15초 — 용병 구매·배치·아이템 장착은 정비 시간에만.
   // 웨이브는 그 웨이브 몬스터를 모두 잡으면 끝난다(이전: 30초마다 다음 웨이브가 겹쳐 시작 — waveDuration 폐지)

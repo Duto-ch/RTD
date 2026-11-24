@@ -63,37 +63,38 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('boss', 100).speed).toBe(BALANCE.monster.bossSpeed);
   });
 
-  it('패배 조건: 성벽 체력 80, 한 바퀴마다 일반 1/1.8(물량 배수 1.8마리 = 1)·정예 3·보스 30·강화 보스 40·최종 보스 80', () => {
+  it('패배 조건: 성벽 체력 80, 한 바퀴마다 일반 1.5(2026-11-24 중반 긴장감)·정예 3·보스 30·강화 보스 40·최종 보스 80', () => {
     expect(BALANCE.wall.hp).toBe(80);
-    expect(BALANCE.wall.dmg).toEqual({ normal: 1 / 1.8, elite: 3, boss: 30, milestone: 40, final: 80 });
+    expect(BALANCE.wall.dmg).toEqual({ normal: 1.5, elite: 3, boss: 30, milestone: 40, final: 80 });
   });
 
   it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 전체 30% 완화(×0.7), 강화 보스 체력 1.5배', () => {
     expect(BALANCE.monster.hpScale).toBe(0.7);
     // 물량: 일반 몬스터 마리당 체력은 1/1.8 (2026-11-24, 이전 1/5 — 웨이브 전체 체력 총량은 그대로). 정예·보스는 기준 체력의 10배·110배 그대로
-    // 초반 내구성 (2026-11-24): 일반 몬스터만 1웨이브 ×4 → 30웨이브 ×1
+    // 초반 내구성 (2026-11-24): 일반 몬스터만 1웨이브 ×4 → 60웨이브 ×1
     expect(monsterStats('normal', 1).hp).toBeCloseTo(((34 * 0.7) / 1.8) * 4);
     expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 0.7) / 1.8) * earlyHpMult(2));
     expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 0.7) / 1.8) * earlyHpMult(10));
-    expect(monsterStats('normal', 40).hp).toBeCloseTo((40 * Math.pow(1.08, 39) * 0.7) / 1.8);
+    expect(monsterStats('normal', 70).hp).toBeCloseTo((40 * Math.pow(1.08, 69) * 0.7) / 1.8);
     expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 0.7 * 10);
     expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 0.7 * 110);
     expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 1.8) * 2); // 골드 총량 유지
-    expect(monsterStats('normal', 41).hp / monsterStats('normal', 40).hp).toBeCloseTo(1.08);
+    expect(monsterStats('normal', 71).hp / monsterStats('normal', 70).hp).toBeCloseTo(1.08);
     expect(monsterStats('boss', 30, true).hp / monsterStats('boss', 30).hp).toBeCloseTo(1.5);
   });
 
-  it('초반 내구성 (2026-11-24): 1웨이브 ×4 → 30웨이브 ×1 로 줄고, 웨이브마다 일반 몬스터 체력은 줄지 않는다', () => {
+  it('초반 내구성 (2026-11-24): 1웨이브 ×4 → 60웨이브 ×1 로 줄고, 웨이브마다 일반 몬스터 체력은 줄지 않는다', () => {
     expect(earlyHpMult(1)).toBe(4);
-    expect(earlyHpMult(30)).toBe(1);
+    expect(earlyHpMult(30)).toBeCloseTo(Math.pow(4, 30 / 59));
+    expect(earlyHpMult(60)).toBe(1);
     expect(earlyHpMult(80)).toBe(1);
-    for (let w = 2; w <= 40; w++) expect(monsterStats('normal', w).hp).toBeGreaterThanOrEqual(monsterStats('normal', w - 1).hp);
+    for (let w = 2; w <= 70; w++) expect(monsterStats('normal', w).hp).toBeGreaterThanOrEqual(monsterStats('normal', w - 1).hp);
     expect(monsterStats('elite', 5).hp).toBeCloseTo(40 * Math.pow(1.08, 4) * 0.7 * 10); // 정예·보스는 그대로
   });
 
-  it('특수 몬스터 (2026-11-24): 웨이브 안에 섞기 — 빠름 3·방어력 8·물리 저항 13·마법 저항 18웨이브부터, 한 웨이브 최대 2종, 10% → 25%', () => {
-    expect(specialTypes(2)).toEqual([]);
-    expect(specialTypes(3)).toEqual(['swift']);
+  it('특수 몬스터 (2026-11-24): 웨이브 안에 섞기 — 빠름 2·방어력 5·물리 저항 8·마법 저항 11웨이브부터, 한 웨이브 최대 2종, 15% → 40%', () => {
+    expect(specialTypes(1)).toEqual([]);
+    expect(specialTypes(2)).toEqual(['swift']);
     for (let w = 1; w <= 200; w++) {
       const types = specialTypes(w);
       expect(types.length).toBeLessThanOrEqual(2);
@@ -110,9 +111,9 @@ describe('웨이브 규칙', () => {
     const seen = new Set();
     for (let w = 1; w <= 100; w++) for (const id of specialTypes(w)) seen.add(id);
     expect([...seen].sort()).toEqual(['armored', 'magicResist', 'physResist', 'swift']);
-    // 비율: 처음 10%, 33웨이브부터 25%
-    expect(spawnList(3).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(3) * 0.1));
-    expect(spawnList(40).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(40) * 0.25));
+    // 비율: 처음 15%, 33웨이브부터 40%
+    expect(spawnList(2).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(2) * 0.15));
+    expect(spawnList(40).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(40) * 0.4));
     // 특수 몬스터는 웨이브 앞쪽에 몰리지 않고 고르게 섞인다
     const l = spawnList(40);
     const firstHalf = l.slice(0, l.length / 2).filter((k) => k.startsWith('normal:')).length;
