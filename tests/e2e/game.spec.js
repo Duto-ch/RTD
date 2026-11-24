@@ -481,7 +481,7 @@ test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은
     while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
     return g.monsters.at(-1).maxHp;
   });
-  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 0.7) / 5, 0); // 물량 ×5: 마리당 체력 1/5
+  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 0.7) / 1.8, 0); // 물량 ×1.8 (2026-11-24, 이전 ×5): 마리당 체력 1/1.8
   await page.waitForTimeout(600);
   await page.screenshot({ path: SHOT('16-endless') });
   expect(errors).toEqual([]);
