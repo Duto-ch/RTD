@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { normalCount, waveInfo, spawnList, speedMultiplier, monsterStats, isFinalWave } from '../../src/data/waves.js';
+import { normalCount, waveInfo, spawnList, speedMultiplier, monsterStats, isFinalWave, earlyHpMult, specialTypes, specialCounts } from '../../src/data/waves.js';
+import { variantDesign, monsterDesign } from '../../src/data/monsters.js';
+import { STYLES } from '../../src/data/roster.js';
 import { biomeForWave, BIOMES } from '../../src/data/biomes.js';
 import { monsterDesign } from '../../src/data/monsters.js';
 import { BALANCE } from '../../src/config.js';
@@ -69,13 +71,71 @@ describe('웨이브 규칙', () => {
   it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 전체 30% 완화(×0.7), 강화 보스 체력 1.5배', () => {
     expect(BALANCE.monster.hpScale).toBe(0.7);
     // 물량: 일반 몬스터 마리당 체력은 1/1.8 (2026-11-24, 이전 1/5 — 웨이브 전체 체력 총량은 그대로). 정예·보스는 기준 체력의 10배·110배 그대로
-    expect(monsterStats('normal', 1).hp).toBeCloseTo((34 * 0.7) / 1.8);
-    expect(monsterStats('normal', 2).hp).toBeCloseTo((40 * 1.08 * 0.7) / 1.8);
-    expect(monsterStats('normal', 10).hp).toBeCloseTo((40 * Math.pow(1.08, 9) * 0.7) / 1.8);
+    // 초반 내구성 (2026-11-24): 일반 몬스터만 1웨이브 ×4 → 30웨이브 ×1
+    expect(monsterStats('normal', 1).hp).toBeCloseTo(((34 * 0.7) / 1.8) * 4);
+    expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 0.7) / 1.8) * earlyHpMult(2));
+    expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 0.7) / 1.8) * earlyHpMult(10));
+    expect(monsterStats('normal', 40).hp).toBeCloseTo((40 * Math.pow(1.08, 39) * 0.7) / 1.8);
     expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 0.7 * 10);
     expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 0.7 * 110);
     expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 1.8) * 2); // 골드 총량 유지
-    expect(monsterStats('normal', 3).hp / monsterStats('normal', 2).hp).toBeCloseTo(1.08);
+    expect(monsterStats('normal', 41).hp / monsterStats('normal', 40).hp).toBeCloseTo(1.08);
     expect(monsterStats('boss', 30, true).hp / monsterStats('boss', 30).hp).toBeCloseTo(1.5);
   });
+
+  it('초반 내구성 (2026-11-24): 1웨이브 ×4 → 30웨이브 ×1 로 줄고, 웨이브마다 일반 몬스터 체력은 줄지 않는다', () => {
+    expect(earlyHpMult(1)).toBe(4);
+    expect(earlyHpMult(30)).toBe(1);
+    expect(earlyHpMult(80)).toBe(1);
+    for (let w = 2; w <= 40; w++) expect(monsterStats('normal', w).hp).toBeGreaterThanOrEqual(monsterStats('normal', w - 1).hp);
+    expect(monsterStats('elite', 5).hp).toBeCloseTo(40 * Math.pow(1.08, 4) * 0.7 * 10); // 정예·보스는 그대로
+  });
+
+  it('특수 몬스터 (2026-11-24): 웨이브 안에 섞기 — 빠름 3·방어력 8·물리 저항 13·마법 저항 18웨이브부터, 한 웨이브 최대 2종, 10% → 25%', () => {
+    expect(specialTypes(2)).toEqual([]);
+    expect(specialTypes(3)).toEqual(['swift']);
+    for (let w = 1; w <= 200; w++) {
+      const types = specialTypes(w);
+      expect(types.length).toBeLessThanOrEqual(2);
+      expect(new Set(types).size).toBe(types.length);
+      const ww = ((w - 1) % 100) + 1;
+      for (const id of types) expect(ww).toBeGreaterThanOrEqual(BALANCE.special.types[id].from);
+      // 출현 목록: 총 수는 그대로, 특수 몬스터 수 = specialCounts
+      const list = spawnList(w);
+      const sp = list.filter((k) => k.startsWith('normal:')).length;
+      expect(list.filter((k) => k.startsWith('normal')).length).toBe(normalCount(w));
+      expect(sp).toBe(Object.values(specialCounts(w)).reduce((a, b) => a + b, 0));
+    }
+    // 네 종류 모두 언젠가 나온다
+    const seen = new Set();
+    for (let w = 1; w <= 100; w++) for (const id of specialTypes(w)) seen.add(id);
+    expect([...seen].sort()).toEqual(['armored', 'magicResist', 'physResist', 'swift']);
+    // 비율: 처음 10%, 33웨이브부터 25%
+    expect(spawnList(3).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(3) * 0.1));
+    expect(spawnList(40).filter((k) => k.startsWith('normal:')).length).toBe(Math.round(normalCount(40) * 0.25));
+    // 특수 몬스터는 웨이브 앞쪽에 몰리지 않고 고르게 섞인다
+    const l = spawnList(40);
+    const firstHalf = l.slice(0, l.length / 2).filter((k) => k.startsWith('normal:')).length;
+    expect(firstHalf / l.filter((k) => k.startsWith('normal:')).length).toBeGreaterThan(0.35);
+  });
+
+  it('특수 몬스터 능력치: 빠름(속도 ×1.6·체력 ×0.7) · 방어력(체력 ×1.3, 방어력 = 일반 체력의 12%) · 저항(그 공격 35%)', () => {
+    const base = monsterStats('normal', 20);
+    const swift = monsterStats('normal', 20, false, 'swift');
+    expect(swift.speed).toBeCloseTo(base.speed * 1.6);
+    expect(swift.hp).toBeCloseTo(base.hp * 0.7);
+    const arm = monsterStats('normal', 20, false, 'armored');
+    expect(arm.hp).toBeCloseTo(base.hp * 1.3);
+    expect(arm.armor).toBeCloseTo(base.hp * 0.12);
+    expect(monsterStats('normal', 20, false, 'physResist').resist).toBe('phys');
+    expect(monsterStats('normal', 20, false, 'magicResist').resist).toBe('magic');
+    expect(BALANCE.special.resist).toBe(0.35);
+    // 공격 스타일 피해 종류: 물리 = 연사·속공·저격·근접, 마법 = 주술·지원, 폭발은 따로
+    expect(Object.fromEntries(Object.entries(STYLES).map(([k, v]) => [k, v.type]))).toEqual({ bow: 'phys', rapid: 'phys', heavy: 'phys', blast: 'blast', hex: 'magic', brawl: 'phys', aid: 'magic' });
+    // 외형: 종류마다 정해진 외형, 그 웨이브 기본 외형과 겹치면 다음 후보
+    expect(variantDesign('swift', 10).id).toBe('wolf');
+    expect(monsterDesign('normal', 28).id).toBe('wolf');
+    expect(variantDesign('swift', 28).id).toBe('hound');
+  });
 });
+

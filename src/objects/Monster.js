@@ -2,18 +2,22 @@ import Phaser from 'phaser';
 import { PX, DEPTH } from '../config.js';
 import { pathPoint } from '../systems/path.js';
 import { monsterStats, isFinalWave } from '../data/waves.js';
-import { monsterDesign } from '../data/monsters.js';
+import { monsterDesign, variantDesign } from '../data/monsters.js';
 import { playBase, setArt } from '../systems/customArt.js';
 import { dotKey } from '../art/textures.js';
 import { BOSS_ABILITIES } from '../data/bossAbilities.js';
 import { BALANCE } from '../config.js';
 
 export class Monster extends Phaser.GameObjects.Sprite {
-  constructor(scene, kind, attr, wave, milestone = false) {
-    const design = monsterDesign(kind, wave);
+  constructor(scene, kind, attr, wave, milestone = false, variant = null) {
+    const design = variant ? variantDesign(variant, wave) : monsterDesign(kind, wave);
     super(scene, 0, 0, Monster.texKey(scene, design, attr, kind));
-    this.design = design; // { id, name } — 웨이브별 전용 외형
-    const s = monsterStats(kind, wave, milestone);
+    this.design = design; // { id, name } — 웨이브별 전용 외형 (특수 몬스터는 종류별 외형)
+    const s = monsterStats(kind, wave, milestone, variant);
+    // 특수 몬스터 (2026-11-24): 빠름·방어력·물리 저항·마법 저항
+    this.variant = variant;
+    this.armor = s.armor || 0; // 한 대마다 이만큼 피해가 줄어든다 (최소 BALANCE.special.minDmg, 지속 피해는 무시)
+    this.resist = s.resist || null; // 'phys' | 'magic' — 그 종류 피해를 BALANCE.special.resist 만큼만 받는다
     this.milestone = milestone; // 강화 보스 (30·60·90)
     this.isFinal = kind === 'boss' && isFinalWave(wave); // 최종 보스 (100웨이브마다)
     this.revived = false;
@@ -93,6 +97,25 @@ export class Monster extends Phaser.GameObjects.Sprite {
     return now < this.vulnUntil ? 1 + this.vulnPct : 1;
   }
 
+  /** 저항 배율: 공격한 용병의 피해 종류(물리·마법·폭발)가 이 몬스터의 저항과 같으면 BALANCE.special.resist */
+  resistMult(source) {
+    return this.resist && source?.dmgType === this.resist ? BALANCE.special.resist : 1;
+  }
+
+  /** 받는 피해: 약화·저항 배율 → 방어력(한 대마다 armor 만큼, 최소 minDmg 비율 · 지속 피해는 방어력 무시) */
+  mitigate(amount, now, source, dot = false) {
+    let a = amount * this.damageTakenMult(now) * this.resistMult(source);
+    if (this.armor && !dot) a = Math.max(a * BALANCE.special.minDmg, a - this.armor);
+    return a;
+  }
+
+  /** 이 몬스터를 죽이는 데 드는 (줄기 전) 피해 — 관통이 남는 피해를 계산할 때 */
+  rawToKill(now, source) {
+    const m = this.damageTakenMult(now) * this.resistMult(source);
+    if (!this.armor) return this.hp / m;
+    return Math.min((this.hp + this.armor) / m, this.hp / (m * BALANCE.special.minDmg));
+  }
+
   place() {
     const p = pathPoint(this.dist, this.lane);
     // 2프레임 깡충 애니메이션 (픽셀 격자 유지). 기절 중엔 멈춤
@@ -138,7 +161,7 @@ export class Monster extends Phaser.GameObjects.Sprite {
       this.dots = this.dots.filter((d) => d.until > now);
       let total = 0;
       for (const d of this.dots) total += d.dps * dt;
-      if (total > 0) this.scene.damageMonster(this, total, { source: this.dots[0]?.source, silent: true });
+      if (total > 0) this.scene.damageMonster(this, total, { source: this.dots[0]?.source, silent: true, dot: true });
     }
 
     // 상태 표시 틴트

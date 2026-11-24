@@ -17,15 +17,15 @@ export const GRADES = {
 /** 덱 (2026-11-20 룰 v2): 최대 30명, 레어 최대 9명, 유니크 최대 3명 */
 export const DECK_RULES = { max: 30, rare: 9, unique: 3 };
 
-/** 기본 공격 스타일 — 1레벨 기본 능력치 (등급 배율 전) */
+/** 기본 공격 스타일 — 1레벨 기본 능력치 (등급 배율 전). type: 피해 종류(2026-11-24 특수 몬스터 저항) — phys 물리 · magic 마법 · blast 폭발 */
 export const STYLES = {
-  bow: { name: '연사', dmg: 8, rate: 1.4, range: 220 },
-  rapid: { name: '속공', dmg: 6, rate: 2.2, range: 180 },
-  heavy: { name: '저격', dmg: 28, rate: 0.45, range: 320 },
-  blast: { name: '폭발', dmg: 9, rate: 0.8, range: 200, splash: 44 },
-  hex: { name: '주술', dmg: 6, rate: 1.0, range: 210 },
-  brawl: { name: '근접', dmg: 13, rate: 1.1, range: 150, splash: 30 },
-  aid: { name: '지원', dmg: 5, rate: 1.0, range: 200 }
+  bow: { name: '연사', type: 'phys', dmg: 8, rate: 1.4, range: 220 },
+  rapid: { name: '속공', type: 'phys', dmg: 6, rate: 2.2, range: 180 },
+  heavy: { name: '저격', type: 'phys', dmg: 28, rate: 0.45, range: 320 },
+  blast: { name: '폭발', type: 'blast', dmg: 9, rate: 0.8, range: 200, splash: 44 },
+  hex: { name: '주술', type: 'magic', dmg: 6, rate: 1.0, range: 210 },
+  brawl: { name: '근접', type: 'phys', dmg: 13, rate: 1.1, range: 150, splash: 30 },
+  aid: { name: '지원', type: 'magic', dmg: 5, rate: 1.0, range: 200 }
 };
 
 /**

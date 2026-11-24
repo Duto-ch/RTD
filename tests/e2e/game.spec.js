@@ -1446,6 +1446,63 @@ test('물량: 1웨이브 60기(2026-11-24 물량 배수 1.8)가 길 폭에 퍼�
   expect(errors).toEqual([]);
 });
 
+test('특수 몬스터 (2026-11-24): 웨이브 안에 섞여 나오고 — 물리 저항은 물리 35%·마법 100% · 방어력은 한 대마다 줄고 지속 피해는 무시 · 빠름은 1.6배 속도', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const R = window.__rtd.ROSTER;
+    g.gold = 99999;
+    const phys = R.find((c) => c.style === 'bow');
+    const magic = R.find((c) => c.style === 'hex');
+    g.hire(phys.id); g.hire(magic.id);
+    const [mp, mm] = [g.mercs.find((m) => m.char.id === phys.id), g.mercs.find((m) => m.char.id === magic.id)];
+    g.startWave(22); // 물리 저항 + 방어력
+    const banner = g.hud.bannerObj ? g.hud.bannerObj.list?.map((o) => o.text).filter(Boolean).join(' ') : '';
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const ms = g.monsters;
+    const pr = ms.find((m) => m.variant === 'physResist');
+    const ar = ms.find((m) => m.variant === 'armored');
+    const plain = ms.find((m) => m.kind === 'normal' && !m.variant);
+    const dealt = (m, merc, dmg, opts = {}) => { const before = m.hp; g.damageMonster(m, dmg, { source: merc, ...opts }); return before - m.hp; };
+    const small = pr.maxHp * 0.1;
+    const out = {
+      counts: { physResist: ms.filter((m) => m.variant === 'physResist').length, armored: ms.filter((m) => m.variant === 'armored').length },
+      design: [pr.design.id, ar.design.id],
+      physOnResist: dealt(pr, mp, small) / small,
+      magicOnResist: dealt(pr, mm, small) / small,
+      physOnPlain: dealt(plain, mp, small) / small,
+      armorBig: dealt(ar, mp, ar.armor * 3) / (ar.armor * 3),
+      armorTiny: dealt(ar, mp, ar.armor * 0.5) / (ar.armor * 0.5),
+      armorDot: dealt(ar, mm, ar.armor * 0.5, { dot: true }) / (ar.armor * 0.5),
+      banner
+    };
+    for (const m of [...g.monsters]) m.destroy();
+    g.monsters = [];
+    g.startWave(5); // 빠름 (같은 웨이브 일반 몬스터와 비교)
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const sw = g.monsters.find((m) => m.variant === 'swift');
+    const nm = g.monsters.find((m) => m.kind === 'normal' && !m.variant);
+    out.swift = sw.baseSpeed / nm.baseSpeed;
+    out.swiftDesign = sw.design.id;
+    return out;
+  });
+  expect(r.counts.physResist).toBeGreaterThan(5);
+  expect(r.counts.armored).toBeGreaterThan(5);
+  expect(r.design).toEqual(['ghost', 'beetle']);
+  expect(r.physOnResist).toBeCloseTo(0.35, 2);
+  expect(r.magicOnResist).toBeCloseTo(1, 2);
+  expect(r.physOnPlain).toBeCloseTo(1, 2);
+  expect(r.armorBig).toBeCloseTo(2 / 3, 2); // 3a - a = 2a
+  expect(r.armorTiny).toBeCloseTo(0.25, 2); // 방어력보다 작으면 최소 25%
+  expect(r.armorDot).toBeCloseTo(1, 2); // 지속 피해는 방어력 무시
+  expect(r.swift).toBeCloseTo(1.6, 2);
+  expect(r.swiftDesign).toBe('wolf');
+  expect(r.banner).toContain('물리 저항'); // 웨이브 배너에 특수 몬스터 종류·수
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT('31b-special') });
+  expect(errors).toEqual([]);
+});
+
 test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 · HUD 가 필드·몬스터 길을 가리지 않는다 · 대기석은 오른쪽 칸 · 위·아래 바는 화면 끝까지', async ({ page }) => {
   const errors = await startGame(page);
   expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([1920, 1080]);

@@ -16,7 +16,7 @@ import { countTraits, activeTier, TRAIT_IDS, RAGE_MAX, ORIGIN_IDS, TRAITS } from
 import { ITEM_RULES, ITEM_BY_ID, MAT_IDS, isComponent, combine } from '../data/items.js';
 import { STONES } from '../data/tavern.js';
 import { RELIC_BY_ID, relicBonus, addBonus } from '../data/relics.js';
-import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
+import { waveInfo, spawnList, isMilestoneWave, specialCounts } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { dissolveTo, dissolveIn } from '../ui/dissolve.js';
 import { Vfx } from '../systems/vfx.js';
@@ -306,8 +306,11 @@ export class GameScene extends Phaser.Scene {
       info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
+    // 특수 몬스터 (2026-11-24): 배너 아래 줄에 종류·수 (예: '빠름 7 · 방어력 5')
+    const sp = Object.entries(specialCounts(w)).filter(([, n]) => n > 0).map(([id, n]) => `${BALANCE.special.types[id].name} ${n}`);
+    const subLine = sp.length ? `${sub} · ${sp.join(' · ')}` : sub;
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
-    this.showBanner(`WAVE ${w}`, sub, color);
+    this.showBanner(`WAVE ${w}`, subLine, color);
     if (w === 1) this.tut.show('wave');
   }
 
@@ -388,9 +391,11 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(2300, () => !this.over && this.toast(`새로운 지역: ${biome.name}`));
   }
 
-  spawnMonster(kind) {
-    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
+  spawnMonster(entry) {
+    const [kind, variant = null] = entry.split(':'); // 특수 몬스터는 'normal:<종류>' (2026-11-24)
+    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave), variant);
     this.monsters.push(m);
+    if (variant) this.tut.show('special');
     if (m.isBoss) {
       audio.bossAppear(); // 전쟁나팔(audio.warHorn)은 2026-11-24 사용자 결정으로 보류 — 예전 우르릉 소리
       this.tut.show('boss');
@@ -589,7 +594,7 @@ export class GameScene extends Phaser.Scene {
     const elite = target.kind !== 'normal' ? 1 + (st.eliteDmg || 0) + (target.isBoss ? st.bossDmg || 0 : 0) : 1; // 사수 시너지·아이템: 정예·보스 피해
     const far = st.item?.farDmg ? 1 + st.item.farDmg * Math.min(1, Math.sqrt(d2(target, merc)) / st.range) : 1; // 명사수 조준경
     const dmg = st.damage * mult * giant * slayer * elite * far;
-    const need = carry && target.kind === 'normal' ? target.hp / target.damageTakenMult(this.gameTime) : Infinity;
+    const need = carry && target.kind === 'normal' ? target.rawToKill(this.gameTime, merc) : Infinity;
     this.damageMonster(target, dmg, { source: merc, crit });
     if (dmg > need) this.carryDamage(merc, target, dmg - need);
   }
@@ -612,7 +617,7 @@ export class GameScene extends Phaser.Scene {
         }
       }
       if (!best) break;
-      const need = best.hp / best.damageTakenMult(this.gameTime);
+      const need = best.rawToKill(this.gameTime, merc);
       x = best.x;
       y = best.y;
       this.damageMonster(best, left, { source: merc });
@@ -793,9 +798,9 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
-  damageMonster(m, amount, { source, crit = false, silent = false } = {}) {
+  damageMonster(m, amount, { source, crit = false, silent = false, dot = false } = {}) {
     if (!m.alive) return;
-    amount *= m.damageTakenMult(this.gameTime);
+    amount = m.mitigate(amount, this.gameTime, source, dot); // 약화·저항·방어력 (2026-11-24 특수 몬스터)
     m.hp -= amount;
     if (!silent) m.flashUntil = this.gameTime + 0.06;
     if (crit) this.floatText(m.x, m.y - 20, `${Math.round(amount)}!`, '#ffd84a');

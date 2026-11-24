@@ -77,6 +77,14 @@ export const TUTORIAL_STEPS = {
       return b ? { x: toUi(b.x) - 30, y: toUi(b.y) - 36, w: 60, h: 60 } : null; // 보스는 월드 좌표
     }
   },
+  special: {
+    title: '특수 몬스터',
+    text: '모습이 다른 몬스터가 섞여 나와요.\n늑대 빠름 · 딱정벌레 방어력 · 유령 물리 저항 · 임프 마법 저항\n방어력은 센 한 방·지속 피해로, 저항은 다른 종류 공격으로 (폭발은 안 막혀요)',
+    rect: (s) => {
+      const m = s.monsters?.find((o) => o.variant && o.active);
+      return m ? { x: toUi(m.x) - 22, y: toUi(m.y) - 22, w: 44, h: 44 } : null; // 몬스터는 월드 좌표
+    }
+  },
   stones: {
     title: '마정석',
     text: '보스를 쓰러뜨리면 마정석이 떨어져요.\n영지의 술집(캐릭터 고용)·유물 공방(유물 생산)에서 씁니다.',
