@@ -13530,13 +13530,13 @@
   },
   "char_richard": {
    "file": "chars/richard.png",
-   "frameWidth": 56,
-   "frameHeight": 40,
-   "scale": 0.6666666666666666,
+   "frameWidth": 112,
+   "frameHeight": 80,
+   "scale": 0.3333333333333333,
    "faceTarget": true,
    "facing": "left",
-   "pivotX": 27,
-   "pivotY": 23,
+   "pivotX": 54,
+   "pivotY": 46,
    "animations": {
     "idle": {
      "frames": [
@@ -13664,7 +13664,8 @@
      ],
      "hit": 15
     }
-   }
+   },
+   "bake2x": true
   },
   "char_oberon": {
    "file": "chars/oberon.png",

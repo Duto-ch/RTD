@@ -1871,7 +1871,7 @@ test('리롤 값 (2026-11-22): 리롤할 때마다 +10G · 웨이브 끝 상점 
   expect(errors).toEqual([]);
 });
 
-test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임', async ({ page }) => {
+test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임 · 리처드 2배 시트', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1881,5 +1881,16 @@ test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 �
     });
   });
   expect(r).toEqual([[14, 28, 28], [15, 28, 28], [15, 28, 28], [14, 28, 28]]); // 퍼거스 창 → 총 · 리처드 석궁 → 검 (PSD 에서 그림을 바꿈) · 윌리엄 활 · 콜린 석궁
+  // 무기만 촘촘하게 돌려 구운 2배 시트 (시험: 리처드) — 프레임은 2배, 화면 크기는 다른 캐릭터와 같다
+  const sz = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    return ['richard', 'arthur'].map((id) => {
+      g.hire(id);
+      const m = g.mercs[g.mercs.length - 1];
+      const f = g.textures.get(`char_${id}`).get(0);
+      return [f.width, f.height, Math.round(m.sprite.displayWidth), Math.round(m.sprite.displayHeight)];
+    });
+  });
+  expect(sz).toEqual([[112, 80, 112, 80], [56, 40, 112, 80]]);
   expect(errors).toEqual([]);
 });
