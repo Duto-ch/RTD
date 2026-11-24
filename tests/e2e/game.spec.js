@@ -393,7 +393,7 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   await page.goto('/');
   await settled(page, 'Title');
   await game(page, () => { const m = window.__rtd.meta; m.reset(); m.addFame(50); });
-  await clickAt(page, () => { const b = window.game.scene.getScene('Title').fameBtn; return { x: b.x, y: b.y }; }); // 명성 강화 (타이틀 아래 금색 버튼)
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Upgrade', { from: 'title' })); // 2026-11-24: 타이틀 명성 강화 버튼 삭제 — 장면을 바로 연다
   await settled(page, 'Upgrade');
   // 우주 배경 + 별똥별 (2026-11-23): 배경 그림이 깔리고 잠시 뒤 별똥별(space_meteor, 28프레임)이 지나간다
   expect(await game(page, () => window.game.scene.getScene('Upgrade').children.list.some((o) => o.texture?.key === 'space_bg'))).toBe(true);
@@ -1403,8 +1403,12 @@ test('튜토리얼: 기능을 처음 만나면 한 번만 뜨고 전투가 멈�
 test('타이틀: 일러스트 + 깜빡이는 CLICK TO START, 아무 곳이나 누르면 영지(로비)', async ({ page }) => {
   await page.goto('/');
   await settled(page, 'Title');
-  const t = await page.evaluate(() => { const s = window.game.scene.getScene('Title'); return { tap: s.tapText.text, bg: s.textures.exists('title_bg') }; });
-  expect(t).toEqual({ tap: 'CLICK TO START', bg: true }); // PC (2026-11-22)
+  const t = await page.evaluate(() => {
+    const s = window.game.scene.getScene('Title');
+    const key = s.children.list.find((o) => o.texture?.key === 'title_key');
+    return { tap: s.tapText.text, bg: !!key && key.displayWidth >= 1280 && key.displayHeight >= 720, fameBtn: !!s.fameBtn, below: s.tapText.y > 267 && s.tapText.x < 640 };
+  });
+  expect(t).toEqual({ tap: 'CLICK TO START', bg: true, fameBtn: false, below: true }); // 2026-11-24: 가로 키 아트가 화면을 채움 · 로고 아래 · 명성 강화 버튼 없음
   // 깜빡임: 시간에 따라 투명도가 바뀐다
   const alphas = new Set();
   for (let i = 0; i < 8; i++) {

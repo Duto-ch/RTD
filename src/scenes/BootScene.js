@@ -16,8 +16,7 @@ export class BootScene extends Phaser.Scene {
   preload() {
     preloadManifest(this);
     preloadFx(this);
-    this.load.image('title_bg', 'assets/title/title.png'); // 도트 2px: 세로용 272x482
-    this.load.image('title_bg_wide', 'assets/title/title_wide.png'); // 가로용 203x360 (화면 높이 720 = 2px)
+    this.load.image('title_key', 'assets/title/title_key.webp'); // 2026-11-24 사용자 그림: 가로 1920x1080 키 아트 (영문 로고 포함, 원본 그대로)
     // 로비(영지) 배경 — 동화풍 일러스트를 2px 도트로 정리한 그림 (2026-11-21, 세로 272x480 · 가로 640x360) (아트 해상도, 화면엔 UI_PX 배)
     this.load.image('lobby_wide', 'assets/lobby/lobby_wide.png');
     // 2026-11-22 사용자 결정: 세로 영지·성탑(강화) 배경은 사용자 그림을 도트로 줄이지 않고 원본 그대로(941x1672, 부드럽게 맞춤 — 2px 도트 규칙 예외)
