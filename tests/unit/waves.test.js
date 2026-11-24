@@ -68,16 +68,16 @@ describe('웨이브 규칙', () => {
     expect(BALANCE.wall.dmg).toEqual({ normal: 1.5, elite: 3, boss: 30, milestone: 40, final: 80 });
   });
 
-  it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 전체 30% 완화(×0.7), 강화 보스 체력 1.5배', () => {
-    expect(BALANCE.monster.hpScale).toBe(0.7);
+  it('1웨이브 체력 34 (예외), 2웨이브부터 40×1.08^(w-1), 전체 배율 ×1.0(2026-11-24, 이전 ×0.7), 강화 보스 체력 1.5배', () => {
+    expect(BALANCE.monster.hpScale).toBe(1.0);
     // 물량: 일반 몬스터 마리당 체력은 1/1.8 (2026-11-24, 이전 1/5 — 웨이브 전체 체력 총량은 그대로). 정예·보스는 기준 체력의 10배·110배 그대로
     // 초반 내구성 (2026-11-24): 일반 몬스터만 1웨이브 ×4 → 60웨이브 ×1
-    expect(monsterStats('normal', 1).hp).toBeCloseTo(((34 * 0.7) / 1.8) * 4);
-    expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 0.7) / 1.8) * earlyHpMult(2));
-    expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 0.7) / 1.8) * earlyHpMult(10));
-    expect(monsterStats('normal', 70).hp).toBeCloseTo((40 * Math.pow(1.08, 69) * 0.7) / 1.8);
-    expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 0.7 * 10);
-    expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 0.7 * 110);
+    expect(monsterStats('normal', 1).hp).toBeCloseTo(((34 * 1.0) / 1.8) * 4);
+    expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 1.0) / 1.8) * earlyHpMult(2));
+    expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 1.0) / 1.8) * earlyHpMult(10));
+    expect(monsterStats('normal', 70).hp).toBeCloseTo((40 * Math.pow(1.08, 69) * 1.0) / 1.8);
+    expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 1.0 * 10);
+    expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 1.0 * 110);
     expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 1.8) * 2); // 골드 총량 유지
     expect(monsterStats('normal', 71).hp / monsterStats('normal', 70).hp).toBeCloseTo(1.08);
     expect(monsterStats('boss', 30, true).hp / monsterStats('boss', 30).hp).toBeCloseTo(1.5);
@@ -89,7 +89,7 @@ describe('웨이브 규칙', () => {
     expect(earlyHpMult(60)).toBe(1);
     expect(earlyHpMult(80)).toBe(1);
     for (let w = 2; w <= 70; w++) expect(monsterStats('normal', w).hp).toBeGreaterThanOrEqual(monsterStats('normal', w - 1).hp);
-    expect(monsterStats('elite', 5).hp).toBeCloseTo(40 * Math.pow(1.08, 4) * 0.7 * 10); // 정예·보스는 그대로
+    expect(monsterStats('elite', 5).hp).toBeCloseTo(40 * Math.pow(1.08, 4) * 1.0 * 10); // 정예·보스는 그대로
   });
 
   it('특수 몬스터 (2026-11-24): 웨이브 안에 섞기 — 빠름 2·방어력 5·물리 저항 8·마법 저항 11웨이브부터, 한 웨이브 최대 2종, 15% → 40%', () => {
