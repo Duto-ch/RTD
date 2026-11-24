@@ -75,7 +75,7 @@ describe('웨이브 규칙', () => {
     expect(monsterStats('normal', 1).hp).toBeCloseTo(((34 * 1.0) / 1.8) * 4);
     expect(monsterStats('normal', 2).hp).toBeCloseTo(((40 * 1.08 * 1.0) / 1.8) * earlyHpMult(2));
     expect(monsterStats('normal', 10).hp).toBeCloseTo(((40 * Math.pow(1.08, 9) * 1.0) / 1.8) * earlyHpMult(10));
-    expect(monsterStats('normal', 70).hp).toBeCloseTo(((40 * Math.pow(1.08, 69) * 1.0) / 1.8) * 1.3); // 11웨이브부터 ×1.3
+    expect(monsterStats('normal', 70).hp).toBeCloseTo(((40 * Math.pow(1.08, 69) * 1.0) / 1.8) * 1.5); // 11웨이브부터 ×1.5
     expect(monsterStats('elite', 2).hp).toBeCloseTo(40 * 1.08 * 1.0 * 10);
     expect(monsterStats('boss', 10).hp).toBeCloseTo(40 * Math.pow(1.08, 9) * 1.0 * 110);
     expect(normalCount(2) * monsterStats('normal', 2).gold).toBeCloseTo((normalCount(2) / 1.8) * 2); // 골드 총량 유지
@@ -144,14 +144,14 @@ describe('웨이브 규칙', () => {
     expect(BALANCE.waveDuration).toBeUndefined();
   });
 
-  it('11웨이브부터 상향 (2026-11-24 사용자 결정): 모든 몬스터 체력 ×1.3 · 기절 몬스터는 11웨이브부터', () => {
-    expect(BALANCE.monster.midHp).toEqual({ from: 11, mult: 1.3 });
+  it('11웨이브부터 상향 (2026-11-24 사용자 결정): 모든 몬스터 체력 ×1.5 · 기절 몬스터는 11웨이브부터', () => {
+    expect(BALANCE.monster.midHp).toEqual({ from: 11, mult: 1.5 });
     const raw = (w) => 40 * Math.pow(1.08, w - 1) * BALANCE.monster.hpScale;
     expect(monsterStats('elite', 5).hp).toBeCloseTo(raw(5) * 10);
-    expect(monsterStats('elite', 15).hp).toBeCloseTo(raw(15) * 10 * 1.3);
+    expect(monsterStats('elite', 15).hp).toBeCloseTo(raw(15) * 10 * 1.5);
     expect(monsterStats('boss', 10).hp).toBeCloseTo(raw(10) * 110);
-    expect(monsterStats('boss', 20).hp).toBeCloseTo(raw(20) * 110 * 1.3);
-    expect(monsterStats('normal', 11).hp / monsterStats('normal', 10).hp).toBeGreaterThan(1.3);
+    expect(monsterStats('boss', 20).hp).toBeCloseTo(raw(20) * 110 * 1.5);
+    expect(monsterStats('normal', 11).hp / monsterStats('normal', 10).hp).toBeGreaterThan(1.5);
     expect(BALANCE.special.types.stunner.from).toBe(11);
     expect(specialTypes(10)).not.toContain('stunner');
     expect(monsterStats('normal', 14, false, 'stunner').stun).toEqual({ cd: 10, dur: 1.2, range: 220 });
