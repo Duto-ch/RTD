@@ -249,6 +249,7 @@ export class DeckScene extends Phaser.Scene {
       if (!deckValid(next)) return this.toast(`레어는 최대 ${DECK_RULES.rare}명, 유니크는 최대 ${DECK_RULES.unique}명입니다`);
       this.deck.push(c.id);
     }
+    audio.toggle(i < 0);
     this.refresh();
   }
 

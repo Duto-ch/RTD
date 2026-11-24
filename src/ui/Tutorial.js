@@ -1,6 +1,7 @@
 // 기능별 최초 1회 튜토리얼 — 기능을 처음 만나는 순간 전투를 멈추고, 해당 위치를 밝게 비추며 말풍선으로 설명한다.
 // 본 단계는 meta(localStorage)에 저장되어 다시 뜨지 않는다. "튜토리얼 끄기"로 전부 끄고, ESC 메뉴에서 다시 켤 수 있다.
 // 자동화 브라우저(테스트·밸런스 봇)에서는 꺼져 있다 — 테스트는 localStorage 'rtd_tutorial_test' 로 켠다.
+import { audio } from '../systems/audio.js';
 import { GAME_W, GAME_H, DEPTH, CELL, FIELD_X, FIELD_Y } from '../config.js';
 import { HUD } from './Hud.js';
 import { toUi } from '../systems/hires.js';
@@ -154,6 +155,7 @@ export class Tutorial {
     const step = TUTORIAL_STEPS[id];
     const r = typeof step.rect === 'function' ? step.rect(s) : step.rect;
     this.open = id;
+    audio.tutorial();
     s.hud.hideRelicTip?.();
     const depth = DEPTH.overlay + 20;
     const c = s.add.container(0, 0).setDepth(depth);
