@@ -83,8 +83,93 @@ def bake_frame(P, final, hand, cid):
     return cv
 
 
+def majority(im):
+    """2배 그림 → 1배: 2x2 칸마다 불투명이 2개 이상이면 그 안에서 가장 많은 색 (같으면 진한 색 — 외곽선이 끊기지 않게)"""
+    from collections import Counter
+    W, H = im.width // 2, im.height // 2
+    out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    p, o = im.load(), out.load()
+    for y in range(H):
+        for x in range(W):
+            cs = [p[2 * x + i, 2 * y + j] for i in (0, 1) for j in (0, 1)]
+            cs = [c for c in cs if c[3] >= 128]
+            if len(cs) >= 2:
+                cnt = Counter(c[:3] for c in cs)
+                best = max(cnt, key=lambda c: (cnt[c], -sum(c)))
+                o[x, y] = best + (255,)
+    return out
+
+
+def bake_frame_dot2(P, final, hand, cid, method):
+    """2px 도트 그대로 (시트 1배): method 'nearest' = 아트 1px 격자에서 바로 돌리기 · 'majority' = 2배로 곱게 돌린 뒤 2x2 다수결로 줄이기"""
+    wim, wpv, _, _, _ = OV._samples(cid)
+    deg0 = OV._meta['weapons'][cid]['deg']
+    extra = final.copy()
+    diff = ImageChops.difference(final, P['full']).convert('L').point(lambda v: 255 if v else 0)
+    extra.putalpha(ImageChops.multiply(extra.getchannel('A'), diff))
+    flip = lambda im: im.transpose(Image.FLIP_LEFT_RIGHT) if P['mirror'] else im
+    body = flip(P['bare'].copy())
+    hx, hy = P['hand']
+    if method == 'nearest':
+        BE.S = 1
+        wl = Image.new('RGBA', (A.W, A.H), (0, 0, 0, 0))
+        BE.draw(wl, wim, (wpv[0] + 0.5, wpv[1] + 0.5), (hx + 0.5, hy + 0.5), P['deg'] - deg0)
+        BE.S = 2
+    else:
+        BE.S = 2
+        w2 = Image.new('RGBA', (A.W * 2, A.H * 2), (0, 0, 0, 0))
+        BE.draw(w2, wim, (wpv[0] + 0.5, wpv[1] + 0.5), (hx + 0.5, hy + 0.5), P['deg'] - deg0)
+        wl = majority(w2)
+    top = Image.new('RGBA', (A.W, A.H), (0, 0, 0, 0))
+    back = Image.new('RGBA', (A.W, A.H), (0, 0, 0, 0))
+    for (x, y), lay in zip(P['hands'], P['layers']):
+        (back if lay == 'back' else top).alpha_composite(hand, (x - 2, y - 2))
+    cv = Image.new('RGBA', (A.W, A.H), (0, 0, 0, 0))
+    for l in ([wl, back, body] if P['behind'] else [back, body, wl]) + [top]:
+        cv.alpha_composite(l)
+    cv = flip(cv)
+    cv.alpha_composite(extra)
+    return cv
+
+
+def dot2_main(cid):
+    """2px 도트 시안: 같은 동작을 지금 · 바로 돌리기 · 다수결 줄이기 · (참고) 2배 굽기로 나란히 → bake2x/<id>_dot2.png, --install-dot2 면 다수결 시트를 게임에"""
+    R.fire = A28.install()
+    OV.install(R, A)
+    rec, frames, hand = capture(cid)
+    sheets = {m: [bake_frame_dot2(P, f, hand, cid, m) for (f, _), P in zip(frames, rec)] for m in ('nearest', 'majority')}
+    big = [bake_frame(P, f, hand, cid) for (f, _), P in zip(frames, rec)]
+    rows = [('now', [f for f, _ in frames], 1), ('nearest', sheets['nearest'], 1), ('majority', sheets['majority'], 1), ('2x', big, 2)]
+    Z = 4
+    cw, ch = A.W * Z, A.H * Z
+    picks = list(range(28, 56, 2))
+    out = Image.new('RGBA', (len(picks) * cw, len(rows) * ch), (246, 241, 228, 255))
+    for r_, (_, fs, k) in enumerate(rows):
+        for q, i in enumerate(picks):
+            out.alpha_composite(fs[i].resize((cw, ch), Image.NEAREST), (q * cw, r_ * ch))
+    out.save(os.path.join(HERE, 'bake2x', cid + '_dot2.png'))
+    if '--install-dot2' in sys.argv:
+        man_p = os.path.join(ROOT, 'public', 'assets', 'custom', 'manifest.json')
+        man = json.load(open(man_p))
+        e = man['sprites']['char_' + cid]
+        if e.get('bake2x'):
+            e['frameWidth'], e['frameHeight'] = A.W, A.H
+            e['scale'] *= K
+            e['pivotX'], e['pivotY'] = e['pivotX'] // K, e['pivotY'] // K
+            e.pop('bake2x')
+        e['dot2bake'] = True
+        sh = Image.new('RGBA', (A.W * len(frames), A.H), (0, 0, 0, 0))
+        for k, f in enumerate(sheets['majority']):
+            sh.alpha_composite(f, (k * A.W, 0))
+        sh.save(os.path.join(ROOT, 'public', 'assets', 'custom', 'chars', cid + '.png'))
+        json.dump(man, open(man_p, 'w'), ensure_ascii=False, indent=1)
+        print('installed dot2', cid)
+
+
 def main():
     cid = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('-') else 'richard'
+    if '--dot2' in sys.argv or '--install-dot2' in sys.argv:
+        return dot2_main(cid)
     R.fire = A28.install()
     OV.install(R, A)
     assert OV.has_weapon(cid), f'{cid}: PSD 로 고친 무기가 없다'
