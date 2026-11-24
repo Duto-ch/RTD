@@ -138,6 +138,7 @@ export class WorkshopScene extends Phaser.Scene {
   toggle(id) {
     const on = meta.equipped.includes(id);
     if (!meta.toggleEquip(id)) return this.toast(`장착 칸이 가득 찼어요 (${meta.relicSlots}칸) — 먼저 하나를 해제하세요`);
+    audio.toggle(!on);
     this.toast(on ? '해제했어요' : '장착했어요 — 다음 판부터 적용');
     this.refresh();
   }

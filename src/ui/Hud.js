@@ -590,6 +590,7 @@ export class Hud {
       ic.on('pointerover', () => this.showItemTip(id, p.x, p.y, 16));
       ic.on('pointerout', () => this.hideRelicTip());
       ic.on('dragstart', () => {
+        audio.pick();
         this.hideRelicTip();
         this.benchRow.remove(ic);
         ic.setDepth(DEPTH.drag); // UI(200) 위 — 끌고 가는 그림이 상점·시트 아래로 숨지 않게
