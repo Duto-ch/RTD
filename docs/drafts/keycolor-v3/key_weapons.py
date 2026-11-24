@@ -186,6 +186,7 @@ def main():
             set_ctx(BYID[ch['cid']])
             A.geo_weapon = W3.geo
         else:
+            OV.set_current(None)                   # 게임에 없는 브란 — 앞 캐릭터 이름이 남지 않게 (무기 분리 기록이 섞인다)
             A.geo_weapon = A.geo_weapon_orig       # 유니크 세레나·게임에 없는 브란은 예전 무기 그대로 (여기서는 버림)
         return orig_compose(*a, ch=ch, **k)
     A.compose = compose

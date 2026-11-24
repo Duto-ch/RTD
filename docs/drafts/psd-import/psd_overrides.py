@@ -212,7 +212,7 @@ def install(R, A):
 
 
 # ── 무기 분리 (2026-11-24 사용자 결정: 무기는 게임이 돌려 그린다) ──
-# 고친 무기가 있는 캐릭터는 시트에서 무기·앞손을 빼고(휘두름 잔상·효과는 남김), 프레임마다
+# 모든 캐릭터(2026-11-24 — 처음엔 PSD 로 무기를 고친 27명, 같은 날 전체로)는 시트에서 무기·앞손을 빼고(휘두름 잔상·효과는 남김), 프레임마다
 # 쥐는 점 자리·무기 각도·앞손 자리를 rig/<id>.json 에 적는다. 시트 끝에는 무기까지 그린 정지 프레임 1장(로비·병영 그림용)
 RIG_DIR = os.path.join(HERE, 'rig')
 RIG = {'on': False, 'hide': False, 'data': {}}
@@ -225,7 +225,7 @@ def _rig_hooks(R, A):
 
     def compose(*a, **k):
         cid = _cur['id']
-        if not (RIG['on'] and cid and has_weapon(cid)):
+        if not (RIG['on'] and cid):
             return orig_compose(*a, **k)
         b = sig.bind(*a, **k)
         b.apply_defaults()
@@ -244,8 +244,18 @@ def _rig_hooks(R, A):
             RIG['hide'] = False
         mirror = bool(ch.get('mirror'))
         d = _rig_new(cid, mirror, ch, A)
+        if d.get('wimg') is None:       # 원본 무기 그림: PSD 로 고친 것, 없으면 지금 코드가 대기 각도에서 그린 것
+            if has_weapon(cid):
+                im, pv, _, _, _ = _samples(cid)
+                d.update(wimg=im, wpv=pv, deg0=_meta['weapons'][cid]['deg'])
+            else:
+                deg0 = A.IDLE_TILT.get(g['weapon'], 45)
+                im, pv = A.weapon_img(g['weapon'], deg0)
+                d.update(wimg=im.copy(), wpv=pv, deg0=deg0, wname=g['weapon'])
+        if d.get('wname') and d['wname'] != g['weapon']:
+            print('⚠️ rig: 무기 이름이 바뀜', cid, d['wname'], g['weapon'])
         fx = lambda x: A.W - x if mirror else x            # 연속 좌표 뒤집기
-        deg0 = _meta['weapons'][cid]['deg']
+        deg0 = d['deg0']
         tops = [[(A.W - (x - 2) - 4) if mirror else x - 2, y - 2] for x, y, lay in hl if lay == 'top']
         d['frames'].append([round(fx(hx + 0.5), 2), hy + 0.5, round(((-1 if mirror else 1) * (g['deg'] - deg0) + 180) % 360 - 180, 2), bool(g['behind']), tops])
         if d['still'] is None:
@@ -274,7 +284,7 @@ def _rig_new(cid, mirror, ch, A):
 def _rig_save(cid):
     d = RIG['data'][cid]
     os.makedirs(RIG_DIR, exist_ok=True)
-    im, (pvx, pvy), _, _, _ = _samples(cid)
+    im, (pvx, pvy) = d['wimg'], d['wpv']
     w = im.transpose(Image.FLIP_LEFT_RIGHT) if d['mirror'] else im
     piv = [round(im.width - (pvx + 0.5), 2) if d['mirror'] else pvx + 0.5, pvy + 0.5]
     w.save(os.path.join(RIG_DIR, f'{cid}_wpn.png'))
@@ -308,9 +318,10 @@ def rig_manifest(root):
     mf = json.load(open(mp))
     sp = {k: v for k, v in mf['sprites'].items() if not k.startswith('rig_')}
     n = 0
-    for cid in sorted(_meta['weapons']):
+    ids = sorted(f[:-5] for f in os.listdir(RIG_DIR) if f.endswith('.json'))
+    for cid in ids:
         jp = os.path.join(RIG_DIR, f'{cid}.json')
-        if not os.path.exists(jp) or f'char_{cid}' not in sp:
+        if f'char_{cid}' not in sp:
             continue
         r = json.load(open(jp))
         dst = os.path.join(root, 'public', 'assets', 'custom', 'chars')

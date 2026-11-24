@@ -1871,7 +1871,7 @@ test('리롤 값 (2026-11-22): 리롤할 때마다 +10G · 웨이브 끝 상점 
   expect(errors).toEqual([]);
 });
 
-test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임 · 고친 무기는 게임이 돌려 그린다', async ({ page }) => {
+test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 검 휘두르기 · 고친 캐릭터 시트도 대기·공격 28프레임 · 무기는 게임이 돌려 그린다 (70명 전부)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1899,7 +1899,10 @@ test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 �
     });
   });
   expect(rig[0]).toEqual({ rig: true, still: 56, frames: 56, weapon: { inBox: true, visible: true, scale: true, above: true }, hands: 2, size: [112, 80] });
-  expect(rig[1]).toEqual({ rig: false, still: null, frames: 0, weapon: null, hands: 0, size: [112, 80] });
+  expect(rig[1]).toEqual({ rig: true, still: 56, frames: 56, weapon: { inBox: true, visible: true, scale: true, above: true }, hands: 2, size: [112, 80] }); // 시그리드 = 활 (앞손 칸 2 — 당길 때 두 손)
+  // 같은 날 전체로 (2026-11-24): 게임 캐릭터 70명 모두 무기 분리
+  const noRig = await game(page, () => window.__rtd.ROSTER.filter((c) => !window.game.scene.getScene('Game').textures.get(`char_${c.id}`).customData.rig).map((c) => c.id));
+  expect(noRig).toEqual([]);
   await page.screenshot({ path: SHOT('psd-weapon-rig') });
   expect(errors).toEqual([]);
 });
