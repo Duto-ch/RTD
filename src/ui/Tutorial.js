@@ -66,7 +66,7 @@ export const TUTORIAL_STEPS = {
   },
   next: {
     title: '바로 시작',
-    text: '필드의 몬스터를 모두 처치하면\n다음 웨이브를 바로 부를 수 있어요.\n(F 키 · Space 게임 정지 · R 리롤 · E 영지 레벨 업)',
+    text: '정비 시간에 누르면 남은 시간을 건너뛰고\n다음 웨이브를 바로 시작해요.\n(F 키 · Space 게임 정지 · R 리롤 · E 영지 레벨 업)',
     rect: (s) => btnRect(s.hud.nextWaveBtn, 6)
   },
   boss: {
@@ -76,6 +76,11 @@ export const TUTORIAL_STEPS = {
       const b = s.monsters?.find((m) => m.isBoss && m.active);
       return b ? { x: toUi(b.x) - 30, y: toUi(b.y) - 36, w: 60, h: 60 } : null; // 보스는 월드 좌표
     }
+  },
+  prep: {
+    title: '정비 시간',
+    text: '웨이브가 시작되면 몬스터를 모두 잡을 때까지\n용병 구매·배치·아이템 장착을 할 수 없어요.\n웨이브가 끝나면 15초 정비 시간이 와요 (F 키로 바로 시작).',
+    rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   special: {
     title: '특수 몬스터',

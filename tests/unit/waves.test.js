@@ -137,5 +137,9 @@ describe('웨이브 규칙', () => {
     expect(monsterDesign('normal', 28).id).toBe('wolf');
     expect(variantDesign('swift', 28).id).toBe('hound');
   });
-});
 
+  it('정비 시간 (2026-11-24 사용자 결정): 웨이브마다 시작 전 15초 · 웨이브 간격 타이머(waveDuration)는 없다 — 몬스터를 다 잡아야 끝', () => {
+    expect(BALANCE.prepTime).toBe(15);
+    expect(BALANCE.waveDuration).toBeUndefined();
+  });
+});

@@ -57,7 +57,8 @@ export class GameScene extends Phaser.Scene {
     this.wallShield = this.bonus.wallShield || 0;
     this.wallFxAt = 0;
     this.wave = 0;
-    this.waveTimer = BALANCE.prepTime;
+    this.phase = 'prep'; // 정비 시간(prep) ↔ 웨이브(wave) (2026-11-24 사용자 결정)
+    this.waveTimer = BALANCE.prepTime; // 정비 시간 남은 초
     this.spawnQueue = [];
     this.spawnTimer = 0;
     this.spawnInterval = 0;
@@ -192,11 +193,8 @@ export class GameScene extends Phaser.Scene {
       this.updateRoots(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
-      // 웨이브 클리어 → 상점 새로 고침 (2026-11-22)
-      if (this.wave >= 1 && !this.shopRefreshed && this.canCallNextWave) {
-        this.refillShopNow();
-        this.toast('웨이브 클리어 · 상점 새로 고침');
-      }
+      // 웨이브 클리어 → 상점 새로 고침 + 정비 시간 (2026-11-24: 웨이브는 몬스터를 모두 잡으면 끝난다)
+      if (this.inWave && this.canCallNextWave) this.endWave();
     }
 
     this.drawHpBars();
@@ -260,8 +258,11 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────── 웨이브 ─────────────────────────
   updateWaves(dt) {
-    this.waveTimer -= dt;
-    if (this.waveTimer <= 0) this.startWave(this.wave + 1);
+    // 정비 시간이 끝나면 다음 웨이브 (웨이브 중에는 시간이 흐르지 않는다 — 몬스터를 다 잡아야 끝)
+    if (!this.inWave) {
+      this.waveTimer -= dt;
+      if (this.waveTimer <= 0) this.startWave(this.wave + 1);
+    }
     if (this.spawnQueue.length) {
       this.spawnTimer -= dt;
       // 성능 보호: 필드가 꽉 차면 출현을 잠시 멈춘다 (패배 조건 아님)
@@ -286,11 +287,11 @@ export class GameScene extends Phaser.Scene {
     if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
     this.waveSynergy(w);
     this.waveItems(w);
-    // 상점 (2026-11-22 사용자 결정): 웨이브가 끝날 때(몬스터를 다 잡았을 때) 새로 채운다 — 다 잡기 전에 다음 웨이브가
-    // 시작되면 그때 새로 채운다 (웨이브마다 한 번)
+    // 상점 (2026-11-22 사용자 결정): 웨이브가 끝날 때(몬스터를 다 잡았을 때) 새로 채운다 — 테스트·디버그로 웨이브를 건너뛰면 여기서
     if (w >= 2 && !this.shopRefreshed) this.refillShopNow();
     this.shopRefreshed = false;
     this.wave = w;
+    this.phase = 'wave'; // 웨이브 중: 용병 구매·배치·아이템 장착 금지 (2026-11-24)
     const info = waveInfo(w);
     if (info.type === 'normal' || info.type === 'elite') audio.waveStart(info.type, w); // 보스 웨이브는 보스가 나올 때 전쟁나팔
     const list = spawnList(w);
@@ -299,7 +300,7 @@ export class GameScene extends Phaser.Scene {
     this.waveAttrs = Phaser.Utils.Array.Shuffle([...ATTRS]).slice(0, BALANCE.monster.attrsPerWave);
     this.spawnInterval = BALANCE.spawnWindow / list.length;
     this.spawnTimer = 0;
-    this.waveTimer = BALANCE.waveDuration;
+    this.waveTimer = 0;
     this.changeBiome(biomeForWave(w));
     const sub =
       info.type === 'final' ? `최종 보스 출현! 쓰러뜨려도 한 번 되살아납니다` :
@@ -311,7 +312,39 @@ export class GameScene extends Phaser.Scene {
     const subLine = sp.length ? `${sub} · ${sp.join(' · ')}` : sub;
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
     this.showBanner(`WAVE ${w}`, subLine, color);
-    if (w === 1) this.tut.show('wave');
+    if (w === 1) {
+      this.tut.show('wave');
+      this.tut.show('prep');
+    }
+    // 끌고 있던 용병은 제자리로 (배치는 정비 시간에만)
+    for (const u of this.allUnits) {
+      if (!u.dragging) continue;
+      u.dragging = false;
+      u.snapToCell();
+    }
+    this.refreshShop();
+  }
+
+  /** 웨이브 중인가 — 용병 구매·배치(필드 안 이동·대기석 바꾸기)·아이템 장착은 정비 시간에만 (2026-11-24 사용자 결정) */
+  get inWave() {
+    return this.phase === 'wave';
+  }
+
+  /** 웨이브 중이면 막고 알린다 (막았으면 true) */
+  lockedInWave(what) {
+    if (!this.inWave) return false;
+    this.toast(`웨이브 중에는 ${what} — 정비 시간에 할 수 있어요`);
+    return true;
+  }
+
+  /** 웨이브 몬스터를 모두 잡았다 → 상점 새로 고침 + 정비 시간 */
+  endWave() {
+    this.phase = 'prep';
+    this.waveTimer = BALANCE.prepTime;
+    if (!this.shopRefreshed) this.refillShopNow();
+    this.toast(`웨이브 클리어 · 정비 시간 ${BALANCE.prepTime}초`);
+    this.refreshShop();
+    this.refreshHud();
   }
 
   /** 상점의 잠그지 않은 칸을 새로 채운다 (웨이브가 끝날 때 한 번) */
@@ -323,14 +356,14 @@ export class GameScene extends Phaser.Scene {
     audio.shopRefresh();
   }
 
-  /** 바로 시작은 필드의 몬스터를 전부 처치했을 때만 (나올 몬스터도 남아 있지 않을 때) */
+  /** 필드의 몬스터를 전부 처치했다 (나올 몬스터도 남아 있지 않다) — 웨이브가 끝나는 조건 */
   get canCallNextWave() {
     return !this.over && this.monsters.length === 0 && this.spawnQueue.length === 0;
   }
 
-  /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
+  /** 바로 시작: 정비 시간에 남은 시간을 건너뛰고 다음 웨이브 (실수 연타 방지 0.6초) */
   callNextWave() {
-    if (this.menuOpen || this.tut.open || !this.canCallNextWave) return;
+    if (this.menuOpen || this.tut.open || this.inWave || !this.canCallNextWave) return;
     const now = this.time.now;
     if (now - (this.lastCall || 0) < 600) return;
     this.lastCall = now;
@@ -946,7 +979,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 상점 칸 사기 */
   buy(i) {
-    if (this.over) return null;
+    if (this.over || this.lockedInWave('용병을 살 수 없어요')) return null;
     const slot = this.shop[i];
     if (!slot || slot.sold) return null;
     const char = ROSTER_BY_ID[slot.id];
@@ -1148,6 +1181,7 @@ export class GameScene extends Phaser.Scene {
   equip(benchIndex, merc, origin = null) {
     const id = this.bench[benchIndex];
     if (!id || !merc || !this.mercs.includes(merc)) return false;
+    if (this.lockedInWave('아이템을 장착할 수 없어요')) return false;
     let result = null;
     let slot = -1;
     if (isComponent(id)) {
@@ -1384,6 +1418,7 @@ export class GameScene extends Phaser.Scene {
     // 용병 끌기: 월드 좌표로 (포인터의 worldX 는 마지막에 맞은 카메라 좌표라 UI 위에서는 다르다 — 직접 바꾼다)
     this.input.on('dragstart', (p, obj) => {
       if (!(obj instanceof Mercenary) || this.over) return;
+      if (this.lockedInWave('용병을 옮길 수 없어요')) return; // 배치는 정비 시간에만 (2026-11-24)
       const w = worldPoint(this, p);
       obj.dragging = true;
       audio.pick();

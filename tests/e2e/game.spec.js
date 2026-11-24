@@ -1446,6 +1446,62 @@ test('물량: 1웨이브 60기(2026-11-24 물량 배수 1.8)가 길 폭에 퍼�
   expect(errors).toEqual([]);
 });
 
+test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·아이템 장착 — 웨이브 중엔 막히고, 몬스터를 다 잡으면 다시 15초 정비 · F 로 바로 시작', async ({ page }) => {
+  const errors = await startGame(page);
+  const before = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    const i = g.shop.findIndex((s) => s && !s.sold);
+    return { phase: g.phase, timer: g.waveTimer, bought: !!g.buy(i), label: g.hud.timerText.text };
+  });
+  expect(before.phase).toBe('prep');
+  expect(before.timer).toBeGreaterThan(12); // 15초에서 시작
+  expect(before.bought).toBe(true);
+  expect(before.label).toMatch(/^정비 1[0-5]초$/);
+  // F = 바로 시작 → 웨이브
+  await page.keyboard.press('f');
+  const during = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    g.giveItem('whet');
+    const gold = g.gold;
+    const i = g.shop.findIndex((s) => s && !s.sold);
+    const m = g.mercs[0];
+    const pos = { x: m.x, y: m.y };
+    const r = { phase: g.phase, wave: g.wave, buy: g.buy(i), equip: g.equip(0, m), items: m.items.length, gold: g.gold === gold, label: g.hud.timerText.text, shopAlpha: g.hud.shopBox.alpha };
+    // 끌어서 옮기기도 막힌다
+    g.input.emit('dragstart', g.input.activePointer, m);
+    r.dragging = !!m.dragging;
+    r.pos = Math.hypot(m.x - pos.x, m.y - pos.y);
+    g.refreshHud();
+    r.nextEnabled = g.hud.nextWaveBtn.enabled;
+    return r;
+  });
+  expect(during).toMatchObject({ phase: 'wave', wave: 1, buy: null, equip: false, items: 0, gold: true, dragging: false, pos: 0, shopAlpha: 0.55, nextEnabled: false });
+  expect(during.label).toMatch(/^남은 \d+기$/);
+  // 30초가 지나도 다음 웨이브가 겹쳐 오지 않는다 (몬스터를 다 잡아야 끝)
+  const still = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (let k = 0; k < 400; k++) g.updateWaves(0.1);
+    return { wave: g.wave, phase: g.phase };
+  });
+  expect(still).toEqual({ wave: 1, phase: 'wave' });
+  // 다 잡으면 정비 시간 15초 + 상점 새로 고침 → 다시 살 수 있다
+  const after = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.spawnQueue = [];
+    for (const m of [...g.monsters]) g.killMonster(m, null);
+    g.cleanupMonsters();
+    g.update(0, 16);
+    const i = g.shop.findIndex((s) => s && !s.sold);
+    return { phase: g.phase, timer: Math.round(g.waveTimer), refreshed: g.shopRefreshed, bought: !!g.buy(i), equip: g.equip(0, g.mercs[0]) };
+  });
+  expect(after).toEqual({ phase: 'prep', timer: 15, refreshed: true, bought: true, equip: true });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31c-prep') });
+  expect(errors).toEqual([]);
+});
+
 test('특수 몬스터 (2026-11-24): 웨이브 안에 섞여 나오고 — 물리 저항은 물리 35%·마법 100% · 방어력은 한 대마다 줄고 지속 피해는 무시 · 빠름은 1.6배 속도', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {

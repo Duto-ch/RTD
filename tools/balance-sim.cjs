@@ -54,6 +54,7 @@ const { chromium } = require('playwright');
     let wave = -1, rerolls = 0;
     const act = () => {
       if (g.wave !== wave) { wave = g.wave; rerolls = 0; }
+      if (g.inWave) return; // 정비 시간(2026-11-24)에만 사고·놓고·장착한다
       for (let guard = 0; guard < 40; guard++) {
         const open = g.shop.map((s, i) => ({ s, i })).filter(({ s }) => s && !s.sold && g.gold >= price(R[s.id]));
         // 1) 별 승급이 되는 칸
