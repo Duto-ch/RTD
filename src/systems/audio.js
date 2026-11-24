@@ -167,6 +167,18 @@ class Chiptune {
     const vg = ctx.createGain();
     vg.gain.value = 0.5;
     this.verb.connect(vg).connect(this.ultBus);
+    // 뿔나팔 메아리 (계곡에 울리는 느낌: 0.38초 되풀이, 돌 때마다 어두워짐)
+    this.hornEcho = ctx.createDelay(1);
+    this.hornEcho.delayTime.value = 0.38;
+    const efb = ctx.createGain();
+    efb.gain.value = 0.32;
+    const elp = ctx.createBiquadFilter();
+    elp.type = 'lowpass';
+    elp.frequency.value = 1400;
+    this.hornEcho.connect(elp).connect(efb).connect(this.hornEcho);
+    const ewet = ctx.createGain();
+    ewet.gain.value = 0.45;
+    elp.connect(ewet).connect(this.ultBus);
 
     if (this.wanted) this.playMusic(this.wanted, true);
   }
@@ -427,35 +439,147 @@ class Chiptune {
   }
 
   /**
-   * 보스 등장 전쟁나팔 (2026-11-24 사용자 요청: '우우우우우우웅~' 한 음이 길게) — 아래에서 천천히 올려 잡아 부풀어 오르고,
-   * 떨림이 점점 커지다 끝에서 살짝 내려앉으며 잔향으로 사라진다. 울리는 동안 배경음·효과음을 낮춘다.
-   * level 0 보스 D2 2.4초 · 1 강화 보스 C2(+ 큰북) 2.8초 · 2 최종 보스 A1(+ 5도 위 + 큰북 두 번) 3.4초. 모두 한 옥타브 위를 옅게 겹침
+   * 바이킹 뿔나팔 한 음 (2026-11-24 사용자 요청): 짐승 뿔을 부는 거친 소리 —
+   * 톱니 + 좁은 펄스를 비틀어(웨이브셰이퍼) 입술 떨림 같은 거친 결, 뿔 몸통의 '홍~' 공명(대역 통과 2개),
+   * 숨이 섞인 바람 소리, 불안정하게 흔들리는 음(느린 흔들림 + 빠른 떨림), 처음엔 아래에서 확 치고 올라와
+   * 살짝 넘쳤다 자리 잡고, 끝에서 숨이 모자라 음이 처지며 사라진다. 메아리 + 잔향.
+   */
+  vikingNote(m, t, dur, vol, { detune = 0, sag = 2.5 } = {}) {
+    const ctx = this.ctx;
+    const f0 = 440 * Math.pow(2, (m - 69) / 12);
+    const end = t + dur;
+    const stop = end + 0.7;
+    // 음높이: -5반음에서 0.16초 만에 +0.3반음까지 치고 올라 자리 잡고, 끝에서 sag 반음 처짐
+    const st = (x) => f0 * Math.pow(2, x / 12);
+    const pitch = (p) => {
+      p.setValueAtTime(st(-5), t);
+      p.exponentialRampToValueAtTime(st(0.3), t + 0.16);
+      p.exponentialRampToValueAtTime(st(0), t + 0.4);
+      p.setValueAtTime(st(0), end - 0.25);
+      p.exponentialRampToValueAtTime(st(-sag), end + 0.35);
+    };
+    const shaper = ctx.createWaveShaper();
+    const n = 1024;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1;
+      curve[i] = Math.tanh(3 * x) / Math.tanh(3);
+    }
+    shaper.curve = curve;
+    // 흔들림: 느린 흔들림(0.9Hz) + 빠른 떨림(6.3Hz) — 사람이 부는 불안정함
+    const wob = [[0.9, 9], [6.3, 6]].map(([rate, cents]) => {
+      const l = ctx.createOscillator();
+      l.frequency.value = rate * (1 + (Math.random() - 0.5) * 0.2);
+      const g = ctx.createGain();
+      g.gain.value = cents;
+      l.connect(g);
+      l.start(t);
+      l.stop(stop);
+      return g;
+    });
+    const pre = ctx.createGain();
+    pre.gain.value = 0.9;
+    for (const [type, amp, det] of [['sawtooth', 0.6, detune], ['p12', 0.5, detune + 7]]) {
+      const o = ctx.createOscillator();
+      if (this.waves[type]) o.setPeriodicWave(this.waves[type]);
+      else o.type = type;
+      pitch(o.frequency);
+      o.detune.value = det;
+      for (const w of wob) w.connect(o.detune);
+      const og = ctx.createGain();
+      og.gain.value = amp;
+      o.connect(og).connect(pre);
+      o.start(t);
+      o.stop(stop);
+    }
+    // 입술 떨림: 거친 결 (빠른 진폭 흔들림 31Hz)
+    const rough = ctx.createGain();
+    rough.gain.value = 0.85;
+    const am = ctx.createOscillator();
+    am.frequency.value = 31;
+    const amg = ctx.createGain();
+    amg.gain.value = 0.15;
+    am.connect(amg).connect(rough.gain);
+    am.start(t);
+    am.stop(stop);
+    pre.connect(shaper).connect(rough);
+    // 뿔 몸통 공명: 낮은 '홍' + 콧소리 같은 중역, 위는 어둡게
+    const body = ctx.createGain();
+    for (const [freq, q, g] of [[f0 * 2.2, 2.2, 1.0], [1150, 3, 1.1], [f0 * 4, 2.5, 0.45], [f0, 1.2, 0.3]]) {
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = freq;
+      bp.Q.value = q;
+      const bg = ctx.createGain();
+      bg.gain.value = g;
+      rough.connect(bp).connect(bg).connect(body);
+    }
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(700, t);
+    lp.frequency.linearRampToValueAtTime(2400, t + 0.2);
+    lp.frequency.setTargetAtTime(1700, t + 0.2, 0.5);
+    lp.frequency.setTargetAtTime(400, end, 0.15);
+    // 소리 크기: '푸' 하고 터진 뒤 살짝 숨 고르고 부풀어 유지, 끝에서 숨이 빠지며 사라짐
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.07);
+    g.gain.linearRampToValueAtTime(vol * 0.78, t + 0.25);
+    g.gain.linearRampToValueAtTime(vol, t + 0.9);
+    g.gain.setValueAtTime(vol, end - 0.2);
+    g.gain.linearRampToValueAtTime(0, end + 0.4);
+    body.connect(lp).connect(g);
+    // 숨소리: 처음 '후' 세게, 그 뒤로 내내 옅게 섞인 바람
+    const br = ctx.createBufferSource();
+    br.buffer = this.noiseBuf;
+    br.loop = true;
+    const bf = ctx.createBiquadFilter();
+    bf.type = 'bandpass';
+    bf.frequency.value = 900;
+    bf.Q.value = 0.8;
+    const bgn = ctx.createGain();
+    bgn.gain.setValueAtTime(0, t);
+    bgn.gain.linearRampToValueAtTime(vol * 0.6, t + 0.03);
+    bgn.gain.setTargetAtTime(vol * 0.16, t + 0.05, 0.1);
+    bgn.gain.setValueAtTime(vol * 0.16, end - 0.2);
+    bgn.gain.linearRampToValueAtTime(vol * 0.3, end);
+    bgn.gain.linearRampToValueAtTime(0, end + 0.4);
+    br.connect(bf).connect(bgn).connect(g);
+    br.start(t, Math.random() * 0.5);
+    br.stop(stop);
+    g.connect(this.ultBus);
+    g.connect(this.verb);
+    g.connect(this.hornEcho);
+  }
+
+  /**
+   * 보스 등장 바이킹 뿔나팔 (2026-11-24 사용자 요청 — 매끈한 금관 나팔은 보류하고 바꿈). 한 음 길게, 울리는 동안 배경음·효과음을 낮춘다.
+   * level 0 보스: 뿔 하나 D3 + 한 옥타브 아래 옅게 · 1 강화 보스: C3, 두 사람이 조금 어긋나게 · 2 최종 보스: A2, 세 사람(5도 아래 포함) + 큰북
    */
   warHorn(level = 0) {
-    // 2026-11-24 사용자 결정: 느낌이 잘 안 살아 게임에서는 쓰지 않음(보류) — 보스 등장은 bossAppear. 다시 다듬을 때 시안 docs/drafts/sound/fill/horn_*.mp3
     if (!this.ready || !this.throttle('horn', 1)) return;
     const t = this.ctx.currentTime + 0.02;
-    // 2026-11-24 사용자 요청: 한 옥타브 더 낮게 (무겁게) — D2 → C2 → A1
-    const m = 38 + ([0, -2, -5][level] ?? 0);
-    const dur = [2.4, 2.8, 3.4][level] ?? 2.4;
-    const opt = { attack: 0.7, scoop: 3, scoopTime: 0.45, fall: 1.5, vibDelay: 0.8, vib: 18, sub: false };
+    const m = 50 + ([0, -2, -5][level] ?? 0);
+    const dur = [2.3, 2.7, 3.2][level] ?? 2.3;
     const dg = this.duck.gain;
     dg.cancelScheduledValues(t);
     dg.setValueAtTime(dg.value, t);
-    dg.linearRampToValueAtTime(0.4, t + 0.25);
+    dg.linearRampToValueAtTime(0.4, t + 0.15);
     dg.setValueAtTime(0.4, t + dur);
-    dg.linearRampToValueAtTime(1, t + dur + 0.8);
-    this.hornNote(m, t, dur, level >= 1 ? 0.46 : 0.42, opt);
-    // 한 옥타브 위를 옅게 겹친다 — 작은 스피커에서도 나팔 소리가 또렷하게 (낮은 기본음은 노트북 스피커가 잘 못 낸다)
-    this.hornNote(m + 12, t + 0.03, dur, level >= 1 ? 0.1 : 0.14, opt);
-    if (level >= 2) this.hornNote(m + 7, t + 0.08, dur - 0.1, 0.12, opt); // 5도 위 — 더 웅장하게
-    const drum = (at, v) => {
-      this.tone(this.ultBus, 'sine', 70, at, 0.8, v, { to: 32 });
-      this.noise(this.ultBus, at, 0.35, v * 0.5, 'lowpass', 500, 80);
-    };
-    if (level >= 1) drum(t + 0.55, 0.5);
-    if (level >= 2) drum(t + dur - 0.2, 0.55);
+    dg.linearRampToValueAtTime(1, t + dur + 0.9);
+    const v = level >= 1 ? 0.34 : 0.42;
+    this.vikingNote(m, t, dur, v);
+    this.vikingNote(m - 12, t + 0.02, dur, 0.15, { detune: -6, sag: 2 }); // 아래 옥타브가 무게를 받친다
+    if (level >= 1) this.vikingNote(m, t + 0.14, dur - 0.1, 0.26, { detune: 18, sag: 3 }); // 다른 사람이 조금 늦게·조금 높게
+    if (level >= 2) {
+      this.vikingNote(m - 5, t + 0.26, dur - 0.2, 0.22, { detune: -10, sag: 2.5 }); // 4도 아래 — 다른 음 높이의 뿔
+      for (const at of [0.05, 0.7]) {
+        this.tone(this.ultBus, 'sine', 80, t + at, 0.8, 0.4, { to: 34 });
+        this.noise(this.ultBus, t + at, 0.35, 0.25, 'lowpass', 500, 80);
+      }
+    }
   }
+
 
   /** UI 버튼 클릭 (2026-11-22): 짧고 부드러운 '톡' */
   click() {
