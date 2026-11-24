@@ -169,6 +169,7 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
+    this.hud?.paintReserve(); // 대기석 칸 등급색 (바뀐 칸만, 2026-11-24)
     if (this.over) return;
     const frozen = !!(this.paused || this.menuOpen || this.tut.open);
     this.syncFreeze(frozen);
@@ -1361,6 +1362,7 @@ export class GameScene extends Phaser.Scene {
       if (!(obj instanceof Mercenary) || this.over) return;
       const w = worldPoint(this, p);
       obj.dragging = true;
+      obj.setReserveClip(null); // 대기석에서 끌어내면 칸 모양 자르기 풀기 (2026-11-24)
       obj.dragOff = { x: obj.x - w.x, y: obj.y - w.y };
       obj.setDepth(DEPTH.drag);
     });

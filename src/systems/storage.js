@@ -15,7 +15,7 @@
 
 const WRITE_DELAY = 250; // ms — 짧은 사이에 여러 번 저장해도 파일은 한 번
 /** 저장하는 키 (웹 → 데스크톱 옮겨 오기·내보내기 대상) */
-export const SAVE_KEYS = ['rtd_meta_v3', 'rtd-muted', 'rtd-music-vol', 'rtd-sfx-vol'];
+export const SAVE_KEYS = ['rtd_meta_v3', 'rtd-muted', 'rtd-music-vol', 'rtd-sfx-vol', 'rtd-vhs'];
 
 const webStore = () => {
   try {

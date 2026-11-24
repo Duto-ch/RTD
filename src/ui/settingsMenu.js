@@ -6,6 +6,7 @@ import { Button } from './Button.js';
 import { panel, uiText, titleTab, closeButton, CSS, C } from './theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
+import { vhs } from '../systems/vhs.js';
 
 /**
  * @param {Phaser.Scene} s
@@ -53,11 +54,19 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
   volRow(py + 148, '효과음', () => audio.sfxVol, (v) => audio.setSfxVolume(v));
 
   const bw = pw - 56;
-  const mute = new Button(s, GAME_W / 2, py + 216, bw, 50, '', () => {
+  // 음소거 · VHS 효과(2026-11-24 시험판)를 한 줄에 반씩
+  const hw = (bw - 8) / 2;
+  const mute = new Button(s, GAME_W / 2 - hw / 2 - 4, py + 216, hw, 50, '', () => {
     audio.toggleMute();
-    mute.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+    mute.setLabel(`음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
   }, { variant: 'outline', fontSize: 16 });
-  mute.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+  mute.setLabel(`음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+  const vhsBtn = new Button(s, GAME_W / 2 + hw / 2 + 4, py + 216, hw, 50, '', () => {
+    vhs.toggle();
+    vhsBtn.setLabel(`VHS 효과 ${vhs.enabled ? '켜짐' : '꺼짐'}`);
+  }, { variant: 'outline', fontSize: 16 });
+  vhsBtn.setLabel(`VHS 효과 ${vhs.enabled ? '켜짐' : '꺼짐'}`);
+  c.vhsBtn = vhsBtn;
   const resume = new Button(s, GAME_W / 2, py + 286, bw, 56, '계속하기', onClose, { variant: 'primary', fontSize: 18 });
   let confirm = false;
   const quit = new Button(s, GAME_W / 2, py + 358, bw, 56, '게임 종료', () => {
@@ -78,7 +87,7 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
     meta.resetTutorial();
     tut.setLabel('튜토리얼이 다시 켜졌어요');
   }, { variant: 'outline', fontSize: 12 });
-  c.add([mute, resume, quit, tut]);
+  c.add([mute, vhsBtn, resume, quit, tut]);
   c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   c.quitBtn = quit;
   return c;

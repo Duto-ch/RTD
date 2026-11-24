@@ -1,6 +1,7 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
 import { TRAITS } from '../data/synergy.js';
+import { GRADES } from '../data/roster.js';
 import { pointerFor, uiPosOf, inWorld } from '../systems/hires.js';
 import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES, GAME_W, UI_SCALE } from '../config.js';
 
@@ -156,6 +157,8 @@ const COZY_STYLES = {
   // 영지 메뉴 버튼 (2026-11-21): 진한 갈색 굵은 테두리 + 아래 입술로 '누르는 버튼' 느낌을 강조
   menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
+// 대기석 칸 등급 테두리 (2026-11-24 사용자 요청: 상점 카드 테두리처럼) — 'soft' 칸과 같은 모양, 테두리 3 = 등급색, 안쪽 = 상점 카드 바탕 (Hud.paintReserve)
+for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, lip: null, r: 14, lw: 3 };
 
 function cozyKey(scene, style, w, h) {
   const key = `cozy_${style}_${Math.round(w)}x${Math.round(h)}`;

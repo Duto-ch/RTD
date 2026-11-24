@@ -1770,10 +1770,31 @@ test('2026-11-22 화면 점검: 용병 카드 아이템은 상징 배지와 안 
     g.shop[0] = { id: ids[4], sold: false, locked: false };
     g.buy(0);
     const u = g.reserve.find(Boolean);
-    return { reserved: !!u?.reserved, drawn: u?.drawnReserved };
+    g.hud.paintReserve();
+    const img = g.hud.reserveImgs[u.slot];
+    const empty = g.hud.reserveImgs.find((im, i) => !g.reserve[i]);
+    return { reserved: !!u?.reserved, drawn: u?.drawnReserved, tex: img.texture.key, size: [img.displayWidth, img.displayHeight], emptySize: [empty.displayWidth, empty.displayHeight], clipped: !!u.mask, grade: u.grade };
   });
   expect(q.reserved).toBe(true);
   expect(q.drawn).toBe(true);
+  // 2026-11-24: 칸 안쪽 = 등급색(칸 모양 그대로라 빈 칸과 크기가 같다) · 캐릭터는 칸 모양으로 잘림
+  expect(q.tex).toContain(`grade${q.grade}`);
+  expect(q.size).toEqual(q.emptySize);
+  expect(q.clipped).toBe(true);
+  // 2026-11-24: 위 바 1/3 얇게(48) · 유물 빈 칸과 장착 칸은 같은 원 · 상점 잠금은 카드 오른쪽 위
+  const top = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.ownedRelics = [{ id: 'hero_sword', level: 1, active: true }];
+    g.hud.refreshRelics();
+    const slot = g.hud.relicRow.list[0];
+    const empty = g.hud.relicEmpty[1];
+    g.hud.refreshShop();
+    const card = g.hud.shopBox.list.find((c) => c.slotIndex != null);
+    const lz = card.list.filter((o) => o.input).pop(); // 잠금 누르기 영역 (마지막에 넣는다)
+    return { slot: [slot.displayWidth, slot.displayHeight], empty: [empty.displayWidth, empty.displayHeight], lockX: lz.x, cardW: card.getBounds().width };
+  });
+  expect(top.slot).toEqual(top.empty);
+  expect(top.lockX).toBeGreaterThan(top.cardW / 2); // 오른쪽 반
   expect(errors).toEqual([]);
 });
 
@@ -2013,5 +2034,33 @@ test('버그 회귀 (2026-11-23): 전투 중 강화 창 → 닫고 전투로 버
   const after = await game(page, () => { const g = window.game.scene.getScene('Game'); return { wave: g.wave, gold: g.gold, mercs: g.mercs.length }; });
   expect(after).toEqual(before); // 판이 그대로
   expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('VHS 효과 시험판 (2026-11-24): 기본은 꺼짐 · ESC 메뉴에서 켜면 게임 화면 위에 효과 캔버스(포인터는 통과) · 다시 누르면 꺼짐 · 저장', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Lobby'));
+  await settled(page, 'Lobby');
+  expect(await game(page, () => window.__rtd.vhs.enabled)).toBe(false);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !!window.game.scene.getScene('Lobby').menu);
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').menu.vhsBtn; return { x: b.x, y: b.y }; });
+  await page.waitForTimeout(300);
+  const on = await page.evaluate(() => {
+    const cv = document.getElementById('rtd-vhs');
+    const r = cv?.getBoundingClientRect();
+    const g = window.game.canvas.getBoundingClientRect();
+    return { on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: cv?.style.display, pe: cv?.style.pointerEvents, same: !!r && Math.abs(r.width - g.width) < 1 && Math.abs(r.left - g.left) < 1, label: window.game.scene.getScene('Lobby').menu.vhsBtn.label.text };
+  });
+  expect(on).toEqual({ on: true, saved: '1', shown: 'block', pe: 'none', same: true, label: 'VHS 효과 켜짐' });
+  await page.screenshot({ path: SHOT('53-vhs-on') });
+  // 효과 캔버스가 덮여 있어도 메뉴 버튼은 눌린다 → 끄기
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').menu.vhsBtn; return { x: b.x, y: b.y }; });
+  await page.waitForTimeout(200);
+  const off = await page.evaluate(() => ({ on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: document.getElementById('rtd-vhs')?.style.display }));
+  expect(off).toEqual({ on: false, saved: '0', shown: 'none' });
   expect(errors).toEqual([]);
 });
