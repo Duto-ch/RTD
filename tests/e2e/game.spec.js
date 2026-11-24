@@ -1602,6 +1602,7 @@ test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 
   const res = await page.evaluate(() => {
     const g = window.game.scene.getScene('Game');
     while (g.mercs.length < g.cap) g.hire('stein');
+    g.phase = 'prep'; // 구매는 정비 시간에만 (2026-11-24) — 위에서 웨이브를 시작해 두었다
     g.shop[0] = { id: 'helga', locked: false, sold: false };
     g.buy(0);
     const u = g.reserve.find(Boolean);
