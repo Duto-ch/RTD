@@ -162,7 +162,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     this.ringBack.clear();
     this.pips.clear();
     if (this.reserved) {
-      // 대기석 (2026-11-24 사용자 요청): 테두리 대신 칸 안쪽을 등급색으로(Hud.paintReserve) + 캐릭터를 칸 모양으로 잘라 낸다(setReserveClip)
+      // 대기석 (2026-11-24 사용자 요청): 칸 테두리를 상점 카드처럼 등급색으로(Hud.paintReserve) + 캐릭터를 칸 모양으로 잘라 낸다(setReserveClip)
       paint(this.pips, starPixels(this.grade, this.star));
       this.pips.setY(-10); // 별 패를 칸 안(아래 테두리 위)으로
       return;
@@ -199,7 +199,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     super.preDestroy(); // 컨테이너 기본 정리(자식 제거)도 반드시 실행
   }
 
-  /** 대기석 칸 모양으로 잘라 그리기 (2026-11-24 사용자 요청) — 칸 테두리(2) 안쪽 둥근 사각형, 월드 좌표. null 이면 풀기 */
+  /** 대기석 칸 모양으로 잘라 그리기 (2026-11-24 사용자 요청) — 칸 테두리(3) 안쪽 둥근 사각형, 월드 좌표. null 이면 풀기 */
   setReserveClip(p) {
     if (!p) {
       if (this.mask) this.clearMask();
@@ -216,10 +216,10 @@ export class Mercenary extends Phaser.GameObjects.Container {
       });
     }
     const k = UI_SCALE; // 칸은 UI 좌표, 용병은 월드 좌표
-    const lw = 2 * k;
+    const lw = 3 * k; // 칸 테두리(등급색 3) 안쪽만
     const w = R.w * k - lw * 2;
     const h = R.h * k - lw * 2;
-    this.clipG.clear().fillStyle(0xffffff, 1).fillRoundedRect(toWorld(p.x) - w / 2, toWorld(p.y) - h / 2, w, h, (14 - 2) * k);
+    this.clipG.clear().fillStyle(0xffffff, 1).fillRoundedRect(toWorld(p.x) - w / 2, toWorld(p.y) - h / 2, w, h, (14 - 3) * k);
     this.setMask(this.clipMask);
   }
 

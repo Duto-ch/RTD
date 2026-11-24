@@ -157,9 +157,8 @@ const COZY_STYLES = {
   // 영지 메뉴 버튼 (2026-11-21): 진한 갈색 굵은 테두리 + 아래 입술로 '누르는 버튼' 느낌을 강조
   menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
-// 대기석 칸 등급색 (2026-11-24): 'soft' 칸과 같은 모양 — 안쪽 = 등급색, 테두리 = 등급색을 어둡게 (Hud.paintReserve)
-const darken = (hex, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - k)).toString(16).padStart(2, '0')).join('');
-for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: GRADES[g].color, line: darken(GRADES[g].color, 0.3), lip: null, r: 14 };
+// 대기석 칸 등급 테두리 (2026-11-24 사용자 요청: 상점 카드 테두리처럼) — 'soft' 칸과 같은 모양, 테두리 3 = 등급색, 안쪽 = 상점 카드 바탕 (Hud.paintReserve)
+for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, lip: null, r: 14, lw: 3 };
 
 function cozyKey(scene, style, w, h) {
   const key = `cozy_${style}_${Math.round(w)}x${Math.round(h)}`;

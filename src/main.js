@@ -16,6 +16,7 @@ import { TavernScene } from './scenes/TavernScene.js';
 import { WorkshopScene } from './scenes/WorkshopScene.js';
 import { meta } from './systems/meta.js';
 import { storage } from './systems/storage.js';
+import { vhs } from './systems/vhs.js';
 
 async function loadFonts() {
   const faces = [
@@ -79,5 +80,6 @@ window.addEventListener('resize', () => game.scale.setZoom(displayScale() / RES)
 
 // 디버그용 (브라우저 콘솔에서 window.game 으로 접근)
 window.game = game;
+vhs.init(game); // VHS 홈비디오 효과 시험판 (2026-11-24, ESC 메뉴·?vhs=1)
 window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
-window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta, storage }; // 디버그·테스트용
+window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta, storage, vhs }; // 디버그·테스트용

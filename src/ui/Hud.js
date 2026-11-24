@@ -19,6 +19,7 @@ import { waveInfo } from '../data/waves.js';
 import { PATH_LENGTH } from '../systems/path.js';
 import { setArt, playBase } from '../systems/customArt.js';
 import { audio } from '../systems/audio.js';
+import { vhs } from '../systems/vhs.js';
 import { worldPoint, uiPoint, toUi } from '../systems/hires.js';
 
 // 몬스터 길 바깥 가장자리 (필드를 둘러싼 사각형)
@@ -515,7 +516,7 @@ export class Hud {
     }
   }
 
-  /** 대기석 칸 바탕 (2026-11-24 사용자 요청): 캐릭터가 있는 칸은 안쪽을 그 등급색으로 — 칸 모양 그대로라 빈 칸과 테두리가 맞는다. 매 프레임 바뀐 칸만 */
+  /** 대기석 칸 (2026-11-24 사용자 요청): 캐릭터가 있는 칸은 상점 카드처럼 테두리 = 등급색 · 안쪽 = 밝은 바탕 — 칸 모양 그대로라 빈 칸과 맞는다. 매 프레임 바뀐 칸만 */
   paintReserve() {
     const R = HUD.reserve;
     if (!R || !this.reserveImgs) return;
@@ -1001,11 +1002,19 @@ export class Hud {
     volRow(py + 184, '효과음', () => audio.sfxVol, (v) => audio.setSfxVolume(v));
 
     const bw = pw - 56;
-    const muteBtn = new Button(s, GAME_W / 2, py + 252, bw, 50, '', () => {
+    // 음소거 · VHS 효과(2026-11-24 시험판)를 한 줄에 반씩
+    const hw = (bw - 8) / 2;
+    const muteBtn = new Button(s, GAME_W / 2 - hw / 2 - 4, py + 252, hw, 50, '', () => {
       audio.toggleMute();
-      muteBtn.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+      muteBtn.setLabel(`음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
     }, { variant: 'outline', fontSize: 16 });
-    muteBtn.setLabel(`전체 음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+    muteBtn.setLabel(`음소거 ${audio.muted ? '켜짐' : '꺼짐'}`);
+    const vhsBtn = new Button(s, GAME_W / 2 + hw / 2 + 4, py + 252, hw, 50, '', () => {
+      vhs.toggle();
+      vhsBtn.setLabel(`VHS 효과 ${vhs.enabled ? '켜짐' : '꺼짐'}`);
+    }, { variant: 'outline', fontSize: 16 });
+    vhsBtn.setLabel(`VHS 효과 ${vhs.enabled ? '켜짐' : '꺼짐'}`);
+    this.vhsBtn = vhsBtn;
     const resume = new Button(s, GAME_W / 2, py + 322, bw, 56, '계속하기', () => this.closeMenu(), { variant: 'primary', fontSize: 18 });
     let confirmQuit = false;
     const quit = new Button(s, GAME_W / 2, py + 394, bw, 56, '게임 종료', () => {
@@ -1026,7 +1035,7 @@ export class Hud {
       meta.resetTutorial();
       tutBtn.setLabel('튜토리얼이 다시 켜졌어요');
     }, { variant: 'outline', fontSize: 11 });
-    c.add([muteBtn, resume, quit, tutBtn]);
+    c.add([muteBtn, vhsBtn, resume, quit, tutBtn]);
     c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   }
 

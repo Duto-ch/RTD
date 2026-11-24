@@ -275,3 +275,4 @@
 - 2026-11-23 **PC 전환 3단계 — Electron 포장**: `desktop/`(main.cjs·preload.cjs — app:// 로 게임, 저장 파일 임시 파일→이름 바꾸기, 키 화이트리스트, F11·Alt+Enter 전체 화면, 게임 종료 = 저장 flush 후 앱 끔), Windows .exe 포장(@electron/packager, 컨테이너에서 성공 · 압축 160MB), Actions 'Desktop Build' 로 Windows 판 아티팩트, 시험 `desktop/test/smoke.cjs`(xvfb 로 Electron 실행 — 저장·다시 켜기·종료 통과). 세부 `docs/DESKTOP.md` (`feature/electron`)
 - 2026-11-23 CI 브라우저 테스트 3개가 느린 CI 기계에서 시간 초과로 실패(#39 이후 배포 막힘) — 시그리드 시험이 없어진 단축키 N 을 눌러 준비 시간을 기다리던 것을 F(바로 시작)로, 동전·타격 프레임 대기에 여유 (`fix/e2e-ci`)
 - 2026-11-24 HUD: 유물 장착 칸을 빈 칸과 같은 원으로 · 대기석 칸 안쪽 등급색 + 캐릭터를 칸 모양으로 자르기 · 상점 잠금 오른쪽 위 · 위 바 72 → 48 (사용자 요청)
+- 2026-11-24 대기석 칸: 등급색 채움 → 상점 카드식 등급 테두리 · VHS 홈비디오 효과 시험판(ESC 메뉴 켜기·끄기, 기본 꺼짐) (사용자 요청)

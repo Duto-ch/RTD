@@ -2036,3 +2036,31 @@ test('버그 회귀 (2026-11-23): 전투 중 강화 창 → 닫고 전투로 버
   expect(await game(page, () => window.game.scene.isActive('Lobby'))).toBe(false);
   expect(errors).toEqual([]);
 });
+
+test('VHS 효과 시험판 (2026-11-24): 기본은 꺼짐 · ESC 메뉴에서 켜면 게임 화면 위에 효과 캔버스(포인터는 통과) · 다시 누르면 꺼짐 · 저장', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Lobby'));
+  await settled(page, 'Lobby');
+  expect(await game(page, () => window.__rtd.vhs.enabled)).toBe(false);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !!window.game.scene.getScene('Lobby').menu);
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').menu.vhsBtn; return { x: b.x, y: b.y }; });
+  await page.waitForTimeout(300);
+  const on = await page.evaluate(() => {
+    const cv = document.getElementById('rtd-vhs');
+    const r = cv?.getBoundingClientRect();
+    const g = window.game.canvas.getBoundingClientRect();
+    return { on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: cv?.style.display, pe: cv?.style.pointerEvents, same: !!r && Math.abs(r.width - g.width) < 1 && Math.abs(r.left - g.left) < 1, label: window.game.scene.getScene('Lobby').menu.vhsBtn.label.text };
+  });
+  expect(on).toEqual({ on: true, saved: '1', shown: 'block', pe: 'none', same: true, label: 'VHS 효과 켜짐' });
+  await page.screenshot({ path: SHOT('53-vhs-on') });
+  // 효과 캔버스가 덮여 있어도 메뉴 버튼은 눌린다 → 끄기
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').menu.vhsBtn; return { x: b.x, y: b.y }; });
+  await page.waitForTimeout(200);
+  const off = await page.evaluate(() => ({ on: window.__rtd.vhs.enabled, saved: window.__rtd.storage.get('rtd-vhs'), shown: document.getElementById('rtd-vhs')?.style.display }));
+  expect(off).toEqual({ on: false, saved: '0', shown: 'none' });
+  expect(errors).toEqual([]);
+});
