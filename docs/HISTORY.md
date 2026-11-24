@@ -279,3 +279,4 @@
 - 2026-11-22 사운드: 보스 등장 전쟁나팔(`audio.warHorn` 3단계, 시안 `docs/drafts/sound/horn-click/`) · 버튼 클릭음(`audio.click`, `Button` 한 줄) · e2e 추가 (`feature/sound-horn-click`)
 - 2026-11-24 사운드: 전쟁나팔을 한 음 길게('우우우우웅~') · 전용 소리가 없던 곳 채움(웨이브 시작·판매·성벽 피격·경고·들기·놓기·시너지·아이템 4종·잠금·리롤·마정석·지역·치명타·튜토리얼·덱/유물 넣기빼기), 시안 `docs/drafts/sound/fill/`, e2e 추가 (`feature/sound-fill`)
 - 2026-11-24 사운드: 전쟁나팔 한 옥타브 더 낮게(D2·C2·A1, 무겁게 — 사용자 요청), 위 옥타브를 옅게 겹쳐 작은 스피커 대비 (`feature/sound-fill`)
+- 2026-11-24 사운드: 전쟁나팔 보류(사용자 결정 — 느낌이 잘 안 살아 게임에서 뺌, 보스 등장은 예전 bossAppear), 나머지 전용 효과음·클릭음은 main 으로 (`feature/sound-fill`)

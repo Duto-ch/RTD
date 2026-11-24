@@ -432,6 +432,7 @@ class Chiptune {
    * level 0 보스 D2 2.4초 · 1 강화 보스 C2(+ 큰북) 2.8초 · 2 최종 보스 A1(+ 5도 위 + 큰북 두 번) 3.4초. 모두 한 옥타브 위를 옅게 겹침
    */
   warHorn(level = 0) {
+    // 2026-11-24 사용자 결정: 느낌이 잘 안 살아 게임에서는 쓰지 않음(보류) — 보스 등장은 bossAppear. 다시 다듬을 때 시안 docs/drafts/sound/fill/horn_*.mp3
     if (!this.ready || !this.throttle('horn', 1)) return;
     const t = this.ctx.currentTime + 0.02;
     // 2026-11-24 사용자 요청: 한 옥타브 더 낮게 (무겁게) — D2 → C2 → A1
