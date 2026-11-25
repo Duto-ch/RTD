@@ -96,7 +96,7 @@ const { chromium } = require('playwright');
     };
     const log = [];
     let lastWave = 0, maxAlive = 0; const bossMax = {};
-    for (let step = 0; step < 200000 && !g.over; step++) {
+    for (let step = 0; step < (window.__simSteps || 800000) && !g.over; step++) {
       if (step % 5 === 0) act(); // 0.5초마다 봇 판단
       // 루프를 재웠으니 장면 시계(타격 프레임 타이머)·트윈도 손으로 0.1초씩 돌린다
       const t = (step + 1) * 100;
@@ -124,6 +124,6 @@ const { chromium } = require('playwright');
     const reason = g.children.list.filter(o => o.type === 'Text').map(o => o.text).find(t => /무너졌습니다/.test(t));
     return { wave: g.wave, fame: g.fameEarned, stones: g.stonesEarned, kills: g.totalKills, over: g.over, log: [...log, 'boss max lap%: ' + JSON.stringify(bossMax), 'reason: ' + reason] };
   }, [override, useReserveArg, !!process.env.EVERY]); // EVERY=1: 웨이브마다 팀 화력·웨이브 체력 기록
-  console.log(res.log.join('\n')); console.log('END wave', res.wave, 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));
+  console.log(res.log.join('\n')); console.log('END wave', res.wave, res.over ? '(패배)' : '(시간 한도 — 아직 살아 있음)', 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));
   await b.close();
 })();
