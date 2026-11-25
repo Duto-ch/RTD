@@ -65,6 +65,9 @@ export const HUD = {
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = 520;
 
+/** 상점 카드 (2026-11-25 시안): 화면 밖으로 더 그린 길이 · 쉬는 자리 내림 · 올렸을 때 원래 자리보다 더 뜨는 양 · 밀려 올라오기·스프링 시간 */
+const CARD = { ext: 48, sink: 8, lift: 3, slideMs: 110, springMs: 400 };
+
 /** 성벽 체력 막대 외곽 두께 */
 const HP_LINE = 4;
 // 성벽 체력 피해 자국 (2026-11-22 사용자 요청): 줄어든 만큼 붉게 남았다가 delay 뒤 duration 동안 따라 줄어든다
@@ -210,7 +213,7 @@ export class Hud {
     const s = this.s;
     const B = HUD.hp;
     // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px) — 2026-11-23: 바탕은 미리 그린 알약 (곡선이 고르게)
-    this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x3a2a18, 0x5a3f20, HP_LINE).setDepth(D);
+    this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x6b5320, 0xb7923b, HP_LINE).setDepth(D); // 2026-11-25 시안: 금갈색 테두리 · 빈 곳 진한 금색
     this.hpBg.layerName = '체력 막대 바탕';
     this.hpFill = s.add.graphics().setDepth(D);
     // 채움·실드·피해 자국을 막대 안쪽 알약 모양으로 잘라 그린다 (2026-11-25: 실드 줄 왼쪽 끝이 각지게 삐져나왔다)
@@ -285,10 +288,11 @@ export class Hud {
       g.fillStyle(0xffffff, 0.22).fillRoundedRect(x + 4, y + 2, Math.max(0, tw - 8), Math.max(2, Math.round(ih * 0.28)), 2);
     }
     if (fill > 0) {
-      const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
+      // 2026-11-25 시안(사용자 그림): 노랑 채움 + 밝은 노랑 윗줄 — 30% 이하만 빨강(위험)
+      const low = pct <= 0.3;
       const w = Math.max(ih, fill); // 둥근 끝이 뭉개지지 않게 최소 높이만큼
-      g.fillStyle(col, 1).fillRoundedRect(x, y, w, ih, ih / 2);
-      g.fillStyle(0xffffff, 0.28).fillRoundedRect(x + 4, y + 2, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+      g.fillStyle(low ? 0xd2473a : 0xffdd4a, 1).fillRoundedRect(x, y, w, ih, ih / 2);
+      g.fillStyle(low ? 0xe8766a : 0xffe47d, 1).fillRoundedRect(x + 3, y + 2, Math.max(0, w - 6), Math.max(2, Math.round(ih * 0.4)), 3);
     }
     const shield = this.hpShield || 0;
     if (shield > 0) {
@@ -440,11 +444,12 @@ export class Hud {
     s.shop.forEach((slot, i) => {
       const x = B.x + i * (w + gap);
       const y = B.y;
-      const c = s.add.container(x, y);
+      // 2026-11-25 시안: 카드 아래를 화면 밖까지 넉넉히 그리고 살짝 내려 둔다 — 마우스가 오면 위로 밀려 올라와 톡 튄다
+      const c = s.add.container(x, y + CARD.sink);
       const g = s.add.graphics();
       c.add(g);
       if (!slot || slot.sold) {
-        g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+        g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h + CARD.ext, { tl: 10, tr: 10, bl: 0, br: 0 });
         c.add(uiText(s, w / 2, h / 2, slot?.sold ? '구매' : '-', 12, CSS.sub, '600').setOrigin(0.5));
         this.shopBox.add(c);
         return;
@@ -456,9 +461,9 @@ export class Hud {
       const afford = s.gold >= price;
       // 테두리 = 등급색 바깥 모양 + 안쪽 바탕 (선을 겹쳐 그리면 모서리에 틈이 생겼다, 2026-11-21)
       // 2026-11-25 시안: 아래 모서리 직각 (위만 둥글게)
-      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h + CARD.ext, { tl: 10, tr: 10, bl: 0, br: 0 });
       g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, { tl: 7, tr: 7, bl: 0, br: 0 });
-      g.fillStyle(gc, 1).fillRect(0, h - 20, w, 20);
+      g.fillStyle(gc, 1).fillRect(0, h - 20, w, 20 + CARD.ext); // 이름 띠가 화면 밖까지 이어진다
       const img = charImage(s, w / 2, 32, ch);
       // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
       const tc = ch.grade === 2 ? CSS.white : '#2b1d2f';
@@ -470,7 +475,7 @@ export class Hud {
       [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 13 : -13), h - 20 - 5 - 10, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
       if (owned) c.add(uiText(s, 5, 5, `${owned}장`, 12, CSS.primary, 'bold').setOrigin(0, 0)); // 2026-11-24: 잠금이 오른쪽 위로 가서 왼쪽 위로
-      if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
+      if (!afford) c.add(s.add.rectangle(0, 0, w, h + CARD.ext, 0x2b1d2f, 0.28).setOrigin(0));
       const hit = s.add.rectangle(0, 0, w, h - 4, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => c.setScale(0.96));
       hit.on('pointerout', () => c.setScale(1));
@@ -487,9 +492,38 @@ export class Hud {
       lz.on('pointerup', () => s.toggleLock(i));
       c.add([lk, lz]);
       c.slotIndex = i;
+      this.cardHover(c, [hit, lz], x, y, w, h);
       this.shopBox.add(c);
     });
     this.refreshShopButtons();
+  }
+
+  /**
+   * 상점 카드 마우스 반응 (2026-11-25 시안): 올리면 쉬는 자리(살짝 아래)에서 위로 밀려 올라온 뒤 0.4초 스프링으로 톡 튄다,
+   * 카드 밖으로 나가면 다시 내려간다. 카드 안의 잠금 단추로 옮겨 가도 올라간 그대로
+   */
+  cardHover(c, zones, x, y, w, h) {
+    const s = this.s;
+    const up = () => {
+      if (c.hovered) return;
+      c.hovered = true;
+      s.tweens.killTweensOf(c);
+      s.tweens.add({
+        targets: c, y: y + 1, duration: CARD.slideMs, ease: 'Quad.easeOut',
+        onComplete: () => s.tweens.add({ targets: c, y: y - CARD.lift, duration: CARD.springMs, ease: 'Elastic.easeOut', easeParams: [1.2, 0.45] })
+      });
+    };
+    const down = (p) => {
+      const u = uiPoint(s, p);
+      if (u.x >= x && u.x <= x + w && u.y >= y - CARD.lift && u.y <= y + h + CARD.sink) return; // 카드 안 다른 단추로 옮겨 감
+      c.hovered = false;
+      s.tweens.killTweensOf(c);
+      s.tweens.add({ targets: c, y: y + CARD.sink, duration: 160, ease: 'Quad.easeOut' });
+    };
+    for (const z of zones) {
+      z.on('pointerover', up);
+      z.on('pointerout', down);
+    }
   }
 
   // ───────────────────────── 아이템 띠 (룰 v2 ②, 2026-11-20) ─────────────────────────

@@ -8,6 +8,7 @@ import { setArt } from '../systems/customArt.js';
  */
 export function addBiomeDecor(scene, biomeId, alpha = 1) {
   const out = [];
+  if (scene.textures.exists(`bg_${biomeId}`) && scene.textures.get(`bg_${biomeId}`).customData?.noDecor) return out; // 배경 그림에 숲이 그려져 있음 (2026-11-25)
   for (const d of DECOR[biomeId] || []) {
     if (!scene.textures.exists(d.key)) continue;
     const s = scene.add.sprite(d.x, d.y, d.key);
