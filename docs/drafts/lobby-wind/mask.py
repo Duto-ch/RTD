@@ -54,11 +54,18 @@ def main():
     G = np.asarray(Image.fromarray((flower * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.5))) / 255.0
 
     # B: 깃발 — 깃대 0 → 끝 1, 위아래 2px 여유
+    #    상자 안은 B 를 최소 2/255 로 (셰이더가 '깃발 상자' 로 알아봄), 상자 안 G = 깃발 픽셀 (분홍·노랑 — 하늘·구름이 아닌 것)
+    #    → 셰이더는 깃발 픽셀만 옮기고, 깃발이 비운 자리는 위 하늘로 채운다 (뒤 구름이 같이 꿀렁이지 않게)
     B = np.zeros((H, W))
+    flagpx = np.zeros((H, W), bool)
     for px, py, w, h in FLAGS:
-        ys, xs = slice(py - 3, py + h + 3), slice(px, px + w + 3)
-        t = np.clip((xx[ys, xs] - px) / float(w), 0, 1)
+        ys, xs = slice(py - 3, py + h + 3), slice(px + 1, px + w + 3)
+        t = np.clip((xx[ys, xs] - px) / float(w), 2 / 255, 1)
         B[ys, xs] = np.maximum(B[ys, xs], t)
+        rr, gg, bb = r[ys, xs], g[ys, xs], b[ys, xs]
+        flagpx[ys, xs] |= (rr - bb > 8) | ((rr > 200) & (gg > 160) & (bb < 170))
+    flagpx = ndimage.binary_dilation(flagpx) & (B > 0)
+    G = np.where(B > 0, flagpx.astype(float), G)
 
     out = np.stack([R, G, B], -1)
     Image.fromarray((out * 255).round().astype(np.uint8)).save(OUT, optimize=True)
