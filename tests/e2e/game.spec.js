@@ -887,7 +887,14 @@ test('유물 아이콘 그림(12px 전용 모양) · 툴팁 스프링 등장 · 
     g.hud.upgradeBadge.setVisible(true);
     g.togglePause();
     const seen = new Set();
-    for (let i = 0; i < 30; i++) { seen.add(+g.hud.upgradeBadge.scale.toFixed(2)); await new Promise((res) => setTimeout(res, 50)); }
+    // 느린 기계(CI)에서도 커진 순간·작아진 순간을 모두 볼 때까지 (최대 6초 · 20ms 마다) — 고정 1.5초는 가끔 놓쳤다
+    const t0 = performance.now();
+    while (performance.now() - t0 < 6000) {
+      seen.add(+g.hud.upgradeBadge.scale.toFixed(2));
+      const v = [...seen];
+      if (Math.max(...v) > 1.15 && Math.min(...v) < 1) break;
+      await new Promise((res) => setTimeout(res, 20));
+    }
     return [...seen];
   });
   expect(Math.max(...scales)).toBeGreaterThan(1.15);
@@ -2044,7 +2051,12 @@ test('PSD 수정 적용 (2026-11-24): 퍼거스는 총 쏘기 · 리처드는 �
   expect(r).toEqual([[14, 28, 28], [15, 28, 28], [15, 28, 28], [14, 28, 28]]); // 퍼거스 창 → 총 · 리처드 석궁 → 검 (PSD 에서 그림을 바꿈) · 윌리엄 활 · 콜린 석궁
   // 무기 분리 (2026-11-24): PSD 로 고친 무기는 시트에서 빠지고 게임이 원본 그림을 돌려 그린다 — 손·무기가 스프라이트를 따라간다
   await game(page, () => ['richard', 'sigrid'].forEach((id) => window.game.scene.getScene('Game').hire(id)));
-  await page.waitForTimeout(400); // 다음 화면에서 무기·손이 용병 안에 자리 잡는다 (고용 때 통통 튀는 연출도 끝난 뒤)
+  await page.waitForTimeout(400); // 다음 화면에서 무기·손이 용병 안에 자리 잡는다
+  // 고용 때 통통 튀는 연출(크기 1.2배)이 끝날 때까지 — 느린 기계(CI)에서는 400ms 로 모자랐다
+  await page.waitForFunction(() => {
+    const g = window.game.scene.getScene('Game');
+    return ['richard', 'sigrid'].every((id) => { const m = g.mercs.filter((x) => x.char.id === id).pop(); return m && !g.tweens.isTweening(m.sprite); });
+  }, null, { timeout: 10000 });
   const rig = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     return ['richard', 'sigrid'].map((id) => {
