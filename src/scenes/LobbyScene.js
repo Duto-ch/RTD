@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
+import { addLobbyWind } from '../ui/lobbyWind.js';
 import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar, shapeImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
@@ -42,7 +43,8 @@ export class LobbyScene extends Phaser.Scene {
     this.leaving = false;
     audio.playMusic('title');
     // 2026-11-25 시안: 타이틀 키 아트(로고 지움)를 원본 그대로 화면 가득
-    if (this.textures.exists('lobby_key')) coverImage(this, 'lobby_key', GAME_W, GAME_H);
+    // 구름·꽃·깃발은 바람에 살짝씩 움직인다 (src/ui/lobbyWind.js)
+    if (this.textures.exists('lobby_key')) this.wind = addLobbyWind(this, coverImage(this, 'lobby_key', GAME_W, GAME_H));
     else {
       const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
       bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
@@ -129,16 +131,31 @@ export class LobbyScene extends Phaser.Scene {
       ctx.fillStyle = '#6b4e2a';
       ctx.fill();
       ctx.restore();
+      // 그라데이션 톤 (2026-11-25 시안): 화면 위 꼭짓점 → 아래 꼭짓점 방향. 돌린 좌표에서 (-a,-a) = 위, (a,a) = 아래
+      const a = S / 2;
+      const vert = (stops) => {
+        const gr = ctx.createLinearGradient(-a, -a, a, a);
+        stops.forEach(([o, col]) => gr.addColorStop(o, col));
+        return gr;
+      };
       ctx.beginPath();
       ctx.roundRect(-S / 2, -S / 2, S, S, DIAMOND.r);
-      ctx.fillStyle = '#6b4e2a';
+      ctx.fillStyle = vert([[0, '#8a6636'], [1, '#5a3d1e']]);
       ctx.fill();
       ctx.beginPath();
       ctx.roundRect(-S / 2 + 3, -S / 2 + 3, S - 6, S - 6, DIAMOND.r - 3);
-      ctx.fillStyle = '#fbf7ec';
+      ctx.fillStyle = vert([[0, '#fffdf7'], [0.45, '#f8efd9'], [1, '#e6d2a6']]);
       ctx.fill();
+      // 위쪽 안 테두리 반짝임 (위 두 변만 밝게)
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(-S / 2 + 4.5, -S / 2 + 4.5, S - 9, S - 9, DIAMOND.r - 4.5);
+      ctx.strokeStyle = vert([[0, 'rgba(255,255,255,0.95)'], [0.5, 'rgba(255,255,255,0)']]);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
     };
-    c.add(shapeImage(this, 0, 0, `lobby_diamond_${S}_${DIAMOND.r}`, half * 2 + 4, half * 2 + 12, draw));
+    c.add(shapeImage(this, 0, 0, `lobby_diamond_g_${S}_${DIAMOND.r}`, half * 2 + 4, half * 2 + 12, draw));
     c.add(discImage(this, 0, -16, { r: 16.5, fill: 0x1f6f66, line: 0x6b4e2a, lw: 3, icon, iconColor: 0xfff3c4 }));
     c.add(uiText(this, 0, 20, name, 16.5, CSS.ink, 'bold').setOrigin(0.5));
     // 살 수 있는 노드 수 (성탑)
