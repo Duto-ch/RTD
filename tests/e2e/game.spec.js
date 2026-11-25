@@ -1327,6 +1327,22 @@ test('PC 화면 맞춤 (2026-11-22): 1920x1080 을 정수 배율로 + 남는 곳
   expect(Math.abs(small.cssW - 1366)).toBeLessThanOrEqual(1); // 1080p 보다 작은 창은 맞춰 줄인다
 });
 
+test('술집 배경 (2026-11-25): 사용자 그림이 화면을 채우고 위에 살짝 어둡게', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Tavern'));
+  await settled(page, 'Tavern');
+  const r = await game(page, () => {
+    const t = window.game.scene.getScene('Tavern');
+    const bg = t.children.list.find((o) => o.type === 'Image' && o.texture.key === 'tavern_bg');
+    return { full: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720, first: t.children.list.indexOf(bg) === 0 };
+  });
+  expect(r).toEqual({ full: true, first: true });
+  expect(errors).toEqual([]);
+});
+
 test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 → 강화) · 리롤 값 상승 / 유물 공방: 생산 → 장착 → 출전하면 효과', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));

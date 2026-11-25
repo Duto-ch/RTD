@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, discImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, discImage, coverImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER_BY_ID, GRADES, STYLES, TRAIT_TEXT } from '../data/roster.js';
@@ -14,6 +14,8 @@ import { dissolveTo } from '../ui/dissolve.js';
 // 술집 (룰 v2 ③, 2026-11-20): 캐릭터 3명이 걸려 있고 3시간마다 새로 바뀐다. 마정석으로 고용 → 가진 캐릭터(병영에서 덱에 넣기).
 // 이미 가진 캐릭터면 강화 +1 (공격력 +10%, 최대 +3), 그 뒤에는 마정석 절반을 돌려받는다. 리롤도 마정석 — 할수록 비싸진다.
 
+const TAVERN_DIM = 0.35; // 배경 그림 위 어둡게 (글자·카드 읽히게)
+const OUTLINE = { stroke: '#1a0f08', strokeThickness: 4 }; // 그림 위 글자 외곽선
 const L = { card: { x: 140, y: 150, w: 320, h: 420, gap: 20 }, foot: 650 };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
@@ -25,12 +27,16 @@ export class TavernScene extends Phaser.Scene {
   create() {
     hiRes(this);
     meta.load();
-    this.add.rectangle(0, 0, GAME_W, GAME_H, 0x3a2416).setOrigin(0);
-    uiText(this, 20, 18, '술집 · 용병 고용', 22, '#fff3c4', 'bold');
-    uiText(this, 20, 50, `${TAVERN.refreshMs / 3600000}시간마다 갱신 · 마정석 고용`, 12, '#e8cfa8', '600');
+    // 배경 = 사용자 그림 술집 (2026-11-25), 글자·카드가 읽히게 살짝 어둡게
+    if (this.textures.exists('tavern_bg')) {
+      coverImage(this, 'tavern_bg', GAME_W, GAME_H);
+      this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, TAVERN_DIM).setOrigin(0);
+    } else this.add.rectangle(0, 0, GAME_W, GAME_H, 0x3a2416).setOrigin(0);
+    uiText(this, 20, 18, '술집 · 용병 고용', 22, '#fff3c4', 'bold', OUTLINE);
+    uiText(this, 20, 52, `${TAVERN.refreshMs / 3600000}시간마다 갱신 · 마정석 고용`, 12, '#e8cfa8', '600', OUTLINE);
     this.stoneBox = this.add.container(0, 0);
     this.cards = this.add.container(0, 0);
-    this.timerText = uiText(this, GAME_W / 2, 112, '', 14, '#fff3c4', 'bold').setOrigin(0.5);
+    this.timerText = uiText(this, GAME_W / 2, 112, '', 14, '#fff3c4', 'bold', OUTLINE).setOrigin(0.5);
     const fy = L.foot;
     this.rerollBtn = new Button(this, GAME_W / 2 - 150, fy, 260, 52, '', () => this.reroll(), { variant: 'gold', icon: 'reroll', fontSize: 14 });
     new Button(this, GAME_W / 2 + 150, fy, 260, 52, '영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
