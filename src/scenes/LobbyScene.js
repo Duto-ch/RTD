@@ -163,7 +163,7 @@ export class LobbyScene extends Phaser.Scene {
     tabBar(this, 'bottom', D.y, DOCK.tab);
     // 카드 줄 (가려지는 영역)
     const row = { x: 24, y: D.y + 12, w: D.w - goW - 72, h: 80 };
-    uiText(this, GAME_W / 2, D.y - DOCK.tab.depth / 2 + 2, `출전 덱 ${ids.length} / ${DECK_RULES.max}명  ·  밀어서 보기 · 누르면 병영`, 13, CSS.ink, 'bold').setOrigin(0.5);
+    uiText(this, GAME_W / 2, D.y - DOCK.tab.depth / 2 + 2, `출전 덱 ${ids.length} / ${DECK_RULES.max}`, 13, CSS.ink, 'bold').setOrigin(0.5);
     const cw = 64;
     const ch = 76;
     const step = cw + 8;

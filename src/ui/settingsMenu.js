@@ -72,7 +72,7 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
   const quit = new Button(s, GAME_W / 2, py + 358, bw, 56, '게임 종료', () => {
     if (!confirm) {
       confirm = true;
-      quit.setLabel('정말 종료할까요? 한 번 더 누르세요');
+      quit.setLabel('한 번 더 → 종료');
       s.time.delayedCall(2500, () => {
         if (quit.active) {
           confirm = false;
@@ -85,10 +85,9 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
   }, { variant: 'danger', fontSize: 16 });
   const tut = new Button(s, GAME_W / 2, py + 422, bw, 44, '튜토리얼 처음부터 다시 보기', () => {
     meta.resetTutorial();
-    tut.setLabel('튜토리얼이 다시 켜졌어요');
+    tut.setLabel('튜토리얼 켜짐');
   }, { variant: 'outline', fontSize: 12 });
   c.add([mute, vhsBtn, resume, quit, tut]);
-  c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   c.quitBtn = quit;
   return c;
 }
@@ -115,7 +114,7 @@ export function quitApp(game) {
     game.destroy(true);
     const d = document.createElement('div');
     d.id = 'rtd-quit';
-    d.textContent = '게임을 종료했습니다 — 이 창(탭)을 닫아 주세요';
+    d.textContent = '게임 종료 · 창(탭) 닫기';
     Object.assign(d.style, { position: 'fixed', inset: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fbf7ec', font: '20px sans-serif', zIndex: 9999 });
     document.body.appendChild(d);
   }, 120);

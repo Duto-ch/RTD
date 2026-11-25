@@ -27,7 +27,7 @@ export class TavernScene extends Phaser.Scene {
     meta.load();
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x3a2416).setOrigin(0);
     uiText(this, 20, 18, '술집 · 용병 고용', 22, '#fff3c4', 'bold');
-    uiText(this, 20, 50, `${TAVERN.refreshMs / 3600000}시간마다 새 손님 · 보스를 쓰러뜨려 얻은 마정석으로 고용`, 12, '#e8cfa8', '600');
+    uiText(this, 20, 50, `${TAVERN.refreshMs / 3600000}시간마다 갱신 · 마정석 고용`, 12, '#e8cfa8', '600');
     this.stoneBox = this.add.container(0, 0);
     this.cards = this.add.container(0, 0);
     this.timerText = uiText(this, GAME_W / 2, 112, '', 14, '#fff3c4', 'bold').setOrigin(0.5);
@@ -110,16 +110,16 @@ export class TavernScene extends Phaser.Scene {
     const c = ROSTER_BY_ID[slot.id];
     const r = meta.hireTavern(i);
     audio.init();
-    if (!r) return this.toast(`마정석이 부족합니다 (${hireCost(c)}개 필요)`);
+    if (!r) return this.toast(`마정석 부족 (${hireCost(c)} 필요)`);
     audio.promote?.();
-    this.toast(r === 'new' ? `${c.name} 고용! 병영에서 덱에 넣을 수 있어요` : r === 'enhance' ? `${c.name} 강화 +${meta.enhance(c.id)} (공격력 +${Math.round(meta.enhance(c.id) * TAVERN.enhanceDmg * 100)}%)` : `${c.name}은(는) 이미 최대 강화 — 마정석 ${Math.floor(hireCost(c) / 2)}개 반환`);
+    this.toast(r === 'new' ? `${c.name} 고용 · 병영에 추가` : r === 'enhance' ? `${c.name} 강화 +${meta.enhance(c.id)} (공격력 +${Math.round(meta.enhance(c.id) * TAVERN.enhanceDmg * 100)}%)` : `${c.name}은(는) 이미 최대 강화 — 마정석 ${Math.floor(hireCost(c) / 2)}개 반환`);
     this.refresh();
   }
 
   reroll() {
     audio.init();
     const cost = meta.tavernRerollCost;
-    if (!meta.rerollTavern()) return this.toast(`마정석이 부족합니다 (리롤 ${cost}개)`);
+    if (!meta.rerollTavern()) return this.toast(`마정석 부족 · 리롤 ${cost}`);
     audio.reroll();
     this.toast(`새 손님이 들어왔어요 — 다음 리롤 마정석 ${meta.tavernRerollCost}`);
     this.refresh();

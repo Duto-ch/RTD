@@ -202,7 +202,7 @@ export class Hud {
     // 시너지 (2026-11-24 사용자 시안): 위 바 가운데 탭 안에 상징 한 줄
     const SY = HUD.syn;
     this.synRow = s.add.container(0, 0).setDepth(D);
-    this.noSynText = uiText(s, SY.cx, SY.y + SY.h / 2 - 4, '같은 계열·출신을 모으면 시너지가 켜져요', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
+    this.noSynText = uiText(s, SY.cx, SY.y + SY.h / 2 - 4, '', 12, CSS.sub, 'bold') // 2026-11-25: 안내 문장 없음 (빈 탭 = 시너지 없음).setOrigin(0.5).setDepth(D);
   }
 
   /** 성벽 체력 막대: 둥근 바탕 + 채움(많을수록 초록 → 노랑 → 빨강) + 실드(하늘색 윗줄) + 가운데 하트·수치 */
@@ -381,18 +381,16 @@ export class Hud {
     const title = uiText(s, 0, 0, relic.name, 15, CSS.ink, 'bold');
     const state = uiText(s, 0, 0, `Lv${owned.level}`, 12, CSS.green, 'bold');
     const desc = uiText(s, 0, 0, relicText(relic, owned.level, s.bonus.relicPow || 0), 13, CSS.ink);
-    const hint = uiText(s, 0, 0, '영지 유물 공방에서 바꿔 끼울 수 있어요', 11, CSS.sub);
     const pad = 16;
-    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / UI_PX) * UI_PX;
-    const h = 96;
+    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width) + pad * 2) / UI_PX) * UI_PX;
+    const h = 72; // 2026-11-25: 안내 줄 삭제 (이전 96)
     const left = Phaser.Math.Clamp(Math.round((x - w / 2) / UI_PX) * UI_PX, 8, GAME_W - 8 - w);
     const top = y + 24;
     const bg = panel(s, left, top, w, h, 'card');
     title.setPosition(left + pad, top + 14);
     state.setPosition(left + pad + title.width + 12, top + 17);
     desc.setPosition(left + pad, top + 42);
-    hint.setPosition(left + pad, top + 66);
-    c.add([bg, title, state, desc, hint]);
+    c.add([bg, title, state, desc]);
     // 스프링 등장 (2026-11-19): 아이콘 쪽(위 가운데)을 축으로 0.6 → 1, 살짝 넘쳤다가 출렁이며 멈춘다
     springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top, animate);
     this.relicTip = { index, x, y, container: c };
@@ -938,13 +936,12 @@ export class Hud {
     add(`${m.char.title} · ${TRAITS[m.cls].name} · ${TRAITS[m.origin].name} · ${STYLES[m.char.style].name} — ${TRAIT_TEXT(m.trait)}`, 13, CSS.ink, '600', 10);
     add(`스킬 「${m.def.name}」 · 최대 마나 ${m.maxMana} (공격마다 마나가 차고, 가득 차면 시전)`, 15, CSS.primary, '700', 4);
     for (let n = 1; n <= MAX_STAR; n++) add(`${'★'.repeat(n)}${n === m.star ? ' (지금)' : ''}  ${describeSkill(starSkill(m.char.skill, n))}`, 13, n === m.star ? CSS.ink : CSS.sub, n === m.star ? '700' : '600', 6);
-    add(`같은 캐릭터 3장을 모으면 별이 오릅니다 (최대 ${MAX_STAR}성)`, 12, CSS.sub, '600', 4);
+    add(`같은 캐릭터 3장 → 별 +1 (최대 ${MAX_STAR}성)`, 12, CSS.sub, '600', 4);
     const h = Math.min(GAME_H - y - 24, cy - y + 40);
     const card = panel(s, x, y, w, h, 'card').setInteractive();
     c.addAt(card, 1);
     c.add(titleTab(s, x + w / 2, y, '스킬 정보', 180));
     c.add(closeButton(s, x + w - 6, y + 6, close));
-    c.add(uiText(s, x + w - 24, y + h - 14, '바깥을 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(1, 1));
     s.tut?.show('skill');
   }
 
@@ -968,7 +965,7 @@ export class Hud {
     const ph = 560;
     const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
     this.menu = c;
-    c.add(uiText(s, GAME_W / 2, py + 52, '게임이 일시정지되었습니다', 13, CSS.sub, '600').setOrigin(0.5));
+    c.add(uiText(s, GAME_W / 2, py + 52, '일시정지', 13, CSS.sub, '600').setOrigin(0.5));
 
     // 볼륨 조절 줄: 이름 [-] 막대 [+] 퍼센트
     const volRow = (y, label, get, set) => {
@@ -1021,7 +1018,7 @@ export class Hud {
     const quit = new Button(s, GAME_W / 2, py + 394, bw, 56, '게임 종료', () => {
       if (!confirmQuit) {
         confirmQuit = true;
-        quit.setLabel('정말 종료할까요? 한 번 더 누르세요');
+        quit.setLabel('한 번 더 → 종료');
         s.time.delayedCall(2500, () => {
           if (quit.active) {
             confirmQuit = false;
@@ -1034,10 +1031,9 @@ export class Hud {
     }, { variant: 'danger', fontSize: 16 });
     const tutBtn = new Button(s, GAME_W / 2, py + 458, bw, 44, '튜토리얼 처음부터 다시 보기', () => {
       meta.resetTutorial();
-      tutBtn.setLabel('튜토리얼이 다시 켜졌어요');
+      tutBtn.setLabel('튜토리얼 켜짐');
     }, { variant: 'outline', fontSize: 11 });
     c.add([muteBtn, vhsBtn, resume, quit, tutBtn]);
-    c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   }
 
   closeMenu() {
