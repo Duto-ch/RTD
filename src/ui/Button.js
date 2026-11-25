@@ -106,9 +106,9 @@ export class Button extends Phaser.GameObjects.Container {
       this.label.setPosition(left + iw + gap + this.label.width / 2, 0);
     } else {
       // 아이콘·글자 묶음을 버튼 세로 가운데에
-      const top = -(s + (lh ? 4 + lh : 0)) / 2;
+      const top = Math.round(-(s + (lh ? 4 + lh : 0)) / 2); // 먼저 반올림 — 아이콘·글자 사이가 정확히 4 (반올림이 따로면 3.5 가 됐다, 2026-11-25)
       drawIcon(this.icon, this.iconName, 0, top + s / 2, s, this.iconColor);
-      this.iconRect = { x: -s / 2, y: Math.round(top), w: s, h: s };
+      this.iconRect = { x: -s / 2, y: top, w: s, h: s };
       this.labelY = top + s + 4 + lh / 2;
       this.label.setPosition(0, this.labelY);
     }
