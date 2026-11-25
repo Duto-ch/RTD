@@ -345,7 +345,7 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   expect(await tip()).toBeNull();
   const p0 = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(0, 4));
   await page.mouse.move(p0.x * UI, p0.y * UI); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
-  await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%', '영지 유물 공방에서 바꿔 끼울 수 있어요']);
+  await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%']); // 2026-11-25: 안내 줄 삭제 (UI 문구 개조식)
   await page.waitForTimeout(100);
   await page.screenshot({ path: SHOT('10-relic-tooltip') });
   await page.mouse.move(960, 600); // 아이콘 밖
@@ -655,7 +655,8 @@ test('필드 도트(플랫 스타일): 지역 10종 배경이 모두 그려지�
     const ids = ['grass', 'desert', 'autumn', 'volcano', 'snow', 'swamp', 'crystal', 'graveyard', 'sky', 'void'];
     const missing = ids.filter((id) => !g.textures.exists(`bg_${id}`));
     // 잡티 대신 덩어리: 땅 한 줄에서 옆 픽셀과 색이 바뀌는 횟수가 적어야 한다 (예전 흩뿌림은 약 30%)
-    const src = g.textures.get('bg_grass').getSourceImage();
+    // 초원은 2026-11-25 사용자 그림(이미지) — 코드로 그린 사막 배경으로 본다
+    const src = g.textures.get('bg_desert').getSourceImage();
     const ctx = src.getContext('2d');
     const row = ctx.getImageData(0, 50, src.width, 1).data;
     let changes = 0;
@@ -1191,8 +1192,10 @@ test('영지 화면: 재화 2종 오른쪽 위 · 메뉴 버튼 4개(성문 없�
   await settled(page, 'Lobby');
   const r = await game(page, () => {
     const l = window.game.scene.getScene('Lobby');
-    const ys = new Set(l.deckStrip.list.filter((o) => o.type === 'Graphics').map((o) => o.y));
-    return { spots: Object.keys(l.spots).sort(), cards: l.deckStrip.list.filter((o) => o.type === 'Graphics').length, oneRow: ys.size === 1 };
+    // 카드 = 등급 그라데이션 테두리 그림 (2026-11-25 gradeFrame)
+    const cards = l.deckStrip.list.filter((o) => o.type === 'Image' && o.texture.key.includes('gframe_'));
+    const ys = new Set(cards.map((o) => o.y));
+    return { spots: Object.keys(l.spots).sort(), cards: cards.length, oneRow: ys.size === 1 };
   });
   expect(r).toEqual({ spots: ['barracks', 'forge', 'tent', 'tower'], cards: 30, oneRow: true });
   // 밀기: 덱 줄을 왼쪽으로 끌면 넘어가고 병영으로 가지 않는다
@@ -1649,36 +1652,61 @@ test('성문 (2026-11-21): 성벽 동서남북 가운데에 나무 문 + 탑 깃
   expect(errors).toEqual([]);
 });
 
-test('배경 나무·꽃 (2026-11-22): 초원 화면 전체에 나무 3종(바람에 흔들림 28프레임·박자 다름) 22그루 + 꽃 6종 · 지역이 바뀌면 사라짐', async ({ page }) => {
+test('초원 배경 (2026-11-25): 사용자 그림 위에 나무 없이 꽃 50송이만 0.6배로 무작위 · 몬스터 아래 · 지역이 바뀌면 사라짐', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
     const g = window.game.scene.getScene('Game');
-    const anim = g.anims.get('deco_tree_1:sway');
     const trees = g.decor.filter((s) => s.texture.key.startsWith('deco_tree_'));
     const flowers = g.decor.filter((s) => s.texture.key.startsWith('deco_flower_'));
-    return { trees: trees.length, flowers: flowers.length, frames: anim.frames.length, loop: anim.repeat, playing: trees.every((s) => s.anims.isPlaying),
-      phases: new Set(trees.map((s) => s.anims.currentFrame.index)).size, w: trees[0].displayWidth,
-      belowMonsters: g.decor.every((s) => s.depth < 10), top: trees.some((s) => s.y < 480), bottom: trees.some((s) => s.y > 480),
-      treeKinds: new Set(trees.map((s) => s.texture.key)).size, flowerKinds: new Set(flowers.map((s) => s.texture.key)).size,
-      flipped: trees.some((s) => s.flipX) };
+    return { painted: !!g.textures.get('bg_grass').customData?.noDecor, trees: trees.length, flowers: flowers.length,
+      scale: Math.abs(flowers[0].scaleX), belowMonsters: g.decor.every((s) => s.depth < 10),
+      top: flowers.some((s) => s.y < 480), bottom: flowers.some((s) => s.y > 480), flowerKinds: new Set(flowers.map((s) => s.texture.key)).size };
   });
-  expect(r.trees).toBeGreaterThanOrEqual(15); // 나무 22그루 (2026-11-22 줄임)
-  expect(r.flowers).toBeGreaterThanOrEqual(30); // 꽃 50송이
-  expect(r.frames).toBe(28);
-  expect(r.loop).toBe(-1);
-  expect(r.playing).toBe(true);
-  expect(r.phases).toBeGreaterThan(2); // 나무끼리 같은 박자로 흔들리지 않게
-  expect(r.w).toBe(100); // 50px 그림 × 아트 1px = 화면 2px
+  expect(r.painted).toBe(true);
+  expect(r.trees).toBe(0); // 그림에 나무가 있어 흩뿌린 나무는 뺀다
+  expect(r.flowers).toBeGreaterThanOrEqual(30);
+  expect(r.flowers).toBeLessThanOrEqual(50); // 너무 많지 않게 (사용자 요청)
+  expect(r.scale).toBeCloseTo(1.2, 5); // 도트 2px × 0.6배
   expect(r.belowMonsters).toBe(true);
   expect(r.top && r.bottom).toBe(true);
-  expect(r.treeKinds).toBe(3); // 나무 3종 (deco_tree_1~3, 사용자 그림)
-  expect(r.flowerKinds).toBe(6); // 꽃 6종 (deco_flower_1~6, 사용자 그림)
-  expect(r.flipped).toBe(true); // 일부는 좌우 뒤집기
+  expect(r.flowerKinds).toBeGreaterThanOrEqual(3);
   await page.screenshot({ path: SHOT('49-grass-trees') });
-  // 사막(11웨이브)으로 바뀌면 초원 나무는 서서히 사라진다
+  // 사막(11웨이브)으로 바뀌면 꽃은 서서히 사라진다
   await game(page, () => window.game.scene.getScene('Game').changeBiome({ id: 'desert', name: '사막' }));
   await page.waitForTimeout(1500);
   expect(await game(page, () => window.game.scene.getScene('Game').decor.length)).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('체력 30% 이하 노랑↔빨강 깜빡임 · 등급 테두리 그라데이션 (2026-11-25)', async ({ page }) => {
+  const errors = await startGame(page);
+  await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.wallHp = Math.floor(g.wallMax * 0.25);
+    g.refreshHud();
+    window.__blink = new Set();
+    const f = () => window.__blink.add(!!g.hud.hpBlinkOn);
+    window.game.events.on('poststep', f);
+    setTimeout(() => window.game.events.off('poststep', f), 1200);
+  });
+  await page.waitForTimeout(1400);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const cards = g.hud.shopBox.list.filter((c) => c.slotIndex != null);
+    const framed = cards.filter((c) => c.list?.some((o) => o.texture?.key?.includes('gframe_'))).length;
+    // 그라데이션: 테두리 위쪽이 아래쪽보다 밝다
+    const key = g.textures.getTextureKeys().find((k) => k.includes('gframe_'));
+    const src = g.textures.get(key).getSourceImage();
+    const ctx = src.getContext('2d');
+    const px = (y) => { const d = ctx.getImageData(3, y, 1, 1).data; return d[0] + d[1] + d[2]; }; // 왼쪽 테두리 세로선
+    return { blink: [...window.__blink].sort(), cards: cards.length, framed, topBrighter: px(Math.floor(src.height * 0.3)) > px(Math.floor(src.height * 0.7)), dbg: [px(Math.floor(src.height * 0.3)), px(Math.floor(src.height * 0.7)), key] };
+  });
+  expect(r.blink).toEqual([false, true]); // 번갈아 켜짐·꺼짐
+  expect(r.framed).toBe(r.cards);
+  expect(r.topBrighter, JSON.stringify(r.dbg)).toBe(true);
+  await game(page, () => { const g = window.game.scene.getScene('Game'); g.wallHp = g.wallMax; g.refreshHud(); });
+  await page.waitForTimeout(500);
+  expect(await game(page, () => window.game.scene.getScene('Game').hud.hpBlinkOn)).toBe(false); // 회복하면 노랑
   expect(errors).toEqual([]);
 });
 
@@ -1917,7 +1945,7 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
-test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 오른쪽 정렬 세로 줄 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
+test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 셰이더) · 메뉴 = 가운데 마름모 4개 마름모 대형 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -1927,15 +1955,18 @@ test('영지 (2026-11-22): 배경 그림이 화면을 채움 · 메뉴 버튼 �
   await page.waitForTimeout(300);
   const r = await game(page, () => {
     const l = window.game.scene.getScene('Lobby');
-    const rights = Object.values(l.spots).map((c) => Math.round(c.getBounds().right));
-    const ys = Object.values(l.spots).map((c) => Math.round(c.y));
-    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_wide');
-    return { rights, ys, bgFull: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720 };
+    const p = Object.fromEntries(Object.entries(l.spots).map(([k, c]) => [k, { x: Math.round(c.x), y: Math.round(c.y) }]));
+    const bg = l.children.list.find((o) => o.type === 'Image' && o.texture.key === 'lobby_key');
+    return { p, wind: l.wind, bgFull: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720 };
   });
-  expect(new Set(r.rights).size).toBe(1); // 오른쪽 끝이 모두 같다
-  expect(r.rights[0]).toBeGreaterThanOrEqual(1280 - 20);
-  expect([...r.ys].sort((a, b) => a - b)).toEqual(r.ys); // 위에서 아래로 한 줄
-  expect(r.bgFull).toBe(true); // 가로 영지 그림(도트)이 화면을 꽉 채움 — 사용자 세로 그림은 가로 화면에 맞지 않아 PC 에서는 안 씀
+  const { tower, barracks, tent, forge } = r.p;
+  expect(tower.x).toBe(forge.x); // 위·아래 = 가운데 세로줄
+  expect(barracks.y).toBe(tent.y); // 왼쪽·오른쪽 = 가운데 가로줄
+  expect(tower.y < barracks.y && barracks.y < forge.y).toBe(true);
+  expect(barracks.x < tower.x && tower.x < tent.x).toBe(true);
+  expect(tower.x).toBe(640); // 화면 가운데
+  expect(r.bgFull).toBe(true);
+  expect(r.wind).toBe(true); // 구름·꽃·깃발 바람
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
   // 병영으로: 카드 뒤집기 디졸브 (2026-11-23, 이전 옆으로 밀기) — 잠깐 두 장면이 함께 켜지고 새 화면이 왼쪽 위 칸부터 뒤집혀 드러난다(진행도 0 → 1)
   // 매 프레임 새 장면 진행도·마스크를 모아 본다 (전환은 실제 시간 0.9초라 한 번 읽어서는 놓친다)
@@ -2090,7 +2121,7 @@ test('곡선 UI (2026-11-23): 원·알약·배지는 화면 해상도로 미리 
     g.giveItem('whet'); g.refreshHud();
     // 원 그림 텍스처마다 알파(모양)가 좌우·상하로 거울처럼 같은지 (아이콘은 원 안이라 모양에 영향 없음)
     const bad = [];
-    const keys = g.textures.getTextureKeys().filter((k) => k.startsWith('shape_') && !k.includes('tabbar')); // 탭 바(2026-11-24)는 위아래가 다른 모양이라 제외
+    const keys = g.textures.getTextureKeys().filter((k) => k.startsWith('shape_') && !/tabbar|gframe_|lobby_diamond/.test(k)); // 탭 바(2026-11-24)·등급 테두리 카드(아래 직각)·영지 마름모(아래 입술, 2026-11-25)는 위아래가 다른 모양이라 제외
     for (const k of keys) {
       const src = g.textures.get(k).getSourceImage();
       const ctx = src.getContext('2d');

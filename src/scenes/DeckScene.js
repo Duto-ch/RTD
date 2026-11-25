@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, CSS, traitBadge, ringImage, discImage } from '../ui/theme.js';
+import { panel, uiText, CSS, traitBadge, ringImage, discImage, gradeFrame } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER, ROSTER_BY_ID, GRADES, STYLES, DECK_RULES, DEFAULT_DECK, TRAIT_TEXT, deckValid } from '../data/roster.js';
@@ -18,7 +18,6 @@ import { dissolveTo } from '../ui/dissolve.js';
 
 // 시너지 필터 줄(synY 136) 아래부터 격자 (2026-11-22)
 const L = { grid: { x: 16, y: 160, w: 840, h: 544 }, cols: 6, cardH: 86, info: { x: 872, y: 72, w: 392, h: 356 }, deck: { x: 872, y: 440, w: 392, h: 196 }, synY: 136 };
-const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
 const SELECT_COLOR = 0xd94fa0;
@@ -201,9 +200,9 @@ export class DeckScene extends Phaser.Scene {
       const inDeck = this.deck.includes(c.id);
       const own = this.owned(c.id);
       const sel = this.selected === c;
+      // 등급 테두리 = 그라데이션 (2026-11-25 사용자 결정) — 예전 선(3)처럼 바깥으로 1.5 걸친다
+      const frame = gradeFrame(this, x - 1.5, y - 1.5, w + 3, L.cardH + 3, c.grade, { r: 13.5, fill: inDeck ? '#fff6dc' : '#e7dcbb' });
       const g = this.add.graphics();
-      g.fillStyle(inDeck ? 0xfff6dc : 0xe7dcbb, 1).fillRoundedRect(x, y, w, L.cardH, 12);
-      g.lineStyle(3, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, w, L.cardH, 12);
       // 고른 카드 (2026-11-22): 등급 테두리는 그대로 두고 바깥에 자홍 테두리 — 금색이면 유니크 등급 테두리와 구분이 안 됐다
       if (sel) g.lineStyle(3, SELECT_COLOR, 1).strokeRoundedRect(x - 2.5, y - 2.5, w + 5, L.cardH + 5, 14);
       if (!inDeck) g.fillStyle(0x0b2f2e, own ? 0.22 : 0.5).fillRoundedRect(x, y, w, L.cardH, 12);
@@ -211,7 +210,7 @@ export class DeckScene extends Phaser.Scene {
       if (!own) img.setTint(0x30403c);
       const nm = uiText(this, x + 52, y + 14, c.name, 13, CSS.ink, 'bold');
       const gr = uiText(this, x + 52 + (inDeck ? 18 : 0), y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
-      this.gridC.add([g, img, nm, gr]);
+      this.gridC.add([frame, g, img, nm, gr]);
       // 계열·출신 상징 (2026-11-22 사용자 요청: 상점 카드와 같은 시너지 그림 — 글자 줄 대신). 고용 전이면 옅게
       [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, x + 52 + 9 + j * 22, y + 63, k, 8, own)));
       const enh = meta.enhance(c.id);
@@ -240,13 +239,13 @@ export class DeckScene extends Phaser.Scene {
   toggle(c) {
     const i = this.deck.indexOf(c.id);
     if (i >= 0) {
-      if (this.deck.length <= 1) return this.toast('덱에는 1명 이상 있어야 합니다');
+      if (this.deck.length <= 1) return this.toast('덱 최소 1명');
       this.deck.splice(i, 1);
     } else {
-      if (!this.owned(c.id)) return this.toast('아직 고용하지 않은 캐릭터예요 — 영지의 술집에서 고용하세요');
+      if (!this.owned(c.id)) return this.toast('미고용 · 술집에서 고용');
       const next = [...this.deck, c.id];
-      if (next.length > DECK_RULES.max) return this.toast(`덱은 최대 ${DECK_RULES.max}명입니다`);
-      if (!deckValid(next)) return this.toast(`레어는 최대 ${DECK_RULES.rare}명, 유니크는 최대 ${DECK_RULES.unique}명입니다`);
+      if (next.length > DECK_RULES.max) return this.toast(`덱 최대 ${DECK_RULES.max}명`);
+      if (!deckValid(next)) return this.toast(`레어 최대 ${DECK_RULES.rare} · 유니크 최대 ${DECK_RULES.unique}`);
       this.deck.push(c.id);
     }
     audio.toggle(i < 0);
@@ -299,9 +298,7 @@ export class DeckScene extends Phaser.Scene {
     sorted.forEach((c, i) => {
       const x = D.x + 12 + (i % per) * step + step / 2;
       const y = D.y + 34 + Math.floor(i / per) * step + step / 2;
-      const g = this.add.graphics();
-      g.fillStyle(0xf3ead2, 1).fillRoundedRect(x - 18, y - 18, 36, 36, 8);
-      g.lineStyle(2, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x - 18, y - 18, 36, 36, 8);
+      const g = gradeFrame(this, x - 19, y - 19, 38, 38, c.grade, { r: 9, lw: 2, fill: '#f3ead2' });
       const img = charImage(this, x, y, c, 'head').setInteractive({ useHandCursor: true });
       img.on('pointerup', () => this.select(c));
       this.deckBox.add([g, img]);

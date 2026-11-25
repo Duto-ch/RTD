@@ -115,7 +115,7 @@ const { chromium } = require('playwright');
         lastWave = g.wave;
       }
     }
-    const reason = g.children.list.filter(o => o.type === 'Text').map(o => o.text).find(t => /무너졌습니다/.test(t));
+    const reason = g.children.list.filter(o => o.type === 'Text').map(o => o.text).find(t => /성벽 붕괴|무너졌습니다/.test(t));
     return { wave: g.wave, fame: g.fameEarned, stones: g.stonesEarned, kills: g.totalKills, over: g.over, log: [...log, 'boss max lap%: ' + JSON.stringify(bossMax), 'reason: ' + reason] };
   }, [override, useReserveArg]);
   console.log(res.log.join('\n')); console.log('END wave', res.wave, 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));

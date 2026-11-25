@@ -32,7 +32,7 @@ export class TitleScene extends Phaser.Scene {
 
     // 최고 기록 (아래쪽) — 명성 강화 버튼은 없앰 (2026-11-24 사용자 요청)
     const best = meta.data.best?.normal || 0;
-    uiText(this, cx, GAME_H - 32, `최고 기록 W${best} · ESC: 메뉴`, 12, '#ffffff', 'bold', { stroke: '#1d2c5a', strokeThickness: 4 }).setOrigin(0.5);
+    uiText(this, cx, GAME_H - 32, `최고 기록 W${best}`, 12, '#ffffff', 'bold', { stroke: '#1d2c5a', strokeThickness: 4 }).setOrigin(0.5);
 
     // 아무 곳이나 누르면 시작 (버튼 위는 제외)
     const start = () => {
