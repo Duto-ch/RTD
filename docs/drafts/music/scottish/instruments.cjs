@@ -14,7 +14,6 @@ const DEMOS = [
   ['1_whistle', 'whistle', 1, ['D5:1 E5:1 F#5:1 A5:1 B5:4'], 0.8],
   ['2_fiddle', 'fiddle', 1, ['D4:1 E4:1 F#4:1 A4:1 B4:4'], 0.8],
   ['3_harp', 'harp', 1, ['D3:1 A3:1 D4:1 F#4:1 A4:1 F#4:1 D4:1 A3:1'], 0.6],
-  ['4_strings', 'strings', 1, ['D4+F#4+A4:8'], 0.6],
   ['5_drone', 'drone', 1, ['D2+A2:8'], 0.8],
   ['6_bass', 'bass', 1, ['D2:2 A2:2 D2:2 A2:2'], 0.6],
   ['7_bodhran', 'bodhran', 1, ['C4:1 r:0.5 C4:0.5 C4:1 C4:1 r:0.5 C4:0.5 C4:1 C4:2'], 0.5],

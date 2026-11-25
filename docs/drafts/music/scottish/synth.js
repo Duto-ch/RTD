@@ -299,7 +299,7 @@ const INST = {
     f.frequency.value = Math.min(4200, 1500 + hz(m) * 1.3);
     f.Q.value = 0.7;
     const g = ctx.createGain();
-    adsr(g, t, Math.min(0.09, dur * 0.35), 0.055 * vel, 0.5, 0.9, end, 0.14);
+    adsr(g, t, Math.min(0.09, dur * 0.35), 0.042 * vel, 0.5, 0.9, end, 0.14); // 2026-11-25 사용자 요청: 조금 작게 (0.055 → 0.042, 약 -2.3dB)
     for (const dt of [-4, 5]) {
       const o = osc(ctx, 'sawtooth', hz(m), t, stop, dt);
       if (dur > 0.35) vibrato(ctx, o, t, stop, 5.8, 13, 0.16);
@@ -539,6 +539,7 @@ export async function renderBuffer(song, sampleRate = 44100) {
 }
 
 // ───────────── 곡 (스코틀랜드 민요 풍, 은은하고 부드럽게) ─────────────
+// 2026-11-25 사용자 요청: 현악 패드(strings) 빼고, 피들 조금 작게
 // 민요 맛: 5음계에 가까운 선율, 스카치 스냅(짧은-긴 '0.5 + 1.5'), 으뜸음·5도 드론, 하프 펼침화음
 
 /** 드론을 마디 from~to 동안 길게 (으뜸음 + 5도, 낮게) */
@@ -565,8 +566,6 @@ export const TITLE = {
     s.each(1, 16, (b, c) => s.arp('harp', b, c, [0, 2, 3, 4, 5, 4, 3, 2], b <= 2 ? 0.5 : 0.4, 50));
     droneSpan(s, 1, 16, 38, 8, 0.8); // D2·A2
     s.mel('bell', 1, ['r:4 A5:2 D6:2', 'B5:4 r:4'], 0.3);
-    // 현악 패드: 아주 옅게 받침
-    s.each(3, 16, (b, c) => s.pad('strings', b, c, 0.28, 57));
     s.each(3, 16, (b, c) => s.bass(b, c, [[0, 8]], 0.35, 38));
     // 틴 휘슬 (스카치 스냅이 들어간 느린 노래)
     s.mel('whistle', 3, [
@@ -623,7 +622,6 @@ export const LOBBY = {
     const B = ['B5:3 A5:1 G5:2', 'E5:4 G5:2', 'D5:2 B4:2 D5:2', 'A5:4 F#5:2', 'G5:2 B5:2 E6:2', 'E6:3 D6:1 C6:2', 'A5:2 C6:2 E5:2', 'F#5:4 A5:2'];
     s.mel('whistle', 17, B, 0.65);
     s.mel('fiddle', 17, B, 0.55, -12);
-    s.each(17, 24, (b, c) => s.pad('strings', b, c, 0.3, 55));
     s.mel('whistle', 25, [...A, 'G5:6'], 0.7);
     s.mel('fiddle', 25, [...A, 'G5:6'], 0.4, -12);
     s.mel('bell', 31, ['r:2 B5:2 D6:2', 'G6:4 r:2'], 0.3);
@@ -688,7 +686,6 @@ export const GAME = {
     s.mel('whistle', 29, A, 0.65);
     s.mel('fiddle', 29, A, 0.45, -12);
     s.mel('whistle', 37, ['B4:1 D5:1 G5:1 B5:3', 'C#6:2 A5:1 E5:3', 'D5:1 G5:1 B5:1 D6:3', 'r:6'], 0.5);
-    s.each(37, 40, (b, c) => s.pad('strings', b, c, 0.3, 57));
     // 바우런: 지그 박 (1·4번째 8분 강조) — 처음과 끝은 조용히
     s.each(3, 36, (b) => s.drum('bodhran', b, b >= 21 && b <= 28 ? 'x.o.o.x.o.o.' : 'x...o.x...o.', b <= 4 ? 0.3 : 0.42));
   }
