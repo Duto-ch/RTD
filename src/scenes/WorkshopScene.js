@@ -25,7 +25,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.selected = meta.equipped[0] || RELICS.find((r) => meta.relicLevel(r.id))?.id || RELICS[0].id;
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x2a2438).setOrigin(0);
     uiText(this, 20, 18, '유물 공방', 22, '#fff3c4', 'bold');
-    uiText(this, 20, 50, `마정석 ${RELIC_RULES.craftCost}개로 유물 무작위 생산 · 같은 유물은 레벨 업(최대 ${RELIC_RULES.maxLevel})`, 12, '#d8c8f0', '600');
+    uiText(this, 20, 50, `생산 마정석 ${RELIC_RULES.craftCost} · 중복 → 레벨 업 (최대 ${RELIC_RULES.maxLevel})`, 12, '#d8c8f0', '600');
     this.stoneBox = this.add.container(0, 0);
     this.slotBox = this.add.container(0, 0);
     this.gridBox = this.add.container(0, 0);
@@ -58,7 +58,6 @@ export class WorkshopScene extends Phaser.Scene {
     const eq = meta.equipped;
     const n = meta.relicSlots;
     this.slotBox.add(uiText(this, S.x + 16, S.y + 12, `장착 ${eq.length}/${n}`, 13, CSS.ink, 'bold'));
-    this.slotBox.add(uiText(this, S.x + 16, S.y + 34, '매 판 팀 전체에 적용', 11, CSS.sub, '600'));
     for (let i = 0; i < n; i++) {
       const x = S.x + 170 + i * 64;
       const y = S.y + S.h / 2;
@@ -110,7 +109,7 @@ export class WorkshopScene extends Phaser.Scene {
     const cat = RELIC_CATS.find((c) => c.id === r.cat).name;
     this.info.add([
       icon,
-      uiText(this, I.x + 86, I.y + 18, lv ? r.name : '??? (아직 없음)', 17, CSS.ink, 'bold'),
+      uiText(this, I.x + 86, I.y + 18, lv ? r.name : '???', 17, CSS.ink, 'bold'),
       uiText(this, I.x + 86, I.y + 46, `${cat} 유물 · ${lv ? `Lv${lv}/${RELIC_RULES.maxLevel}` : '미보유'}`, 12, CSS.sub, '600')
     ]);
     let y = I.y + 88;
@@ -137,16 +136,16 @@ export class WorkshopScene extends Phaser.Scene {
 
   toggle(id) {
     const on = meta.equipped.includes(id);
-    if (!meta.toggleEquip(id)) return this.toast(`장착 칸이 가득 찼어요 (${meta.relicSlots}칸) — 먼저 하나를 해제하세요`);
+    if (!meta.toggleEquip(id)) return this.toast(`장착 칸 가득 (${meta.relicSlots})`);
     audio.toggle(!on);
-    this.toast(on ? '해제했어요' : '장착했어요 — 다음 판부터 적용');
+    this.toast(on ? '해제' : '장착 · 다음 판부터');
     this.refresh();
   }
 
   craft() {
     audio.init();
     const r = meta.craftRelic();
-    if (!r) return this.toast(`마정석이 부족합니다 (${RELIC_RULES.craftCost}개 필요) — 보스를 쓰러뜨려 모으세요`);
+    if (!r) return this.toast(`마정석 부족 (${RELIC_RULES.craftCost} 필요)`);
     const relic = RELICS.find((x) => x.id === r.id);
     audio.promote?.();
     this.selected = r.id;

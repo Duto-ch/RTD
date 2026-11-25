@@ -240,13 +240,13 @@ export class DeckScene extends Phaser.Scene {
   toggle(c) {
     const i = this.deck.indexOf(c.id);
     if (i >= 0) {
-      if (this.deck.length <= 1) return this.toast('덱에는 1명 이상 있어야 합니다');
+      if (this.deck.length <= 1) return this.toast('덱 최소 1명');
       this.deck.splice(i, 1);
     } else {
-      if (!this.owned(c.id)) return this.toast('아직 고용하지 않은 캐릭터예요 — 영지의 술집에서 고용하세요');
+      if (!this.owned(c.id)) return this.toast('미고용 · 술집에서 고용');
       const next = [...this.deck, c.id];
-      if (next.length > DECK_RULES.max) return this.toast(`덱은 최대 ${DECK_RULES.max}명입니다`);
-      if (!deckValid(next)) return this.toast(`레어는 최대 ${DECK_RULES.rare}명, 유니크는 최대 ${DECK_RULES.unique}명입니다`);
+      if (next.length > DECK_RULES.max) return this.toast(`덱 최대 ${DECK_RULES.max}명`);
+      if (!deckValid(next)) return this.toast(`레어 최대 ${DECK_RULES.rare} · 유니크 최대 ${DECK_RULES.unique}`);
       this.deck.push(c.id);
     }
     audio.toggle(i < 0);

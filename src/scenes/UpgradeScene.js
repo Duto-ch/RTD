@@ -154,7 +154,6 @@ export class UpgradeScene extends Phaser.Scene {
     this.fameText = uiText(this, X + 48, 44, '', 22, CSS.gold, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.bestText = uiText(this, R - 20, 38, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
     this.countText = uiText(this, R - 20, 58, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
-    uiText(this, X + 20, 74, '웨이브를 버틸 때마다 명성 · 강화는 영구 유지', 11, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
   }
 
   // ───────────── 아래 정보 창 ─────────────
@@ -367,14 +366,14 @@ export class UpgradeScene extends Phaser.Scene {
     this.dEffect.setText(`${u.label}: ${now}  ▶  ${next}`);
     const cost = upgradeCost(u, lv);
     if (status === 'max') {
-      this.dNote.setText('최대 레벨입니다').setColor(CSS.gold);
+      this.dNote.setText('최대 레벨').setColor(CSS.gold);
       this.buyBtn.setLabel('MAX').setEnabled(false);
     } else if (status === 'locked') {
-      this.dNote.setText(`먼저 「${UPGRADE_BY_ID[u.parent].name}」을(를) 배워야 열립니다`).setColor(CSS.red);
+      this.dNote.setText(`선행: 「${UPGRADE_BY_ID[u.parent].name}」`).setColor(CSS.red);
       this.buyBtn.setLabel(`잠김 · 명성 ${cost}`).setEnabled(false);
     } else {
-      const hint = START_ONLY.has(u.id) ? '판을 시작할 때 적용 (전투 중이면 다음 판부터)' : '강화 버튼을 누르면 1레벨 올라갑니다 · 즉시 적용';
-      this.dNote.setText(status === 'poor' ? `명성이 ${cost - meta.fame} 부족합니다` : hint).setColor(status === 'poor' ? CSS.red : CSS.sub);
+      const hint = START_ONLY.has(u.id) ? '판을 시작할 때 적용 (전투 중이면 다음 판부터)' : '즉시 적용';
+      this.dNote.setText(status === 'poor' ? `명성 ${cost - meta.fame} 부족` : hint).setColor(status === 'poor' ? CSS.red : CSS.sub);
       this.buyBtn.setLabel(`강화 · 명성 ${cost}`).setEnabled(status === 'ok');
     }
   }

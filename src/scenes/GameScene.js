@@ -117,7 +117,7 @@ export class GameScene extends Phaser.Scene {
     this.refreshRelics();
     this.refreshHud();
     this.refreshInfo();
-    this.showBanner('용병단 디펜스', `${BALANCE.prepTime}초 후 1웨이브 시작 · 상점에서 용병을 사서 시너지를 맞추세요`);
+    this.showBanner('용병단 디펜스', `${BALANCE.prepTime}초 후 1웨이브`);
   }
 
   // ───────────────────────── 명성 강화 (2026-11-18: 필드 성탑 삭제 → 하단 '강화' 버튼, Hud) ─────────────────────────
@@ -217,12 +217,12 @@ export class GameScene extends Phaser.Scene {
     if (this.wallHp <= 0 && lake?.revive && !this.lakeRevived) {
       this.lakeRevived = true;
       this.wallHp = Math.round(this.wallMax * lake.revive);
-      this.showBanner('호수의 성역', `성벽이 ${Math.round(lake.revive * 100)}% 로 되살아났습니다`, '#3a8fb0');
+      this.showBanner('호수의 성역', `성벽 ${Math.round(lake.revive * 100)}% 부활`, '#3a8fb0');
       this.cameras.main.flash(300, 120, 200, 255);
     }
     if (this.wallHp <= 0) {
       this.refreshHud(); // 성벽 체력 0 을 화면에 반영하고 끝낸다
-      this.endGame(false, '성벽이 무너졌습니다');
+      this.endGame(false, '성벽 붕괴');
     }
   }
 
@@ -309,7 +309,7 @@ export class GameScene extends Phaser.Scene {
     this.waveTimer = 0;
     this.changeBiome(biomeForWave(w));
     const sub =
-      info.type === 'final' ? `최종 보스 출현! 쓰러뜨려도 한 번 되살아납니다` :
+      info.type === 'final' ? `최종 보스 출현 · 1회 부활` :
       info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
       info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 ${info.elite}기` : `몬스터 ${info.normal}기`;
@@ -979,7 +979,7 @@ export class GameScene extends Phaser.Scene {
     audio.gem();
     this.stonesEarned += n;
     this.floatText(x, y - 54, `마정석 +${n}`, '#6fe0d6');
-    this.toast(`마정석 +${n} (보유 ${meta.stones}) — 영지 술집·유물 공방에서 사용`, '#6fe0d6');
+    this.toast(`마정석 +${n} (보유 ${meta.stones})`, '#6fe0d6');
     this.tut.show('stones');
   }
 
@@ -1070,13 +1070,13 @@ export class GameScene extends Phaser.Scene {
     const char = ROSTER_BY_ID[slot.id];
     const cost = priceOf(char);
     if (this.gold < cost) {
-      this.toast('골드가 부족합니다');
+      this.toast('골드 부족');
       return null;
     }
     // 필드 인원이 가득 차면 대기석으로 (2026-11-21) — 대기석도 차면 못 산다 (별 승급이 되는 3장째는 예외)
     const toBench = this.mercs.length >= this.cap || !this.emptyCell(char);
     if (toBench && this.freeReserve() < 0 && !this.completesStar(char.id)) {
-      this.toast(`필드(${this.cap}명)와 대기석이 가득 찼어요 — 팔거나 영지 레벨을 올리세요`, '#ff9a7a');
+      this.toast(`필드(${this.cap}명)·대기석 가득`, '#ff9a7a');
       this.tut.show('estate');
       return null;
     }
@@ -1098,7 +1098,7 @@ export class GameScene extends Phaser.Scene {
     if (!cell && slot < 0) {
       // 칸이 없어도 별 승급이 되면 놓을 수 있게: 승급 재료 한 장 자리를 잠깐 쓴다
       if (!this.completesStar(char.id)) {
-        this.toast('빈 칸이 없습니다');
+        this.toast('빈 칸 없음');
         return null;
       }
       const m0 = this.allUnits.find((m) => m.char.id === char.id && m.star === 1);
@@ -1183,7 +1183,7 @@ export class GameScene extends Phaser.Scene {
     if (this.selected) this.select(null); // 필드 캐릭터를 고른 채(정보 창)라도 리롤을 누르면 구매 창(상점)으로 (2026-11-21)
     const cost = this.rerollPrice;
     if (this.gold < cost) {
-      this.toast(`골드가 부족합니다 (리롤 ${cost}G)`);
+      this.toast(`골드 부족 · 리롤 ${cost}G`);
       return false;
     }
     if (this.freeRerolls > 0) this.freeRerolls -= 1;
@@ -1213,7 +1213,7 @@ export class GameScene extends Phaser.Scene {
     const cost = this.estateCost;
     if (cost == null || this.over) return false;
     if (this.gold < cost) {
-      this.toast(`골드가 부족합니다 (영지 레벨 업 ${cost}G)`);
+      this.toast(`골드 부족 · 레벨 업 ${cost}G`);
       return false;
     }
     this.gold -= cost;
@@ -1244,7 +1244,7 @@ export class GameScene extends Phaser.Scene {
   /** 아이템을 띠에 더한다 (가득 차면 false) */
   giveItem(id, x, y) {
     if (this.bench.length >= ITEM_RULES.bench) {
-      this.toast('아이템 띠가 가득 찼어요 — 캐릭터에게 장착하세요', '#ff9a7a');
+      this.toast('아이템 띠 가득', '#ff9a7a');
       return false;
     }
     this.bench.push(id);
@@ -1283,13 +1283,13 @@ export class GameScene extends Phaser.Scene {
     const emblemOf = (rid) => ITEM_BY_ID[rid]?.kind === 'emblem' && ITEM_BY_ID[rid].trait;
     const trait = emblemOf(result || id);
     if (trait && (trait === merc.cls || trait === merc.origin || merc.extraTraits.includes(trait))) {
-      this.toast(`${merc.heroName}는 이미 ${TRAITS[trait].name}이에요`, '#ff9a7a');
+      this.toast(`${merc.heroName} · 이미 ${TRAITS[trait].name}`, '#ff9a7a');
       return false;
     }
     if (result) merc.items[slot] = result;
     else if (merc.items.length < ITEM_RULES.slots) merc.items.push(id);
     else {
-      this.toast(`${merc.heroName}의 아이템 칸(${ITEM_RULES.slots})이 가득 찼어요`, '#ff9a7a');
+      this.toast(`${merc.heroName} · 아이템 칸 가득 (${ITEM_RULES.slots})`, '#ff9a7a');
       return false;
     }
     this.bench.splice(benchIndex, 1);
@@ -1314,7 +1314,7 @@ export class GameScene extends Phaser.Scene {
   smithBuy() {
     const cost = this.smithCost;
     if (this.gold < cost) {
-      this.toast(`골드가 부족합니다 (재료 ${cost}G)`);
+      this.toast(`골드 부족 · 재료 ${cost}G`);
       return false;
     }
     if (this.bench.length >= ITEM_RULES.bench) return this.giveItem(null) && false;
@@ -1329,7 +1329,7 @@ export class GameScene extends Phaser.Scene {
   useTool(merc) {
     if (this.tools <= 0 || !merc?.items.length) return false;
     if (this.bench.length + merc.items.length > ITEM_RULES.bench) {
-      this.toast('아이템 띠에 자리가 모자라요', '#ff9a7a');
+      this.toast('아이템 띠 자리 부족', '#ff9a7a');
       return false;
     }
     this.tools -= 1;
@@ -1442,7 +1442,7 @@ export class GameScene extends Phaser.Scene {
     const other = slot >= 0 ? this.reserve[slot] : this.grid[cell.row][cell.col];
     // 대기석 → 빈 필드 칸: 필드 인원이 가득이면 못 올린다
     if (cell && merc.reserved && !other && this.mercs.length >= this.cap) {
-      this.toast(`필드 인원이 가득 찼어요 (${this.cap}명) — 영지 레벨을 올리세요`, '#ff9a7a');
+      this.toast(`필드 가득 (${this.cap}명)`, '#ff9a7a');
       return merc.snapToCell();
     }
     const from = merc.reserved ? { slot: merc.slot } : { col: merc.col, row: merc.row };
@@ -1677,7 +1677,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(1200, () => !this.over && audio.playMusic('battle'));
     for (let i = 0; i < 8; i++) this.time.delayedCall(i * 180, () => this.vfx.firework(Phaser.Math.Between(60, GAME_W - 60), Phaser.Math.Between(160, 600)));
     this.cameras.main.flash(500, 255, 220, 120);
-    this.showBanner(`${this.wave} 웨이브 돌파!`, '최종 보스 격파 — 웨이브는 계속됩니다', '#f2c14e');
+    this.showBanner(`${this.wave} 웨이브 돌파!`, '최종 보스 격파 · 웨이브 계속', '#f2c14e');
   }
 
   quitToTitle() {
@@ -1783,7 +1783,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(top);
     const newBest = this.wave > this.bestWave;
-    const sub = victory ? '수고했어요! 용병단이 성을 지켜냈어요' : `${reason}${newBest ? ' · 최고 기록 갱신!' : ''}`;
+    const sub = victory ? '성 방어 성공' : `${reason}${newBest ? ' · 최고 기록 갱신!' : ''}`;
     if (sub) uiText(this, cx, cy0 + 160, sub, 13, CSS.sub, '600').setOrigin(0.5).setDepth(top);
     if (victory) {
       this.tweens.add({ targets: title, scale: 1.06, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });

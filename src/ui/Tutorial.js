@@ -13,12 +13,12 @@ import { Button } from './Button.js';
 export const TUTORIAL_STEPS = {
   shop: {
     title: '상점',
-    text: '덱의 용병 6명이 상점에 나와요. 눌러서 사면 빈 칸에 놓입니다.\n웨이브가 끝날 때마다 새로 채워지고, 리롤로 바로 바꿀 수 있어요.',
+    text: '· 누르기 → 구매 · 빈 칸 배치\n· 웨이브 끝 → 새로 채움\n· 리롤 → 즉시 교체',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   star: {
     title: '별 승급',
-    text: '같은 용병 3명이 모이면 자동으로 합쳐져 별이 오릅니다 (최대 3성).\n별이 오르면 능력치와 스킬이 크게 강해져요.',
+    text: '· 같은 용병 3명 → 자동 합체 · 별 +1 (최대 3성)\n· 별 +1 → 능력치·스킬 강화',
     rect: (s) => {
       const u = s.mercs?.find((m) => m.star >= 2);
       return u ? cellsRect([u]) : null;
@@ -26,42 +26,42 @@ export const TUTORIAL_STEPS = {
   },
   estate: {
     title: '영지 레벨',
-    text: '영지 레벨을 올리면 놓을 수 있는 인원이 늘고(최대 12명)\n상점에 높은 등급 용병이 더 자주 나와요.',
+    text: '· 레벨 업 → 배치 인원 +1 (최대 12명)\n· 레벨 업 → 높은 등급 확률 증가',
     rect: (s) => btnRect(s.hud.estateBtn)
   },
   lock: {
     title: '잠금',
-    text: '잠근 칸은 리롤·웨이브 갱신에도 남아요.\n대신 잠근 용병의 등급·수만큼 리롤 값이 오릅니다.',
+    text: '· 잠근 칸 → 리롤·웨이브 갱신에도 유지\n· 잠근 등급·수만큼 리롤 값 증가',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   item: {
     title: '아이템 조합',
-    text: '정예·보스를 잡거나 대장장이에서 사면 재료가 아이템 띠에 들어와요.\n캐릭터에게 끌어다 놓고, 같은 캐릭터에 재료 2개가 모이면 자동 조합!\n장착한 아이템은 「해제 도구」로만 뺄 수 있어요.',
+    text: '· 획득: 정예·보스 처치 · 대장장이 구매\n· 캐릭터에 끌어 놓기 → 장착\n· 같은 캐릭터 재료 2개 → 자동 조합\n· 빼기: 해제 도구',
     rect: () => ({ x: HUD.bench.x - 4, y: HUD.bench.y - 4, w: HUD.bench.w + 8, h: HUD.bench.h + 8 })
   },
   reserve: {
     title: '대기석',
-    text: '필드 인원이 가득 차면 산 용병은 대기석으로 가요.\n대기석 용병은 싸우지 않아요 — 필드로 끌어다 놓으세요.\n별 승급에는 대기석 용병도 함께 들어가요.',
+    text: '· 필드 가득 → 대기석으로\n· 대기석 = 전투 안 함 · 필드로 끌어 놓기\n· 별 승급에는 포함',
     rect: () => ({ x: HUD.reserve.x - 4, y: HUD.reserve.y - 4, w: HUD.reserve.w + 8, h: HUD.reserve.h + 8 })
   },
   synergy: {
     title: '시너지',
-    text: '용병마다 계열(공격 방식) 1개와 출신(세력) 1개가 있어요.\n서로 다른 용병을 모으면 시너지가 켜집니다 — 계열 2·5·8명, 출신 3·6·9명.',
+    text: '· 용병마다 계열 1 · 출신 1\n· 서로 다른 용병 수 → 단계\n· 계열 2·5·8 / 출신 3·6·9',
     rect: () => ({ x: HUD.syn.x - 4, y: HUD.syn.y - 4, w: HUD.syn.w + 8, h: HUD.syn.h + 8 })
   },
   wave: {
     title: '웨이브 시작',
-    text: '몬스터는 성벽 바깥 길을 따라 돕니다.\n몬스터가 한 바퀴 돌 때마다 성벽 체력이 깎이고, 0이 되면 패배!',
+    text: '· 몬스터 = 성벽 바깥 길 순환\n· 한 바퀴마다 성벽 체력 감소\n· 체력 0 → 패배',
     rect: () => ({ x: HUD.top.x - 4, y: HUD.top.y - 4, w: HUD.top.w + 8, h: HUD.top.h + 8 })
   },
   select: {
     title: '용병 정보',
-    text: '선택한 용병의 능력치가 상점 자리에 나옵니다.\n「스킬 정보」로 스킬을 보고, 판매는 S 키로도 할 수 있어요.\n드래그해서 자리를 바꿀 수 있어요 — 바깥 줄은 전열, 가운데는 후열.',
+    text: '· 선택 → 상점 자리에 능력치\n· 판매: 버튼 · S\n· 드래그 → 자리 교체 (바깥 = 전열 · 가운데 = 후열)',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   skill: {
     title: '스킬',
-    text: '용병마다 스킬이 1개 있어요. 공격할 때마다 마나가 차고,\n가득 차면 스킬을 씁니다. 별이 오르면 스킬도 강해져요.',
+    text: '· 용병마다 스킬 1\n· 공격 → 마나 충전 · 가득 → 스킬\n· 별 +1 → 스킬 강화',
     rect: () => null
   },
   next: {
@@ -71,7 +71,7 @@ export const TUTORIAL_STEPS = {
   },
   boss: {
     title: '보스 등장',
-    text: '보스는 용병에게 디버프를 걸어요.\n한 바퀴를 돌 때마다 성벽 체력이 크게 깎입니다!',
+    text: '· 용병에게 디버프\n· 한 바퀴마다 성벽 체력 크게 감소',
     rect: (s) => {
       const b = s.monsters?.find((m) => m.isBoss && m.active);
       return b ? { x: toUi(b.x) - 30, y: toUi(b.y) - 36, w: 60, h: 60 } : null; // 보스는 월드 좌표
@@ -100,17 +100,17 @@ export const TUTORIAL_STEPS = {
   },
   stones: {
     title: '마정석',
-    text: '보스를 쓰러뜨리면 마정석이 떨어져요.\n영지의 술집(캐릭터 고용)·유물 공방(유물 생산)에서 씁니다.',
+    text: '· 보스 처치 → 마정석\n· 사용: 술집(고용) · 유물 공방(생산)',
     rect: () => null
   },
   relic: {
     title: '유물',
-    text: '영지 유물 공방에서 장착한 유물이에요.\n팀 전체에 매 판 적용됩니다 (아이콘에 올리면 효과).',
+    text: '· 유물 공방에서 장착\n· 매 판 팀 전체 적용\n· 아이콘 오버 → 효과',
     rect: () => ({ x: HUD.relic.x - 4, y: HUD.relic.y - 4, w: HUD.relic.w + 8, h: 44 })
   },
   hero: {
     title: '유니크 등장',
-    text: '유니크는 최상위 등급이에요. 영지 레벨이 높을수록\n상점에 자주 나옵니다 (Lv10 25%).',
+    text: '· 최상위 등급\n· 영지 레벨 업 → 확률 증가 (Lv10 25%)',
     rect: (s) => {
       const u = s.mercs?.find((m) => m.isHero);
       return u ? cellsRect([u]) : null;
@@ -118,7 +118,7 @@ export const TUTORIAL_STEPS = {
   },
   tower: {
     title: '명성 강화',
-    text: '웨이브를 버틸 때마다 명성이 쌓입니다.\n아래 \'강화\' 버튼을 누르면 판 도중에도 영구 강화를 찍을 수 있어요.',
+    text: '· 웨이브 버팀 → 명성\n· 강화 버튼 → 영구 강화 (판 도중 가능)',
     rect: (s) => {
       const b = s.hud?.upgradeBtn;
       return b ? { x: b.x - b.w / 2, y: b.y - b.h / 2, w: b.w, h: b.h } : null;

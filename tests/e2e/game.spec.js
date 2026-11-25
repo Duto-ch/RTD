@@ -345,7 +345,7 @@ test('유물 아이콘에 마우스를 올리면 능력 툴팁', async ({ page }
   expect(await tip()).toBeNull();
   const p0 = await game(page, () => window.game.scene.getScene('Game').hud.relicPos(0, 4));
   await page.mouse.move(p0.x * UI, p0.y * UI); // 첫 유물 (전쟁의 북) — 룰 v2: 유물 칸은 시너지 칩 오른쪽
-  await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%', '영지 유물 공방에서 바꿔 끼울 수 있어요']);
+  await expect.poll(tip).toEqual(['전쟁의 북', 'Lv1', '모든 용병 공격 속도 +8%']); // 2026-11-25: 안내 줄 삭제 (UI 문구 개조식)
   await page.waitForTimeout(100);
   await page.screenshot({ path: SHOT('10-relic-tooltip') });
   await page.mouse.move(960, 600); // 아이콘 밖

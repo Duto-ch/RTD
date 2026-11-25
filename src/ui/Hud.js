@@ -32,7 +32,7 @@ const RING = { x0: (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, y0: (FIELD_
 //  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
 //  가로(B-2): 위 알약 바(y 16~68)와 위쪽 길 사이 / 아래쪽 길과 아래 독(y 643~) 사이
 // 가운데 탭 (2026-11-24 사용자 시안): 위 바 탭 = 시너지 상징 한 줄, 아래 독 탭 = 대기석 한 줄 (양옆 S 곡선 폭 slope)
-export const TOP_TAB = { x0: 372, x1: 908, depth: 46, slope: 56 };
+export const TOP_TAB = { x0: 392, x1: 888, depth: 38, slope: 52 }; // 2026-11-25 시안: 상징 작게 → 탭 얇게 (이전 깊이 46)
 export const BOTTOM_TAB = { x0: 478, x1: 802, depth: 44, slope: 52 };
 const TOP_BAND = [HUD_TOP_H + TOP_TAB.depth, RING.y0];
 const BOTTOM_BAND = [RING.y1 - 8, HUD_DOCK_Y - BOTTOM_TAB.depth];
@@ -55,7 +55,7 @@ export const HUD = {
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       // 시너지 (2026-11-24 사용자 시안): 위 바 가운데 탭 안에 상징 한 줄 + 아래 숫자 — 왼쪽 세로 목록 대신
-      syn: { x: TOP_TAB.x0, y: HUD_TOP_H, w: TOP_TAB.x1 - TOP_TAB.x0, h: TOP_TAB.depth, cx: GAME_W / 2, iy: HUD_TOP_H + 14, step: 40 },
+      syn: { x: TOP_TAB.x0, y: HUD_TOP_H, w: TOP_TAB.x1 - TOP_TAB.x0, h: TOP_TAB.depth, cx: GAME_W / 2, iy: HUD_TOP_H + 10, step: 34 },
       // 아이템 띠 5×2 (2026-11-24 사용자 시안: 오른쪽 아래, 아래 독 바로 위)
       bench: { x: 1054, y: 448, w: 210, h: 140, smith: { x: 1206, y: 469, w: 96, h: 30 }, tool: { x: 1159, y: 572 } },
       // 대기석 8칸 (2026-11-22 PC 전환): 오른쪽 칸(시너지 목록과 마주 보게) 4×2 — 칸 44x48 (월드 66x72, 용병 그림 48px)
@@ -64,6 +64,9 @@ export const HUD = {
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = 520;
+
+/** 상점 카드 (2026-11-25 시안): 화면 밖으로 더 그린 길이 · 쉬는 자리 내림 · 올렸을 때 원래 자리보다 더 뜨는 양 · 밀려 올라오기·스프링 시간 */
+const CARD = { ext: 48, sink: 8, lift: 3, slideMs: 110, springMs: 400 };
 
 /** 성벽 체력 막대 외곽 두께 */
 const HP_LINE = 4;
@@ -202,7 +205,7 @@ export class Hud {
     // 시너지 (2026-11-24 사용자 시안): 위 바 가운데 탭 안에 상징 한 줄
     const SY = HUD.syn;
     this.synRow = s.add.container(0, 0).setDepth(D);
-    this.noSynText = uiText(s, SY.cx, SY.y + SY.h / 2 - 4, '같은 계열·출신을 모으면 시너지가 켜져요', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
+    this.noSynText = uiText(s, SY.cx, SY.y + SY.h / 2 - 4, '', 12, CSS.sub, 'bold') // 2026-11-25: 안내 문장 없음 (빈 탭 = 시너지 없음).setOrigin(0.5).setDepth(D);
   }
 
   /** 성벽 체력 막대: 둥근 바탕 + 채움(많을수록 초록 → 노랑 → 빨강) + 실드(하늘색 윗줄) + 가운데 하트·수치 */
@@ -210,9 +213,14 @@ export class Hud {
     const s = this.s;
     const B = HUD.hp;
     // 외곽 4px (2026-11-21 사용자 요청: 더 두껍게, 이전 2px) — 2026-11-23: 바탕은 미리 그린 알약 (곡선이 고르게)
-    this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x3a2a18, 0x5a3f20, HP_LINE).setDepth(D);
+    this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x6b5320, 0xb7923b, HP_LINE).setDepth(D); // 2026-11-25 시안: 금갈색 테두리 · 빈 곳 진한 금색
     this.hpBg.layerName = '체력 막대 바탕';
     this.hpFill = s.add.graphics().setDepth(D);
+    // 채움·실드·피해 자국을 막대 안쪽 알약 모양으로 잘라 그린다 (2026-11-25: 실드 줄 왼쪽 끝이 각지게 삐져나왔다)
+    const iw = B.w - HP_LINE * 2;
+    const ih = B.h - HP_LINE * 2;
+    const clip = s.make.graphics({ add: false }).fillStyle(0xffffff, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, iw, ih, ih / 2);
+    this.hpFill.setMask(clip.createGeometryMask());
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
     this.hpHeart = s.add.graphics();
     // 수치 = 흰 글자 + 진한 외곽 (2026-11-21 사용자 요청: 숫자를 감싸던 크림 알약은 없앰 — 막대 색이 바뀌어도 외곽선으로 읽힌다)
@@ -280,16 +288,13 @@ export class Hud {
       g.fillStyle(0xffffff, 0.22).fillRoundedRect(x + 4, y + 2, Math.max(0, tw - 8), Math.max(2, Math.round(ih * 0.28)), 2);
     }
     if (fill > 0) {
-      const col = pct > 0.5 ? 0x4fae5c : pct > 0.3 ? 0xe0a32a : 0xd2473a;
+      // 2026-11-25 시안(사용자 그림): 노랑 채움 + 밝은 노랑 윗줄 — 30% 이하만 빨강(위험)
+      const low = pct <= 0.3;
       const w = Math.max(ih, fill); // 둥근 끝이 뭉개지지 않게 최소 높이만큼
-      g.fillStyle(col, 1).fillRoundedRect(x, y, w, ih, ih / 2);
-      g.fillStyle(0xffffff, 0.28).fillRoundedRect(x + 4, y + 2, Math.max(0, w - 8), Math.max(2, Math.round(ih * 0.28)), 2);
+      g.fillStyle(low ? 0xd2473a : 0xffdd4a, 1).fillRoundedRect(x, y, w, ih, ih / 2);
+      g.fillStyle(low ? 0xe8766a : 0xffe47d, 1).fillRoundedRect(x + 3, y + 2, Math.max(0, w - 6), Math.max(2, Math.round(ih * 0.4)), 3);
     }
-    const shield = this.hpShield || 0;
-    if (shield > 0) {
-      const sw = px(Math.min(1, shield / this.hpMax));
-      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(x, y, Math.max(6, sw), 4, 2);
-    }
+    // 실드 하늘색 윗줄은 없앰 (2026-11-25 사용자 요청) — 실드 양은 수치 '80+20' 로만
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */
@@ -383,18 +388,16 @@ export class Hud {
     const title = uiText(s, 0, 0, relic.name, 15, CSS.ink, 'bold');
     const state = uiText(s, 0, 0, `Lv${owned.level}`, 12, CSS.green, 'bold');
     const desc = uiText(s, 0, 0, relicText(relic, owned.level, s.bonus.relicPow || 0), 13, CSS.ink);
-    const hint = uiText(s, 0, 0, '영지 유물 공방에서 바꿔 끼울 수 있어요', 11, CSS.sub);
     const pad = 16;
-    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width, hint.width) + pad * 2) / UI_PX) * UI_PX;
-    const h = 96;
+    const w = Math.ceil((Math.max(title.width + state.width + 12, desc.width) + pad * 2) / UI_PX) * UI_PX;
+    const h = 72; // 2026-11-25: 안내 줄 삭제 (이전 96)
     const left = Phaser.Math.Clamp(Math.round((x - w / 2) / UI_PX) * UI_PX, 8, GAME_W - 8 - w);
     const top = y + 24;
     const bg = panel(s, left, top, w, h, 'card');
     title.setPosition(left + pad, top + 14);
     state.setPosition(left + pad + title.width + 12, top + 17);
     desc.setPosition(left + pad, top + 42);
-    hint.setPosition(left + pad, top + 66);
-    c.add([bg, title, state, desc, hint]);
+    c.add([bg, title, state, desc]);
     // 스프링 등장 (2026-11-19): 아이콘 쪽(위 가운데)을 축으로 0.6 → 1, 살짝 넘쳤다가 출렁이며 멈춘다
     springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top, animate);
     this.relicTip = { index, x, y, container: c };
@@ -439,11 +442,12 @@ export class Hud {
     s.shop.forEach((slot, i) => {
       const x = B.x + i * (w + gap);
       const y = B.y;
-      const c = s.add.container(x, y);
+      // 2026-11-25 시안: 카드 아래를 화면 밖까지 넉넉히 그리고 살짝 내려 둔다 — 마우스가 오면 위로 밀려 올라와 톡 튄다
+      const c = s.add.container(x, y + CARD.sink);
       const g = s.add.graphics();
       c.add(g);
       if (!slot || slot.sold) {
-        g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h, 10);
+        g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h + CARD.ext, { tl: 10, tr: 10, bl: 0, br: 0 });
         c.add(uiText(s, w / 2, h / 2, slot?.sold ? '구매' : '-', 12, CSS.sub, '600').setOrigin(0.5));
         this.shopBox.add(c);
         return;
@@ -454,9 +458,10 @@ export class Hud {
       const owned = s.mercs.filter((m) => m.char.id === ch.id).length;
       const afford = s.gold >= price;
       // 테두리 = 등급색 바깥 모양 + 안쪽 바탕 (선을 겹쳐 그리면 모서리에 틈이 생겼다, 2026-11-21)
-      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h, 10);
-      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, 7);
-      g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
+      // 2026-11-25 시안: 아래 모서리 직각 (위만 둥글게)
+      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h + CARD.ext, { tl: 10, tr: 10, bl: 0, br: 0 });
+      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, { tl: 7, tr: 7, bl: 0, br: 0 });
+      g.fillStyle(gc, 1).fillRect(0, h - 20, w, 20 + CARD.ext); // 이름 띠가 화면 밖까지 이어진다
       const img = charImage(s, w / 2, 32, ch);
       // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
       const tc = ch.grade === 2 ? CSS.white : '#2b1d2f';
@@ -468,7 +473,7 @@ export class Hud {
       [ch.cls, ch.origin].forEach((k, j) => c.add(traitBadge(s, w / 2 + (j ? 13 : -13), h - 20 - 5 - 10, k, 9)));
       // 같은 캐릭터가 이미 있으면 몇 장인지 (별 승급까지)
       if (owned) c.add(uiText(s, 5, 5, `${owned}장`, 12, CSS.primary, 'bold').setOrigin(0, 0)); // 2026-11-24: 잠금이 오른쪽 위로 가서 왼쪽 위로
-      if (!afford) c.add(s.add.rectangle(0, 0, w, h, 0x2b1d2f, 0.28).setOrigin(0));
+      if (!afford) c.add(s.add.rectangle(0, 0, w, h + CARD.ext, 0x2b1d2f, 0.28).setOrigin(0));
       const hit = s.add.rectangle(0, 0, w, h - 4, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => c.setScale(0.96));
       hit.on('pointerout', () => c.setScale(1));
@@ -485,9 +490,38 @@ export class Hud {
       lz.on('pointerup', () => s.toggleLock(i));
       c.add([lk, lz]);
       c.slotIndex = i;
+      this.cardHover(c, [hit, lz], x, y, w, h);
       this.shopBox.add(c);
     });
     this.refreshShopButtons();
+  }
+
+  /**
+   * 상점 카드 마우스 반응 (2026-11-25 시안): 올리면 쉬는 자리(살짝 아래)에서 위로 밀려 올라온 뒤 0.4초 스프링으로 톡 튄다,
+   * 카드 밖으로 나가면 다시 내려간다. 카드 안의 잠금 단추로 옮겨 가도 올라간 그대로
+   */
+  cardHover(c, zones, x, y, w, h) {
+    const s = this.s;
+    const up = () => {
+      if (c.hovered) return;
+      c.hovered = true;
+      s.tweens.killTweensOf(c);
+      s.tweens.add({
+        targets: c, y: y + 1, duration: CARD.slideMs, ease: 'Quad.easeOut',
+        onComplete: () => s.tweens.add({ targets: c, y: y - CARD.lift, duration: CARD.springMs, ease: 'Elastic.easeOut', easeParams: [1.2, 0.45] })
+      });
+    };
+    const down = (p) => {
+      const u = uiPoint(s, p);
+      if (u.x >= x && u.x <= x + w && u.y >= y - CARD.lift && u.y <= y + h + CARD.sink) return; // 카드 안 다른 단추로 옮겨 감
+      c.hovered = false;
+      s.tweens.killTweensOf(c);
+      s.tweens.add({ targets: c, y: y + CARD.sink, duration: 160, ease: 'Quad.easeOut' });
+    };
+    for (const z of zones) {
+      z.on('pointerover', up);
+      z.on('pointerout', down);
+    }
   }
 
   // ───────────────────────── 아이템 띠 (룰 v2 ②, 2026-11-20) ─────────────────────────
@@ -725,10 +759,10 @@ export class Hud {
       const x = Math.round(x0 + i * SY.step);
       const y = SY.iy;
       const c = s.add.container(x, y);
-      c.add(traitBadge(s, 0, 0, k, 11, on, { tip: false })); // 자기 시너지 툴팁이 따로 있다
+      c.add(traitBadge(s, 0, 0, k, 9, on, { tip: false })); // 자기 시너지 툴팁이 따로 있다 (2026-11-25 시안: r 11 → 9)
       const label = next ? `${n}/${next.n}` : `${n}`;
-      c.add(uiText(s, 0, 16, label, 11, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0.5, 0)); // 상징(지름 24)과 4px
-      const hit = s.add.rectangle(0, 8, SY.step - 4, 40, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      c.add(uiText(s, 0, 14, label, 10, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0.5, 0)); // 상징(지름 20)과 4px
+      const hit = s.add.rectangle(0, 7, SY.step - 4, 34, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => this.showSynergyTip(k, x, y));
       hit.on('pointerout', () => this.hideRelicTip());
       hit.on('pointerup', () => this.showSynergyTip(k, x, y));
@@ -940,13 +974,12 @@ export class Hud {
     add(`${m.char.title} · ${TRAITS[m.cls].name} · ${TRAITS[m.origin].name} · ${STYLES[m.char.style].name} — ${TRAIT_TEXT(m.trait)}`, 13, CSS.ink, '600', 10);
     add(`스킬 「${m.def.name}」 · 최대 마나 ${m.maxMana} (공격마다 마나가 차고, 가득 차면 시전)`, 15, CSS.primary, '700', 4);
     for (let n = 1; n <= MAX_STAR; n++) add(`${'★'.repeat(n)}${n === m.star ? ' (지금)' : ''}  ${describeSkill(starSkill(m.char.skill, n))}`, 13, n === m.star ? CSS.ink : CSS.sub, n === m.star ? '700' : '600', 6);
-    add(`같은 캐릭터 3장을 모으면 별이 오릅니다 (최대 ${MAX_STAR}성)`, 12, CSS.sub, '600', 4);
+    add(`같은 캐릭터 3장 → 별 +1 (최대 ${MAX_STAR}성)`, 12, CSS.sub, '600', 4);
     const h = Math.min(GAME_H - y - 24, cy - y + 40);
     const card = panel(s, x, y, w, h, 'card').setInteractive();
     c.addAt(card, 1);
     c.add(titleTab(s, x + w / 2, y, '스킬 정보', 180));
     c.add(closeButton(s, x + w - 6, y + 6, close));
-    c.add(uiText(s, x + w - 24, y + h - 14, '바깥을 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(1, 1));
     s.tut?.show('skill');
   }
 
@@ -970,7 +1003,7 @@ export class Hud {
     const ph = 560;
     const c = this.modal(DEPTH.overlay - 0.3, px, py, pw, ph, () => this.closeMenu(), '메뉴');
     this.menu = c;
-    c.add(uiText(s, GAME_W / 2, py + 52, '게임이 일시정지되었습니다', 13, CSS.sub, '600').setOrigin(0.5));
+    c.add(uiText(s, GAME_W / 2, py + 52, '일시정지', 13, CSS.sub, '600').setOrigin(0.5));
 
     // 볼륨 조절 줄: 이름 [-] 막대 [+] 퍼센트
     const volRow = (y, label, get, set) => {
@@ -1023,7 +1056,7 @@ export class Hud {
     const quit = new Button(s, GAME_W / 2, py + 394, bw, 56, '게임 종료', () => {
       if (!confirmQuit) {
         confirmQuit = true;
-        quit.setLabel('정말 종료할까요? 한 번 더 누르세요');
+        quit.setLabel('한 번 더 → 종료');
         s.time.delayedCall(2500, () => {
           if (quit.active) {
             confirmQuit = false;
@@ -1036,10 +1069,9 @@ export class Hud {
     }, { variant: 'danger', fontSize: 16 });
     const tutBtn = new Button(s, GAME_W / 2, py + 458, bw, 44, '튜토리얼 처음부터 다시 보기', () => {
       meta.resetTutorial();
-      tutBtn.setLabel('튜토리얼이 다시 켜졌어요');
+      tutBtn.setLabel('튜토리얼 켜짐');
     }, { variant: 'outline', fontSize: 11 });
     c.add([muteBtn, vhsBtn, resume, quit, tutBtn]);
-    c.add(uiText(s, GAME_W / 2, py + ph - 26, 'ESC 를 누르면 닫혀요', 12, CSS.sub, '600').setOrigin(0.5));
   }
 
   closeMenu() {
