@@ -32,7 +32,7 @@ const RING = { x0: (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, y0: (FIELD_
 //  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
 //  가로(B-2): 위 알약 바(y 16~68)와 위쪽 길 사이 / 아래쪽 길과 아래 독(y 643~) 사이
 // 가운데 탭 (2026-11-24 사용자 시안): 위 바 탭 = 시너지 상징 한 줄, 아래 독 탭 = 대기석 한 줄 (양옆 S 곡선 폭 slope)
-export const TOP_TAB = { x0: 372, x1: 908, depth: 46, slope: 56 };
+export const TOP_TAB = { x0: 392, x1: 888, depth: 38, slope: 52 }; // 2026-11-25 시안: 상징 작게 → 탭 얇게 (이전 깊이 46)
 export const BOTTOM_TAB = { x0: 478, x1: 802, depth: 44, slope: 52 };
 const TOP_BAND = [HUD_TOP_H + TOP_TAB.depth, RING.y0];
 const BOTTOM_BAND = [RING.y1 - 8, HUD_DOCK_Y - BOTTOM_TAB.depth];
@@ -55,7 +55,7 @@ export const HUD = {
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
       // 시너지 (2026-11-24 사용자 시안): 위 바 가운데 탭 안에 상징 한 줄 + 아래 숫자 — 왼쪽 세로 목록 대신
-      syn: { x: TOP_TAB.x0, y: HUD_TOP_H, w: TOP_TAB.x1 - TOP_TAB.x0, h: TOP_TAB.depth, cx: GAME_W / 2, iy: HUD_TOP_H + 14, step: 40 },
+      syn: { x: TOP_TAB.x0, y: HUD_TOP_H, w: TOP_TAB.x1 - TOP_TAB.x0, h: TOP_TAB.depth, cx: GAME_W / 2, iy: HUD_TOP_H + 10, step: 34 },
       // 아이템 띠 5×2 (2026-11-24 사용자 시안: 오른쪽 아래, 아래 독 바로 위)
       bench: { x: 1054, y: 448, w: 210, h: 140, smith: { x: 1206, y: 469, w: 96, h: 30 }, tool: { x: 1159, y: 572 } },
       // 대기석 8칸 (2026-11-22 PC 전환): 오른쪽 칸(시너지 목록과 마주 보게) 4×2 — 칸 44x48 (월드 66x72, 용병 그림 48px)
@@ -213,6 +213,11 @@ export class Hud {
     this.hpBg = pillImage(s, B.x + B.w / 2, B.y + B.h / 2, B.w, B.h, 0x3a2a18, 0x5a3f20, HP_LINE).setDepth(D);
     this.hpBg.layerName = '체력 막대 바탕';
     this.hpFill = s.add.graphics().setDepth(D);
+    // 채움·실드·피해 자국을 막대 안쪽 알약 모양으로 잘라 그린다 (2026-11-25: 실드 줄 왼쪽 끝이 각지게 삐져나왔다)
+    const iw = B.w - HP_LINE * 2;
+    const ih = B.h - HP_LINE * 2;
+    const clip = s.make.graphics({ add: false }).fillStyle(0xffffff, 1).fillRoundedRect(B.x + HP_LINE, B.y + HP_LINE, iw, ih, ih / 2);
+    this.hpFill.setMask(clip.createGeometryMask());
     this.hpLabel = s.add.container(B.x + B.w / 2, B.y + B.h / 2).setDepth(D + 1);
     this.hpHeart = s.add.graphics();
     // 수치 = 흰 글자 + 진한 외곽 (2026-11-21 사용자 요청: 숫자를 감싸던 크림 알약은 없앰 — 막대 색이 바뀌어도 외곽선으로 읽힌다)
@@ -439,7 +444,7 @@ export class Hud {
       const g = s.add.graphics();
       c.add(g);
       if (!slot || slot.sold) {
-        g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h, 10);
+        g.fillStyle(0xe7dcbb, 0.7).fillRoundedRect(0, 0, w, h, { tl: 10, tr: 10, bl: 0, br: 0 });
         c.add(uiText(s, w / 2, h / 2, slot?.sold ? '구매' : '-', 12, CSS.sub, '600').setOrigin(0.5));
         this.shopBox.add(c);
         return;
@@ -450,9 +455,10 @@ export class Hud {
       const owned = s.mercs.filter((m) => m.char.id === ch.id).length;
       const afford = s.gold >= price;
       // 테두리 = 등급색 바깥 모양 + 안쪽 바탕 (선을 겹쳐 그리면 모서리에 틈이 생겼다, 2026-11-21)
-      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h, 10);
-      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, 7);
-      g.fillStyle(gc, 1).fillRoundedRect(0, h - 20, w, 20, { tl: 0, tr: 0, bl: 10, br: 10 });
+      // 2026-11-25 시안: 아래 모서리 직각 (위만 둥글게)
+      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, { tl: 7, tr: 7, bl: 0, br: 0 });
+      g.fillStyle(gc, 1).fillRect(0, h - 20, w, 20);
       const img = charImage(s, w / 2, 32, ch);
       // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
       const tc = ch.grade === 2 ? CSS.white : '#2b1d2f';
@@ -721,10 +727,10 @@ export class Hud {
       const x = Math.round(x0 + i * SY.step);
       const y = SY.iy;
       const c = s.add.container(x, y);
-      c.add(traitBadge(s, 0, 0, k, 11, on, { tip: false })); // 자기 시너지 툴팁이 따로 있다
+      c.add(traitBadge(s, 0, 0, k, 9, on, { tip: false })); // 자기 시너지 툴팁이 따로 있다 (2026-11-25 시안: r 11 → 9)
       const label = next ? `${n}/${next.n}` : `${n}`;
-      c.add(uiText(s, 0, 16, label, 11, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0.5, 0)); // 상징(지름 24)과 4px
-      const hit = s.add.rectangle(0, 8, SY.step - 4, 40, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      c.add(uiText(s, 0, 14, label, 10, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0.5, 0)); // 상징(지름 20)과 4px
+      const hit = s.add.rectangle(0, 7, SY.step - 4, 34, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => this.showSynergyTip(k, x, y));
       hit.on('pointerout', () => this.hideRelicTip());
       hit.on('pointerup', () => this.showSynergyTip(k, x, y));

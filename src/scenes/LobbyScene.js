@@ -20,7 +20,7 @@ import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
 const MENU = { right: GAME_W - 16, top: 92, w: 188, h: 52, gap: 12 };
 // 위 바·아래 독 (2026-11-24 사용자 시안: 전투 화면과 같은 가운데 탭 바)
-const TOP = { h: 48, tab: { x0: 508, x1: 772, depth: 28, slope: 44 } };
+const TOP = { h: 48, tab: { x0: 536, x1: 744, depth: 36, slope: 44 } }; // 2026-11-25 시안: 탭 = 출전 버튼
 const DOCK = { y: 598, tab: { x0: 380, x1: 900, depth: 28, slope: 44 } };
 
 const LABELS = {
@@ -40,8 +40,12 @@ export class LobbyScene extends Phaser.Scene {
     meta.load();
     this.leaving = false;
     audio.playMusic('title');
-    const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
-    bg.setX(Math.round((GAME_W - bg.displayWidth) / 2)); // 사용자 그림 원본 그대로 (2026-11-22)
+    // 2026-11-25 시안: 타이틀 키 아트(로고 지움)를 원본 그대로 화면 가득
+    if (this.textures.exists('lobby_key')) coverImage(this, 'lobby_key', GAME_W, GAME_H);
+    else {
+      const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
+      bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
+    }
 
     this.createTop();
     SPOTS.forEach((id, i) => this.createSpot(id, i));
@@ -80,8 +84,10 @@ export class LobbyScene extends Phaser.Scene {
     const H = TOP.h;
     tabBar(this, 'top', H, TOP.tab);
     discImage(this, 40, H / 2, { r: 16, fill: 0xf2c14e, line: 0xa8801c, lw: 2, icon: 'crown', iconColor: 0x6b4505 }); // 미리 그린 원 (2026-11-23)
-    uiText(this, 64, H / 2, '용병단 영지', 18, CSS.ink, 'bold').setOrigin(0, 0.5);
-    uiText(this, GAME_W / 2, H + TOP.tab.depth / 2 - 2, `최고 기록 WAVE ${best}`, 13, CSS.primary, 'bold').setOrigin(0.5);
+    const nm = uiText(this, 64, H / 2, '용병단 영지', 18, CSS.ink, 'bold').setOrigin(0, 0.5);
+    uiText(this, nm.x + nm.width + 12, H / 2, `최고 WAVE ${best}`, 13, CSS.primary, 'bold').setOrigin(0, 0.5);
+    // 출전 (2026-11-25 시안: 위 바 가운데 탭)
+    this.goBtn = new Button(this, GAME_W / 2, 46, 176, 56, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 24 });
 
     // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
@@ -92,9 +98,9 @@ export class LobbyScene extends Phaser.Scene {
     const gap = 12;
     cur.forEach(([label, n, col, icon], i) => {
       const x = GAME_W - 16 - (cur.length - i) * w - (cur.length - 1 - i) * gap;
-      discImage(this, x + 18, H / 2, { r: 15, fill: col, icon });
-      uiText(this, x + 40, 4, n.toLocaleString(), 16.5, CSS.ink, 'bold');
-      uiText(this, x + 40, 28, label, 11, CSS.sub, '600');
+      // 2026-11-25 시안: 아이콘 작게 · 글자 한 줄
+      discImage(this, x + 14, H / 2, { r: 11, fill: col, icon });
+      uiText(this, x + 32, H / 2, `${label} ${n.toLocaleString()}`, 15, CSS.ink, 'bold').setOrigin(0, 0.5);
     });
   }
 
@@ -156,13 +162,11 @@ export class LobbyScene extends Phaser.Scene {
    */
   createDeckStrip() {
     const ids = [...meta.deck].sort((a, b) => ROSTER_BY_ID[b].grade - ROSTER_BY_ID[a].grade);
-    const goW = 280;
-    const goH = 92;
     // 2026-11-24 사용자 시안: 화면 아래에 붙은 크림 독 + 가운데 탭(출전 덱 제목)
     const D = { x: 0, y: DOCK.y, w: GAME_W, h: GAME_H - DOCK.y };
     tabBar(this, 'bottom', D.y, DOCK.tab);
     // 카드 줄 (가려지는 영역)
-    const row = { x: 24, y: D.y + 12, w: D.w - goW - 72, h: 80 };
+    const row = { x: 24, y: D.y + 12, w: D.w - 48, h: 80 }; // 2026-11-25 시안: 출전 버튼이 위로 가서 덱 줄이 독 전체
     uiText(this, GAME_W / 2, D.y - DOCK.tab.depth / 2 + 2, `출전 덱 ${ids.length} / ${DECK_RULES.max}`, 13, CSS.ink, 'bold').setOrigin(0.5);
     const cw = 64;
     const ch = 76;
@@ -223,11 +227,5 @@ export class LobbyScene extends Phaser.Scene {
       for (let k = 0; k < 6; k++) f.fillStyle(0xfbf7ec, 0.16 * (k + 1)).fillRect(row.x + row.w - 24 + k * 4, row.y, 4, row.h);
     }
 
-    const gx = D.x + D.w - 24 - goW / 2;
-    const gy = D.y + D.h / 2;
-    this.goBtn = new Button(this, gx, gy, goW, goH, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 33 });
-    uiText(this, gx, gy + 24, 'WAVE 1부터 · Space', 11, '#3a2a10', '600').setOrigin(0.5).setDepth(this.goBtn.depth + 1);
-    this.goBtn.label.setY(-8);
-    this.goBtn.auditOk = true; // 글자를 위로 올리고 아래에 작은 안내 (의도 — tools/ui-audit.cjs 에서 제외)
   }
 }

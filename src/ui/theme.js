@@ -250,7 +250,24 @@ export function backdropKey(scene, w, h) {
 }
 
 /** UI 글자 (픽셀 글꼴). weight: '700' / 'bold' 는 굵게 */
+// 글자 크기 한 단계 (2026-11-25 시안, 사용자 검수 대기): 본문 크기(16.5 이하)를 아래 단계로 — ?fontstep=1 로 켬
+const FONT_STEPS = [10, 11, 12, 13, 14, 15, 16.5];
+export const FONT_STEP = (() => {
+  try {
+    return Number(new URLSearchParams(globalThis.location?.search || '').get('fontstep') || 0);
+  } catch {
+    return 0;
+  }
+})();
+function stepSize(size) {
+  if (!FONT_STEP || size > 16.5) return size;
+  let i = FONT_STEPS.findIndex((v) => v >= size);
+  if (i < 0) i = FONT_STEPS.length - 1;
+  return FONT_STEPS[Math.max(0, i - FONT_STEP)];
+}
+
 export function uiText(scene, x, y, str, size = 16, color = CSS.ink, weight = '600', extra = {}) {
+  size = stepSize(size);
   const bold = weight === '700' || weight === 'bold';
   return scene.add.text(x, y, str, {
     fontFamily: COZY && bold ? COZY_HEAD : UI_FONT, // 포근한 카드형: 굵은 글자도 같은 글꼴의 Bold
