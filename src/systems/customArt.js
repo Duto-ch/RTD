@@ -50,6 +50,7 @@ export function loadCustomArt(scene, onDone) {
       cd.pivotY = def.pivotY; // 몸 중심 y (프레임 기준 아트 px) — 칸 가운데에 몸통을 맞춘다
       cd.frameWidth = def.frameWidth;
       cd.frameHeight = def.frameHeight;
+      cd.noDecor = !!def.noDecor; // 배경 그림에 숲·풀이 그려져 있으면 흩뿌리는 나무·꽃을 끈다 (2026-11-25)
       cd.still = def.still; // 무기까지 그린 정지 프레임 (무기 분리 그림 — 로비·병영 그림용)
       cd.rig = def.rig || null; // 무기 분리: 프레임마다 쥐는 점·각도·앞손 (src/art/weaponRig.js)
       applied++;
