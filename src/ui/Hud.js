@@ -6,7 +6,7 @@ import { GAME_W, GAME_H, PX, UI_PX, UI_SCALE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE
 import { charImage } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
-import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, discImage, pillImage, C, CSS, ATTR_CSS_DARK } from './theme.js';
+import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, tabBar, discImage, pillImage, C, CSS, ATTR_CSS_DARK } from './theme.js';
 export { traitBadge };
 import { describeSkill } from '../data/skills.js';
 import { STYLES, TRAIT_TEXT, GRADES, ROSTER_BY_ID } from '../data/roster.js';
@@ -31,8 +31,11 @@ const RING = { x0: (FIELD_X - PATH_OFF - PATH_WIDTH / 2) / UI_SCALE, y0: (FIELD_
 // 알림 띠 위치: 필드·몬스터 길 바깥의 빈 공간 가운데
 //  세로: 유물 줄 아래 ~ 위쪽 길 / 아래쪽 길 ~ 하단 패널 · 가로: 화면 위 ~ 위쪽 길 / 아래쪽 길 ~ 화면 아래
 //  가로(B-2): 위 알약 바(y 16~68)와 위쪽 길 사이 / 아래쪽 길과 아래 독(y 643~) 사이
-const TOP_BAND = [HUD_TOP_H, RING.y0];
-const BOTTOM_BAND = [RING.y1 - 8, HUD_DOCK_Y];
+// 가운데 탭 (2026-11-24 사용자 시안): 위 바 탭 = 시너지 상징 한 줄, 아래 독 탭 = 대기석 한 줄 (양옆 S 곡선 폭 slope)
+export const TOP_TAB = { x0: 372, x1: 908, depth: 46, slope: 56 };
+export const BOTTOM_TAB = { x0: 478, x1: 802, depth: 44, slope: 52 };
+const TOP_BAND = [HUD_TOP_H + TOP_TAB.depth, RING.y0];
+const BOTTOM_BAND = [RING.y1 - 8, HUD_DOCK_Y - BOTTOM_TAB.depth];
 export const BANNER_Y = (TOP_BAND[0] + TOP_BAND[1]) / 2;
 // 세로 토스트 (2026-11-21): 아래 길 밑은 대기석 자리라 위 알림 띠(배너와 같은 줄)에 — 토스트가 떠 있는 동안 배너는 잠깐 숨는다
 export const TOAST_Y = BOTTOM_BAND ? (BOTTOM_BAND[0] + BOTTOM_BAND[1]) / 2 : BANNER_Y;
@@ -51,10 +54,13 @@ export const HUD = {
       estate: { x: 871, y: 645, w: 150, h: 42 }, // 버튼 가운데
       reroll: { x: 871, y: 690, w: 150, h: 34 },
       small: { y: 664, xs: [980, 1032, 1084], w: 46, h: 64 }, // 배속(→정지) · 메뉴 · 강화
-      syn: { x: 16, y: 60, w: 210, h: 396 }, // 시너지 목록 (왼쪽 세로)
-      bench: { x: 16, y: 466, w: 210, h: 140, smith: { x: 168, y: 487, w: 96, h: 30 }, tool: { x: 121, y: 590 } }, // 아이템 띠 (5×2)
+      // 시너지 (2026-11-24 사용자 시안): 위 바 가운데 탭 안에 상징 한 줄 + 아래 숫자 — 왼쪽 세로 목록 대신
+      syn: { x: TOP_TAB.x0, y: HUD_TOP_H, w: TOP_TAB.x1 - TOP_TAB.x0, h: TOP_TAB.depth, cx: GAME_W / 2, iy: HUD_TOP_H + 14, step: 40 },
+      // 아이템 띠 5×2 (2026-11-24 사용자 시안: 오른쪽 아래, 아래 독 바로 위)
+      bench: { x: 1054, y: 448, w: 210, h: 140, smith: { x: 1206, y: 469, w: 96, h: 30 }, tool: { x: 1159, y: 572 } },
       // 대기석 8칸 (2026-11-22 PC 전환): 오른쪽 칸(시너지 목록과 마주 보게) 4×2 — 칸 44x48 (월드 66x72, 용병 그림 48px)
-      reserve: { x: 1054, y: 60, w: 210, h: 152, cols: 4, title: true, slot: { x0: 1054 + 13, y0: 60 + 40, step: 48, stepY: 54, w: 44, h: 48 } }
+      // 대기석 8칸 (2026-11-24 사용자 시안): 아래 독 가운데 탭 안에 한 줄 — 칸 34x34 (화면 51px, 캐릭터는 칸 모양으로 잘림)
+      reserve: { x: BOTTOM_TAB.x0, y: HUD_DOCK_Y - BOTTOM_TAB.depth, w: BOTTOM_TAB.x1 - BOTTOM_TAB.x0, h: BOTTOM_TAB.depth, cols: 8, tab: true, slot: { x0: GAME_W / 2 - 151, y0: HUD_DOCK_Y - 36, step: 38, stepY: 0, w: 34, h: 34, style: 'slotSq', r: 9 } }
     };
 /** 가운데 창(스킬 정보·메뉴·보상) 최대 너비 — 가로 화면에서 끝까지 늘어나지 않게 */
 export const MODAL_W = 520;
@@ -173,7 +179,7 @@ export class Hud {
     const D = DEPTH.ui;
     const T = HUD.top;
     const cy = HUD.cy;
-    edgeBar(s, T.x, T.y, T.w, T.h, 'top').setDepth(D - 1);
+    tabBar(s, 'top', T.h, TOP_TAB).setDepth(D - 1); // 2026-11-24: 가운데 탭(시너지 한 줄)이 달린 위 바
     const X0 = 150; // 내용 시작 (바는 화면 끝까지, 내용은 예전 알약 바 자리 150~1130)
     this.waveText = uiText(s, X0 + 28, cy, 'WAVE 0', 22, CSS.primary, 'bold').setOrigin(0, 0.5).setDepth(D);
     this.waveTypeText = uiText(s, X0 + 140, cy, '', 12, CSS.sub, '600').setOrigin(0, 0.5).setDepth(D);
@@ -193,12 +199,10 @@ export class Hud {
     // 2026-11-24: 빈 칸·장착 칸 모두 같은 원(지름 28, 테두리 2) — 장착 칸이 입술 달린 금색 판이라 빈 칸보다 커 보였다
     this.relicEmpty = [0, 1, 2, 3].map((i) => discImage(s, this.relicPos(i, 4).x, cy, { r: 13, fill: 0xf3ead2, line: 0xe3d6b6, lw: 2 }).setDepth(D - 1));
     this.noRelicText = { setVisible: () => {} };
-    // 시너지 목록 (왼쪽 세로 카드)
+    // 시너지 (2026-11-24 사용자 시안): 위 바 가운데 탭 안에 상징 한 줄
     const SY = HUD.syn;
-    panel(s, SY.x, SY.y, SY.w, SY.h, 'card').setDepth(D - 1);
-    uiText(s, SY.x + 18, SY.y + 18, '시너지', 15, CSS.primary, 'bold').setDepth(D);
     this.synRow = s.add.container(0, 0).setDepth(D);
-    this.noSynText = uiText(s, SY.x + 18, SY.y + 50, '같은 계열·출신을\n모으면 켜져요', 12, CSS.sub, 'bold', { lineSpacing: 4 }).setDepth(D);
+    this.noSynText = uiText(s, SY.cx, SY.y + SY.h / 2 - 4, '같은 계열·출신을 모으면 시너지가 켜져요', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
   }
 
   /** 성벽 체력 막대: 둥근 바탕 + 채움(많을수록 초록 → 노랑 → 빨강) + 실드(하늘색 윗줄) + 가운데 하트·수치 */
@@ -406,7 +410,7 @@ export class Hud {
     const s = this.s;
     const D = DEPTH.ui;
     const K = HUD.dark;
-    edgeBar(s, K.x, K.y, K.w, K.h, 'bottom').setDepth(D - 2); // 화면 아래·좌우 끝까지 붙는 크림 바 (2026-11-22)
+    tabBar(s, 'bottom', K.y, BOTTOM_TAB).setDepth(D - 2); // 화면 아래·좌우 끝까지 붙는 크림 바 + 가운데 탭(대기석 한 줄) (2026-11-24)
     const SM = HUD.small;
     const v = 'outline';
     const fs = 12;
@@ -508,13 +512,13 @@ export class Hud {
     if (!R) return;
     const s = this.s;
     const D = DEPTH.ui;
-    panel(s, R.x, R.y, R.w, R.h, 'card').setDepth(D - 1);
-    this.reserveLabel = R.title
+    if (!R.tab) panel(s, R.x, R.y, R.w, R.h, 'card').setDepth(D - 1);
+    this.reserveLabel = R.tab ? null : R.title
       ? uiText(s, R.x + 18, R.y + 16, '대기석', 15, CSS.primary, 'bold').setDepth(D)
       : uiText(s, R.x + 28, R.y + R.h / 2, '대기', 12, CSS.sub, 'bold').setOrigin(0.5).setDepth(D);
     for (let i = 0; i < SHOP.reserve; i++) {
       const p = this.reservePos(i);
-      (this.reserveImgs ||= [])[i] = panelImage(s, p.x, p.y, 'soft', R.slot.w, R.slot.h).setDepth(D);
+      (this.reserveImgs ||= [])[i] = panelImage(s, p.x, p.y, R.slot.style || 'soft', R.slot.w, R.slot.h).setDepth(D);
     }
   }
 
@@ -527,7 +531,7 @@ export class Hud {
       const img = this.reserveImgs[i];
       if (img.gradeShown === g) return;
       img.gradeShown = g;
-      img.setTexture(panelKey(this.s, g ? `grade${g}` : 'soft', R.slot.w, R.slot.h));
+      img.setTexture(panelKey(this.s, g ? `grade${g}` : R.slot.style || 'soft', R.slot.w, R.slot.h));
     });
   }
 
@@ -667,9 +671,11 @@ export class Hud {
     let h = pad;
     for (const l of lines) h += l.height + 4;
     h += pad - 4;
-    const left = Phaser.Math.Clamp(x + 30, 8, GAME_W - 8 - w);
+    // 아이콘 오른쪽에 — 자리가 없으면(2026-11-24: 아이템 띠가 오른쪽 아래) 왼쪽에. 줄어든 크기(ITEM_TIP_SCALE)로 판단
+    const sw = w * ITEM_TIP_SCALE;
+    const toLeft = x + 30 + sw > GAME_W - 8;
+    const left = toLeft ? x - 30 - w : Math.max(8, x + 30); // 오른쪽은 줄어든 폭으로 이미 화면 안 (원래 폭으로 맞추면 아이콘 위로 당겨졌다)
     let top;
-    let below = true;
     top = Phaser.Math.Clamp(y - h / 2, 80, GAME_H - h - 8);
     c.add(panel(s, left, top, w, h, 'card'));
     let cy = top + pad;
@@ -680,7 +686,7 @@ export class Hud {
     }
     // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 아이콘 쪽 가장자리가 축.
     // 크기는 배치 그대로 비율만 ITEM_TIP_SCALE 로 줄인다 (2026-11-22 사용자 요청) — 축 쪽으로 줄어 아이콘과 간격 유지
-    springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE);
+    springTip(s, c, toLeft ? left + w : left, Phaser.Math.Clamp(y, top, top + h), true, ITEM_TIP_SCALE); // 축 = 아이콘 쪽 가장자리
     this.relicTip = { index: -1, x, y, container: c };
   }
 
@@ -705,31 +711,24 @@ export class Hud {
     const counts = s.syn.counts || {};
     const list = sortedTraits(counts);
     this.noSynText.setVisible(!list.length);
-    list.forEach((k, i) => {
+    // 2026-11-24 사용자 시안: 위 바 탭 안 가로 한 줄 — 상징(켜진 것은 색, 꺼진 것은 옅게) + 아래 '모은 수/다음 단계'
+    const SY = HUD.syn;
+    const max = Math.floor((SY.w - 24) / SY.step);
+    const shown = list.slice(0, max);
+    const x0 = SY.cx - ((shown.length - 1) * SY.step) / 2;
+    shown.forEach((k, i) => {
       const t = TRAITS[k];
       const n = counts[k];
       const ti = tierIndex(k, n);
       const next = t.tiers.find((x) => x.n > n);
-      const col = Phaser.Display.Color.HexStringToColor(t.color).color;
       const on = ti >= 0;
-      let x, y;
-      x = HUD.syn.x + 30;
-      y = HUD.syn.y + 54 + i * 38;
-      if (y > HUD.syn.y + HUD.syn.h - 20) return;
+      const x = Math.round(x0 + i * SY.step);
+      const y = SY.iy;
       const c = s.add.container(x, y);
-      // 켜진 시너지는 연두 알약으로 강조 (2026-11-21 Stitch 시안)
-      if (on) {
-        // 2026-11-23: 미리 그린 알약 (테두리 화면 2px — 예전 1.5 → 1.5배 2.25px 로 곡선 굵기가 들쭉날쭉)
-        const pw = 188;
-        const pill = s.add.container(0, 0, [pillImage(s, -15 + pw / 2, 0, pw, 30, 0xd8fcb4, 0x56743f)]);
-        pill.auditBox = { x: -15, y: -15, w: pw, h: 30 }; // tools/ui-audit.cjs 여백 검사
-        c.add(pill);
-      }
-      c.add(traitBadge(s, 0, 0, k, 10, on, { tip: false })); // 칩은 자기 시너지 툴팁이 따로 있다 // r10: 알약 안쪽·숫자와 4px 이상 (여백 필수 규칙)
+      c.add(traitBadge(s, 0, 0, k, 11, on, { tip: false })); // 자기 시너지 툴팁이 따로 있다
       const label = next ? `${n}/${next.n}` : `${n}`;
-      c.add(uiText(s, 20, -1, `${t.name}`, 13, on ? CSS.ink : CSS.sub, 'bold').setOrigin(0, 0.5));
-      c.add(uiText(s, 168, -1, label, 13, on ? CSS.primary : CSS.sub, 'bold').setOrigin(1, 0.5));
-      const hit = s.add.rectangle(80, 0, 180, 30, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      c.add(uiText(s, 0, 16, label, 11, on ? CSS.primary : CSS.sub, 'bold').setOrigin(0.5, 0)); // 상징(지름 24)과 4px
+      const hit = s.add.rectangle(0, 8, SY.step - 4, 40, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => this.showSynergyTip(k, x, y));
       hit.on('pointerout', () => this.hideRelicTip());
       hit.on('pointerup', () => this.showSynergyTip(k, x, y));
@@ -756,8 +755,9 @@ export class Hud {
     let h = pad;
     for (const l of lines) h += l.height + 6;
     h += pad - 6;
-    const left = Phaser.Math.Clamp(x + 196, 8, GAME_W - 8 - w);
-    const top = Phaser.Math.Clamp(y - 20, 80, GAME_H - h - 8);
+    // 2026-11-24: 위 바 탭의 상징 바로 아래에 (탭 아래 끝에서 6px)
+    const left = Phaser.Math.Clamp(x - w / 2, 8, GAME_W - 8 - w);
+    const top = HUD.syn.y + HUD.syn.h + 6;
     c.add(panel(s, left, top, w, h, 'card'));
     let cy = top + pad;
     for (const l of lines) {
@@ -766,7 +766,7 @@ export class Hud {
       c.add(l);
     }
     // 유물 툴팁과 같은 스프링 등장 (2026-11-21) — 칩 쪽 가장자리가 축
-    springTip(s, c, left, Phaser.Math.Clamp(y, top, top + h));
+    springTip(s, c, Phaser.Math.Clamp(x, left, left + w), top); // 상징 쪽(위 가운데)이 축
     this.relicTip = { index: -1, x, y, container: c };
   }
 

@@ -3,7 +3,7 @@
 import { TRAITS } from '../data/synergy.js';
 import { GRADES } from '../data/roster.js';
 import { pointerFor, uiPosOf, inWorld } from '../systems/hires.js';
-import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES, GAME_W, UI_SCALE } from '../config.js';
+import { UI_PX as PX, FONT, COZY, COZY_FONT, COZY_HEAD, RES, GAME_W, GAME_H, UI_SCALE } from '../config.js';
 
 export const UI_FONT = COZY ? COZY_FONT : FONT; // 포근한 카드형: 썬플라워 · 픽셀 UI: Galmuri11
 
@@ -158,7 +158,9 @@ const COZY_STYLES = {
   menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
 // 대기석 칸 등급 테두리 (2026-11-24 사용자 요청: 상점 카드 테두리처럼) — 'soft' 칸과 같은 모양, 테두리 3 = 등급색, 안쪽 = 상점 카드 바탕 (Hud.paintReserve)
-for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, lip: null, r: 14, lw: 3 };
+for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, lip: null, r: 9, lw: 3 };
+// 대기석 빈 칸 (2026-11-24 아래 독 탭 한 줄): 작은 칸이라 둥근 네모(반지름 9)
+COZY_STYLES.slotSq = { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 9 };
 
 function cozyKey(scene, style, w, h) {
   const key = `cozy_${style}_${Math.round(w)}x${Math.round(h)}`;
@@ -440,6 +442,74 @@ export function edgeBar(scene, x, y, w, h, edge = 'top') {
     g.fillStyle(0xe3d6b6, 1).fillRect(x, y, w, 2);
   }
   return g;
+}
+
+/**
+ * 가운데 탭이 달린 가장자리 바 (2026-11-24 사용자 시안): 화면 좌우 끝까지 붙은 크림 바 + 가운데가 화면 안쪽으로 튀어나온 탭.
+ * 탭 양옆은 부드러운 S 곡선, 안쪽 가장자리를 따라 금갈색 선 + 그림자. 캔버스로 UI 해상도 그대로 그려 곡선이 고르다
+ * @param {'top'|'bottom'} edge  top: 화면 위에 붙고 탭이 아래로 / bottom: 화면 아래에 붙고 탭이 위로
+ * @param {number} y  top: 바 아래 끝 y(탭 제외) / bottom: 바 위 끝 y(탭 제외)
+ * @param {{x0:number, x1:number, depth:number, slope?:number}} tab 탭 바닥(가장 튀어나온 곳)의 좌우 x · 튀어나온 깊이 · 양옆 곡선 폭
+ */
+export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill = '#fbf7ec' } = {}) {
+  const top = edge === 'top';
+  const slope = tab.slope ?? 48;
+  const H = top ? y + tab.depth : GAME_H - y + tab.depth; // 그림 높이 (탭 포함)
+  const pad = 8; // 그림자 자리
+  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}`;
+  const draw = (ctx) => {
+    ctx.translate(-w / 2, -(H + pad * 2) / 2 + pad);
+    // 위 바 기준으로 그리고, 아래 바는 뒤집는다
+    if (!top) {
+      ctx.translate(0, H);
+      ctx.scale(1, -1);
+    }
+    const b = top ? y : GAME_H - y; // 바 두께
+    const d = b + tab.depth;
+    // 안쪽 가장자리: 바 끝 → 탭 왼쪽 S 곡선 → 탭 바닥 → 오른쪽 S 곡선 → 바 끝
+    const edge = (start) => {
+      ctx[start ? 'moveTo' : 'lineTo'](-4, b);
+      ctx.lineTo(tab.x0 - slope, b);
+      ctx.bezierCurveTo(tab.x0 - slope / 2, b, tab.x0 - slope / 2, d, tab.x0, d);
+      ctx.lineTo(tab.x1, d);
+      ctx.bezierCurveTo(tab.x1 + slope / 2, d, tab.x1 + slope / 2, b, tab.x1 + slope, b);
+      ctx.lineTo(w + 4, b);
+    };
+    const outline = () => {
+      ctx.beginPath();
+      ctx.moveTo(-4, -4);
+      edge(false);
+      ctx.lineTo(w + 4, -4);
+      ctx.closePath();
+    };
+    ctx.fillStyle = fill;
+    ctx.save();
+    ctx.shadowColor = 'rgba(60,45,20,0.28)'; // 안쪽으로 살짝 그림자
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = top ? 3 : -3; // 그림자 방향은 변환과 상관없이 화면 기준
+    outline();
+    ctx.fill();
+    ctx.restore();
+    outline();
+    ctx.fill();
+    // 안쪽 가장자리 선: 금갈색 선 + 그 안쪽 밝은 실선
+    ctx.beginPath();
+    edge(true);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = line;
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(0, -2.5);
+    ctx.beginPath();
+    edge(true);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.stroke();
+    ctx.restore();
+  };
+  const img = shapeImage(scene, w / 2, top ? (H + pad * 2) / 2 - pad : GAME_H - (H + pad * 2) / 2 + pad, id, w, H + pad * 2, draw);
+  img.layerName = top ? '위 바 판' : '아래 바 판';
+  return img;
 }
 
 // ── 곡선 UI 를 그림으로 (2026-11-23 사용자 요청: 원형 UI 곡선이 어긋나던 문제) ──

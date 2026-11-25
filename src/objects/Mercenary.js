@@ -224,7 +224,7 @@ export class Mercenary extends Phaser.GameObjects.Container {
     const lw = 3 * k; // 칸 테두리(등급색 3) 안쪽만
     const w = R.w * k - lw * 2;
     const h = R.h * k - lw * 2;
-    this.clipG.clear().fillStyle(0xffffff, 1).fillRoundedRect(toWorld(p.x) - w / 2, toWorld(p.y) - h / 2, w, h, (14 - 3) * k);
+    this.clipG.clear().fillStyle(0xffffff, 1).fillRoundedRect(toWorld(p.x) - w / 2, toWorld(p.y) - h / 2, w, h, ((R.r ?? 14) - 3) * k);
     this.setMask(this.clipMask);
   }
 

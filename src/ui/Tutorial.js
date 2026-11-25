@@ -47,7 +47,7 @@ export const TUTORIAL_STEPS = {
   synergy: {
     title: '시너지',
     text: '용병마다 계열(공격 방식) 1개와 출신(세력) 1개가 있어요.\n서로 다른 용병을 모으면 시너지가 켜집니다 — 계열 2·5·8명, 출신 3·6·9명.',
-    rect: () => ({ x: HUD.syn.x - 4, y: HUD.syn.y - 4, w: HUD.syn.w + 8, h: 200 })
+    rect: () => ({ x: HUD.syn.x - 4, y: HUD.syn.y - 4, w: HUD.syn.w + 8, h: HUD.syn.h + 8 })
   },
   wave: {
     title: '웨이브 시작',

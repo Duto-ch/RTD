@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, C, coverImage, discImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
@@ -19,6 +19,9 @@ import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 /** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
 const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
 const MENU = { right: GAME_W - 16, top: 92, w: 188, h: 52, gap: 12 };
+// 위 바·아래 독 (2026-11-24 사용자 시안: 전투 화면과 같은 가운데 탭 바)
+const TOP = { h: 48, tab: { x0: 508, x1: 772, depth: 28, slope: 44 } };
+const DOCK = { y: 598, tab: { x0: 380, x1: 900, depth: 28, slope: 44 } };
 
 const LABELS = {
   tower: ['성탑', '스킬 노드', 'tower'],
@@ -73,27 +76,25 @@ export class LobbyScene extends Phaser.Scene {
   /** 위: 왼쪽 용병단 이름·최고 기록 / 오른쪽 재화 2종 (2026-11-21: 같은 높이로 오른쪽 위에) */
   createTop() {
     const best = meta.data.best?.normal || 0;
-    const H = 52;
-    const nameW = 230;
-    panel(this, 16, 14, nameW, H, 'strip');
-    discImage(this, 44, 40, { r: 18, fill: 0xf2c14e, line: 0xa8801c, lw: 2, icon: 'crown', iconColor: 0x6b4505 }); // 미리 그린 원 (2026-11-23)
-    uiText(this, 70, 22, '용병단 영지', 16.5, CSS.ink, 'bold');
-    uiText(this, 70, 46, `최고 기록 WAVE ${best}`, 11, CSS.sub, '600');
+    // 2026-11-24 사용자 시안: 전투 화면처럼 화면 위에 붙은 크림 바 + 가운데 탭(최고 기록). 이름·재화는 바 위에 바로
+    const H = TOP.h;
+    tabBar(this, 'top', H, TOP.tab);
+    discImage(this, 40, H / 2, { r: 16, fill: 0xf2c14e, line: 0xa8801c, lw: 2, icon: 'crown', iconColor: 0x6b4505 }); // 미리 그린 원 (2026-11-23)
+    uiText(this, 64, H / 2, '용병단 영지', 18, CSS.ink, 'bold').setOrigin(0, 0.5);
+    uiText(this, GAME_W / 2, H + TOP.tab.depth / 2 - 2, `최고 기록 WAVE ${best}`, 13, CSS.primary, 'bold').setOrigin(0.5);
 
     // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
       ['명성', meta.fame, 0xf2c14e, 'crown'],
       ['마정석', meta.stones, 0x2fbfb2, 'gem']
     ];
-    const w = 170;
-    const gap = 8;
+    const w = 150;
+    const gap = 12;
     cur.forEach(([label, n, col, icon], i) => {
       const x = GAME_W - 16 - (cur.length - i) * w - (cur.length - 1 - i) * gap;
-      const y = 14;
-      panel(this, x, y, w, H, 'strip');
-      discImage(this, x + 26, y + H / 2, { r: 16, fill: col, icon });
-      uiText(this, x + 50, y + 8, n.toLocaleString(), 16.5, CSS.ink, 'bold');
-      uiText(this, x + 50, y + 31, label, 11, CSS.sub, '600');
+      discImage(this, x + 18, H / 2, { r: 15, fill: col, icon });
+      uiText(this, x + 40, 4, n.toLocaleString(), 16.5, CSS.ink, 'bold');
+      uiText(this, x + 40, 28, label, 11, CSS.sub, '600');
     });
   }
 
@@ -144,7 +145,7 @@ export class LobbyScene extends Phaser.Scene {
     this.toastObj?.destroy();
     const t = uiText(this, 0, 0, msg, 13, CSS.ink, 'bold').setOrigin(0.5);
     const w = Math.ceil(t.width + 40);
-    const c = this.add.container(GAME_W / 2, 560, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50);
+    const c = this.add.container(GAME_W / 2, 528, [panel(this, -w / 2, -18, w, 36, 'strip'), t]).setDepth(50); // 아래 독 탭 위로 (2026-11-24)
     this.toastObj = c;
     this.tweens.add({ targets: c, alpha: 0, delay: 1600, duration: 300, onComplete: () => c.destroy() });
   }
@@ -157,19 +158,19 @@ export class LobbyScene extends Phaser.Scene {
     const ids = [...meta.deck].sort((a, b) => ROSTER_BY_ID[b].grade - ROSTER_BY_ID[a].grade);
     const goW = 280;
     const goH = 92;
-    const D = { x: 16, y: GAME_H - 16 - 132, w: GAME_W - 32, h: 132 };
-    panel(this, D.x, D.y, D.w, D.h, 'card');
+    // 2026-11-24 사용자 시안: 화면 아래에 붙은 크림 독 + 가운데 탭(출전 덱 제목)
+    const D = { x: 0, y: DOCK.y, w: GAME_W, h: GAME_H - DOCK.y };
+    tabBar(this, 'bottom', D.y, DOCK.tab);
     // 카드 줄 (가려지는 영역)
-    const row = { x: D.x + 16, y: D.y + 38, w: D.w - goW - 48, h: 80 };
-    uiText(this, row.x, D.y + 12, `출전 덱 ${ids.length} / ${DECK_RULES.max}명`, 13, CSS.ink, 'bold');
-    uiText(this, row.x + row.w, D.y + 12, '밀어서 보기 · 누르면 병영', 11, CSS.sub, '600').setOrigin(1, 0);
+    const row = { x: 24, y: D.y + 12, w: D.w - goW - 72, h: 80 };
+    uiText(this, GAME_W / 2, D.y - DOCK.tab.depth / 2 + 2, `출전 덱 ${ids.length} / ${DECK_RULES.max}명  ·  밀어서 보기 · 누르면 병영`, 13, CSS.ink, 'bold').setOrigin(0.5);
     const cw = 64;
     const ch = 76;
     const step = cw + 8;
     const strip = this.add.container(row.x, row.y);
     ids.forEach((id, i) => {
       const c = ROSTER_BY_ID[id];
-      const x = i * step;
+      const x = i * step + 2; // 테두리(3) 가 가림 영역 왼쪽 끝에 잘리지 않게
       const g = this.add.graphics();
       g.fillStyle(0xf3ead2, 1).fillRoundedRect(x, 2, cw, ch, 10);
       g.lineStyle(3, Phaser.Display.Color.HexStringToColor(GRADES[c.grade].color).color, 1).strokeRoundedRect(x, 2, cw, ch, 10);
@@ -180,7 +181,7 @@ export class LobbyScene extends Phaser.Scene {
     const shape = this.make.graphics({}, false).fillRect(row.x, row.y, row.w, row.h);
     strip.setMask(shape.createGeometryMask());
     strip.maskRect = row; // 보이는 영역 (tools/ui-audit.cjs)
-    const maxScroll = Math.max(0, ids.length * step - 8 - row.w);
+    const maxScroll = Math.max(0, ids.length * step - 8 + 4 - row.w);
     // 관성 스크롤 (2026-11-21): 밀다 놓으면 미끄러지고, 끝을 넘기면 고무줄처럼 돌아온다
     const kin = new Kinetic(this, {
       min: 0,
@@ -222,7 +223,7 @@ export class LobbyScene extends Phaser.Scene {
       for (let k = 0; k < 6; k++) f.fillStyle(0xfbf7ec, 0.16 * (k + 1)).fillRect(row.x + row.w - 24 + k * 4, row.y, 4, row.h);
     }
 
-    const gx = D.x + D.w - 16 - goW / 2;
+    const gx = D.x + D.w - 24 - goW / 2;
     const gy = D.y + D.h / 2;
     this.goBtn = new Button(this, gx, gy, goW, goH, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 33 });
     uiText(this, gx, gy + 24, 'WAVE 1부터 · Space', 11, '#3a2a10', '600').setOrigin(0.5).setDepth(this.goBtn.depth + 1);
