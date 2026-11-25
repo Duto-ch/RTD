@@ -66,7 +66,7 @@ export const TUTORIAL_STEPS = {
   },
   next: {
     title: '바로 시작',
-    text: '정비 시간에 누르면 남은 시간을 건너뛰고\n다음 웨이브를 바로 시작해요.\n(F 키 · Space 게임 정지 · R 리롤 · E 영지 레벨 업)',
+    text: '· 정비 시간 → 남은 시간 건너뛰고 다음 웨이브\n· F 바로 시작 · Space 정지 · R 리롤 · E 레벨 업',
     rect: (s) => btnRect(s.hud.nextWaveBtn, 6)
   },
   boss: {
@@ -79,12 +79,12 @@ export const TUTORIAL_STEPS = {
   },
   prep: {
     title: '정비 시간',
-    text: '웨이브가 시작되면 몬스터를 모두 잡을 때까지\n용병 구매·배치·아이템 장착을 할 수 없어요.\n웨이브가 끝나면 15초 정비 시간이 와요 (F 키로 바로 시작).',
+    text: '· 웨이브 중: 용병 구매·배치·아이템 장착 불가\n· 몬스터 전멸 → 정비 시간 15초 (F 바로 시작)',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   special: {
     title: '특수 몬스터',
-    text: '모습이 다른 몬스터가 섞여 나와요.\n늑대 빠름 · 딱정벌레 방어력 · 눈알 기절(가까운 용병 1명)\n유령 물리 저항 · 임프 마법 저항 — 그 공격 피해 35%만\n방어력은 센 한 방·지속 피해로, 폭발은 어느 저항에도 안 막혀요!',
+    text: '· 늑대 빠름 · 딱정벌레 방어력 · 눈알 기절(가까운 용병 1명)\n· 유령 물리 저항 · 임프 마법 저항 (그 공격 피해 35%)\n· 방어력 ← 센 한 방·지속 피해 · 폭발 = 저항 무시',
     rect: (s) => {
       const m = s.monsters?.find((o) => o.variant && o.active);
       return m ? { x: toUi(m.x) - 22, y: toUi(m.y) - 22, w: 44, h: 44 } : null; // 몬스터는 월드 좌표
@@ -92,7 +92,7 @@ export const TUTORIAL_STEPS = {
   },
   eliteSkill: {
     title: '스킬 정예',
-    text: '정예 10마리 중 1마리는 스킬을 써요.\n보라 고리 = 용병 2명에게 저주(공격력·공속·스킬 봉쇄)\n색 원 = 주변 몬스터 수호·가속·재생 오라. 먼저 잡으세요!',
+    text: '· 정예 10마리 중 1마리 = 스킬 정예\n· 보라 고리: 용병 2명 저주 (공격력·공속·스킬 봉쇄)\n· 색 원: 주변 몬스터 수호·가속·재생 → 먼저 처치',
     rect: (s) => {
       const m = s.monsters?.find((o) => o.eliteSkill && o.active);
       return m ? { x: toUi(m.x) - 30, y: toUi(m.y) - 30, w: 60, h: 60 } : null; // 몬스터는 월드 좌표

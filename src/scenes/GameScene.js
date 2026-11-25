@@ -339,7 +339,7 @@ export class GameScene extends Phaser.Scene {
   /** 웨이브 중이면 막고 알린다 (막았으면 true) */
   lockedInWave(what) {
     if (!this.inWave) return false;
-    this.toast(`웨이브 중에는 ${what} — 정비 시간에 할 수 있어요`);
+    this.toast(`웨이브 중 ${what} 불가 → 정비 시간에`);
     return true;
   }
 
@@ -1064,7 +1064,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 상점 칸 사기 */
   buy(i) {
-    if (this.over || this.lockedInWave('용병을 살 수 없어요')) return null;
+    if (this.over || this.lockedInWave('용병 구매')) return null;
     const slot = this.shop[i];
     if (!slot || slot.sold) return null;
     const char = ROSTER_BY_ID[slot.id];
@@ -1266,7 +1266,7 @@ export class GameScene extends Phaser.Scene {
   equip(benchIndex, merc, origin = null) {
     const id = this.bench[benchIndex];
     if (!id || !merc || !this.mercs.includes(merc)) return false;
-    if (this.lockedInWave('아이템을 장착할 수 없어요')) return false;
+    if (this.lockedInWave('아이템 장착')) return false;
     let result = null;
     let slot = -1;
     if (isComponent(id)) {
@@ -1503,7 +1503,7 @@ export class GameScene extends Phaser.Scene {
     // 용병 끌기: 월드 좌표로 (포인터의 worldX 는 마지막에 맞은 카메라 좌표라 UI 위에서는 다르다 — 직접 바꾼다)
     this.input.on('dragstart', (p, obj) => {
       if (!(obj instanceof Mercenary) || this.over) return;
-      if (this.lockedInWave('용병을 옮길 수 없어요')) return; // 배치는 정비 시간에만 (2026-11-24)
+      if (this.lockedInWave('용병 배치')) return; // 배치는 정비 시간에만 (2026-11-24)
       const w = worldPoint(this, p);
       obj.dragging = true;
       audio.pick();
