@@ -16,7 +16,9 @@ import { dissolveTo } from '../ui/dissolve.js';
 
 const TAVERN_DIM = 0.35; // 배경 그림 위 어둡게 (글자·카드 읽히게)
 const OUTLINE = { stroke: '#1a0f08', strokeThickness: 4 }; // 그림 위 글자 외곽선
-const L = { card: { x: 140, y: 150, w: 320, h: 420, gap: 20 }, foot: 650 };
+// 카드 25% 작게 (2026-11-25 사용자 요청: 320x420 → 240x315), 가운데 정렬
+const CARD_W = 240;
+const L = { card: { x: (GAME_W - CARD_W * 3 - 20 * 2) / 2, y: 196, w: CARD_W, h: 315, gap: 20 }, foot: 650 };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 export class TavernScene extends Phaser.Scene {
@@ -84,26 +86,28 @@ export class TavernScene extends Phaser.Scene {
       const x = C.x + i * (C.w + C.gap);
       const y = C.y;
       const g = this.add.graphics();
-      g.fillStyle(slot.hired ? 0xcfc2a0 : 0xfbf7ec, 1).fillRoundedRect(x, y, C.w, C.h, 16);
-      g.lineStyle(4, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, C.w, C.h, 16);
+      g.fillStyle(slot.hired ? 0xcfc2a0 : 0xfbf7ec, 1).fillRoundedRect(x, y, C.w, C.h, 12);
+      g.lineStyle(4, GRADE_COLOR(c.grade), 1).strokeRoundedRect(x, y, C.w, C.h, 12);
       this.cards.add(g);
       const cx = x + C.w / 2;
-      const img = charImage(this, cx, y + 110, c, 5);
+      const img = charImage(this, cx, y + 66, c, 4);
       if (slot.hired) img.setAlpha(0.45);
       const own = meta.owns(c.id);
       const enh = meta.enhance(c.id);
-      const wrap = C.w - 24;
-      const name = uiText(this, cx, y + 206, c.name, 18, c.grade === 4 ? '#b47a12' : CSS.ink, 'bold').setOrigin(0.5, 0);
-      const grade = uiText(this, cx, y + 234, GRADES[c.grade].name, 12, GRADES[c.grade].color, 'bold').setOrigin(0.5, 0);
-      const tr = uiText(this, cx, y + 256, `${TRAITS[c.cls].name} · ${TRAITS[c.origin].name}`, 12, CSS.sub, '600').setOrigin(0.5, 0);
-      const st = uiText(this, x + 12, y + 282, `${STYLES[c.style].name} · ${TRAIT_TEXT(c.trait)}\n스킬 「${c.skill.name}」`, 11, CSS.ink, '600', { wordWrap: { width: wrap }, lineSpacing: 2 });
-      this.cards.add([img, name, grade, tr, st]);
+      const wrap = C.w - 20;
+      const name = uiText(this, cx, y + 116, c.name, 16.5, c.grade === 4 ? '#b47a12' : CSS.ink, 'bold').setOrigin(0.5, 0);
+      // 등급 띠 (2026-11-25 사용자 요청): 등급 글자 뒤에 등급색 띠를 카드 양 끝까지
+      const band = this.add.rectangle(x - 2, y + 142, C.w + 4, 20, GRADE_COLOR(c.grade)).setOrigin(0); // 테두리(4) 바깥 끝까지
+      const grade = uiText(this, cx, y + 152, GRADES[c.grade].name, 12, c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f', 'bold').setOrigin(0.5);
+      const tr = uiText(this, cx, y + 168, `${TRAITS[c.cls].name} · ${TRAITS[c.origin].name}`, 12, CSS.sub, '600').setOrigin(0.5, 0);
+      const st = uiText(this, x + 10, y + 188, `${STYLES[c.style].name} · ${TRAIT_TEXT(c.trait)}\n스킬 「${c.skill.name}」`, 11, CSS.ink, '600', { wordWrap: { width: wrap }, lineSpacing: 2 });
+      this.cards.add([img, band, grade, name, tr, st]);
       // 상태: 새 캐릭터 / 강화 / 강화 최대
       const status = !own ? '새 캐릭터' : enh < TAVERN.enhanceMax ? `보유 · 강화 +${enh} → +${enh + 1}` : `강화 최대 · 고용 시 마정석 ${Math.floor(hireCost(c) / 2)} 반환`;
-      this.cards.add(uiText(this, cx, y + C.h - 84, status, 11, own ? CSS.primary : CSS.green, 'bold', { wordWrap: { width: wrap }, align: 'center' }).setOrigin(0.5, 0));
+      this.cards.add(uiText(this, cx, y + C.h - 70, status, 11, own ? CSS.primary : CSS.green, 'bold', { wordWrap: { width: wrap }, align: 'center' }).setOrigin(0.5, 0));
       const cost = hireCost(c);
       const label = slot.hired ? '고용 완료' : `고용  마정석 ${cost}`;
-      const btn = new Button(this, cx, y + C.h - 32, C.w - 20, 44, label, () => this.hire(i), { variant: slot.hired ? 'outline' : 'primary', fontSize: 14 });
+      const btn = new Button(this, cx, y + C.h - 26, C.w - 20, 36, label, () => this.hire(i), { variant: slot.hired ? 'outline' : 'primary', fontSize: 14 });
       if (slot.hired || meta.stones < cost) btn.setAlpha(0.55);
       this.cards.add(btn);
     });
@@ -127,7 +131,7 @@ export class TavernScene extends Phaser.Scene {
     const cost = meta.tavernRerollCost;
     if (!meta.rerollTavern()) return this.toast(`마정석 부족 · 리롤 ${cost}`);
     audio.reroll();
-    this.toast(`새 손님이 들어왔어요 — 다음 리롤 마정석 ${meta.tavernRerollCost}`);
+    this.toast(`새 손님 · 다음 리롤 마정석 ${meta.tavernRerollCost}`); // 개조식 (2026-11-25)
     this.refresh();
   }
 
