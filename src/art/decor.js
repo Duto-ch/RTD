@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 import { setArt } from '../systems/customArt.js';
 
 /** 그림 배경 위 꽃 (2026-11-25 사용자 요청: 예전보다 살짝 작게 · 너무 많지 않게) */
-const PAINTED_FLOWERS = { count: 50, scale: 0.8 };
+const PAINTED_FLOWERS = { count: 50, scale: 0.6 }; // 2026-11-25 사용자 결정: 50송이 · 0.6배
 
 /**
  * 지역 배경 장식(바람에 흔들리는 나무 등, 2026-11-21)을 놓는다. 그림이 없으면(manifest 미적용) 아무것도 안 한다.

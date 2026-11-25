@@ -3,7 +3,7 @@ import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { addLobbyWind } from '../ui/lobbyWind.js';
-import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar, shapeImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar, shapeImage, gradeFrame } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
@@ -140,22 +140,22 @@ export class LobbyScene extends Phaser.Scene {
       };
       ctx.beginPath();
       ctx.roundRect(-S / 2, -S / 2, S, S, DIAMOND.r);
-      ctx.fillStyle = vert([[0, '#8a6636'], [1, '#5a3d1e']]);
+      ctx.fillStyle = vert([[0, '#7a5a30'], [1, '#634626']]); // 2026-11-25 사용자 결정: 그라데이션 살짝 약하게
       ctx.fill();
       ctx.beginPath();
       ctx.roundRect(-S / 2 + 3, -S / 2 + 3, S - 6, S - 6, DIAMOND.r - 3);
-      ctx.fillStyle = vert([[0, '#fffdf7'], [0.45, '#f8efd9'], [1, '#e6d2a6']]);
+      ctx.fillStyle = vert([[0, '#fffcf3'], [0.45, '#f9f2e0'], [1, '#efe2c3']]);
       ctx.fill();
       // 위쪽 안 테두리 반짝임 (위 두 변만 밝게)
       ctx.save();
       ctx.beginPath();
       ctx.roundRect(-S / 2 + 4.5, -S / 2 + 4.5, S - 9, S - 9, DIAMOND.r - 4.5);
-      ctx.strokeStyle = vert([[0, 'rgba(255,255,255,0.95)'], [0.5, 'rgba(255,255,255,0)']]);
+      ctx.strokeStyle = vert([[0, 'rgba(255,255,255,0.7)'], [0.5, 'rgba(255,255,255,0)']]);
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.restore();
     };
-    c.add(shapeImage(this, 0, 0, `lobby_diamond_g_${S}_${DIAMOND.r}`, half * 2 + 4, half * 2 + 12, draw));
+    c.add(shapeImage(this, 0, 0, `lobby_diamond_g2_${S}_${DIAMOND.r}`, half * 2 + 4, half * 2 + 12, draw));
     c.add(discImage(this, 0, -16, { r: 16.5, fill: 0x1f6f66, line: 0x6b4e2a, lw: 3, icon, iconColor: 0xfff3c4 }));
     c.add(uiText(this, 0, 20, name, 16.5, CSS.ink, 'bold').setOrigin(0.5));
     // 살 수 있는 노드 수 (성탑)
@@ -214,9 +214,8 @@ export class LobbyScene extends Phaser.Scene {
     ids.forEach((id, i) => {
       const c = ROSTER_BY_ID[id];
       const x = i * step + 2; // 테두리(3) 가 가림 영역 왼쪽 끝에 잘리지 않게
-      const g = this.add.graphics();
-      g.fillStyle(0xf3ead2, 1).fillRoundedRect(x, 2, cw, ch, 10);
-      g.lineStyle(3, Phaser.Display.Color.HexStringToColor(GRADES[c.grade].color).color, 1).strokeRoundedRect(x, 2, cw, ch, 10);
+      // 등급 테두리 = 그라데이션 (2026-11-25 사용자 결정) — 예전 선(3)처럼 바깥으로 1.5 걸친다
+      const g = gradeFrame(this, x - 1.5, 0.5, cw + 3, ch + 3, c.grade, { r: 11.5, fill: '#f3ead2' });
       const img = charImage(this, x + cw / 2, 2 + ch / 2 - 6, c, 3);
       const nm = uiText(this, x + cw / 2, 2 + ch - 6, c.name, 11, CSS.ink, 'bold').setOrigin(0.5, 1);
       strip.add([g, img, nm]);

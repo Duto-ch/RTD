@@ -170,6 +170,7 @@ export class GameScene extends Phaser.Scene {
   // ───────────────────────── 루프 ─────────────────────────
   update(_t, delta) {
     this.hud?.paintReserve(); // 대기석 칸 등급색 (바뀐 칸만, 2026-11-24)
+    this.hud?.tickHp(); // 체력 30% 이하 깜빡임 (2026-11-25)
     if (this.over) return;
     const frozen = !!(this.paused || this.menuOpen || this.tut.open);
     this.syncFreeze(frozen);
