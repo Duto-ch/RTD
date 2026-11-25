@@ -463,6 +463,41 @@ export function edgeBar(scene, x, y, w, h, edge = 'top') {
   return g;
 }
 
+
+// ── 화면 위·아래 바 (2026-11-25 시안: 성탑·병영·술집을 영지처럼) ──
+export const SCREEN_TOP_H = 48;
+/**
+ * 영지와 같은 위 바 (일직선, 높이 48): 왼쪽 원 아이콘 + 화면 이름 + 작은 글자(sub), 오른쪽 재화·수치 칸들.
+ * right: [[이름, 값(문자열/숫자), 원 색, 아이콘]] — 영지 재화와 같은 모양(작은 원 + '이름 값' 한 줄).
+ * 돌려줌: { sub, right: [글자…] } (값을 바꿀 때 setText)
+ */
+export function screenTop(scene, { icon, title, sub = '', right = [], iconFill = 0x1f6f66, depth = 0 }) {
+  const H = SCREEN_TOP_H;
+  const out = { objs: [] };
+  const add = (o) => (out.objs.push(o.setDepth?.(depth) || o), o);
+  add(tabBar(scene, 'top', H, { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 }));
+  add(discImage(scene, 40, H / 2, { r: 16, fill: iconFill, line: 0x6b4e2a, lw: 2, icon, iconColor: 0xfff3c4 }));
+  const nm = add(uiText(scene, 64, H / 2, title, 18, CSS.ink, 'bold').setOrigin(0, 0.5));
+  out.sub = add(uiText(scene, nm.x + nm.width + 12, H / 2, sub, 13, CSS.primary, 'bold').setOrigin(0, 0.5));
+  const w = 150;
+  const gap = 12;
+  out.right = right.map(([label, n, col, ic], i) => {
+    const x = GAME_W - 16 - (right.length - i) * w - (right.length - 1 - i) * gap;
+    add(discImage(scene, x + 14, H / 2, { r: 11, fill: col, icon: ic }));
+    const t = add(uiText(scene, x + 32, H / 2, `${label} ${typeof n === 'number' ? n.toLocaleString() : n}`, 15, CSS.ink, 'bold').setOrigin(0, 0.5));
+    t.label = label;
+    return t;
+  });
+  return out;
+}
+
+/** 영지와 같은 아래 독 (y 부터 화면 아래까지) + 가운데 탭(tab: {x0, x1, depth, slope}) · 탭 안 글자(label, 없으면 '') */
+export function screenDock(scene, y, tab, label = '', depth = 0) {
+  const bar = tabBar(scene, 'bottom', y, tab).setDepth(depth);
+  const t = label != null ? uiText(scene, (tab.x0 + tab.x1) / 2, y - tab.depth / 2 + 2, label, 13, CSS.ink, 'bold').setOrigin(0.5).setDepth(depth) : null;
+  return { bar, label: t };
+}
+
 /**
  * 가운데 탭이 달린 가장자리 바 (2026-11-24 사용자 시안): 화면 좌우 끝까지 붙은 크림 바 + 가운데가 화면 안쪽으로 튀어나온 탭.
  * 탭 양옆은 부드러운 S 곡선, 안쪽 가장자리를 따라 금갈색 선 + 그림자. 캔버스로 UI 해상도 그대로 그려 곡선이 고르다

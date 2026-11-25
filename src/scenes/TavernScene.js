@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, discImage, coverImage } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, discImage, coverImage, screenTop, screenDock } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { ROSTER_BY_ID, GRADES, STYLES, TRAIT_TEXT } from '../data/roster.js';
@@ -15,10 +15,10 @@ import { dissolveTo } from '../ui/dissolve.js';
 // 이미 가진 캐릭터면 강화 +1 (공격력 +10%, 최대 +3), 그 뒤에는 마정석 절반을 돌려받는다. 리롤도 마정석 — 할수록 비싸진다.
 
 const TAVERN_DIM = 0.35; // 배경 그림 위 어둡게 (글자·카드 읽히게)
-const OUTLINE = { stroke: '#1a0f08', strokeThickness: 4 }; // 그림 위 글자 외곽선
 // 카드 25% 작게 (2026-11-25 사용자 요청: 320x420 → 240x315), 가운데 정렬
 const CARD_W = 240;
-const L = { card: { x: (GAME_W - CARD_W * 3 - 20 * 2) / 2, y: 196, w: CARD_W, h: 315, gap: 20 }, foot: 650 };
+const DOCK = { y: 652, tab: { x0: 520, x1: 760, depth: 30, slope: 44 } }; // 2026-11-25 시안: 아래 독
+const L = { card: { x: (GAME_W - CARD_W * 3 - 20 * 2) / 2, y: 178, w: CARD_W, h: 315, gap: 20 }, foot: DOCK.y - 30 };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 export class TavernScene extends Phaser.Scene {
@@ -34,28 +34,21 @@ export class TavernScene extends Phaser.Scene {
       coverImage(this, 'tavern_bg', GAME_W, GAME_H);
       this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, TAVERN_DIM).setOrigin(0);
     } else this.add.rectangle(0, 0, GAME_W, GAME_H, 0x3a2416).setOrigin(0);
-    uiText(this, 20, 18, '술집 · 용병 고용', 22, '#fff3c4', 'bold', OUTLINE);
-    uiText(this, 20, 52, `${TAVERN.refreshMs / 3600000}시간마다 갱신 · 마정석 고용`, 12, '#e8cfa8', '600', OUTLINE);
-    this.stoneBox = this.add.container(0, 0);
+    // 2026-11-25 시안: 영지처럼 위 바(이름·남은 시간·마정석) + 아래 독(가운데 탭 = 리롤, 오른쪽 영지로)
+    this.top = screenTop(this, { icon: 'userplus', title: '술집', right: [['마정석', meta.stones, 0x2fbfb2, 'gem']] });
+    this.timerText = this.top.sub;
     this.cards = this.add.container(0, 0);
-    this.timerText = uiText(this, GAME_W / 2, 112, '', 14, '#fff3c4', 'bold', OUTLINE).setOrigin(0.5);
-    const fy = L.foot;
-    this.rerollBtn = new Button(this, GAME_W / 2 - 150, fy, 260, 52, '', () => this.reroll(), { variant: 'gold', icon: 'reroll', fontSize: 14 });
-    new Button(this, GAME_W / 2 + 150, fy, 260, 52, '영지로', () => this.leave(), { variant: 'primary', fontSize: 16.5 });
+    screenDock(this, DOCK.y, DOCK.tab, null);
+    this.rerollBtn = new Button(this, GAME_W / 2, DOCK.y - 2, 220, 40, '', () => this.reroll(), { variant: 'gold', icon: 'reroll', fontSize: 14 });
+    new Button(this, GAME_W - 24 - 80, DOCK.y + 34, 160, 40, '영지로', () => this.leave(), { variant: 'outline', icon: 'house', fontSize: 14 });
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.refresh();
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.tick() });
   }
 
-  /** 오른쪽 위 마정석 */
+  /** 위 바 마정석 */
   drawStones() {
-    this.stoneBox.removeAll(true);
-    const w = 150;
-    const x = GAME_W - 16 - w;
-    const y = 16;
-    this.stoneBox.add(panel(this, x, y, w, 40, 'strip'));
-    const g = discImage(this, x + 22, y + 20, { r: 13, fill: 0x2fbfb2, icon: 'gem' }); // 미리 그린 원 (2026-11-23)
-    this.stoneBox.add([g, uiText(this, x + 42, y + 20, meta.stones.toLocaleString(), 16.5, CSS.ink, 'bold').setOrigin(0, 0.5), uiText(this, x + w - 14, y + 20, '마정석', 11, CSS.sub, '600').setOrigin(1, 0.5)]);
+    this.top.right[0].setText(`마정석 ${meta.stones.toLocaleString()}`);
   }
 
   tick() {
