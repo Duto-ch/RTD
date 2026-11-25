@@ -294,11 +294,7 @@ export class Hud {
       g.fillStyle(low ? 0xd2473a : 0xffdd4a, 1).fillRoundedRect(x, y, w, ih, ih / 2);
       g.fillStyle(low ? 0xe8766a : 0xffe47d, 1).fillRoundedRect(x + 3, y + 2, Math.max(0, w - 6), Math.max(2, Math.round(ih * 0.4)), 3);
     }
-    const shield = this.hpShield || 0;
-    if (shield > 0) {
-      const sw = px(Math.min(1, shield / this.hpMax));
-      g.fillStyle(0x8fd4ff, 1).fillRoundedRect(x, y, Math.max(6, sw), 4, 2);
-    }
+    // 실드 하늘색 윗줄은 없앰 (2026-11-25 사용자 요청) — 실드 양은 수치 '80+20' 로만
   }
 
   /** 유물 칸 위치: 세로는 유물 줄에 36px 간격, 가로는 알약 바 오른쪽 132px 안에 (많으면 좁혀 겹친다) */

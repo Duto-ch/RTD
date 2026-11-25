@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar, shapeImage } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
 import { UPGRADES } from '../data/upgrades.js';
@@ -18,9 +18,10 @@ import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 
 /** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
 const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
-const MENU = { right: GAME_W - 16, top: 92, w: 188, h: 52, gap: 12 };
+// 메뉴 마름모 (2026-11-25 시안): 한 변 · 모서리 둥글기 · 이웃과 간격 · 대형 가운데
+const DIAMOND = { side: 92, r: 16, gap: 8, cx: GAME_W / 2, cy: 306 };
 // 위 바·아래 독 (2026-11-24 사용자 시안: 전투 화면과 같은 가운데 탭 바)
-const TOP = { h: 48, tab: { x0: 536, x1: 744, depth: 36, slope: 44 } }; // 2026-11-25 시안: 탭 = 출전 버튼
+const TOP = { h: 48, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } }; // 2026-11-25 시안: 탭 없이 일직선
 const DOCK = { y: 598, tab: { x0: 380, x1: 900, depth: 28, slope: 44 } };
 
 const LABELS = {
@@ -87,7 +88,7 @@ export class LobbyScene extends Phaser.Scene {
     const nm = uiText(this, 64, H / 2, '용병단 영지', 18, CSS.ink, 'bold').setOrigin(0, 0.5);
     uiText(this, nm.x + nm.width + 12, H / 2, `최고 WAVE ${best}`, 13, CSS.primary, 'bold').setOrigin(0, 0.5);
     // 출전 (2026-11-25 시안: 위 바 가운데 탭)
-    this.goBtn = new Button(this, GAME_W / 2, 46, 176, 56, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 24 });
+    this.goBtn = new Button(this, GAME_W / 2, H / 2, 120, 34, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 18 }); // 2026-11-25 시안: 바 안에 작게
 
     // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
@@ -105,36 +106,57 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   /** 메뉴 버튼 (진한 테두리 menu 스타일) — 2026-11-22: 오른쪽 정렬 세로 줄, 폭은 모두 같게 */
+  /**
+   * 메뉴 버튼 (2026-11-25 시안): 모서리 둥근 마름모 4개를 화면 가운데에 마름모 대형으로 — 위 성탑 · 왼쪽 병영 · 오른쪽 술집 · 아래 유물 공방.
+   * 마름모 안: 아이콘 원 + 이름 (부제 없음 — UI 문구 개조식). 누르는 영역도 마름모
+   */
   createSpot(id, i) {
-    const [name, sub, icon] = LABELS[id];
-    const action = () => this.openSpot(id);
-    const t1 = uiText(this, 0, 0, name, 16.5, CSS.ink, 'bold');
-    const t2 = uiText(this, 0, 0, sub, 11, CSS.sub, '600');
-    const w = MENU.w;
-    const h = MENU.h;
-    const tx = MENU.right - w / 2;
-    const ty = MENU.top + h / 2 + i * (h + MENU.gap);
-    const c = this.add.container(Math.round(tx), Math.round(ty)); // 가운데 기준 (눌림 효과가 가운데로 줄어들게)
-    c.add(panel(this, -w / 2, -h / 2, w, h, 'menu'));
-    const ix = -w / 2 + 26;
-    c.add(discImage(this, ix, 0, { r: 16.5, fill: 0x1f6f66, line: 0x6b4e2a, lw: 3, icon, iconColor: 0xfff3c4 })); // 바깥 18 · 안 15 (2026-11-23 미리 그린 원)
-    t1.setPosition(ix + 24, -h / 2 + 7);
-    t2.setPosition(ix + 24, -h / 2 + 30);
-    c.add([t1, t2]);
+    const [name, , icon] = LABELS[id];
+    const S = DIAMOND.side;
+    const half = (S * Math.SQRT2) / 2; // 꼭짓점까지
+    const o = half + DIAMOND.gap; // 대형 간격 (이웃 마름모 변끼리 gap 만큼)
+    const pos = { tower: [0, -o], barracks: [-o, 0], tent: [o, 0], forge: [0, o] }[id] || [0, 0];
+    const c = this.add.container(Math.round(DIAMOND.cx + pos[0]), Math.round(DIAMOND.cy + pos[1]));
+    const draw = (ctx) => {
+      ctx.rotate(Math.PI / 4);
+      // 아래 입술(진한 갈색) → 테두리 → 바탕 (menu 스타일과 같은 색)
+      ctx.save();
+      ctx.rotate(-Math.PI / 4);
+      ctx.translate(0, 4);
+      ctx.rotate(Math.PI / 4);
+      ctx.beginPath();
+      ctx.roundRect(-S / 2, -S / 2, S, S, DIAMOND.r);
+      ctx.fillStyle = '#6b4e2a';
+      ctx.fill();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.roundRect(-S / 2, -S / 2, S, S, DIAMOND.r);
+      ctx.fillStyle = '#6b4e2a';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(-S / 2 + 3, -S / 2 + 3, S - 6, S - 6, DIAMOND.r - 3);
+      ctx.fillStyle = '#fbf7ec';
+      ctx.fill();
+    };
+    c.add(shapeImage(this, 0, 0, `lobby_diamond_${S}_${DIAMOND.r}`, half * 2 + 4, half * 2 + 12, draw));
+    c.add(discImage(this, 0, -16, { r: 16.5, fill: 0x1f6f66, line: 0x6b4e2a, lw: 3, icon, iconColor: 0xfff3c4 }));
+    c.add(uiText(this, 0, 20, name, 16.5, CSS.ink, 'bold').setOrigin(0.5));
     // 살 수 있는 노드 수 (성탑)
     if (id === 'tower') {
       const n = UPGRADES.filter((u) => meta.status(u.id) === 'ok').length;
       if (n) {
-        const b = discImage(this, w / 2 - 4, -h / 2 + 4, { r: 11, fill: 0xd9603f, line: 0xfff3dc, lw: 2 });
-        c.add([b, uiText(this, w / 2 - 4, -h / 2 + 4, String(n), 11, '#ffffff', 'bold').setOrigin(0.5)]);
+        const b = discImage(this, half * 0.5 + 6, -half * 0.5 - 6, { r: 11, fill: 0xd9603f, line: 0xfff3dc, lw: 2 });
+        c.add([b, uiText(this, half * 0.5 + 6, -half * 0.5 - 6, String(n), 11, '#ffffff', 'bold').setOrigin(0.5)]);
       }
     }
-    const hit = this.add.zone(-w / 2, -h / 2, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
+    // 누르는 영역 = 마름모
+    const poly = new Phaser.Geom.Polygon([0, -half, half, 0, 0, half, -half, 0]);
+    const hit = this.add.zone(0, 0, half * 2, half * 2).setInteractive({ hitArea: new Phaser.Geom.Polygon(poly.points.map((p) => ({ x: p.x + half, y: p.y + half }))), hitAreaCallback: Phaser.Geom.Polygon.Contains, useHandCursor: true });
     hit.on('pointerdown', () => c.setScale(0.96));
     hit.on('pointerout', () => c.setScale(1));
     hit.on('pointerup', () => {
       c.setScale(1);
-      action();
+      this.openSpot(id);
     });
     c.add(hit);
     this.spots = { ...this.spots, [id]: c };
