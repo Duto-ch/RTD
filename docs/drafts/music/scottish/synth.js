@@ -1,5 +1,5 @@
 // 32비트 풍 스코틀랜드 민요 배경음 합성기 — 시안 (2026-11-25, 사운드 전담)
-// jrpg32/synth.js 엔진을 바탕으로 틴 휘슬·피들·은은한 드론·바우런을 더하고, 3/4·6/8 박자(song.E = 마디당 8분음표 수)를 받는다.
+// jrpg32/synth.js 엔진을 바탕으로 틴 휘슬·피들·은은한 드론(따뜻한 낮은 패드)·바우런을 더하고, 3/4·6/8 박자(song.E = 마디당 8분음표 수)를 받는다.
 // 외부 오디오 파일 없이 WebAudio 로 현악 패드·금관·플루트·하프·글로켄·베이스·팀파니·드럼 + 리버브를 합성한다.
 // 어떤 BaseAudioContext 에서도 돈다: renderBuffer(song) 는 OfflineAudioContext 로 한 바퀴(60초)를 렌더하고
 // 리버브 꼬리를 앞부분에 겹쳐 이음매 없는 반복용 AudioBuffer 를 돌려준다.
@@ -316,21 +316,33 @@ const INST = {
     n.connect(nf).connect(ng).connect(g);
     f.connect(g).connect(out);
   },
-  // 드론: 백파이프 드론을 아주 은은하게 — 톱니 둘을 낮게 깎아 천천히 부풀었다 천천히 사라짐
+  // 드론 (2026-11-25 사용자 요청: 백파이프가 귀에 거슬려 교체) — 배음이 거의 없는 따뜻한 낮은 패드.
+  // 사인 + 옅은 삼각(살짝 어긋나 은은히 일렁임) + 한 옥타브 위 사인 아주 옅게, 천천히 숨 쉬듯 부풀었다 가라앉는다
   drone(ctx, out, t, dur, m, vel) {
     const end = t + dur;
     const stop = end + 2.5;
     const f = ctx.createBiquadFilter();
     f.type = 'lowpass';
-    f.frequency.value = 520;
-    f.Q.value = 0.6;
+    f.frequency.value = 420;
+    f.Q.value = 0.5;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.035 * vel, t + 1.6);
-    g.gain.setValueAtTime(0.035 * vel, end);
+    g.gain.linearRampToValueAtTime(0.03 * vel, t + 2);
+    g.gain.setValueAtTime(0.03 * vel, end);
     g.gain.linearRampToValueAtTime(0, end + 2);
-    for (const dt of [-6, 6]) osc(ctx, 'sawtooth', hz(m), t, stop, dt).connect(f);
-    f.connect(g).connect(out);
+    const breath = ctx.createGain(); // 숨: 0.13Hz 로 ±18% 천천히 일렁임
+    breath.gain.value = 1;
+    const l = osc(ctx, 'sine', 0.13, t, stop);
+    const lg = ctx.createGain();
+    lg.gain.value = 0.18;
+    l.connect(lg).connect(breath.gain);
+    for (const [type, mul, det, amp] of [['sine', 1, 0, 1], ['triangle', 1, 5, 0.35], ['triangle', 1, -5, 0.35], ['sine', 2, 3, 0.12]]) {
+      const o = osc(ctx, type, hz(m) * mul, t, stop, det);
+      const og = ctx.createGain();
+      og.gain.value = amp;
+      o.connect(og).connect(f);
+    }
+    f.connect(breath).connect(g).connect(out);
   },
   // 바우런(틀북): 부드럽게 '둥' — 낮게 떨어지는 사인 + 가죽 잡음
   bodhran(ctx, out, t, dur, m, vel, nz) {
