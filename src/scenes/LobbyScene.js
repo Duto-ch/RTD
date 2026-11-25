@@ -90,7 +90,8 @@ export class LobbyScene extends Phaser.Scene {
     const nm = uiText(this, 64, H / 2, '용병단 영지', 18, CSS.ink, 'bold').setOrigin(0, 0.5);
     uiText(this, nm.x + nm.width + 12, H / 2, `최고 WAVE ${best}`, 13, CSS.primary, 'bold').setOrigin(0, 0.5);
     // 출전 (2026-11-25 시안: 위 바 가운데 탭)
-    this.goBtn = new Button(this, GAME_W / 2, H / 2, 120, 34, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 18 }); // 2026-11-25 시안: 바 안에 작게
+    // 위아래 여백 같게 (2026-11-25 사용자 요청): 버튼 아래 입술(3)과 바 아래 금색 선 몫만큼 7/3(화면 3.5px) 올린다 — 버튼 위 ~ 바 위 = 입술 아래 ~ 금색 선
+    this.goBtn = new Button(this, GAME_W / 2, H / 2 - 7 / 3, 120, 34, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 18 });
 
     // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
