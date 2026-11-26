@@ -21,12 +21,13 @@ import { dissolveTo } from '../ui/dissolve.js';
 const DOCK = { y: 604, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
 // 격자 판 아래 끝 = 오른쪽 정보 칸 아래 끝 (2026-11-25 사용자 요청: 아래 바와 붙어 있었다) — 판은 격자보다 위아래 6 크다
 const INFO_BOTTOM = DOCK.y - 12;
-const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 6, cardH: 128, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
+const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 7, cardH: 134, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
 const SELECT_COLOR = 0xd94fa0;
 const CHIP_H = 23; // 필터 버튼 높이 (2026-11-25 사용자 요청: 30 → 25% 얇게)
-const BOTTOM_FILL = 0.44; // 카드 아래 44% = 등급색 (이름·등급·시너지), 캐릭터는 위쪽 가운데 (2026-11-25 사용자 요청)
+const BOTTOM_FILL = 0.38; // 카드 아래 38% = 등급색 (이름·등급·시너지), 캐릭터는 위쪽 가운데 (2026-11-25 사용자 요청 — 44 → 38 조금 더 아래로)
+const CARD_W = 106; // 카드 폭 (2026-11-25 사용자 요청: 132 → 20% 좁게) — 칸 가운데에 놓는다
 
 export class DeckScene extends Phaser.Scene {
   constructor() {
@@ -203,9 +204,9 @@ export class DeckScene extends Phaser.Scene {
     this.visible = list;
     const cw = G.w / L.cols;
     list.forEach((c, i) => {
-      const x = G.x + (i % L.cols) * cw + 4;
+      const w = CARD_W;
+      const x = Math.round(G.x + (i % L.cols) * cw + (cw - w) / 2);
       const y = G.y + 6 + Math.floor(i / L.cols) * (L.cardH + 8);
-      const w = cw - 8;
       const inDeck = this.deck.includes(c.id);
       const own = this.owned(c.id);
       const sel = this.selected === c;
@@ -222,18 +223,17 @@ export class DeckScene extends Phaser.Scene {
       const tc = c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f'; // 등급색 위 글자
       const nm = uiText(this, x + w / 2, y + topH + 6, c.name, 13, tc, 'bold').setOrigin(0.5, 0);
       this.fit(nm, w - 16);
-      const rowY = y + L.cardH - 16; // 아래 줄: 왼쪽 체크·등급 · 오른쪽 시너지
-      const gr = uiText(this, x + 10 + (inDeck ? 18 : 0), rowY, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(0, 0.5);
+      const rowY = y + L.cardH - 16; // 아래 줄: 왼쪽 등급 · 오른쪽 시너지
+      const gr = uiText(this, x + 10, rowY, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(0, 0.5);
       this.gridC.add([frame, g, img, nm, gr]);
       const R = x + w - 8;
       const bx = (j) => R - 9 - (1 - j) * 22;
       [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, bx(j), rowY, k, 8, own)));
+      // 강화 +n = 위 칸 왼쪽 위 · 덱 체크 = 위 칸 오른쪽 위 (폭이 좁아 아래 줄에서 옮김)
       const enh = meta.enhance(c.id);
-      if (enh) this.gridC.add(uiText(this, bx(0) - 9 - 4, rowY, `+${enh}`, 11, tc, 'bold').setOrigin(1, 0.5));
+      if (enh) this.gridC.add(uiText(this, x + 8, y + 6, `+${enh}`, 11, CSS.primary, 'bold'));
       if (inDeck) {
-        // 덱 표시 = 등급 글자 앞 작은 체크 — 2026-11-23 미리 그린 원
-        const cx = x + 10 + 7, cy = Math.round(rowY);
-        const chk = this.add.container(cx, cy, [discImage(this, 0, 0, {
+        const chk = this.add.container(x + w - 8 - 7, y + 8 + 7, [discImage(this, 0, 0, {
           id: 'deck_check', r: 7, fill: 0x3f9a5a, line: 0xffffff, lw: 1.5,
           draw: (ctx) => { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-1, 3); ctx.lineTo(4, -3); ctx.stroke(); }
         })]);
