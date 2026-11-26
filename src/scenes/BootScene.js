@@ -4,6 +4,7 @@ import { generateTextures } from '../art/textures.js';
 import { preloadManifest, loadCustomArt } from '../systems/customArt.js';
 import { preloadFx, createFxAnims } from '../data/fx.js';
 import { dissolveTo } from '../ui/dissolve.js';
+import { storage } from '../systems/storage.js';
 
 // 1) 모든 픽셀아트 텍스처를 코드로 생성
 // 2) PixelLab 이펙트 시트(public/assets/fx/) 읽기 + 애니메이션 등록
@@ -33,6 +34,8 @@ export class BootScene extends Phaser.Scene {
     hiRes(this);
     generateTextures(this);
     createFxAnims(this);
-    loadCustomArt(this, () => dissolveTo(this, 'Title')); // 로딩 → 타이틀도 디졸브 (2026-11-23)
+    // 로딩 → 시작 화면(Plan_D · 시작합니다, 2026-11-26) → 타이틀. 자동화 브라우저는 바로 타이틀 (e2e 는 localStorage rtd_gate_test 로 켠다)
+    const gate = !navigator.webdriver || storage.get('rtd_gate_test');
+    loadCustomArt(this, () => (gate ? this.scene.start('Gate') : dissolveTo(this, 'Title')));
   }
 }
