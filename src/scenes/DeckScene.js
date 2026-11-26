@@ -21,7 +21,8 @@ import { dissolveTo } from '../ui/dissolve.js';
 const DOCK = { y: 604, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
 // 격자 판 아래 끝 = 오른쪽 정보 칸 아래 끝 (2026-11-25 사용자 요청: 아래 바와 붙어 있었다) — 판은 격자보다 위아래 6 크다
 const INFO_BOTTOM = DOCK.y - 12;
-const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 7, cardH: 134, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
+// 정보 창 위 끝 = 격자 판 위 끝(136 - 6) (2026-11-26 사용자 요청)
+const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 7, cardH: 134, info: { x: 872, y: 130, w: 392, h: INFO_BOTTOM - 130 }, deck: { x: 24, y: DOCK.y + 16, step: 42, per: 15 }, chipY: 70, synY: 106 };
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
 const SELECT_COLOR = 0xd94fa0;
@@ -308,8 +309,9 @@ export class DeckScene extends Phaser.Scene {
     sorted.forEach((c, i) => {
       const x = D.x + (i % D.per) * D.step + D.step / 2;
       const y = D.y + Math.floor(i / D.per) * D.step + D.step / 2;
-      const g = gradeFrame(this, x - 19, y - 19, 38, 38, c.grade, { r: 9, lw: 2, fill: '#f3ead2' });
-      const img = charImage(this, x, y, c, 'head').setInteractive({ useHandCursor: true });
+      const g = gradeFrame(this, x - 19, y - 19, 38, 38, c.grade, { r: 9, lw: 2, fill: '#f3ead2', bottom: 0.3, seam: 0 }); // 아래 30% = 등급색, 경계는 직선 (2026-11-26 사용자 요청)
+      // 전신 (2026-11-26 사용자 요청: 머리만 → 전신) — 칸에 들어가게 아트 1px = 화면 2px(전장 도트와 같은 굵기, UI 1.5배 → 4/3)
+      const img = charImage(this, x, y + 1, c).setScale(4 / 3).setInteractive({ useHandCursor: true });
       img.on('pointerup', () => this.toggle(c)); // 누르면 덱에서 빼기 (2026-11-25 사용자 요청)
       this.deckBox.add([g, img]);
     });
