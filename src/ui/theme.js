@@ -633,21 +633,16 @@ export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#
     ctx.fillStyle = grad;
     ctx.fill();
     const ir = (v) => Math.max(0, v - lw);
+    // side: 오른쪽 몫(0~1)은 테두리와 같은 그라데이션 그대로 두고, 안쪽 바탕은 왼쪽만 — 경계 모서리도 둥글게 (2026-11-25 병영 카드)
+    const sx = side ? Math.round(w * (1 - side)) : w - lw;
+    const sr = side ? Math.min(10, (h - lw * 2) / 2) : null;
     ctx.beginPath();
-    ctx.roundRect(lw, lw, w - lw * 2, h - lw * 2, [ir(R.tl), ir(R.tr), ir(R.br), ir(R.bl)]);
+    ctx.roundRect(lw, lw, sx - lw, h - lw * 2, [ir(R.tl), side ? sr : ir(R.tr), side ? sr : ir(R.br), ir(R.bl)]);
     ctx.fillStyle = fill;
     ctx.fill();
     if (band != null) {
       ctx.fillStyle = grad;
       ctx.fillRect(0, band, w, h - band);
-    }
-    // side: 오른쪽 몫(0~1)을 테두리와 같은 그라데이션으로 채움 (2026-11-25 병영 카드 — 이름·등급·시너지 자리)
-    if (side) {
-      const sx = Math.round(w * (1 - side));
-      ctx.beginPath();
-      ctx.roundRect(sx, 0, w - sx, h, [0, R.tr, R.br, 0]);
-      ctx.fillStyle = grad;
-      ctx.fill();
     }
   });
   return img;

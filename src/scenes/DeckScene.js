@@ -21,7 +21,7 @@ import { dissolveTo } from '../ui/dissolve.js';
 const DOCK = { y: 604, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
 // 격자 판 아래 끝 = 오른쪽 정보 칸 아래 끝 (2026-11-25 사용자 요청: 아래 바와 붙어 있었다) — 판은 격자보다 위아래 6 크다
 const INFO_BOTTOM = DOCK.y - 12;
-const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 6, cardH: 86, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
+const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 6, cardH: 116, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
 const SELECT_COLOR = 0xd94fa0;
@@ -221,15 +221,15 @@ export class DeckScene extends Phaser.Scene {
       const tc = c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f'; // 등급색 위 글자
       const R = x + w - 8; // 오른쪽 정렬 끝
       const zoneW = w * SIDE_FILL - 12;
-      const nm = uiText(this, R, y + 12, c.name, 13, tc, 'bold').setOrigin(1, 0);
+      const nm = uiText(this, R, y + 14, c.name, 13, tc, 'bold').setOrigin(1, 0);
       this.fit(nm, zoneW);
-      const gr = uiText(this, R, y + 34, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(1, 0);
+      const gr = uiText(this, R, y + 40, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(1, 0);
       this.gridC.add([frame, g, img, nm, gr]);
       // 계열·출신 상징 — 오른쪽 정렬 (고용 전이면 옅게)
       const bx = (j) => R - 9 - (1 - j) * 22;
-      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, bx(j), y + 64, k, 8, own)));
+      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, bx(j), y + L.cardH - 22, k, 8, own)));
       const enh = meta.enhance(c.id);
-      if (enh) this.gridC.add(uiText(this, bx(0) - 9 - 4, y + 64, `+${enh}`, 11, tc, 'bold').setOrigin(1, 0.5));
+      if (enh) this.gridC.add(uiText(this, bx(0) - 9 - 4, y + L.cardH - 22, `+${enh}`, 11, tc, 'bold').setOrigin(1, 0.5));
       if (inDeck) {
         // 덱 표시 = 등급 글자 앞 작은 체크 — 2026-11-23 미리 그린 원
         const cx = Math.round(gr.x - gr.width - 4 - 7), cy = Math.round(gr.y + gr.height / 2);
