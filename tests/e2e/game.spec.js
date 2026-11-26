@@ -423,7 +423,11 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   await page.mouse.move(300 * UI, 200 * UI); await page.mouse.down(); await page.mouse.move(360 * UI, 260 * UI, { steps: 5 }); await page.mouse.up();
   expect(await game(page, () => window.game.scene.getScene('Upgrade').tree.x)).toBeGreaterThan(tx0);
   await page.screenshot({ path: SHOT('14-upgrade-tree') });
-  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').startBtn; return { x: b.x, y: b.y }; }); // 게임 시작
+  // 성탑에는 게임 시작 버튼이 없다 (2026-11-25) → 영지로 → 출전
+  expect(await game(page, () => !!window.game.scene.getScene('Upgrade').startBtn)).toBe(false);
+  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').lobbyBtn; return { x: b.x, y: b.y }; });
+  await settled(page, 'Lobby');
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').goBtn; return { x: b.x, y: b.y }; });
   await settled(page, 'Game');
   expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15);
   expect(errors).toEqual([]);
@@ -1961,7 +1965,7 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
-test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 셰이더) · 메뉴 = 가운데 마름모 4개 마름모 대형 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
+test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 셰이더) · 메뉴 = 가운데 마름모 4개 가로 1열 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -1976,11 +1980,11 @@ test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 
     return { p, wind: l.wind, bgFull: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720 };
   });
   const { tower, barracks, tent, forge } = r.p;
-  expect(tower.x).toBe(forge.x); // 위·아래 = 가운데 세로줄
-  expect(barracks.y).toBe(tent.y); // 왼쪽·오른쪽 = 가운데 가로줄
-  expect(tower.y < barracks.y && barracks.y < forge.y).toBe(true);
-  expect(barracks.x < tower.x && tower.x < tent.x).toBe(true);
-  expect(tower.x).toBe(640); // 화면 가운데
+  // 가로 1열 (왼쪽부터 성탑 · 병영 · 술집 · 유물 공방), 가운데 정렬
+  expect(new Set([tower.y, barracks.y, tent.y, forge.y]).size).toBe(1);
+  expect(tower.x < barracks.x && barracks.x < tent.x && tent.x < forge.x).toBe(true);
+  expect(Math.abs((tower.x + forge.x) / 2 - 640)).toBeLessThanOrEqual(1); // 화면 가운데
+  expect(barracks.x - tower.x).toBe(forge.x - tent.x); // 같은 간격
   expect(r.bgFull).toBe(true);
   expect(r.wind).toBe(true); // 구름·꽃·깃발 바람
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
