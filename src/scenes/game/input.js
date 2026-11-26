@@ -37,10 +37,14 @@ export class BattleInput {
     this.scene.input.mouse?.disableContextMenu();
     this.scene.input.on('gameobjectdown', (p, obj) => {
       if (p.rightButtonDown()) return;
-      if (obj instanceof Mercenary) this.select(obj);
+      if (obj instanceof Mercenary) {
+        audio.click(); // 용병 고르기 클릭음 (2026-11-26)
+        this.select(obj);
+      }
     });
     this.scene.input.on('pointerdown', (p, objs) => {
       if (p.rightButtonDown()) {
+        if (this.scene.selected) audio.click(); // 오른쪽 클릭으로 고르기 풀기 (2026-11-26)
         this.select(null);
         this.scene.hud.hideRelicTip();
         return;

@@ -379,7 +379,11 @@ export class Hud {
       // 영지 유물 공방에서 장착한 유물 (판 안에서는 끄고 켜기 없음 — 룰 v2 ③). 누르거나 올리면 툴팁
       const slot = discImage(s, x, y, { r: 13, fill: 0xe2b54a, line: 0xa8801c, lw: 2 });
       const icon = s.add.image(x, y, `relic_${r.id}`).setScale(UI_PX).setInteractive({ useHandCursor: true });
-      icon.on('pointerdown', () => (this.relicTip?.index === i ? this.hideRelicTip() : this.showRelicTip(i, x, y, true)));
+      icon.on('pointerdown', () => {
+        audio.click(); // 클릭음 (2026-11-26)
+        if (this.relicTip?.index === i) this.hideRelicTip();
+        else this.showRelicTip(i, x, y, true);
+      });
       icon.on('pointerover', () => this.showRelicTip(i, x, y, true));
       icon.on('pointerout', () => this.hideRelicTip());
       this.relicRow.add([slot, icon]);
@@ -489,6 +493,7 @@ export class Hud {
       hit.on('pointerout', () => c.setScale(1));
       hit.on('pointerup', () => {
         c.setScale(1);
+        audio.click(); // 클릭음 (2026-11-26)
         s.buy(i);
       });
       c.add(hit);
@@ -497,7 +502,10 @@ export class Hud {
       lk.fillStyle(slot.locked ? 0xe0a32a : 0xffffff, slot.locked ? 1 : 0.85).fillRoundedRect(w - 25, 7, 18, 18, 5);
       drawIcon(lk, slot.locked ? 'lock' : 'unlock', w - 16, 16, 12, slot.locked ? 0x3a2608 : 0x8c7b60);
       const lz = s.add.rectangle(w - 30, 2, 28, 28, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
-      lz.on('pointerup', () => s.toggleLock(i));
+      lz.on('pointerup', () => {
+        audio.click(); // 클릭음 (2026-11-26)
+        s.toggleLock(i);
+      });
       c.add([lk, lz]);
       c.slotIndex = i;
       this.cardHover(c, [hit, lz], x, y, w, h);
@@ -775,7 +783,10 @@ export class Hud {
       const hit = s.add.rectangle(0, 7, SY.step - 4, 34, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => this.showSynergyTip(k, x, y));
       hit.on('pointerout', () => this.hideRelicTip());
-      hit.on('pointerup', () => this.showSynergyTip(k, x, y));
+      hit.on('pointerup', () => {
+        audio.click(); // 클릭음 (2026-11-26)
+        this.showSynergyTip(k, x, y);
+      });
       c.add(hit);
       this.synRow.add(c);
     });
@@ -946,7 +957,11 @@ export class Hud {
     const s = this.s;
     const c = s.add.container(0, 0).setDepth(depth);
     const shade = s.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, 0.55).setOrigin(0).setInteractive();
-    if (onClose) shade.on('pointerdown', onClose);
+    if (onClose)
+      shade.on('pointerdown', () => {
+        audio.click(); // 바깥 눌러 닫기 클릭음 (2026-11-26)
+        onClose();
+      });
     const card = panel(s, x, y, w, h, 'card');
     card.setInteractive(); // 창 위 클릭은 닫히지 않게
     c.add([shade, card]);
@@ -969,7 +984,10 @@ export class Hud {
       this.popup = null;
     };
     const shade = s.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a1238, 0.5).setOrigin(0).setInteractive();
-    shade.on('pointerdown', close);
+    shade.on('pointerdown', () => {
+      audio.click(); // 바깥 눌러 닫기 클릭음 (2026-11-26)
+      close();
+    });
     c.add(shade);
     this.popup = c;
     let cy = y + 36;

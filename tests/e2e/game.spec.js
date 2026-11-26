@@ -1119,6 +1119,46 @@ test('전용 효과음 채우기 (2026-11-24): 판매·잠금·리롤·아이템
   if (r.moved) expect(r.calls.place).toBe(1);
   expect(errors).toEqual([]);
 });
+test('클릭음 (2026-11-26): 버튼이 아닌 클릭도 — 상점 카드 구매·잠금 · 필드 용병 고르기 · 오른쪽 클릭으로 풀기', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const a = window.__rtd.audio;
+    const g = window.game.scene.getScene('Game');
+    let clicks = 0;
+    const o = a.click.bind(a);
+    a.click = () => { clicks += 1; a.last = {}; o(); };
+    g.gold = 99999;
+    // 상점 카드 0번의 [구매 영역, 잠금 영역] — 잠금을 누르면 카드가 다시 그려지므로 누를 때마다 새로 찾는다
+    const zones = () => {
+      const all = [];
+      const walk = (list) => list.forEach((x) => { all.push(x); if (x.list) walk(x.list); });
+      walk(g.children.list);
+      return all.find((x) => x.slotIndex === 0 && x.active).list.filter((x) => x.input && x.listenerCount('pointerup'));
+    };
+    const n0 = clicks;
+    zones()[1].emit('pointerup'); // 잠금
+    const lock = clicks - n0;
+    zones()[1].emit('pointerup'); // 풀기
+    const before = g.mercs.length + g.reserve.filter(Boolean).length;
+    zones()[0].emit('pointerup'); // 구매
+    const bought = g.mercs.length + g.reserve.filter(Boolean).length - before;
+    const buy = clicks - n0 - 2;
+    const m = g.mercs[0];
+    const n1 = clicks;
+    g.input.emit('gameobjectdown', { rightButtonDown: () => false }, m);
+    const pick = clicks - n1;
+    g.input.emit('pointerdown', { rightButtonDown: () => true }, []);
+    const right = clicks - n1 - pick;
+    return { lock, buy, bought, pick, right, sel: g.selected };
+  });
+  expect(r.lock).toBe(1);
+  expect(r.bought).toBe(1);
+  expect(r.buy).toBe(1);
+  expect(r.pick).toBe(1);
+  expect(r.right).toBe(1);
+  expect(r.sel).toBe(null);
+  expect(errors).toEqual([]);
+});
 test('배경음 = 스코틀랜드 민요 풍 파일 3곡 (2026-11-26): 영지 → 게임 진행 → 보스는 합성 곡 → 다시 게임 진행', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));

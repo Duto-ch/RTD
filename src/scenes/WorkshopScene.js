@@ -65,7 +65,10 @@ export class WorkshopScene extends Phaser.Scene {
       this.slotBox.add(panelImage(this, x, y, id ? 'gold' : 'soft', 52, 52));
       if (id) {
         const icon = this.add.image(x, y, `relic_${id}`).setScale(DOT).setInteractive({ useHandCursor: true });
-        icon.on('pointerup', () => this.select(id));
+        icon.on('pointerup', () => {
+          audio.click(); // 클릭음 (2026-11-26)
+          this.select(id);
+        });
         this.slotBox.add(icon);
       }
     }
@@ -89,7 +92,10 @@ export class WorkshopScene extends Phaser.Scene {
       if (!lv) icon.setTint(0x403850).setAlpha(0.6);
       const t = uiText(this, x, y + 24, lv ? `Lv${lv}` : '?', 11, lv >= RELIC_RULES.maxLevel ? '#b47a12' : CSS.sub, 'bold').setOrigin(0.5);
       const hit = this.add.zone(x - cw / 2 + 4, y - L.cell / 2 + 2, cw - 8, L.cell - 4).setOrigin(0).setInteractive({ useHandCursor: true });
-      hit.on('pointerup', () => this.select(r.id));
+      hit.on('pointerup', () => {
+        audio.click(); // 클릭음 (2026-11-26)
+        this.select(r.id);
+      });
       this.gridBox.add([g, icon, t, hit]);
       if (eq.includes(r.id)) {
         this.gridBox.add(discImage(this, x + cw / 2 - 14, y - L.cell / 2 + 14, { r: 8, fill: 0x3f9a5a })); // 미리 그린 원 (2026-11-23)

@@ -1,5 +1,6 @@
 // UI 테마 — 픽셀아트 RPG 풍: 크림색 창 + 금빛 테두리 + 주황 제목 탭/버튼 + 픽셀 글꼴 (2026-11-15 사용자 참고 이미지)
 // 패널은 아트 해상도(화면 1/3)로 그려서 UI_PX(3)배 확대 → 캐릭터·배경과 같은 픽셀 격자
+import { audio } from '../systems/audio.js';
 import { TRAITS } from '../data/synergy.js';
 import { GRADES } from '../data/roster.js';
 import { pointerFor, uiPosOf, inWorld } from '../systems/hires.js';
@@ -239,7 +240,10 @@ export function closeButton(scene, x, y, onClick) {
   c.add([bg, g]);
   c.setSize(28, 28).setInteractive({ useHandCursor: true });
   c.gapOk = true; // 카드 모서리에 일부러 걸친 장식 (ui-audit 여백 검사 제외)
-  c.on('pointerup', onClick);
+  c.on('pointerup', () => {
+    audio.click(); // 클릭음 (2026-11-26)
+    onClick();
+  });
   return c;
 }
 
