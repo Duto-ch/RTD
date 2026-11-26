@@ -55,6 +55,11 @@ export class Formation {
     u.snapToCell();
   }
 
+  /** 같은 캐릭터가 필드에 이미 있는가 (except 는 빼고 본다) — 필드에는 캐릭터마다 1명만 (2026-11-26 사용자 결정) */
+  onField(charId, except = []) {
+    return this.mercs.some((m) => m.char.id === charId && !except.includes(m));
+  }
+
   /** 빈 칸 (후열·가운데부터, 전사는 전열 먼저) */
   emptyCell(char) {
     const cells = [];
@@ -77,6 +82,12 @@ export class Formation {
     // 대기석 → 빈 필드 칸: 필드 인원이 가득이면 못 올린다
     if (cell && merc.reserved && !other && this.mercs.length >= this.scene.cap) {
       this.scene.toast(`필드 가득 (${this.scene.cap}명)`, '#ff9a7a');
+      return merc.snapToCell();
+    }
+    // 필드에는 같은 캐릭터 1명만 (2026-11-26): 필드로 들어오는 쪽과 같은 캐릭터가 이미 필드에 있으면 못 놓는다
+    const incoming = cell && merc.reserved ? merc : slot >= 0 && !merc.reserved && other ? other : null;
+    if (incoming && this.onField(incoming.char.id, [merc, other])) {
+      this.scene.toast(`${incoming.heroName} · 필드에 이미 있음`, '#ff9a7a');
       return merc.snapToCell();
     }
     const from = merc.reserved ? { slot: merc.slot } : { col: merc.col, row: merc.row };

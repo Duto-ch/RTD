@@ -79,7 +79,7 @@ export const TUTORIAL_STEPS = {
   },
   prep: {
     title: '정비 시간',
-    text: '· 웨이브 중: 용병 구매·배치·아이템 장착 불가\n· 몬스터 전멸 → 정비 시간 15초 (F 바로 시작)',
+    text: '· 웨이브 중: 용병 구매 불가 (배치·아이템 장착은 됨)\n· 필드에는 같은 캐릭터 1명만 → 나머지는 대기석\n· 몬스터 전멸 → 정비 시간 30초 (F 바로 시작)',
     rect: () => ({ x: HUD.shop.x - 4, y: HUD.shop.y - 4, w: HUD.shop.w + 8, h: HUD.shop.h + 8 })
   },
   special: {

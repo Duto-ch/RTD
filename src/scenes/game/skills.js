@@ -23,8 +23,12 @@ export class SkillCaster {
       const a = def.area;
       if (a.type === 'single') targets = [primary];
       else if (a.type === 'multi') targets = live.slice(0, a.n);
-      else if (a.type === 'range') targets = live;
-      else if (a.type === 'circle') targets = this.scene.monsters.filter((m) => m.alive && d2(m, primary) <= a.r * a.r);
+      // 광역은 대상 상한 (스킬 리밸런싱 v2 — area.max, 가까운 순)
+      else if (a.type === 'range') targets = a.max ? live.slice(0, a.max) : live;
+      else if (a.type === 'circle') {
+        targets = this.scene.monsters.filter((m) => m.alive && d2(m, primary) <= a.r * a.r);
+        if (a.max && targets.length > a.max) targets = targets.sort((x, y) => d2(x, primary) - d2(y, primary)).slice(0, a.max);
+      }
       else if (a.type === 'chain') targets = this.scene.chainFrom(primary, a.n);
     } else if (def.buff && !live.length) {
       return false;
