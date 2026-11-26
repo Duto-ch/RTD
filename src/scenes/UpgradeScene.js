@@ -24,7 +24,7 @@ const HEX = 17; // 노드 육각형 반지름
 // 2026-11-25 시안: 영지처럼 위 바(이름·배운 노드·명성) + 아래 바(일직선: 왼쪽 축소·가운데로·확대 + 최고 기록 · 오른쪽 영지로)
 const DOCK = { y: 652, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
 const VIEW = { top: 56, bottom: DOCK.y - 8, right: 872 }; // 트리가 보이는 영역
-const CENTER = { x: 436, y: (VIEW.top + VIEW.bottom) / 2 };
+const CENTER = { x: GAME_W / 2, y: GAME_H / 2 }; // 노드 트리 처음 자리 = 화면 가운데 (2026-11-25 사용자 요청)
 const SIDE = { x: 888, w: 380 }; // 머리 창·정보 창이 놓이는 칸
 
 /**
@@ -158,7 +158,7 @@ export class UpgradeScene extends Phaser.Scene {
   // ───────────── 아래 정보 창 ─────────────
   createDetail() {
     const D = 10;
-    const y = 60;
+    const y = 61; // 위 여백 = 오른쪽 여백 (2026-11-25 사용자 요청 — 화면에서 재어 맞춤: 위 바 금갈색 선 아래 ~ 창 = 창 오른쪽 ~ 화면 끝)
     const X = SIDE.x;
     const R = SIDE.x + SIDE.w;
     const wrap = { wordWrap: { width: SIDE.w - 40 } };

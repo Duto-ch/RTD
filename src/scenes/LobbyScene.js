@@ -205,7 +205,8 @@ export class LobbyScene extends Phaser.Scene {
     const D = { x: 0, y: DOCK.y, w: GAME_W, h: GAME_H - DOCK.y };
     tabBar(this, 'bottom', D.y, DOCK.tab);
     // 카드 줄 (가려지는 영역)
-    const row = { x: 24, y: D.y + 12, w: D.w - 48, h: 80 }; // 2026-11-25 시안: 출전 버튼이 위로 가서 덱 줄이 독 전체
+    // 카드(높이 79)를 아래 바 위·아래 끝에서 같은 거리로 (2026-11-25 사용자 요청: 상·하 여백 맞춤) — 바 위 금갈색 선(1.5) 아래부터
+    const row = { x: 24, y: Math.round(D.y + 1.5 + (D.h - 1.5 - 79) / 2) - 2 / 3, w: D.w - 48, h: 80 }; // 화면에서 재어 1px 위로 (위·아래 30px)
     uiText(this, GAME_W / 2, D.y - DOCK.tab.depth / 2 + 2, `출전 덱 ${ids.length} / ${DECK_RULES.max}`, 13, CSS.ink, 'bold').setOrigin(0.5);
     const cw = 64;
     const ch = 76;
