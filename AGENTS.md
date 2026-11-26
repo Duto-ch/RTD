@@ -23,10 +23,10 @@
 - 명성 강화 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`(강화 창을 닫으면 `applyBonus()` 로 다시 읽음)·Mercenary `getStats` 에서 쓴다. 판 시작 때만 쓰는 효과는 다음 판부터
 
 ## 명령어 (package.json 에 없는 것·꼭 지킬 것)
-- **테스트 (2026-11-26 사용자 결정: 브라우저 테스트는 요청할 때만)**: 평소엔 `npm test`(단위, 몇 초) + `npm run build` 만. `npm run check`(단위 + 브라우저 Playwright, 15~20분 — 빌드를 띄워 조작하고 화면을 `test-results/screens/` 에 저장)는 **사용자가 따로 요청할 때만** 돌린다. GitHub Actions 도 PR·main 에서는 단위 테스트·빌드만(`test` 잡), 브라우저 테스트는 Actions 'Run workflow' 에서 e2e 를 켤 때만
+- **테스트 (2026-11-26 사용자 결정: 브라우저 테스트는 요청할 때만)**: 평소엔 `npm test`(단위, 몇 초) + `npm run build` 만. `npm run check`(단위 + 브라우저 Playwright, 15~20분 — 빌드를 띄워 조작하고 화면을 `test-results/screens/` 에 저장)는 **사용자가 따로 요청할 때만** 돌린다. GitHub Actions 도 PR·main 에서는 단위 테스트·빌드만(`test` 잡), 브라우저 테스트는 Actions 'Run workflow' 에서 e2e 를 켤 때만(4대에 나눠 동시에 — `--shard`, 테스트 화면은 `test-screens-1~4`)
 - `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째: 명성 강화 레벨(없으면 강화 0). 기본은 대기석을 쓰는 봇, `RESERVE=0` 이면 안 씀. 먼저 `npm run build && npx vite preview --port 4173`
 - 데이터를 고친 뒤 문서 다시 만들기: `node tools/gen-roster-doc.mjs`(로스터 → `docs/ROSTER.md`) · `node tools/gen-skill-doc.mjs` · `node tools/gen-upgrade-doc.mjs` · `node tools/gen-art-doc.mjs`
-- **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (테스트 화면은 Actions 결과의 `test-screens`)
+- **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (브라우저 테스트를 돌렸으면 화면은 Actions 결과의 `test-screens-1~4`)
 - 브라우저 콘솔 디버그: `game.scene.getScene('Game')` → `g.gold += 1000`, `g.startWave(10)`, `g.endGame(true)`. `window.__rtd` 에 ROSTER·audio·setArt·setFacing·meta (`__rtd.meta.addFame(100)`, `__rtd.meta.reset()`)
 - 작업을 끝낼 때 Stop 훅(`.claude/hooks/missed-changes.py`)이 빠뜨린 후속 작업을 알린다 — 수동 확인 `python3 .claude/hooks/missed-changes.py --print`
 - `node tools/ui-audit.cjs` — UI 글자 정렬 점검 (1920x1080 한 화면, UI 좌표로 봄) (장면별 표 + `ui-audit/` 화면, 문제 글자에 빨간 상자) + **곡선 UI 8배 확대 그림** `ui-audit/pc-game-round.png`·`pc-lobby-round.png` (원·알약을 눈으로 확인)
