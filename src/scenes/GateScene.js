@@ -2,14 +2,14 @@ import Phaser from 'phaser';
 import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { audio } from '../systems/audio.js';
-import { uiText, pillImage } from '../ui/theme.js';
+import { pillImage } from '../ui/theme.js';
 
-// 시작 화면 (2026-11-26 사용자 요청): 타이틀 앞 검은 화면 — 가운데 도트 글자 'Plan_D' + 아래 캡슐 버튼 '시작합니다'.
+// 시작 화면 (2026-11-26 사용자 요청): 타이틀 앞 검은 화면 — 가운데 깜빡이는 도트 글자 'Plan_D' + 아래 캡슐 버튼 'Start'(도트 글자).
 // 웹 브라우저는 사람이 직접 누르기 전엔 소리를 막는다 → 이 버튼을 누르는 순간 소리를 켜고 타이틀을 띄워 타이틀 곡이 처음부터 들린다.
-// 누르면 타이틀이 페이드 인 + 4x4(화면 px) 블록 디졸브로 나타난다 (검은 가림막을 블록 단위로 무작위로 걷어 냄)
+// 누르면 타이틀이 페이드 인 + 16x16(화면 px) 블록 디졸브로 나타난다 (검은 가림막을 가운데부터 원형으로 걷어 냄)
 export const GATE_MS = 1100; // 디졸브 시간 (페이드 인은 조금 더 길게)
 const FADE_MS = 1300;
-const BLOCK = 4; // 디졸브 블록 = 화면(캔버스) 4x4 px
+const BLOCK = 16; // 디졸브 블록 = 화면(캔버스) 16x16 px (2026-11-26, 이전 4)
 
 // 5x7 도트 글자 (아래 줄 = 밑줄 '_' 자리)
 const GLYPHS = {
@@ -18,10 +18,31 @@ const GLYPHS = {
   a: ['00000', '00000', '01110', '00001', '01111', '10001', '01111'],
   n: ['00000', '00000', '10110', '11001', '10001', '10001', '10001'],
   _: ['00000', '00000', '00000', '00000', '00000', '00000', '11111'],
-  D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110']
+  D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
+  S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+  t: ['00100', '00100', '11111', '00100', '00100', '00100', '00011'],
+  r: ['00000', '00000', '10110', '11001', '10000', '10000', '10000']
 };
 const LOGO = 'Plan_D';
-const DOT_PX = 8; // 글자 도트 한 칸 (UI 좌표 — 화면 12px)
+const DOT_PX = 4; // 'Plan_D' 도트 한 칸 (UI 좌표 — 화면 6px, 2026-11-26 절반으로)
+const BTN_PX = 3; // 'Start' 도트 한 칸 (UI 좌표 — 화면 4.5px)
+const CREAM = 0xfbf7ec;
+const HOVER = 0xd8f0c0;
+const BLINK_MS = 530; // 'Plan_D' 깜빡임 (켜짐·꺼짐 각각)
+
+/** 도트 글자를 (cx, cy) 가운데에 그린다 */
+function dotWord(g, word, cx, cy, px, color) {
+  const cols = word.length * 6 - 1;
+  const x0 = Math.round(cx - (cols * px) / 2);
+  const y0 = Math.round(cy - (7 * px) / 2);
+  g.clear().fillStyle(color, 1);
+  [...word].forEach((ch, k) => {
+    GLYPHS[ch].forEach((row, j) => {
+      for (let i = 0; i < 5; i++) if (row[i] === '1') g.fillRect(x0 + (k * 6 + i) * px, y0 + j * px, px, px);
+    });
+  });
+  return g;
+}
 
 export class GateScene extends Phaser.Scene {
   constructor() {
@@ -36,31 +57,21 @@ export class GateScene extends Phaser.Scene {
     const cy = GAME_H / 2;
     this.bg = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000).setOrigin(0);
 
-    // 도트 글자 'Plan_D'
-    const cols = LOGO.length * 6 - 1;
-    const x0 = Math.round(cx - (cols * DOT_PX) / 2);
-    const y0 = Math.round(cy - 40 - 7 * DOT_PX);
-    const g = this.add.graphics();
-    g.fillStyle(0xfbf7ec, 1);
-    [...LOGO].forEach((ch, k) => {
-      GLYPHS[ch].forEach((row, j) => {
-        for (let i = 0; i < 5; i++) if (row[i] === '1') g.fillRect(x0 + (k * 6 + i) * DOT_PX, y0 + j * DOT_PX, DOT_PX, DOT_PX);
-      });
-    });
-    this.logo = g;
+    // 도트 글자 'Plan_D' — 뚝뚝 깜빡임 (실제 시간)
+    this.logo = dotWord(this.add.graphics(), LOGO, cx, cy - 40 - (7 * DOT_PX) / 2, DOT_PX, CREAM);
+    this.blinkT0 = performance.now();
 
-    // 캡슐 버튼 '시작합니다'
-    const bw = 180;
+    // 캡슐 버튼 'Start' (도트 글자, 깜빡임 없음)
+    const bw = 140;
     const bh = 44;
     const by = cy + 40;
-    const pill = pillImage(this, cx, by, bw, bh, 0x15151c, 0xfbf7ec, 2);
-    const label = uiText(this, cx, by, '시작합니다', 18, '#fbf7ec', 'bold').setOrigin(0.5);
+    const pill = pillImage(this, cx, by, bw, bh, 0x15151c, CREAM, 2);
+    const label = dotWord(this.add.graphics(), 'Start', cx, by, BTN_PX, CREAM);
     const hit = this.add.zone(cx, by, bw, bh).setInteractive({ useHandCursor: true });
-    hit.on('pointerover', () => { pill.setTint(0xd8f0c0); label.setColor('#d8f0c0'); });
-    hit.on('pointerout', () => { pill.clearTint(); label.setColor('#fbf7ec'); });
+    hit.on('pointerover', () => { pill.setTint(HOVER); dotWord(label, 'Start', cx, by, BTN_PX, HOVER); });
+    hit.on('pointerout', () => { pill.clearTint(); dotWord(label, 'Start', cx, by, BTN_PX, CREAM); });
     hit.on('pointerup', () => this.begin());
     this.button = { pill, label, hit };
-    this.tweens.add({ targets: [pill, label], alpha: { from: 1, to: 0.6 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     this.input.keyboard?.on('keydown-SPACE', () => this.begin());
     this.input.keyboard?.on('keydown-ENTER', () => this.begin());
@@ -89,14 +100,11 @@ export class GateScene extends Phaser.Scene {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
     const img = ctx.getImageData(0, 0, cw, ch);
-    // 걷어 낼 순서 = 무작위 순열
+    // 걷어 낼 순서 = 가운데에서 먼 순 (가장자리는 블록 1~2개만큼 들쭉날쭉 — 둥글게 번지는 도트 원)
     const n = cw * ch;
-    const order = new Uint32Array(n);
-    for (let i = 0; i < n; i++) order[i] = i;
-    for (let i = n - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      const t = order[i]; order[i] = order[j]; order[j] = t;
-    }
+    const dist = new Float32Array(n);
+    for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) dist[j * cw + i] = Math.hypot(i + 0.5 - cw / 2, j + 0.5 - ch / 2) + Math.random() * 1.5;
+    const order = Uint32Array.from({ length: n }, (_, i) => i).sort((a, b) => dist[a] - dist[b]);
     this.veil = { tex, ctx, img, order, n, done: 0, t0: performance.now() };
     this.veilImg = this.add.image(0, 0, 'gate_veil').setOrigin(0).setDisplaySize((cw * BLOCK * GAME_W) / W, (ch * BLOCK * GAME_H) / H);
 
@@ -108,10 +116,11 @@ export class GateScene extends Phaser.Scene {
   }
 
   update() {
+    if (!this.starting) this.logo.setVisible(Math.floor((performance.now() - this.blinkT0) / BLINK_MS) % 2 === 0);
     const v = this.veil;
     if (!v) return;
     const p = Math.min(1, (performance.now() - v.t0) / GATE_MS);
-    // 처음엔 천천히, 뒤로 갈수록 빠르게 걷힌다
+    // 원 반지름이 일정하게 커지도록 (넓이 ∝ p²)
     const target = Math.floor(v.n * p * p);
     const d = v.img.data;
     for (let k = v.done; k < target; k++) d[v.order[k] * 4 + 3] = 0;
