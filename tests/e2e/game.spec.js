@@ -2255,7 +2255,7 @@ test('영지 초원 행진 (2026-11-26): 덱에서 겹치지 않는 8명이 지�
   const b = await game(page, () => window.game.scene.getScene('Lobby').parade.list.map((p) => p.img.x));
   expect(a.length).toBe(8);
   expect(new Set(a.map((p) => p.id)).size).toBe(8);
-  expect(a.every((p) => p.inDeck && p.foot >= 455 && p.foot <= 520 && p.depth < 0)).toBe(true);
+  expect(a.every((p) => p.inDeck && p.foot >= 505 && p.foot <= 565 && p.depth < 0)).toBe(true);
   expect(b.some((x, i) => Math.abs(x - a[i].x) > 1)).toBe(true); // 누군가는 움직였다
   // 원근: 위(먼 곳)에 선 캐릭터일수록 작다
   const byFoot = [...a].sort((p, q) => p.foot - q.foot);
