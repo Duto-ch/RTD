@@ -888,13 +888,14 @@ test('유물 아이콘 그림(12px 전용 모양) · 툴팁 스프링 등장 · 
     g.hud.upgradeBadge.setVisible(true);
     g.togglePause();
     const seen = new Set();
-    // 느린 기계(CI)에서도 커진 순간·작아진 순간을 모두 볼 때까지 (최대 6초 · 20ms 마다) — 고정 1.5초는 가끔 놓쳤다
+    // 느린 기계(CI)에서도 커진 순간·작아진 순간을 모두 볼 때까지 (최대 20초 · 프레임마다) — 작아지는 구간은 한 바퀴 1.3초 중 약 0.14초라
+    // 프레임이 드문 CI 에서 6초로는 가끔 놓쳤다. 반올림하지 않은 값으로 본다
     const t0 = performance.now();
-    while (performance.now() - t0 < 6000) {
-      seen.add(+g.hud.upgradeBadge.scale.toFixed(2));
+    while (performance.now() - t0 < 20000) {
+      seen.add(g.hud.upgradeBadge.scale);
       const v = [...seen];
       if (Math.max(...v) > 1.15 && Math.min(...v) < 1) break;
-      await new Promise((res) => setTimeout(res, 20));
+      await new Promise((res) => requestAnimationFrame(() => res()));
     }
     return [...seen];
   });
