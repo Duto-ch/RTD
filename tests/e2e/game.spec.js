@@ -423,7 +423,11 @@ test('명성 강화 트리: 노드를 눌러 선택 → 강화 → 게임에 반
   await page.mouse.move(300 * UI, 200 * UI); await page.mouse.down(); await page.mouse.move(360 * UI, 260 * UI, { steps: 5 }); await page.mouse.up();
   expect(await game(page, () => window.game.scene.getScene('Upgrade').tree.x)).toBeGreaterThan(tx0);
   await page.screenshot({ path: SHOT('14-upgrade-tree') });
-  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').startBtn; return { x: b.x, y: b.y }; }); // 게임 시작
+  // 성탑에는 게임 시작 버튼이 없다 (2026-11-25) → 영지로 → 출전
+  expect(await game(page, () => !!window.game.scene.getScene('Upgrade').startBtn)).toBe(false);
+  await clickAt(page, () => { const b = window.game.scene.getScene('Upgrade').lobbyBtn; return { x: b.x, y: b.y }; });
+  await settled(page, 'Lobby');
+  await clickAt(page, () => { const b = window.game.scene.getScene('Lobby').goBtn; return { x: b.x, y: b.y }; });
   await settled(page, 'Game');
   expect(await game(page, () => window.game.scene.getScene('Game').bonus.dmg)).toBeCloseTo(0.15);
   expect(errors).toEqual([]);
@@ -1327,6 +1331,22 @@ test('PC 화면 맞춤 (2026-11-22): 1920x1080 을 정수 배율로 + 남는 곳
   expect(Math.abs(small.cssW - 1366)).toBeLessThanOrEqual(1); // 1080p 보다 작은 창은 맞춰 줄인다
 });
 
+test('술집 배경 (2026-11-25): 사용자 그림이 화면을 채우고 위에 살짝 어둡게', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Tavern'));
+  await settled(page, 'Tavern');
+  const r = await game(page, () => {
+    const t = window.game.scene.getScene('Tavern');
+    const bg = t.children.list.find((o) => o.type === 'Image' && o.texture.key === 'tavern_bg');
+    return { full: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720, first: t.children.list.indexOf(bg) === 0 };
+  });
+  expect(r).toEqual({ full: true, first: true });
+  expect(errors).toEqual([]);
+});
+
 test('영지 술집: 3명 · 마정석 고용(새 캐릭터 → 보유, 중복 → 강화) · 리롤 값 상승 / 유물 공방: 생산 → 장착 → 출전하면 효과', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -1945,7 +1965,7 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
-test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 셰이더) · 메뉴 = 가운데 마름모 4개 마름모 대형 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
+test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 셰이더) · 메뉴 = 가운데 마름모 4개 가로 1열 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -1960,11 +1980,11 @@ test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 
     return { p, wind: l.wind, bgFull: !!bg && bg.displayWidth >= 1280 && bg.displayHeight >= 720 };
   });
   const { tower, barracks, tent, forge } = r.p;
-  expect(tower.x).toBe(forge.x); // 위·아래 = 가운데 세로줄
-  expect(barracks.y).toBe(tent.y); // 왼쪽·오른쪽 = 가운데 가로줄
-  expect(tower.y < barracks.y && barracks.y < forge.y).toBe(true);
-  expect(barracks.x < tower.x && tower.x < tent.x).toBe(true);
-  expect(tower.x).toBe(640); // 화면 가운데
+  // 가로 1열 (왼쪽부터 성탑 · 병영 · 술집 · 유물 공방), 가운데 정렬
+  expect(new Set([tower.y, barracks.y, tent.y, forge.y]).size).toBe(1);
+  expect(tower.x < barracks.x && barracks.x < tent.x && tent.x < forge.x).toBe(true);
+  expect(Math.abs((tower.x + forge.x) / 2 - 640)).toBeLessThanOrEqual(1); // 화면 가운데
+  expect(barracks.x - tower.x).toBe(forge.x - tent.x); // 같은 간격
   expect(r.bgFull).toBe(true);
   expect(r.wind).toBe(true); // 구름·꽃·깃발 바람
   await page.screenshot({ path: SHOT('49-lobby-right-menu') });
@@ -2015,18 +2035,20 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   await page.waitForTimeout(400);
   // 병영 시너지 필터: 전사를 누르면 전사 계열만, 다시 누르면 해제
   const all = await game(page, () => window.game.scene.getScene('Deck').visible.length);
-  await uiClick(page, 16 + 13, 136); // 시너지 필터 첫 상징 (UI 좌표)
+  // 시너지 필터 상징 자리 (UI 좌표 — 2026-11-25 병영 개편으로 줄이 올라가 실제 위치에서 읽는다)
+  const tb = await game(page, () => window.game.scene.getScene('Deck').traitBtns.slice(0, 2).map((h) => ({ x: h.x, y: h.y })));
+  await uiClick(page, tb[0].x, tb[0].y); // 첫 상징
   const r = await game(page, () => { const d = window.game.scene.getScene('Deck'); return { n: d.visible.length, ok: d.visible.every((c) => c.cls === 'warrior' || c.origin === 'warrior'), f: d.filter.trait }; });
   expect(r.f).toBe('warrior');
   expect(r.ok).toBe(true);
   expect(r.n).toBeLessThan(all);
   // 마우스를 올리면 이름 툴팁
-  await page.mouse.move((16 + 13 + 42) * UI, 136 * UI);
+  await page.mouse.move(tb[1].x * UI, tb[1].y * UI);
   const tip = await game(page, () => { const st = window.game.scene.getScene('Deck').__traitTips; return st?.tip ? st.tip.list.find((o) => o.type === 'Text').text : null; });
   expect(tip).toBe('사수 · 계열');
   await page.mouse.move(400 * UI, 700 * UI);
   expect(await game(page, () => !!window.game.scene.getScene('Deck').__traitTips?.tip)).toBe(false);
-  await uiClick(page, 16 + 13, 136);
+  await uiClick(page, tb[0].x, tb[0].y);
   expect(await game(page, () => window.game.scene.getScene('Deck').filter.trait)).toBe(null);
   // 영지 ESC 메뉴
   await game(page, () => { window.game.scene.getScene('Deck').scene.start('Lobby'); });

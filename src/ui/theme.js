@@ -463,6 +463,41 @@ export function edgeBar(scene, x, y, w, h, edge = 'top') {
   return g;
 }
 
+
+// ── 화면 위·아래 바 (2026-11-25 시안: 성탑·병영·술집을 영지처럼) ──
+export const SCREEN_TOP_H = 48;
+/**
+ * 영지와 같은 위 바 (일직선, 높이 48): 왼쪽 원 아이콘 + 화면 이름 + 작은 글자(sub), 오른쪽 재화·수치 칸들.
+ * right: [[이름, 값(문자열/숫자), 원 색, 아이콘]] — 영지 재화와 같은 모양(작은 원 + '이름 값' 한 줄).
+ * 돌려줌: { sub, right: [글자…] } (값을 바꿀 때 setText)
+ */
+export function screenTop(scene, { icon, title, sub = '', right = [], iconFill = 0x1f6f66, depth = 0 }) {
+  const H = SCREEN_TOP_H;
+  const out = { objs: [] };
+  const add = (o) => (out.objs.push(o.setDepth?.(depth) || o), o);
+  add(tabBar(scene, 'top', H, { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 }));
+  add(discImage(scene, 40, H / 2, { r: 16, fill: iconFill, line: 0x6b4e2a, lw: 2, icon, iconColor: 0xfff3c4 }));
+  const nm = add(uiText(scene, 64, H / 2, title, 18, CSS.ink, 'bold').setOrigin(0, 0.5));
+  out.sub = add(uiText(scene, nm.x + nm.width + 12, H / 2, sub, 13, CSS.primary, 'bold').setOrigin(0, 0.5));
+  const w = 150;
+  const gap = 12;
+  out.right = right.map(([label, n, col, ic], i) => {
+    const x = GAME_W - 16 - (right.length - i) * w - (right.length - 1 - i) * gap;
+    add(discImage(scene, x + 14, H / 2, { r: 11, fill: col, icon: ic }));
+    const t = add(uiText(scene, x + 32, H / 2, `${label} ${typeof n === 'number' ? n.toLocaleString() : n}`, 15, CSS.ink, 'bold').setOrigin(0, 0.5));
+    t.label = label;
+    return t;
+  });
+  return out;
+}
+
+/** 영지와 같은 아래 독 (y 부터 화면 아래까지) + 가운데 탭(tab: {x0, x1, depth, slope}) · 탭 안 글자(label, 없으면 '') */
+export function screenDock(scene, y, tab, label = '', depth = 0) {
+  const bar = tabBar(scene, 'bottom', y, tab).setDepth(depth);
+  const t = label != null ? uiText(scene, (tab.x0 + tab.x1) / 2, y - tab.depth / 2 + 2, label, 13, CSS.ink, 'bold').setOrigin(0.5).setDepth(depth) : null;
+  return { bar, label: t };
+}
+
 /**
  * 가운데 탭이 달린 가장자리 바 (2026-11-24 사용자 시안): 화면 좌우 끝까지 붙은 크림 바 + 가운데가 화면 안쪽으로 튀어나온 탭.
  * 탭 양옆은 부드러운 S 곡선, 안쪽 가장자리를 따라 금갈색 선 + 그림자. 캔버스로 UI 해상도 그대로 그려 곡선이 고르다
@@ -470,12 +505,13 @@ export function edgeBar(scene, x, y, w, h, edge = 'top') {
  * @param {number} y  top: 바 아래 끝 y(탭 제외) / bottom: 바 위 끝 y(탭 제외)
  * @param {{x0:number, x1:number, depth:number, slope?:number}} tab 탭 바닥(가장 튀어나온 곳)의 좌우 x · 튀어나온 깊이 · 양옆 곡선 폭
  */
+export const BAR_CORNER = 16; // 위·아래 바 화면 좌우 끝 모서리 반지름
 export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill = '#fbf7ec' } = {}) {
   const top = edge === 'top';
   const slope = tab.slope ?? 48;
-  const H = top ? y + tab.depth : GAME_H - y + tab.depth; // 그림 높이 (탭 포함)
+  const H = (top ? y : GAME_H - y) + Math.max(tab.depth, BAR_CORNER); // 그림 높이 (탭·모서리 포함)
   const pad = 8; // 그림자 자리
-  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}`;
+  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}_rin${BAR_CORNER}`;
   const draw = (ctx) => {
     ctx.translate(-w / 2, -(H + pad * 2) / 2 + pad);
     // 위 바 기준으로 그리고, 아래 바는 뒤집는다
@@ -486,19 +522,23 @@ export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill
     const b = top ? y : GAME_H - y; // 바 두께
     const d = b + tab.depth;
     // 안쪽 가장자리: 바 끝 → 탭 왼쪽 S 곡선 → 탭 바닥 → 오른쪽 S 곡선 → 바 끝
+    // 화면 좌우 끝 모서리 (2026-11-25 사용자 요청): 바가 모서리를 채우며 안쪽(화면 내용 쪽)으로 둥글게 — 내용 영역의 모서리가 둥글어 보인다
+    const rc = BAR_CORNER;
     const edge = (start) => {
-      ctx[start ? 'moveTo' : 'lineTo'](-4, b);
+      ctx[start ? 'moveTo' : 'lineTo'](0, b + rc);
+      ctx.arcTo(0, b, rc, b, rc);
       ctx.lineTo(tab.x0 - slope, b);
       ctx.bezierCurveTo(tab.x0 - slope / 2, b, tab.x0 - slope / 2, d, tab.x0, d);
       ctx.lineTo(tab.x1, d);
       ctx.bezierCurveTo(tab.x1 + slope / 2, d, tab.x1 + slope / 2, b, tab.x1 + slope, b);
-      ctx.lineTo(w + 4, b);
+      ctx.lineTo(w - rc, b);
+      ctx.arcTo(w, b, w, b + rc, rc);
     };
     const outline = () => {
       ctx.beginPath();
-      ctx.moveTo(-4, -4);
+      ctx.moveTo(0, -4);
       edge(false);
-      ctx.lineTo(w + 4, -4);
+      ctx.lineTo(w, -4);
       ctx.closePath();
     };
     ctx.fillStyle = fill;
@@ -585,11 +625,11 @@ export function gradeGradient(ctx, grade, y0, y1) {
 
 /**
  * 등급 테두리 카드 그림 (바깥 모양 x, y, w, h — 왼쪽 위 기준). 테두리 lw = 등급 그라데이션, 안쪽 = fill.
- * radii {tl,tr,bl,br} 로 모서리마다, band = 아래 등급색 띠가 시작하는 y(카드 안 좌표, 바닥까지), gradH = 그라데이션 높이(기본 h)
+ * radii {tl,tr,bl,br} 로 모서리마다, band = 아래 등급색 띠가 시작하는 y(카드 안 좌표, 바닥까지), gradH = 그라데이션 높이(기본 h), side = 오른쪽 몫 채움, bottom = 아래 몫 채움
  */
-export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#fffaf0', radii = null, band = null, gradH = h } = {}) {
+export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#fffaf0', radii = null, band = null, gradH = h, side = 0, bottom = 0 } = {}) {
   const R = radii || { tl: r, tr: r, bl: r, br: r };
-  const id = `gframe_${grade}_${w}x${h}_${lw}_${fill}_${R.tl}_${R.tr}_${R.bl}_${R.br}_${band}_${gradH}`;
+  const id = `gframe_${grade}_${w}x${h}_${lw}_${fill}_${R.tl}_${R.tr}_${R.bl}_${R.br}_${band}_${gradH}_${side}_${bottom}`;
   const img = shapeImage(scene, x + w / 2, y + h / 2, id, w, h, (ctx) => {
     ctx.translate(-w / 2, -h / 2);
     const grad = gradeGradient(ctx, grade, 0, gradH);
@@ -598,14 +638,17 @@ export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#
     ctx.fillStyle = grad;
     ctx.fill();
     const ir = (v) => Math.max(0, v - lw);
+    // side: 오른쪽 몫(0~1)은 테두리와 같은 그라데이션 그대로 두고, 안쪽 바탕은 왼쪽만 — 경계 모서리도 둥글게 (2026-11-25 병영 카드)
+    // bottom: 아래 몫(0~1)도 같은 방법 — 바탕은 위쪽만, 경계 아래 모서리 둥글게
+    const sx = side ? Math.round(w * (1 - side)) : w - lw;
+    // band(아래 등급색 띠)도 같은 방법 — 바탕이 띠 위에서 끝나고 경계 모서리가 둥글다 (2026-11-25 사용자 요청: 등급색 바깥쪽 라운드)
+    const under = bottom || band != null;
+    const sy = band != null ? band : bottom ? Math.round(h * (1 - bottom)) : h - lw;
+    const sr = side || under ? Math.min(10, (Math.min(sx, sy) - lw) / 2) : null;
     ctx.beginPath();
-    ctx.roundRect(lw, lw, w - lw * 2, h - lw * 2, [ir(R.tl), ir(R.tr), ir(R.br), ir(R.bl)]);
+    ctx.roundRect(lw, lw, sx - lw, sy - lw, [ir(R.tl), side ? sr : ir(R.tr), side || under ? sr : ir(R.br), under ? sr : ir(R.bl)]);
     ctx.fillStyle = fill;
     ctx.fill();
-    if (band != null) {
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, band, w, h - band);
-    }
   });
   return img;
 }

@@ -19,8 +19,9 @@ import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 
 /** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
 const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
+const ROW_GAP = 16; // 가로 1열 마름모 꼭짓점 사이 (2026-11-25)
 // 메뉴 마름모 (2026-11-25 시안): 한 변 · 모서리 둥글기 · 이웃과 간격 · 대형 가운데
-const DIAMOND = { side: 92, r: 16, gap: 8, cx: GAME_W / 2, cy: 306 };
+const DIAMOND = { side: 92, r: 16, cx: GAME_W / 2, cy: (48 + 598) / 2 }; // 위 바 아래 ~ 아래 독 위 가운데
 // 위 바·아래 독 (2026-11-24 사용자 시안: 전투 화면과 같은 가운데 탭 바)
 const TOP = { h: 48, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } }; // 2026-11-25 시안: 탭 없이 일직선
 const DOCK = { y: 598, tab: { x0: 380, x1: 900, depth: 28, slope: 44 } };
@@ -90,7 +91,8 @@ export class LobbyScene extends Phaser.Scene {
     const nm = uiText(this, 64, H / 2, '용병단 영지', 18, CSS.ink, 'bold').setOrigin(0, 0.5);
     uiText(this, nm.x + nm.width + 12, H / 2, `최고 WAVE ${best}`, 13, CSS.primary, 'bold').setOrigin(0, 0.5);
     // 출전 (2026-11-25 시안: 위 바 가운데 탭)
-    this.goBtn = new Button(this, GAME_W / 2, H / 2, 120, 34, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 18 }); // 2026-11-25 시안: 바 안에 작게
+    // 위아래 여백 같게 (2026-11-25 사용자 요청): 버튼 아래 입술(3)과 바 아래 금색 선 몫만큼 7/3(화면 3.5px) 올린다 — 버튼 위 ~ 바 위 = 입술 아래 ~ 금색 선
+    this.goBtn = new Button(this, GAME_W / 2, H / 2 - 7 / 3, 120, 34, '출 전', () => this.go('Game'), { variant: 'gold', fontSize: 18 });
 
     // 재화: 명성(노드) · 마정석(보스 처치 → 술집·유물 공방, 룰 v2)
     const cur = [
@@ -116,8 +118,9 @@ export class LobbyScene extends Phaser.Scene {
     const [name, , icon] = LABELS[id];
     const S = DIAMOND.side;
     const half = (S * Math.SQRT2) / 2; // 꼭짓점까지
-    const o = half + DIAMOND.gap; // 대형 간격 (이웃 마름모 변끼리 gap 만큼)
-    const pos = { tower: [0, -o], barracks: [-o, 0], tent: [o, 0], forge: [0, o] }[id] || [0, 0];
+    // 2026-11-25 사용자 요청: 마름모 4개를 화면 가운데 가로 1열로 (꼭짓점 사이 ROW_GAP) — 왼쪽부터 성탑 · 병영 · 술집 · 유물 공방
+    const step = half * 2 + ROW_GAP;
+    const pos = [(i - (SPOTS.length - 1) / 2) * step, 0];
     const c = this.add.container(Math.round(DIAMOND.cx + pos[0]), Math.round(DIAMOND.cy + pos[1]));
     const draw = (ctx) => {
       ctx.rotate(Math.PI / 4);
@@ -205,7 +208,8 @@ export class LobbyScene extends Phaser.Scene {
     const D = { x: 0, y: DOCK.y, w: GAME_W, h: GAME_H - DOCK.y };
     tabBar(this, 'bottom', D.y, DOCK.tab);
     // 카드 줄 (가려지는 영역)
-    const row = { x: 24, y: D.y + 12, w: D.w - 48, h: 80 }; // 2026-11-25 시안: 출전 버튼이 위로 가서 덱 줄이 독 전체
+    // 카드(높이 79)를 아래 바 위·아래 끝에서 같은 거리로 (2026-11-25 사용자 요청: 상·하 여백 맞춤) — 바 위 금갈색 선(1.5) 아래부터
+    const row = { x: 24, y: Math.round(D.y + 1.5 + (D.h - 1.5 - 79) / 2) - 2 / 3, w: D.w - 48, h: 80 }; // 화면에서 재어 1px 위로 (위·아래 30px)
     uiText(this, GAME_W / 2, D.y - DOCK.tab.depth / 2 + 2, `출전 덱 ${ids.length} / ${DECK_RULES.max}`, 13, CSS.ink, 'bold').setOrigin(0.5);
     const cw = 64;
     const ch = 76;
@@ -215,9 +219,11 @@ export class LobbyScene extends Phaser.Scene {
       const c = ROSTER_BY_ID[id];
       const x = i * step + 2; // 테두리(3) 가 가림 영역 왼쪽 끝에 잘리지 않게
       // 등급 테두리 = 그라데이션 (2026-11-25 사용자 결정) — 예전 선(3)처럼 바깥으로 1.5 걸친다
-      const g = gradeFrame(this, x - 1.5, 0.5, cw + 3, ch + 3, c.grade, { r: 11.5, fill: '#f3ead2' });
-      const img = charImage(this, x + cw / 2, 2 + ch / 2 - 6, c, 3);
-      const nm = uiText(this, x + cw / 2, 2 + ch - 6, c.name, 11, CSS.ink, 'bold').setOrigin(0.5, 1);
+      // 이름 자리 = 등급색 (병영 카드와 같은 모양 — 바탕 칸 경계 모서리 둥글게, 2026-11-25 사용자 요청)
+      const g = gradeFrame(this, x - 1.5, 0.5, cw + 3, ch + 3, c.grade, { r: 11.5, fill: '#f3ead2', bottom: 0.26 });
+      const img = charImage(this, x + cw / 2, 2 + ch / 2 - 9, c, 3);
+      const tc = c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f';
+      const nm = uiText(this, x + cw / 2, 2 + ch - 4, c.name, 11, tc, 'bold').setOrigin(0.5, 1);
       strip.add([g, img, nm]);
     });
     const shape = this.make.graphics({}, false).fillRect(row.x, row.y, row.w, row.h);

@@ -3,7 +3,7 @@ import { hiRes } from '../systems/hires.js';
 import { Kinetic } from '../ui/kinetic.js';
 import { GAME_W, GAME_H } from '../config.js';
 import { Button } from '../ui/Button.js';
-import { panel, uiText, drawIcon, CSS } from '../ui/theme.js';
+import { panel, uiText, drawIcon, CSS, screenTop, screenDock } from '../ui/theme.js';
 
 // 우주 배경 아트 640x360 → UI 1280x720 (×2) → 화면 1920x1080 에서 아트 1px = 3x3 (2026-11-23 사용자 요청)
 const SPACE_PX = GAME_W / 640;
@@ -21,8 +21,10 @@ const RADIUS = [0, 76, 138, 196, 248]; // 깊이별 거리
 const STAGGER = 30; // 형제가 많을 때 엇갈려 놓는 거리
 const HEX = 17; // 노드 육각형 반지름
 // 세로: 위 머리 창 · 가운데 트리 · 아래 정보 창 / 가로(2026-11-15): 왼쪽 트리 · 오른쪽 칸에 머리 창·정보 창·버튼
-const VIEW = { top: 24, bottom: GAME_H - 24, right: 872 }; // 트리가 보이는 영역
-const CENTER = { x: 436, y: (VIEW.top + VIEW.bottom) / 2 };
+// 2026-11-25 시안: 영지처럼 위 바(이름·배운 노드·명성) + 아래 바(일직선: 왼쪽 축소·가운데로·확대 + 최고 기록 · 오른쪽 영지로)
+const DOCK = { y: 652, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
+const VIEW = { top: 56, bottom: DOCK.y - 8, right: 872 }; // 트리가 보이는 영역
+const CENTER = { x: GAME_W / 2, y: GAME_H / 2 }; // 노드 트리 처음 자리 = 화면 가운데 (2026-11-25 사용자 요청)
 const SIDE = { x: 888, w: 380 }; // 머리 창·정보 창이 놓이는 칸
 
 /**
@@ -146,20 +148,17 @@ export class UpgradeScene extends Phaser.Scene {
 
   createHeader() {
     const D = 10;
-    const X = SIDE.x;
-    const R = SIDE.x + SIDE.w;
-    panel(this, X, 12, SIDE.w, 84, 'card').setDepth(D);
-    const g = this.add.graphics().setDepth(D);
-    drawIcon(g, 'crown', X + 28, 44, 21, 0xa8700c);
-    this.fameText = uiText(this, X + 48, 44, '', 22, CSS.gold, 'bold').setOrigin(0, 0.5).setDepth(D);
-    this.bestText = uiText(this, R - 20, 38, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
-    this.countText = uiText(this, R - 20, 58, '', 12, CSS.sub, 'bold').setOrigin(1, 0.5).setDepth(D);
+    this.top = screenTop(this, { icon: 'tower', title: '성탑', right: [['명성', meta.fame, 0xf2c14e, 'crown']], depth: D });
+    this.fameText = this.top.right[0];
+    this.countText = this.top.sub;
+    screenDock(this, DOCK.y, DOCK.tab, null, D);
+    this.bestText = uiText(this, 24, DOCK.y + 34, '', 13, CSS.sub, 'bold').setOrigin(0, 0.5).setDepth(D);
   }
 
   // ───────────── 아래 정보 창 ─────────────
   createDetail() {
     const D = 10;
-    const y = 108;
+    const y = 61; // 위 여백 = 오른쪽 여백 (2026-11-25 사용자 요청 — 화면에서 재어 맞춤: 위 바 금갈색 선 아래 ~ 창 = 창 오른쪽 ~ 화면 끝)
     const X = SIDE.x;
     const R = SIDE.x + SIDE.w;
     const wrap = { wordWrap: { width: SIDE.w - 40 } };
@@ -174,20 +173,23 @@ export class UpgradeScene extends Phaser.Scene {
 
   createControls() {
     const D = 10;
-    const bx = SIDE.x + SIDE.w / 2;
+    const by = DOCK.y + 34;
+    // 왼쪽: 축소 · 가운데로 · 확대 (2026-11-25 사용자 요청: 바 왼쪽에 붙여) → 그 오른쪽 최고 기록
+    const zs = 36;
+    const zg = 8;
+    const zx = (k) => 24 + zs / 2 + k * (zs + zg);
+    new Button(this, zx(0), by, zs, zs, '', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', icon: 'minus' }).setDepth(D);
+    new Button(this, zx(1), by, zs, zs, '', () => this.recenter(), { variant: 'outline', icon: 'target' }).setDepth(D);
+    new Button(this, zx(2), by, zs, zs, '', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', icon: 'plus' }).setDepth(D);
+    this.bestText.setX(zx(2) + zs / 2 + 16);
+    // 오른쪽 끝: 영지로 (게임 시작 버튼 없음 — 2026-11-25 사용자 요청) / 전투 중이면 닫고 전투로
     if (this.fromGame) {
       // 전투 중에 연 강화 창: '닫고 전투로' 하나만 — '영지로'를 함께 두면 같은 자리에 겹쳐 그것이 눌려 판이 끝나 버렸다 (2026-11-23 버그 수정)
-      this.closeBtn = new Button(this, bx, GAME_H - 54, SIDE.w, 60, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 20 }).setDepth(D);
+      this.closeBtn = new Button(this, GAME_W - 24 - 130, by, 260, 44, '닫고 전투로 (ESC)', () => this.close(), { variant: 'primary', fontSize: 16.5 }).setDepth(D);
       this.input.keyboard?.on('keydown-ESC', () => this.close());
     } else {
-      this.startBtn = new Button(this, bx, GAME_H - 124, SIDE.w, 60, '게임 시작', () => dissolveTo(this, 'Game'), { variant: 'primary', fontSize: 20 }).setDepth(D);
-      this.lobbyBtn = new Button(this, bx, GAME_H - 52, SIDE.w, 48, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', fontSize: 16 }).setDepth(D);
+      this.lobbyBtn = new Button(this, GAME_W - 24 - 80, by, 160, 40, '영지로', () => dissolveTo(this, 'Lobby'), { variant: 'outline', icon: 'house', fontSize: 14 }).setDepth(D);
     }
-    // 확대·축소·가운데로
-    const zx = VIEW.right - 36;
-    new Button(this, zx, VIEW.top + 24, 40, 40, '', () => this.setZoom(this.zoom + 0.2), { variant: 'outline', icon: 'plus' }).setDepth(D);
-    new Button(this, zx, VIEW.top + 70, 40, 40, '', () => this.setZoom(this.zoom - 0.2), { variant: 'outline', icon: 'minus' }).setDepth(D);
-    new Button(this, zx, VIEW.top + 116, 40, 40, '', () => this.recenter(), { variant: 'outline', icon: 'target' }).setDepth(D);
   }
 
   /** 성탑에서 연 경우: 닫고 전투 재개 (GameScene 이 'resume' 에서 강화 효과를 다시 읽는다) */

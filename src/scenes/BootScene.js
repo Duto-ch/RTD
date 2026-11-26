@@ -21,6 +21,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('lobby_wide', 'assets/lobby/lobby_wide.png');
     this.load.image('lobby_wind', 'assets/lobby/lobby_wind.png'); // 영지 배경 바람 마스크 (R 구름 · G 꽃 · B 깃발)
     this.load.image('lobby_key', 'assets/lobby/lobby_key.webp'); // 2026-11-25 시안: 타이틀 키 아트에서 로고만 지운 그림
+    this.load.image('tavern_bg', 'assets/tavern/tavern_bg.webp'); // 술집 배경 (2026-11-25 사용자 그림 1920x1080)
     // 2026-11-22 사용자 결정: 세로 영지·성탑(강화) 배경은 사용자 그림을 도트로 줄이지 않고 원본 그대로(941x1672, 부드럽게 맞춤 — 2px 도트 규칙 예외)
     this.load.image('lobby_bg', 'assets/lobby/lobby_bg.webp');
     this.load.image('space_bg', 'assets/upgrade/space_bg.png');

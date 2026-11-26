@@ -66,7 +66,7 @@ export const HUD = {
 export const MODAL_W = 520;
 
 /** 상점 카드 (2026-11-25 시안): 화면 밖으로 더 그린 길이 · 쉬는 자리 내림 · 올렸을 때 원래 자리보다 더 뜨는 양 · 밀려 올라오기·스프링 시간 */
-const CARD = { ext: 48, sink: 8, lift: 3, slideMs: 110, springMs: 400 };
+const CARD = { ext: 48, sink: 16, lift: 3, slideMs: 130, springMs: 400 }; // 2026-11-25 사용자 요청: 더 내려 둬 튀어 오름이 잘 보이게 (sink 8 → 16)
 
 /** 성벽 체력 막대 외곽 두께 */
 const HP_LINE = 4;
