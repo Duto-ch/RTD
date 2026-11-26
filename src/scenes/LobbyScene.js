@@ -215,9 +215,11 @@ export class LobbyScene extends Phaser.Scene {
       const c = ROSTER_BY_ID[id];
       const x = i * step + 2; // 테두리(3) 가 가림 영역 왼쪽 끝에 잘리지 않게
       // 등급 테두리 = 그라데이션 (2026-11-25 사용자 결정) — 예전 선(3)처럼 바깥으로 1.5 걸친다
-      const g = gradeFrame(this, x - 1.5, 0.5, cw + 3, ch + 3, c.grade, { r: 11.5, fill: '#f3ead2' });
-      const img = charImage(this, x + cw / 2, 2 + ch / 2 - 6, c, 3);
-      const nm = uiText(this, x + cw / 2, 2 + ch - 6, c.name, 11, CSS.ink, 'bold').setOrigin(0.5, 1);
+      // 이름 자리 = 등급색 (병영 카드와 같은 모양 — 바탕 칸 경계 모서리 둥글게, 2026-11-25 사용자 요청)
+      const g = gradeFrame(this, x - 1.5, 0.5, cw + 3, ch + 3, c.grade, { r: 11.5, fill: '#f3ead2', bottom: 0.26 });
+      const img = charImage(this, x + cw / 2, 2 + ch / 2 - 9, c, 3);
+      const tc = c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f';
+      const nm = uiText(this, x + cw / 2, 2 + ch - 4, c.name, 11, tc, 'bold').setOrigin(0.5, 1);
       strip.add([g, img, nm]);
     });
     const shape = this.make.graphics({}, false).fillRect(row.x, row.y, row.w, row.h);

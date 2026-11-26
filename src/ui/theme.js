@@ -636,16 +636,14 @@ export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#
     // side: 오른쪽 몫(0~1)은 테두리와 같은 그라데이션 그대로 두고, 안쪽 바탕은 왼쪽만 — 경계 모서리도 둥글게 (2026-11-25 병영 카드)
     // bottom: 아래 몫(0~1)도 같은 방법 — 바탕은 위쪽만, 경계 아래 모서리 둥글게
     const sx = side ? Math.round(w * (1 - side)) : w - lw;
-    const sy = bottom ? Math.round(h * (1 - bottom)) : h - lw;
-    const sr = side || bottom ? Math.min(10, (Math.min(sx, sy) - lw) / 2) : null;
+    // band(아래 등급색 띠)도 같은 방법 — 바탕이 띠 위에서 끝나고 경계 모서리가 둥글다 (2026-11-25 사용자 요청: 등급색 바깥쪽 라운드)
+    const under = bottom || band != null;
+    const sy = band != null ? band : bottom ? Math.round(h * (1 - bottom)) : h - lw;
+    const sr = side || under ? Math.min(10, (Math.min(sx, sy) - lw) / 2) : null;
     ctx.beginPath();
-    ctx.roundRect(lw, lw, sx - lw, sy - lw, [ir(R.tl), side ? sr : ir(R.tr), side || bottom ? sr : ir(R.br), bottom ? sr : ir(R.bl)]);
+    ctx.roundRect(lw, lw, sx - lw, sy - lw, [ir(R.tl), side ? sr : ir(R.tr), side || under ? sr : ir(R.br), under ? sr : ir(R.bl)]);
     ctx.fillStyle = fill;
     ctx.fill();
-    if (band != null) {
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, band, w, h - band);
-    }
   });
   return img;
 }
