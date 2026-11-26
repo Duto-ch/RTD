@@ -19,8 +19,9 @@ import { openSettingsMenu, quitApp } from '../ui/settingsMenu.js';
 
 /** 메뉴 버튼 순서 (오른쪽 세로 줄 위 → 아래) */
 const SPOTS = ['tower', 'barracks', 'tent', 'forge'];
+const ROW_GAP = 16; // 가로 1열 마름모 꼭짓점 사이 (2026-11-25)
 // 메뉴 마름모 (2026-11-25 시안): 한 변 · 모서리 둥글기 · 이웃과 간격 · 대형 가운데
-const DIAMOND = { side: 92, r: 16, gap: 8, cx: GAME_W / 2, cy: 306 };
+const DIAMOND = { side: 92, r: 16, cx: GAME_W / 2, cy: (48 + 598) / 2 }; // 위 바 아래 ~ 아래 독 위 가운데
 // 위 바·아래 독 (2026-11-24 사용자 시안: 전투 화면과 같은 가운데 탭 바)
 const TOP = { h: 48, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } }; // 2026-11-25 시안: 탭 없이 일직선
 const DOCK = { y: 598, tab: { x0: 380, x1: 900, depth: 28, slope: 44 } };
@@ -117,8 +118,9 @@ export class LobbyScene extends Phaser.Scene {
     const [name, , icon] = LABELS[id];
     const S = DIAMOND.side;
     const half = (S * Math.SQRT2) / 2; // 꼭짓점까지
-    const o = half + DIAMOND.gap; // 대형 간격 (이웃 마름모 변끼리 gap 만큼)
-    const pos = { tower: [0, -o], barracks: [-o, 0], tent: [o, 0], forge: [0, o] }[id] || [0, 0];
+    // 2026-11-25 사용자 요청: 마름모 4개를 화면 가운데 가로 1열로 (꼭짓점 사이 ROW_GAP) — 왼쪽부터 성탑 · 병영 · 술집 · 유물 공방
+    const step = half * 2 + ROW_GAP;
+    const pos = [(i - (SPOTS.length - 1) / 2) * step, 0];
     const c = this.add.container(Math.round(DIAMOND.cx + pos[0]), Math.round(DIAMOND.cy + pos[1]));
     const draw = (ctx) => {
       ctx.rotate(Math.PI / 4);
