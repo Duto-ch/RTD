@@ -2,6 +2,7 @@
 // GameScene 은 게임 진행만 맡고, 화면 표시는 이 클래스에 맡긴다 (scene.hud).
 // 게임 상태는 읽기만 하고, 버튼을 누르면 scene 의 동작(hire, sell, callNextWave …)을 부른다.
 import Phaser from 'phaser';
+import { badgePop } from './motion.js'; // 느낌표 스케일 팝 곡선 (단위 테스트 tests/unit/motion.test.js)
 import { GAME_W, GAME_H, PX, UI_PX, UI_SCALE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE, PATH_OFF, PATH_WIDTH, DEPTH } from '../config.js';
 import { charImage } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
@@ -1096,14 +1097,6 @@ export function springEase(t) {
   return t >= 1 ? 1 : 1 - Math.exp(-6.5 * t) * Math.cos(11 * t);
 }
 
-/** 스케일 팝 곡선 (주기 0~1): 앞 30% 동안 1 → 1.35 → 0.92 → 1, 나머지는 쉼 */
-export function badgePop(p) {
-  if (p >= 0.3) return 1;
-  const t = p / 0.3;
-  if (t < 0.35) return 1 + 0.35 * Math.sin((t / 0.35) * (Math.PI / 2));
-  if (t < 0.7) return 1.35 - 0.43 * ((t - 0.35) / 0.35);
-  return 0.92 + 0.08 * ((t - 0.7) / 0.3);
-}
 
 
 /** 아이템 툴팁 크기 비율 (2026-11-22 사용자 요청: 원래 배치 그대로 작게) */
