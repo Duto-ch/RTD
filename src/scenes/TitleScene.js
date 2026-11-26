@@ -42,7 +42,10 @@ export class TitleScene extends Phaser.Scene {
       dissolveTo(this, 'Lobby'); // 2026-11-17: 타이틀 → 영지(로비), 디졸브 (2026-11-23)
     };
     this.input.on('pointerup', (_p, objs) => {
-      if (!objs.length) start();
+      if (!objs.length) {
+        audio.click(); // 시작 클릭음 (2026-11-26)
+        start();
+      }
     });
     this.input.keyboard?.on('keydown-SPACE', start);
     this.input.keyboard?.on('keydown-ENTER', start);

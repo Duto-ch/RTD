@@ -336,6 +336,7 @@ export class UpgradeScene extends Phaser.Scene {
     const hit = this.add.zone(p.x, p.y, HEX * 2.4, HEX * 2.4).setInteractive({ useHandCursor: true });
     hit.on('pointerup', () => {
       if (this.moved) return;
+      audio.click(); // 노드 고르기 클릭음 (2026-11-26)
       this.select(u.id);
     });
     parts.push(hit);

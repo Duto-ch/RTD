@@ -20,7 +20,10 @@ export function openSettingsMenu(s, { onClose, onQuit, depth = 900 }) {
   const ph = 520;
   const c = s.add.container(0, 0).setDepth(depth);
   const shade = s.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, 0.55).setOrigin(0).setInteractive();
-  shade.on('pointerdown', onClose);
+  shade.on('pointerdown', () => {
+    audio.click(); // 바깥 눌러 닫기 클릭음 (2026-11-26)
+    onClose();
+  });
   const card = panel(s, px, py, pw, ph, 'card');
   card.setInteractive();
   c.add([shade, card, ...titleTab(s, px + pw / 2, py, '메뉴', 180), closeButton(s, px + pw - 6, py + 6, onClose)]);

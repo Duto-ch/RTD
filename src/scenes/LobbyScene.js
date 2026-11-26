@@ -176,6 +176,7 @@ export class LobbyScene extends Phaser.Scene {
     hit.on('pointerout', () => c.setScale(1));
     hit.on('pointerup', () => {
       c.setScale(1);
+      audio.click(); // 메뉴 클릭음 (2026-11-26)
       this.openSpot(id);
     });
     c.add(hit);
@@ -260,7 +261,10 @@ export class LobbyScene extends Phaser.Scene {
       const d = drag;
       drag = null;
       kin.up(p.upTime);
-      if (d && !d.moved) this.go('Deck');
+      if (d && !d.moved) {
+        audio.click(); // 덱 줄 누르기 클릭음 (2026-11-26)
+        this.go('Deck');
+      }
     });
     this.input.on('wheel', (p, _o, dx, dy) => {
       if (p.worldX >= row.x && p.worldX <= row.x + row.w && p.worldY >= row.y && p.worldY <= row.y + row.h) kin.scrollBy((dx || dy) * 0.6);
