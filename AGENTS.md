@@ -23,7 +23,7 @@
 - 명성 강화 효과 키는 `metaBonus()` 가 합산 → GameScene `this.bonus`(강화 창을 닫으면 `applyBonus()` 로 다시 읽음)·Mercenary `getStats` 에서 쓴다. 판 시작 때만 쓰는 효과는 다음 판부터
 
 ## 명령어 (package.json 에 없는 것·꼭 지킬 것)
-- `npm run check` — 단위(Vitest) + 브라우저(Playwright) 테스트. **작업이 끝날 때마다 실행.** 브라우저 테스트는 빌드를 띄워 조작하고 화면을 `test-results/screens/` 에 저장
+- **테스트 (2026-11-26 사용자 결정: 브라우저 테스트는 요청할 때만)**: 평소엔 `npm test`(단위, 몇 초) + `npm run build` 만. `npm run check`(단위 + 브라우저 Playwright, 15~20분 — 빌드를 띄워 조작하고 화면을 `test-results/screens/` 에 저장)는 **사용자가 따로 요청할 때만** 돌린다. GitHub Actions 도 PR·main 에서는 단위 테스트·빌드만(`test` 잡), 브라우저 테스트는 Actions 'Run workflow' 에서 e2e 를 켤 때만
 - `node tools/balance-sim.cjs ['{"hpGrowth":1.08}'] ['{"atk":10}']` — 밸런스 봇. 1번째 JSON: BALANCE 덮어쓰기(monster 키는 monster 에), 2번째: 명성 강화 레벨(없으면 강화 0). 기본은 대기석을 쓰는 봇, `RESERVE=0` 이면 안 씀. 먼저 `npm run build && npx vite preview --port 4173`
 - 데이터를 고친 뒤 문서 다시 만들기: `node tools/gen-roster-doc.mjs`(로스터 → `docs/ROSTER.md`) · `node tools/gen-skill-doc.mjs` · `node tools/gen-upgrade-doc.mjs` · `node tools/gen-art-doc.mjs`
 - **배포**: `main` 에 push 하면 GitHub Actions 가 테스트 통과 시에만 빌드·배포 → https://duto-ch.github.io/RTD/ (테스트 화면은 Actions 결과의 `test-screens`)
@@ -45,10 +45,10 @@
 ## 작업 루프 (변경할 때마다)
 1. **요구 확인** — 모호하면 `docs/GDD.md`·`CLAUDE.md` 의 확정 결정을 먼저 보고, 그래도 모호하면 가정을 세우고 GDD 의 ⚠️ 표시로 남긴다.
 2. **구현** — 수치는 `config.js` BALANCE 나 `src/data/` 에.
-3. **검사** — `npm run check`. 실패하면 원인을 고치고 3번을 다시 돈다. 통과할 때까지 반복.
-4. **눈으로 확인** — `test-results/screens/*.png` 를 열어 UI 겹침·잘림·색을 본다. 새 화면이면 e2e 에 스크린샷을 추가한다.
+3. **검사** — `npm test` + `npm run build` (브라우저 테스트 `npm run check` 는 사용자가 요청할 때만, 2026-11-26). 실패하면 원인을 고치고 3번을 다시 돈다. 통과할 때까지 반복. 새 기능의 e2e 테스트는 여전히 써 두되 돌리는 건 요청 때
+4. **눈으로 확인** — (브라우저 테스트를 돌렸을 때) `test-results/screens/*.png` 를 열어 UI 겹침·잘림·색을 본다. 새 화면이면 e2e 에 스크린샷을 추가한다.
    **UI 를 바꿨으면 글자 정렬 점검 (2026-11-21 사용자 요청, 항상)**: `node tools/ui-audit.cjs` (빌드 + `npx vite preview --port 4173` 먼저) — 화면 밖·겹침·패널 여백 한쪽 쏠림·버튼 글자 가운데·아이콘과 글자 겹침·**요소 사이 여백 4px 미만(`gap`, 필수 규칙)**이 0 이어야 하고, `ui-audit/*.png` 를 열어 좌우·상하 간격을 눈으로도 맞춘다. 스크롤 목록(마스크)은 컨테이너에 `maskRect`, 일부러 비낀 글자·버튼은 `auditOk = true`
 5. **밸런스에 영향**이 있으면 `node tools/balance-sim.cjs` 를 2~3회 돌려 도달 웨이브를 기록한다 (`docs/GDD.md` 밸런스 메모).
 6. **문서** — 결정이 바뀌면 `CLAUDE.md`(해당 줄 고치기)·`docs/GDD.md` 갱신, 진행 기록은 `docs/HISTORY.md` 맨 아래 한 줄. 데이터가 바뀌면 위 문서 생성 명령.
 7. **커밋·푸시** — 작업 브랜치에서. `main` 에 push 하면 GitHub Actions 가 테스트를 통과한 경우에만 배포한다.
-8. **main 에 합치기 (2026-11-26 사용자 결정 — 여러 세션이 동시에 합쳐도 검사 안 된 조합이 들어가지 않게)** — 사용자가 "합쳐" 할 때만. ① main 다시 받아 합치기 + `npm run check` ② PR 만들기 ③ **PR 을 합치기 직전에 main 이 그사이 바뀌었는지 다시 본다**(`gh api repos/<owner>/<repo>/compare/main...<브랜치> --jq .behind_by` 가 0 이어야 함) — 바뀌었으면 main 을 다시 받아 합치고 push, **PR 의 GitHub 테스트(`test`)가 통과한 뒤** 합친다(로컬 전체 검사를 또 돌리지 않아도 됨) ④ 합친 뒤 main 배포 결과 확인. main 보호 규칙('테스트 통과 + 최신 상태여야 합치기', 관리자 포함)이 켜져 있으면 GitHub 이 ③을 강제한다 — 합치기가 거절되면(최신 아님·테스트 미통과) ③부터 다시
+8. **main 에 합치기 (2026-11-26 사용자 결정 — 여러 세션이 동시에 합쳐도 검사 안 된 조합이 들어가지 않게)** — 사용자가 "합쳐" 할 때만. ① main 다시 받아 합치기 + `npm test`·`npm run build` ② PR 만들기 ③ **PR 을 합치기 직전에 main 이 그사이 바뀌었는지 다시 본다**(`gh api repos/<owner>/<repo>/compare/main...<브랜치> --jq .behind_by` 가 0 이어야 함) — 바뀌었으면 main 을 다시 받아 합치고 push, **PR 의 GitHub 테스트(`test`)가 통과한 뒤** 합친다(로컬 전체 검사를 또 돌리지 않아도 됨) ④ 합친 뒤 main 배포 결과 확인. main 보호 규칙('테스트 통과 + 최신 상태여야 합치기', 관리자 포함)이 켜져 있으면 GitHub 이 ③을 강제한다 — 합치기가 거절되면(최신 아님·테스트 미통과) ③부터 다시
