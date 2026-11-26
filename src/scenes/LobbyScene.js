@@ -3,6 +3,7 @@ import { hiRes } from '../systems/hires.js';
 import { GAME_W, GAME_H, UI_PX, PX } from '../config.js';
 import { Button } from '../ui/Button.js';
 import { addLobbyWind } from '../ui/lobbyWind.js';
+import { createParade } from '../ui/lobbyParade.js';
 import { panel, uiText, drawIcon, CSS, C, coverImage, discImage, tabBar, shapeImage, gradeFrame } from '../ui/theme.js';
 import { audio } from '../systems/audio.js';
 import { meta } from '../systems/meta.js';
@@ -38,6 +39,10 @@ export class LobbyScene extends Phaser.Scene {
     super('Lobby');
   }
 
+  update(_t, delta) {
+    this.parade?.update(Math.min(delta, 50) / 1000);
+  }
+
   create() {
     hiRes(this);
     meta.load();
@@ -45,8 +50,11 @@ export class LobbyScene extends Phaser.Scene {
     audio.playMusic('lobby'); // 영지 곡 (2026-11-26)
     // 2026-11-25 시안: 타이틀 키 아트(로고 지움)를 원본 그대로 화면 가득
     // 구름·꽃·깃발은 바람에 살짝씩 움직인다 (src/ui/lobbyWind.js)
-    if (this.textures.exists('lobby_key')) this.wind = addLobbyWind(this, coverImage(this, 'lobby_key', GAME_W, GAME_H));
-    else {
+    if (this.textures.exists('lobby_key')) {
+      this.wind = addLobbyWind(this, coverImage(this, 'lobby_key', GAME_W, GAME_H).setDepth(-2));
+      // 초원 행진 (2026-11-26 사용자 요청): 덱에서 무작위 8명이 지평선을 뒤뚱뒤뚱 — 배경(-2)과 UI(0) 사이 깊이
+      this.parade = createParade(this, meta.deck, -1);
+    } else {
       const bg = this.add.image(0, 0, 'lobby_wide').setOrigin(0).setScale(UI_PX);
       bg.setX(Math.round((GAME_W - bg.displayWidth) / 2));
     }
