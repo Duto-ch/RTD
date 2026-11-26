@@ -509,9 +509,9 @@ export const BAR_CORNER = 16; // 위·아래 바 화면 좌우 끝 모서리 반
 export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill = '#fbf7ec' } = {}) {
   const top = edge === 'top';
   const slope = tab.slope ?? 48;
-  const H = top ? y + tab.depth : GAME_H - y + tab.depth; // 그림 높이 (탭 포함)
+  const H = (top ? y : GAME_H - y) + Math.max(tab.depth, BAR_CORNER); // 그림 높이 (탭·모서리 포함)
   const pad = 8; // 그림자 자리
-  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}_r${BAR_CORNER}`;
+  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}_rin${BAR_CORNER}`;
   const draw = (ctx) => {
     ctx.translate(-w / 2, -(H + pad * 2) / 2 + pad);
     // 위 바 기준으로 그리고, 아래 바는 뒤집는다
@@ -522,23 +522,22 @@ export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill
     const b = top ? y : GAME_H - y; // 바 두께
     const d = b + tab.depth;
     // 안쪽 가장자리: 바 끝 → 탭 왼쪽 S 곡선 → 탭 바닥 → 오른쪽 S 곡선 → 바 끝
-    // 화면 좌우 끝 모서리는 둥글게 (2026-11-25 사용자 요청: 위·아래 바 바깥쪽 모서리 라운딩)
-    const rc = Math.min(BAR_CORNER, b - 2);
+    // 화면 좌우 끝 모서리 (2026-11-25 사용자 요청): 바가 모서리를 채우며 안쪽(화면 내용 쪽)으로 둥글게 — 내용 영역의 모서리가 둥글어 보인다
+    const rc = BAR_CORNER;
     const edge = (start) => {
-      ctx[start ? 'moveTo' : 'lineTo'](0, b - rc);
+      ctx[start ? 'moveTo' : 'lineTo'](0, b + rc);
       ctx.arcTo(0, b, rc, b, rc);
       ctx.lineTo(tab.x0 - slope, b);
       ctx.bezierCurveTo(tab.x0 - slope / 2, b, tab.x0 - slope / 2, d, tab.x0, d);
       ctx.lineTo(tab.x1, d);
       ctx.bezierCurveTo(tab.x1 + slope / 2, d, tab.x1 + slope / 2, b, tab.x1 + slope, b);
       ctx.lineTo(w - rc, b);
-      ctx.arcTo(w, b, w, b - rc, rc);
+      ctx.arcTo(w, b, w, b + rc, rc);
     };
     const outline = () => {
       ctx.beginPath();
       ctx.moveTo(0, -4);
       edge(false);
-      ctx.lineTo(w, b - rc);
       ctx.lineTo(w, -4);
       ctx.closePath();
     };
