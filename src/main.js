@@ -7,6 +7,7 @@ import { cellCenter } from './systems/path.js';
 import { audio } from './systems/audio.js';
 import { HEROES } from './data/heroes.js';
 import { BootScene } from './scenes/BootScene.js';
+import { GateScene } from './scenes/GateScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { UpgradeScene } from './scenes/UpgradeScene.js';
@@ -74,7 +75,7 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
     zoom: displayScale() / RES
   },
-  scene: [BootScene, TitleScene, LobbyScene, DeckScene, TavernScene, WorkshopScene, GameScene, UpgradeScene]
+  scene: [BootScene, GateScene, TitleScene, LobbyScene, DeckScene, TavernScene, WorkshopScene, GameScene, UpgradeScene]
 });
 // 창 크기가 바뀌면 다시 정수 배율로 (1080p 보다 작으면 부드럽게 줄임) — 남는 곳은 검정 (2026-11-22)
 window.addEventListener('resize', () => game.scale.setZoom(displayScale() / RES));

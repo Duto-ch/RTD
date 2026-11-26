@@ -2583,3 +2583,19 @@ test('가운데 탭 바 (2026-11-24 사용자 시안): 시너지는 위 탭 한 
   await page.screenshot({ path: SHOT('55-tab-bar-lobby') });
   expect(errors).toEqual([]);
 });
+
+// 시작 화면 (2026-11-26 사용자 요청): Plan_D + '시작합니다' 캡슐 버튼 → 누르면 소리가 켜지고 타이틀이 페이드 인 + 4x4 디졸브로 나타난다
+test('시작 화면 → 타이틀 (타이틀 곡)', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('rtd_gate_test', '1'));
+  await page.goto('/');
+  await page.waitForFunction(() => window.game?.scene?.isActive?.('Gate'), null, { timeout: 30000 });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('00-gate') });
+  await page.mouse.click(960, 600); // 버튼 (UI 640,400 → 화면 960,600)
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: SHOT('00-gate-dissolve') });
+  await settled(page, 'Title');
+  const a = await page.evaluate(() => ({ track: window.__rtd.audio.track, gate: window.game.textures.exists('gate_veil') }));
+  expect(a.track).toBe('title');
+  expect(a.gate).toBe(false);
+});

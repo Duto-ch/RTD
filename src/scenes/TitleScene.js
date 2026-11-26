@@ -36,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
 
     // 아무 곳이나 누르면 시작 (버튼 위는 제외)
     const start = () => {
-      if (this.starting) return;
+      if (this.starting || this.scene.isActive('Gate')) return; // 시작 화면에서 나타나는 중엔 무시
       this.starting = true;
       audio.init();
       dissolveTo(this, 'Lobby'); // 2026-11-17: 타이틀 → 영지(로비), 디졸브 (2026-11-23)
