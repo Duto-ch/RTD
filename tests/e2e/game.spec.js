@@ -485,7 +485,7 @@ test('무한 웨이브: 100웨이브를 넘어 계속 (하드 없음), 지역은
     while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
     return g.monsters.at(-1).maxHp;
   });
-  expect(hp).toBeCloseTo((40 * Math.pow(1.08, 100) * 0.7) / 1.8, 0); // 물량 ×1.8 (2026-11-24, 이전 ×5): 마리당 체력 1/1.8
+  expect(hp).toBeCloseTo((40 * Math.pow(1.15, 24) * Math.pow(1.05, 76)) / 1.8, -1); // A안 곡선 (2026-11-25): 25웨이브까지 ×1.15, 그 뒤 ×1.05 · 물량 1/1.8
   await page.waitForTimeout(600);
   await page.screenshot({ path: SHOT('16-endless') });
   expect(errors).toEqual([]);
@@ -1480,6 +1480,177 @@ test('물량: 1웨이브 60기(2026-11-24 물량 배수 1.8)가 길 폭에 퍼�
   expect(errors).toEqual([]);
 });
 
+test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·아이템 장착 — 웨이브 중엔 막히고, 몬스터를 다 잡으면 다시 15초 정비 · F 로 바로 시작', async ({ page }) => {
+  const errors = await startGame(page);
+  const before = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    const i = g.shop.findIndex((s) => s && !s.sold);
+    return { phase: g.phase, timer: g.waveTimer, bought: !!g.buy(i), label: g.hud.timerText.text };
+  });
+  expect(before.phase).toBe('prep');
+  expect(before.timer).toBeGreaterThan(12); // 15초에서 시작
+  expect(before.bought).toBe(true);
+  expect(before.label).toMatch(/^정비 1[0-5]초$/);
+  // F = 바로 시작 → 웨이브
+  await page.keyboard.press('f');
+  const during = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    g.giveItem('whet');
+    const gold = g.gold;
+    const i = g.shop.findIndex((s) => s && !s.sold);
+    const m = g.mercs[0];
+    const pos = { x: m.x, y: m.y };
+    const r = { phase: g.phase, wave: g.wave, buy: g.buy(i), equip: g.equip(0, m), items: m.items.length, gold: g.gold === gold, label: g.hud.timerText.text, shopAlpha: g.hud.shopBox.alpha };
+    // 끌어서 옮기기도 막힌다
+    g.input.emit('dragstart', g.input.activePointer, m);
+    r.dragging = !!m.dragging;
+    r.pos = Math.hypot(m.x - pos.x, m.y - pos.y);
+    g.refreshHud();
+    r.nextEnabled = g.hud.nextWaveBtn.enabled;
+    return r;
+  });
+  expect(during).toMatchObject({ phase: 'wave', wave: 1, buy: null, equip: false, items: 0, gold: true, dragging: false, pos: 0, shopAlpha: 0.55, nextEnabled: false });
+  expect(during.label).toMatch(/^남은 \d+기$/);
+  // 30초가 지나도 다음 웨이브가 겹쳐 오지 않는다 (몬스터를 다 잡아야 끝)
+  const still = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (let k = 0; k < 400; k++) g.updateWaves(0.1);
+    return { wave: g.wave, phase: g.phase };
+  });
+  expect(still).toEqual({ wave: 1, phase: 'wave' });
+  // 다 잡으면 정비 시간 15초 + 상점 새로 고침 → 다시 살 수 있다
+  const after = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.spawnQueue = [];
+    for (const m of [...g.monsters]) g.killMonster(m, null);
+    g.cleanupMonsters();
+    g.update(0, 16);
+    const i = g.shop.findIndex((s) => s && !s.sold);
+    return { phase: g.phase, timer: Math.round(g.waveTimer), refreshed: g.shopRefreshed, bought: !!g.buy(i), equip: g.equip(0, g.mercs[0]) };
+  });
+  expect(after).toEqual({ phase: 'prep', timer: 15, refreshed: true, bought: true, equip: true });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31c-prep') });
+  expect(errors).toEqual([]);
+});
+
+test('스킬 정예 (2026-11-24): 정예 10마리마다 1마리 — 수호 오라는 주변 몬스터 받는 피해 -30% · 저주는 가까운 용병 2명에게 디버프', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    const R = window.__rtd.ROSTER;
+    for (const c of R.slice(0, 3)) g.hire(c.id);
+    g.startWave(5);
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const elites = g.monsters.filter((m) => m.kind === 'elite');
+    const casters = elites.filter((m) => m.eliteSkill);
+    const c = casters[0];
+    const near = g.monsters.find((m) => m !== c && m.kind === 'normal');
+    // 수호 오라: 같은 자리에 둔 몬스터가 받는 피해 30% 감소
+    c.eliteSkill = { id: 'aura_guard', name: '수호 오라', type: 'aura', range: 90, effect: { guard: 0.3 }, color: 0x7ab8ff };
+    near.x = c.x; near.y = c.y;
+    g.updateAuras();
+    const hp0 = near.hp;
+    g.damageMonster(near, 10, { source: g.mercs[0] });
+    const guarded = (hp0 - near.hp) / 10;
+    // 저주: 가까운 용병 2명에게 공격력 -35%
+    c.eliteSkill = { id: 'elite_weaken', name: '쇠약의 저주', type: 'debuff', cd: 8, range: 9999, targets: 2, dur: 5, effect: { dmg: -0.35 } };
+    c.skillCd = 0;
+    g.updateEliteSkills(0.1);
+    const cursed = g.mercs.filter((u) => u.debuffState(g.gameTime).dmg < 0).length;
+    return { elites: elites.length, casters: casters.length, guarded, cursed, cd: Math.round(c.skillCd), banner: g.hud.bannerObj?.list?.map((o) => o.text).filter(Boolean).join(' ') };
+  });
+  expect(r.elites).toBe(10);
+  expect(r.casters).toBe(1);
+  expect(r.guarded).toBeCloseTo(0.7, 2);
+  expect(r.cursed).toBe(2);
+  expect(r.cd).toBe(8);
+  expect(r.banner).toContain('정예 10기');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SHOT('31d-elite-skill') });
+  expect(errors).toEqual([]);
+});
+
+test('특수 몬스터 (2026-11-24): 웨이브 안에 섞여 나오고 — 물리 저항은 물리 35%·마법 100% · 방어력은 한 대마다 줄고 지속 피해는 무시 · 빠름은 1.6배 속도', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    const R = window.__rtd.ROSTER;
+    g.gold = 99999;
+    const phys = R.find((c) => c.style === 'bow');
+    const magic = R.find((c) => c.style === 'hex');
+    g.hire(phys.id); g.hire(magic.id);
+    const [mp, mm] = [g.mercs.find((m) => m.char.id === phys.id), g.mercs.find((m) => m.char.id === magic.id)];
+    g.startWave(21); // 물리 저항 + 방어력
+    const banner = g.hud.bannerObj ? g.hud.bannerObj.list?.map((o) => o.text).filter(Boolean).join(' ') : '';
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const ms = g.monsters;
+    const pr = ms.find((m) => m.variant === 'physResist');
+    const ar = ms.find((m) => m.variant === 'armored');
+    const plain = ms.find((m) => m.kind === 'normal' && !m.variant);
+    const dealt = (m, merc, dmg, opts = {}) => { const before = m.hp; g.damageMonster(m, dmg, { source: merc, ...opts }); return before - m.hp; };
+    const small = pr.maxHp * 0.1;
+    const out = {
+      counts: { physResist: ms.filter((m) => m.variant === 'physResist').length, armored: ms.filter((m) => m.variant === 'armored').length },
+      design: [pr.design.id, ar.design.id],
+      physOnResist: dealt(pr, mp, small) / small,
+      magicOnResist: dealt(pr, mm, small) / small,
+      physOnPlain: dealt(plain, mp, small) / small,
+      armorBig: dealt(ar, mp, ar.armor * 3) / (ar.armor * 3),
+      armorTiny: dealt(ar, mp, ar.armor * 0.5) / (ar.armor * 0.5),
+      armorDot: dealt(ar, mm, ar.armor * 0.5, { dot: true }) / (ar.armor * 0.5),
+      banner
+    };
+    for (const m of [...g.monsters]) m.destroy();
+    g.monsters = [];
+    g.startWave(5); // 빠름 (같은 웨이브 일반 몬스터와 비교)
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const sw = g.monsters.find((m) => m.variant === 'swift');
+    const nm = g.monsters.find((m) => m.kind === 'normal' && !m.variant);
+    out.swift = sw.baseSpeed / nm.baseSpeed;
+    out.swiftDesign = sw.design.id;
+    return out;
+  });
+  expect(r.counts.physResist).toBeGreaterThan(5);
+  expect(r.counts.armored).toBeGreaterThan(5);
+  expect(r.design).toEqual(['ghost', 'beetle']);
+  expect(r.physOnResist).toBeCloseTo(0.35, 2);
+  expect(r.magicOnResist).toBeCloseTo(1, 2);
+  expect(r.physOnPlain).toBeCloseTo(1, 2);
+  expect(r.armorBig).toBeCloseTo(2 / 3, 2); // 3a - a = 2a
+  expect(r.armorTiny).toBeCloseTo(0.25, 2); // 방어력보다 작으면 최소 25%
+  expect(r.armorDot).toBeCloseTo(1, 2); // 지속 피해는 방어력 무시
+  expect(r.swift).toBeCloseTo(1.6, 2);
+  expect(r.swiftDesign).toBe('wolf');
+  expect(r.banner).toContain('물리 저항'); // 웨이브 배너에 특수 몬스터 종류·수
+  // 기절 (2026-11-24): 가까운 용병 1명을 잠깐 행동 불가 — 이미 기절한 용병은 건너뛴다
+  const st = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    for (const m of [...g.monsters]) m.destroy();
+    g.monsters = [];
+    g.startWave(14); // 기절 + 물리 저항
+    while (g.spawnQueue.length) g.spawnMonster(g.spawnQueue.shift());
+    const s = g.monsters.find((m) => m.variant === 'stunner');
+    const [a, b] = g.mercs;
+    s.x = a.x; s.y = a.y; // a 가 가장 가깝다
+    s.stunCd = 0;
+    g.updateStunners(0.1);
+    const first = [a.debuffState(g.gameTime).stun, b.debuffState(g.gameTime).stun];
+    const others = g.monsters.filter((m) => m.stun && m !== s);
+    for (const o of others) o.stunCd = 99;
+    s.stunCd = 0;
+    g.updateStunners(0.1); // a 는 이미 기절 → 다음으로 가까운 b
+    return { design: s.design.id, first, second: b.debuffState(g.gameTime).stun, cd: Math.round(s.stunCd) };
+  });
+  expect(st).toEqual({ design: 'eye', first: [true, false], second: true, cd: 10 });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: SHOT('31b-special') });
+  expect(errors).toEqual([]);
+});
+
 test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 · HUD 가 필드·몬스터 길을 가리지 않는다 · 대기석은 오른쪽 칸 · 위·아래 바는 화면 끝까지', async ({ page }) => {
   const errors = await startGame(page);
   expect(await page.evaluate(() => [window.game.config.width, window.game.config.height])).toEqual([1920, 1080]);
@@ -1523,6 +1694,7 @@ test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 
   const res = await page.evaluate(() => {
     const g = window.game.scene.getScene('Game');
     while (g.mercs.length < g.cap) g.hire('stein');
+    g.phase = 'prep'; // 구매는 정비 시간에만 (2026-11-24) — 위에서 웨이브를 시작해 두었다
     g.shop[0] = { id: 'helga', locked: false, sold: false };
     g.buy(0);
     const u = g.reserve.find(Boolean);

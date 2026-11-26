@@ -23,7 +23,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(300);
   const override = JSON.parse(process.argv[2] || '{}');
   const useReserveArg = process.env.RESERVE !== '0'; // 대기석 활용 (기본 켬, RESERVE=0 이면 예전 봇)
-  const res = await p.evaluate(([override, useReserve]) => {
+  const res = await p.evaluate(([override, useReserve, every]) => {
     for (const [k, v] of Object.entries(override)) {
       if (k in window.BALANCE.monster) window.BALANCE.monster[k] = v;
       else if (k === 'wall') { const { dmg, ...rest } = v; Object.assign(window.BALANCE.wall, rest); Object.assign(window.BALANCE.wall.dmg, dmg || {}); }
@@ -54,6 +54,7 @@ const { chromium } = require('playwright');
     let wave = -1, rerolls = 0;
     const act = () => {
       if (g.wave !== wave) { wave = g.wave; rerolls = 0; }
+      if (g.inWave) return; // 정비 시간(2026-11-24)에만 사고·놓고·장착한다
       for (let guard = 0; guard < 40; guard++) {
         const open = g.shop.map((s, i) => ({ s, i })).filter(({ s }) => s && !s.sold && g.gold >= price(R[s.id]));
         // 1) 별 승급이 되는 칸
@@ -95,7 +96,7 @@ const { chromium } = require('playwright');
     };
     const log = [];
     let lastWave = 0, maxAlive = 0; const bossMax = {};
-    for (let step = 0; step < 200000 && !g.over; step++) {
+    for (let step = 0; step < (window.__simSteps || 800000) && !g.over; step++) {
       if (step % 5 === 0) act(); // 0.5초마다 봇 판단
       // 루프를 재웠으니 장면 시계(타격 프레임 타이머)·트윈도 손으로 0.1초씩 돌린다
       const t = (step + 1) * 100;
@@ -106,7 +107,12 @@ const { chromium } = require('playwright');
       const boss = g.monsters.find(m => m.isBoss);
       if (boss) bossMax[g.wave - g.wave % 10 || 10] = Math.max(bossMax[g.wave - g.wave % 10] || 0, Math.round(boss.dist / 17.6));
       if (g.wave !== lastWave) {
-        if (g.wave % 5 === 0 || g.wave <= 4) {
+        if (g.wave % 5 === 0 || g.wave <= 4 || every) {
+          // 팀 화력 (2026-11-25): 필드 용병의 초당 기대 피해 합 (한 방 × 공속 × 치명 기대 × 동시 대상) · 웨이브 전체 체력
+          const powr = g.mercs.reduce((t, m) => { const s = m.getStats(g.relics, g.gameTime); return t + s.damage * s.rate * (1 + (s.crit || 0) * ((s.critMult || 2) - 1)) * (s.targets || 1); }, 0);
+          const wi = window.__rtd.waves?.waveInfo?.(g.wave);
+          const hpTot = wi ? wi.normal * window.__rtd.waves.monsterStats('normal', g.wave).hp + wi.elite * window.__rtd.waves.monsterStats('elite', g.wave).hp + (wi.boss ? window.__rtd.waves.monsterStats('boss', g.wave, wi.type === 'milestone').hp : 0) : 0;
+          log.push(`P${g.wave} pow=${Math.round(powr)} hp=${Math.round(hpTot)} ratio=${powr ? (hpTot / powr).toFixed(1) : '-'}`);
           const stars = g.mercs.reduce((o, m) => (o[m.star] = (o[m.star] || 0) + 1, o), {});
           const grades = g.mercs.reduce((o, m) => (o[m.grade] = (o[m.grade] || 0) + 1, o), {});
           const syn = Object.entries(g.syn.tiers).filter(([, t]) => t).map(([k]) => k).join(',');
@@ -117,7 +123,7 @@ const { chromium } = require('playwright');
     }
     const reason = g.children.list.filter(o => o.type === 'Text').map(o => o.text).find(t => /성벽 붕괴|무너졌습니다/.test(t));
     return { wave: g.wave, fame: g.fameEarned, stones: g.stonesEarned, kills: g.totalKills, over: g.over, log: [...log, 'boss max lap%: ' + JSON.stringify(bossMax), 'reason: ' + reason] };
-  }, [override, useReserveArg]);
-  console.log(res.log.join('\n')); console.log('END wave', res.wave, 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));
+  }, [override, useReserveArg, !!process.env.EVERY]); // EVERY=1: 웨이브마다 팀 화력·웨이브 체력 기록
+  console.log(res.log.join('\n')); console.log('END wave', res.wave, res.over ? '(패배)' : '(시간 한도 — 아직 살아 있음)', 'fame', res.fame, 'stones', res.stones, 'kills', res.kills, 'errors', JSON.stringify(errs));
   await b.close();
 })();

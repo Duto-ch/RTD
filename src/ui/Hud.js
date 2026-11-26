@@ -322,8 +322,9 @@ export class Hud {
     const nextWave = s.wave + 1;
     // 무한 웨이브: 목표 없이 계속 올라간다. 최고 기록을 함께 보여 준다
     this.waveText.setText(`WAVE ${s.wave}`);
-    const label = s.wave === 0 ? '시작' : '다음';
-    this.timerText.setText(`${label} ${Math.ceil(Math.max(0, s.waveTimer))}초`);
+    // 정비 시간(2026-11-24): '정비 15초' 카운트다운 · 웨이브 중: 남은 몬스터 수 (웨이브는 다 잡아야 끝)
+    if (s.inWave) this.timerText.setText(`남은 ${s.monsters.length + s.spawnQueue.length}기`);
+    else this.timerText.setText(`정비 ${Math.ceil(Math.max(0, s.waveTimer))}초`);
     const ni = waveInfo(nextWave);
     const extra = { elite: '+정예', boss: '+보스', milestone: '+정예+강화보스', final: '+최종보스' }[ni.type] || '';
     // 보스가 있으면 왼쪽 안내 줄을 보스 상태(빨강)로 바꾼다 — 예전엔 오른쪽 몬스터 수 위에 겹쳐 떴다 (2026-11-15)
@@ -360,7 +361,8 @@ export class Hud {
       this._hpKey = `${hpN}/${s.wallMax}/${Math.ceil(s.wallShield)}`;
       this.drawHpBar(hpN, s.wallMax, s.wallShield);
     }
-    this.nextWaveBtn.setEnabled(s.canCallNextWave);
+    this.nextWaveBtn.setEnabled(!s.inWave && s.canCallNextWave);
+    this.shopBox.setAlpha(s.inWave ? 0.55 : 1); // 웨이브 중에는 살 수 없다 — 상점을 옅게 (2026-11-24)
     this.refreshShopButtons();
     if (s.selected) this.refreshInfo();
   }

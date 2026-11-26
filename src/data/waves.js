@@ -35,21 +35,82 @@ export function normalCount(w) {
   return Math.round(base * k * (BALANCE.horde.countScale ?? 1));
 }
 
+/** 정예 수 (2026-11-24): 5웨이브 10마리 → 75웨이브 30마리 (정예가 나올 때마다 늘어남), 그 뒤 30 */
+export function eliteCount(w) {
+  const E = BALANCE.eliteCount;
+  const t = Math.min(1, Math.max(0, (w - E.startWave) / (E.maxWave - E.startWave)));
+  return Math.round(E.start + (E.max - E.start) * t);
+}
+
+/** 그 웨이브 정예 중 스킬 정예 수 (정예 10마리마다 1마리) */
+export function eliteCasters(w) {
+  return Math.floor(waveInfo(w).elite / BALANCE.eliteCount.perCaster);
+}
+
 export function waveInfo(w) {
   const normal = normalCount(w);
   if (isFinalWave(w)) return { type: 'final', normal, elite: 0, boss: 1 };
-  if (isMilestoneWave(w)) return { type: 'milestone', normal, elite: BALANCE.milestone.extraElites, boss: 1 };
+  if (isMilestoneWave(w)) return { type: 'milestone', normal, elite: eliteCount(w), boss: 1 };
   if (isBossWave(w)) return { type: 'boss', normal, elite: 0, boss: 1 };
-  if (isEliteWave(w)) return { type: 'elite', normal, elite: 10, boss: 0 };
+  if (isEliteWave(w)) return { type: 'elite', normal, elite: eliteCount(w), boss: 0 };
   return { type: 'normal', normal, elite: 0, boss: 0 };
 }
 
-/** 출현 순서: 보스가 맨 앞, 정예는 일반 몬스터 사이에 고르게 */
+/** 초반 내구성 배율 (2026-11-24): 1웨이브 earlyHp.mult → untilWave 에서 1 — 같은 비율로 줄어(웨이브당 약 4.7%) 체력 증가(8%)보다 작아 체력은 늘 오른다 */
+export function earlyHpMult(w) {
+  const E = BALANCE.monster.earlyHp;
+  if (!E || w >= E.untilWave) return 1;
+  return Math.pow(E.mult, (E.untilWave - w) / (E.untilWave - 1));
+}
+
+/** 이 웨이브에 섞이는 특수 몬스터 종류 (열린 것 중 typesPerWave 개, 웨이브 번호로 정해져 늘 같다) */
+export function specialTypes(w) {
+  const S = BALANCE.special;
+  const ww = ((w - 1) % 100) + 1; // 무한 웨이브: 100웨이브마다 처음부터
+  const open = Object.keys(S.types).filter((id) => ww >= S.types[id].from);
+  if (!open.length) return [];
+  if (open.length <= S.typesPerWave) return open;
+  // 시작 칸은 웨이브마다 한 칸씩, 간격은 몇 웨이브마다 바뀐다 → 짝이 고르게 돌아간다
+  const n = open.length;
+  const start = ww % n;
+  const step = 1 + (Math.floor(ww / n) % (n - 1));
+  const out = [];
+  for (let k = 0; k < n && out.length < S.typesPerWave; k++) {
+    const id = open[(start + k * step) % n];
+    if (!out.includes(id)) out.push(id);
+  }
+  for (const id of open) if (out.length < S.typesPerWave && !out.includes(id)) out.push(id);
+  return out;
+}
+
+/** 일반 몬스터 중 특수 몬스터 수 (종류마다) */
+export function specialCounts(w) {
+  const S = BALANCE.special;
+  const types = specialTypes(w);
+  if (!types.length) return {};
+  const ww = ((w - 1) % 100) + 1;
+  const first = Math.min(...Object.values(S.types).map((t) => t.from));
+  const t = Math.min(1, Math.max(0, (ww - first) / Math.max(1, S.fullWave - first)));
+  const total = Math.round(normalCount(w) * (S.share[0] + (S.share[1] - S.share[0]) * t));
+  const out = {};
+  types.forEach((id, i) => (out[id] = Math.floor(total / types.length) + (i < total % types.length ? 1 : 0)));
+  return out;
+}
+
+/** 출현 순서: 보스가 맨 앞, 정예·특수 몬스터('normal:<종류>')는 일반 몬스터 사이에 고르게 */
 export function spawnList(w) {
   const info = waveInfo(w);
-  const list = Array(info.normal).fill('normal');
+  // 특수 몬스터는 종류를 번갈아 (빠름, 방어력, 빠름, 방어력 …) 일반 몬스터 사이에 고르게 끼운다
+  const groups = Object.entries(specialCounts(w)).map(([id, n]) => Array(n).fill(`normal:${id}`));
+  const sp = [];
+  for (let i = 0; groups.some((g) => i < g.length); i++) for (const g of groups) if (i < g.length) sp.push(g[i]);
+  const list = Array(info.normal - sp.length).fill('normal');
+  for (let i = 0; i < sp.length; i++) list.splice(Math.floor(((i + 0.5) * (list.length + 1)) / (sp.length + 1)) + i, 0, sp[i]);
+  const casters = Math.floor(info.elite / BALANCE.eliteCount.perCaster);
   for (let i = 0; i < info.elite; i++) {
-    list.splice(Math.floor(((i + 0.5) * list.length) / info.elite) + i, 0, 'elite');
+    // 스킬 정예('elite:caster')는 정예 사이에 고르게
+    const caster = casters && i % Math.floor(info.elite / casters) === Math.floor(info.elite / casters / 2) && Math.floor(i / Math.floor(info.elite / casters)) < casters;
+    list.splice(Math.floor(((i + 0.5) * list.length) / info.elite) + i, 0, caster ? 'elite:caster' : 'elite');
   }
   if (info.boss) list.unshift('boss');
   return list;
@@ -62,9 +123,25 @@ export function speedMultiplier(w) {
 }
 
 /** 몬스터 능력치 (수치는 config.js BALANCE.monster) */
-export function monsterStats(kind, w, milestone = false) {
+export function monsterStats(kind, w, milestone = false, variant = null) {
   const M = BALANCE.monster;
-  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * Math.pow(M.hpGrowth, w - 1)) * M.hpScale;
+  const mid = M.midHp && w >= M.midHp.from ? M.midHp.mult : 1; // 11웨이브부터 상향 (2026-11-24)
+  const C = M.hpCurve;
+  const growth = C ? Math.pow(C.early, Math.min(w, C.knee) - 1) * Math.pow(C.late, Math.max(0, w - C.knee)) : Math.pow(M.hpGrowth, w - 1);
+  const hp = (w === 1 && M.firstWaveHp ? M.firstWaveHp : M.hpBase * growth) * M.hpScale * mid;
+  if (kind === 'normal' && variant) {
+    // 특수 몬스터 (2026-11-24): 체력·속도 배율 · 방어력(그 웨이브 일반 몬스터 체력의 비율) · 저항
+    const base = monsterStats('normal', w);
+    const v = BALANCE.special.types[variant];
+    return {
+      hp: base.hp * (v.hp || 1) * (BALANCE.special.hpMult || 1),
+      speed: base.speed * (v.speed || 1),
+      gold: base.gold * Math.max(1, v.hp || 1),
+      armor: base.hp * (v.armor || 0),
+      resist: v.resist || null,
+      stun: v.stun || null
+    };
+  }
   switch (kind) {
     case 'boss':
       return { hp: hp * M.bossHpMult * (milestone ? BALANCE.milestone.hpMult : 1), speed: M.bossSpeed, gold: 150 + w * 5 };
@@ -72,6 +149,6 @@ export function monsterStats(kind, w, milestone = false) {
       return { hp: hp * M.eliteHpMult, speed: M.eliteSpeed * speedMultiplier(w), gold: 20 + w };
     default:
       // 물량: 마리당 체력·골드는 1/mult (골드는 소수 — GameScene 이 모아서 정수로 지급)
-      return { hp: hp / BALANCE.horde.mult, speed: M.normalSpeed * speedMultiplier(w), gold: (2 + Math.floor(w / 15)) / BALANCE.horde.mult };
+      return { hp: (hp * earlyHpMult(w)) / BALANCE.horde.mult, speed: M.normalSpeed * speedMultiplier(w), gold: (2 + Math.floor(w / 15)) / BALANCE.horde.mult };
   }
 }
