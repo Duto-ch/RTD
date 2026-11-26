@@ -26,9 +26,10 @@ void main() {
   // 트래킹 떨림: 줄마다 아주 작게 + 가끔 화면 전체가 살짝 흔들림
   float wob = (rand(vec2(line, floor(time * 24.0))) - 0.5) * 0.0003;
   wob += (noise1(time * 1.3) - 0.5) * 0.0005;
-  // 노이즈 띠: 아래로 천천히 내려가는 가로 띠 (몇 초에 한 번 진하게)
+  // 노이즈 띠: 아래에서 위로 천천히 올라가는 가로 띠 (몇 초에 한 번 진하게)
   float bandY = fract(time * 0.07);
-  float band = smoothstep(0.035, 0.0, abs(p.y - bandY)) * smoothstep(0.55, 0.9, noise1(time * 0.35));
+  // 띠 두께 1/3 (2026-11-25 사용자 요청, 이전 0.035)
+  float band = smoothstep(0.0117, 0.0, abs(p.y - bandY)) * smoothstep(0.55, 0.9, noise1(time * 0.35));
   wob += band * (rand(vec2(line, time)) - 0.5) * 0.012;
   p.x += wob;
   // 색 번짐: 빨강·파랑을 좌우로 어긋나게 + 가로로 살짝 흐리게
