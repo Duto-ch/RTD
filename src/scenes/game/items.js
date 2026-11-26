@@ -36,7 +36,6 @@ export class ItemSystem {
   equip(benchIndex, merc, origin = null) {
     const id = this.scene.bench[benchIndex];
     if (!id || !merc || !this.scene.mercs.includes(merc)) return false;
-    if (this.scene.lockedInWave('아이템 장착')) return false;
     let result = null;
     let slot = -1;
     if (isComponent(id)) {

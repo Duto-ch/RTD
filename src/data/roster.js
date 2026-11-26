@@ -1,4 +1,5 @@
 import { regradeSkill } from './stars.js';
+import { SKILL_TUNE, tuneSkill } from './skillTune.js';
 
 // ── 캐릭터 70명 (룰 v2, 2026-11-20 사용자 결정) ──────────
 // 104명 중 언커먼 이상 64명 + 커먼 6명만 남기고 나머지 34명은 삭제. 속성(레드·블루·그린)은 그림 색으로만 남고 규칙에서는 없다.
@@ -29,6 +30,14 @@ export const STYLES = {
 };
 
 /**
+ * 기본 공격 = 관통 없는 단일 대상 (2026-11-26 사용자 결정 · 스킬 리밸런싱 v2). 예전 동시 공격·범위·연쇄는 기본 공격 피해 배율로 바꾼다:
+ * 동시 대상 1명당 +35% · 범위 반경 100당 +100%(최대 +40%) · 연쇄 1회당 +20% (스킬 피해엔 안 붙음, 가안 ⚠️)
+ */
+export const BASIC_SHAPE = { perTarget: 0.35, splashPer: 0.01, splashMax: 0.4, perChain: 0.2 };
+export const basicMul = (targets = 1, splash = 0, chain = 0) =>
+  (1 + BASIC_SHAPE.perTarget * Math.max(0, targets - 1)) * (1 + Math.min(BASIC_SHAPE.splashMax, splash * BASIC_SHAPE.splashPer)) * (1 + BASIC_SHAPE.perChain * chain);
+
+/**
  * 고유 특성 (기본 공격에 붙는다)
  *  targets n · splash r · chain n · crit p · slow [비율,초] · dot [초당 배율,초] · vuln [받는 피해+,초]
  *  bossMult x(보스·정예에게 x배) · push px · stun [확률,초] · aura {dmg,rate,range}(주변 8칸 아군 상시)
@@ -37,9 +46,10 @@ export const STYLES = {
 export const TRAIT_TEXT = (t) => {
   const p = (v) => `${Math.round(v * 100)}%`;
   const o = [];
-  if (t.targets) o.push(`동시에 ${t.targets}명 공격`);
-  if (t.splash) o.push(`주변 반경 ${t.splash} 범위 피해`);
-  if (t.chain) o.push(`${t.chain}명에게 튀는 연쇄`);
+  // 기본 공격은 단일 대상 (2026-11-26) — 예전 동시 공격·범위·연쇄는 피해 배율로
+  if (t.targets) o.push(`기본 공격 피해 +${p(basicMul(t.targets) - 1)} (동시 ${t.targets}명 몫)`);
+  if (t.splash) o.push(`기본 공격 피해 +${p(basicMul(1, t.splash) - 1)} (범위 몫)`);
+  if (t.chain) o.push(`기본 공격 피해 +${p(basicMul(1, 0, t.chain) - 1)} (연쇄 ${t.chain} 몫)`);
   if (t.crit) o.push(`치명타 ${p(t.crit)}`);
   if (t.slow) o.push(`${p(t.slow[0])} 감속 ${t.slow[1]}초`);
   if (t.dot) o.push(`${t.dot[1]}초간 초당 ${p(t.dot[0])} 지속 피해`);
@@ -248,9 +258,9 @@ const GREEN = [
   C('green', 2, 'marit', '마리트', 'rapid', '바람 칼날 무희', 'wind dancer with fluttering green scarves and curved blades', { crit: 0.2, targets: 2 }, [
     S('바람 칼날', 5, { area: many(3), ...hit(2.5) }), S('회오리 춤', 9, { area: ring(80), fx: { dmg: 2.5, push: 30 } }),
     S('산들바람', 12, { buff: { scope: 'adjacent', rate: 0.25, dur: 5 } }), S('폭풍의 춤', 16, { area: all, ...hit(3) })]),
-  C('green', 2, 'fergus', '퍼거스', 'heavy', '켈트 투창 사냥꾼', 'red-bearded celtic hunter with javelins and green tartan', { bossMult: 1.3, crit: 0.15 }, [
+  C('green', 2, 'fergus', '앤', 'heavy', '괴수 사냥꾼', 'red-bearded celtic hunter with javelins and green tartan', { bossMult: 1.3, crit: 0.15 }, [
     S('사냥 창', 7, { area: one, ...hit(5) }), S('세 갈래 창', 9, { area: many(3), ...hit(3.5) }),
-    S('사냥꾼의 직감', 14, { buff: { scope: 'self', dmg: 0.4, rate: 0.3, dur: 6 } }), S('멧돼지 사냥', 17, { pick: 'strongest', area: one, ...hit(14) })]),
+    S('사냥꾼의 직감', 14, { buff: { scope: 'self', dmg: 0.4, rate: 0.3, dur: 6 } }), S('강렬한 한방', 17, { pick: 'strongest', area: one, ...hit(14) })]),
   C('green', 2, 'ylva', '일바', 'hex', '늑대 무녀', 'wolf priestess with white wolf pelt and moon pendant', { slow: [0.2, 1.5], vuln: [0.1, 3] }, [
     S('울음 소리', 9, { area: ring(80), fx: { slow: [0.4, 2], vuln: [0.2, 4] } }), S('늑대 소환', 8, { area: many(4), fx: { dmg: 3, dot: [0.6, 3] } }),
     S('달의 가호', 15, { buff: { scope: 'adjacent', rate: 0.25, dur: 6 } }), S('늑대 무리', 18, { area: all, fx: { dmg: 2.5, dot: [0.6, 4] } })]),
@@ -344,7 +354,9 @@ export const ROSTER = [...RED, ...BLUE, ...GREEN, ...ORIGINALS].map((c) => {
   const [grade, cls, origin] = V2[c.id];
   const last = c.skills[c.skills.length - 1];
   // 대표 스킬 id 는 예전 마지막 스킬 id 그대로 (레어·유니크 전용 이펙트 시트 키)
-  return { ...c, oldGrade: c.grade, grade, cls, origin, skill: { ...regradeSkill(last, c.grade, grade), id: `${c.id}_${c.skills.length - 1}` } };
+  const base = { ...regradeSkill(last, c.grade, grade), id: `${c.id}_${c.skills.length - 1}` };
+  // 스킬 리밸런싱 v2 (2026-11-26 사용자 결정): 광역 대상 상한·피해 계수·처형 수·버프 수치 (src/data/skillTune.js, 기준 스킬은 baseSkill)
+  return { ...c, oldGrade: c.grade, grade, cls, origin, baseSkill: base, skill: tuneSkill(base, SKILL_TUNE[c.id]) };
 });
 export const ROSTER_BY_ID = Object.fromEntries(ROSTER.map((c) => [c.id, c]));
 

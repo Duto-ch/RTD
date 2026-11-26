@@ -77,16 +77,10 @@ export class WaveDirector {
       this.scene.tut.show('wave');
       this.scene.tut.show('prep');
     }
-    // 끌고 있던 용병은 제자리로 (배치는 정비 시간에만)
-    for (const u of this.scene.allUnits) {
-      if (!u.dragging) continue;
-      u.dragging = false;
-      u.snapToCell();
-    }
     this.scene.refreshShop();
   }
 
-  /** 웨이브 중인가 — 용병 구매·배치(필드 안 이동·대기석 바꾸기)·아이템 장착은 정비 시간에만 (2026-11-24 사용자 결정) */
+  /** 웨이브 중인가 — 용병 구매는 정비 시간에만 (2026-11-24 사용자 결정 · 배치·아이템 장착은 2026-11-26 부터 웨이브 중에도) */
   get inWave() {
     return this.scene.phase === 'wave';
   }
