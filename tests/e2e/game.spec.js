@@ -1313,7 +1313,7 @@ test('2026-11-21 다듬기: 캐릭터 선택 중 리롤 → 상점으로 · 아�
     const after = { info: g.hud.infoBox.visible, shop: g.hud.shopBox.visible, selected: !!g.selected };
     const items = ['whet', 'seal', 'giant_sword', 'guild_vault', 'emblem_knight', 'emblem_guild'].every((id) => g.textures.exists(`item_${id}`) && g.textures.get(`item_${id}`).getSourceImage().width === 12);
     // 전열(바깥 줄) 칸은 틴트 없음, 후열(가운데 3x3)은 어둡게
-    const t = g.fieldTiles;
+    const t = g.field.tiles;
     const tint = { front: t[0].tintTopLeft, back: t[2 * 5 + 2].tintTopLeft };
     // 처치 별
     const before2 = g.vfx.em.cuteStar.getAliveParticleCount();
