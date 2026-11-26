@@ -21,12 +21,12 @@ import { dissolveTo } from '../ui/dissolve.js';
 const DOCK = { y: 604, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
 // 격자 판 아래 끝 = 오른쪽 정보 칸 아래 끝 (2026-11-25 사용자 요청: 아래 바와 붙어 있었다) — 판은 격자보다 위아래 6 크다
 const INFO_BOTTOM = DOCK.y - 12;
-const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 6, cardH: 116, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
+const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 6, cardH: 128, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
 const SELECT_COLOR = 0xd94fa0;
 const CHIP_H = 23; // 필터 버튼 높이 (2026-11-25 사용자 요청: 30 → 25% 얇게)
-const SIDE_FILL = 0.6; // 카드 오른쪽 60% = 등급색 (이름·등급·시너지 오른쪽 정렬)
+const BOTTOM_FILL = 0.44; // 카드 아래 44% = 등급색 (이름·등급·시너지), 캐릭터는 위쪽 가운데 (2026-11-25 사용자 요청)
 
 export class DeckScene extends Phaser.Scene {
   constructor() {
@@ -210,29 +210,29 @@ export class DeckScene extends Phaser.Scene {
       const own = this.owned(c.id);
       const sel = this.selected === c;
       // 등급 테두리 = 그라데이션 (2026-11-25 사용자 결정) — 예전 선(3)처럼 바깥으로 1.5 걸친다
-      // 2026-11-25 사용자 요청: 테두리 안쪽 오른쪽 60% 를 테두리와 같은 색으로 채우고 이름·등급·시너지를 오른쪽 정렬
-      const frame = gradeFrame(this, x - 1.5, y - 1.5, w + 3, L.cardH + 3, c.grade, { r: 13.5, fill: inDeck ? '#fff6dc' : '#e7dcbb', side: SIDE_FILL });
+      // 2026-11-25 사용자 요청: 테두리 안쪽 아래를 테두리와 같은 색으로 깔고(이름·등급·시너지), 캐릭터는 위쪽 가운데
+      const frame = gradeFrame(this, x - 1.5, y - 1.5, w + 3, L.cardH + 3, c.grade, { r: 13.5, fill: inDeck ? '#fff6dc' : '#e7dcbb', bottom: BOTTOM_FILL });
       const g = this.add.graphics();
       // 고른 카드 (2026-11-22): 등급 테두리는 그대로 두고 바깥에 자홍 테두리 — 금색이면 유니크 등급 테두리와 구분이 안 됐다
       if (sel) g.lineStyle(3, SELECT_COLOR, 1).strokeRoundedRect(x - 2.5, y - 2.5, w + 5, L.cardH + 5, 14);
       if (!inDeck) g.fillStyle(0x0b2f2e, own ? 0.22 : 0.5).fillRoundedRect(x, y, w, L.cardH, 12);
-      const img = charImage(this, x + 26, y + L.cardH / 2 + 2, c, 2.5);
+      const topH = Math.round((L.cardH + 3) * (1 - BOTTOM_FILL)) - 1.5; // 위 바탕 칸 아래 끝 (카드 기준)
+      const img = charImage(this, x + w / 2, y + topH / 2 + 2, c, 2.5);
       if (!own) img.setTint(0x30403c);
       const tc = c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f'; // 등급색 위 글자
-      const R = x + w - 8; // 오른쪽 정렬 끝
-      const zoneW = w * SIDE_FILL - 12;
-      const nm = uiText(this, R, y + 14, c.name, 13, tc, 'bold').setOrigin(1, 0);
-      this.fit(nm, zoneW);
-      const gr = uiText(this, R, y + 40, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(1, 0);
+      const nm = uiText(this, x + w / 2, y + topH + 6, c.name, 13, tc, 'bold').setOrigin(0.5, 0);
+      this.fit(nm, w - 16);
+      const rowY = y + L.cardH - 16; // 아래 줄: 왼쪽 체크·등급 · 오른쪽 시너지
+      const gr = uiText(this, x + 10 + (inDeck ? 18 : 0), rowY, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(0, 0.5);
       this.gridC.add([frame, g, img, nm, gr]);
-      // 계열·출신 상징 — 오른쪽 정렬 (고용 전이면 옅게)
+      const R = x + w - 8;
       const bx = (j) => R - 9 - (1 - j) * 22;
-      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, bx(j), y + L.cardH - 22, k, 8, own)));
+      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, bx(j), rowY, k, 8, own)));
       const enh = meta.enhance(c.id);
-      if (enh) this.gridC.add(uiText(this, bx(0) - 9 - 4, y + L.cardH - 22, `+${enh}`, 11, tc, 'bold').setOrigin(1, 0.5));
+      if (enh) this.gridC.add(uiText(this, bx(0) - 9 - 4, rowY, `+${enh}`, 11, tc, 'bold').setOrigin(1, 0.5));
       if (inDeck) {
         // 덱 표시 = 등급 글자 앞 작은 체크 — 2026-11-23 미리 그린 원
-        const cx = Math.round(gr.x - gr.width - 4 - 7), cy = Math.round(gr.y + gr.height / 2);
+        const cx = x + 10 + 7, cy = Math.round(rowY);
         const chk = this.add.container(cx, cy, [discImage(this, 0, 0, {
           id: 'deck_check', r: 7, fill: 0x3f9a5a, line: 0xffffff, lw: 1.5,
           draw: (ctx) => { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-1, 3); ctx.lineTo(4, -3); ctx.stroke(); }

@@ -620,11 +620,11 @@ export function gradeGradient(ctx, grade, y0, y1) {
 
 /**
  * 등급 테두리 카드 그림 (바깥 모양 x, y, w, h — 왼쪽 위 기준). 테두리 lw = 등급 그라데이션, 안쪽 = fill.
- * radii {tl,tr,bl,br} 로 모서리마다, band = 아래 등급색 띠가 시작하는 y(카드 안 좌표, 바닥까지), gradH = 그라데이션 높이(기본 h), side = 오른쪽 몫 채움
+ * radii {tl,tr,bl,br} 로 모서리마다, band = 아래 등급색 띠가 시작하는 y(카드 안 좌표, 바닥까지), gradH = 그라데이션 높이(기본 h), side = 오른쪽 몫 채움, bottom = 아래 몫 채움
  */
-export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#fffaf0', radii = null, band = null, gradH = h, side = 0 } = {}) {
+export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#fffaf0', radii = null, band = null, gradH = h, side = 0, bottom = 0 } = {}) {
   const R = radii || { tl: r, tr: r, bl: r, br: r };
-  const id = `gframe_${grade}_${w}x${h}_${lw}_${fill}_${R.tl}_${R.tr}_${R.bl}_${R.br}_${band}_${gradH}_${side}`;
+  const id = `gframe_${grade}_${w}x${h}_${lw}_${fill}_${R.tl}_${R.tr}_${R.bl}_${R.br}_${band}_${gradH}_${side}_${bottom}`;
   const img = shapeImage(scene, x + w / 2, y + h / 2, id, w, h, (ctx) => {
     ctx.translate(-w / 2, -h / 2);
     const grad = gradeGradient(ctx, grade, 0, gradH);
@@ -634,10 +634,12 @@ export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#
     ctx.fill();
     const ir = (v) => Math.max(0, v - lw);
     // side: 오른쪽 몫(0~1)은 테두리와 같은 그라데이션 그대로 두고, 안쪽 바탕은 왼쪽만 — 경계 모서리도 둥글게 (2026-11-25 병영 카드)
+    // bottom: 아래 몫(0~1)도 같은 방법 — 바탕은 위쪽만, 경계 아래 모서리 둥글게
     const sx = side ? Math.round(w * (1 - side)) : w - lw;
-    const sr = side ? Math.min(10, (h - lw * 2) / 2) : null;
+    const sy = bottom ? Math.round(h * (1 - bottom)) : h - lw;
+    const sr = side || bottom ? Math.min(10, (Math.min(sx, sy) - lw) / 2) : null;
     ctx.beginPath();
-    ctx.roundRect(lw, lw, sx - lw, h - lw * 2, [ir(R.tl), side ? sr : ir(R.tr), side ? sr : ir(R.br), ir(R.bl)]);
+    ctx.roundRect(lw, lw, sx - lw, sy - lw, [ir(R.tl), side ? sr : ir(R.tr), side || bottom ? sr : ir(R.br), bottom ? sr : ir(R.bl)]);
     ctx.fillStyle = fill;
     ctx.fill();
     if (band != null) {
