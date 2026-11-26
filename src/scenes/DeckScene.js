@@ -19,10 +19,14 @@ import { dissolveTo } from '../ui/dissolve.js';
 // 시너지 필터 줄(synY 136) 아래부터 격자 (2026-11-22)
 // 2026-11-25 시안: 영지처럼 위 바(이름·등급 수·보유) + 아래 바(일직선, 덱 머리 2줄 + 기본 덱·저장) · '출전 덱 n / 30' + 인원 막대는 오른쪽 정보 칸 아래 왼쪽
 const DOCK = { y: 604, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } };
-const L = { grid: { x: 16, y: 136, w: 840, h: DOCK.y - DOCK.tab.depth - 8 - 136 }, cols: 6, cardH: 86, info: { x: 872, y: 60, w: 392, h: DOCK.y - 12 - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
+// 격자 판 아래 끝 = 오른쪽 정보 칸 아래 끝 (2026-11-25 사용자 요청: 아래 바와 붙어 있었다) — 판은 격자보다 위아래 6 크다
+const INFO_BOTTOM = DOCK.y - 12;
+const L = { grid: { x: 16, y: 136, w: 840, h: INFO_BOTTOM - 6 - 136 }, cols: 6, cardH: 86, info: { x: 872, y: 60, w: 392, h: INFO_BOTTOM - 60 }, deck: { x: 24, y: DOCK.y + 14, step: 42, per: 15 }, chipY: 70, synY: 106 };
 
 /** 덱 편성에서 고른 카드의 바깥 테두리 색 (등급색 — 동·은/초록·파랑·금 — 과 겹치지 않게 자홍) */
 const SELECT_COLOR = 0xd94fa0;
+const CHIP_H = 23; // 필터 버튼 높이 (2026-11-25 사용자 요청: 30 → 25% 얇게)
+const SIDE_FILL = 0.6; // 카드 오른쪽 60% = 등급색 (이름·등급·시너지 오른쪽 정렬)
 
 export class DeckScene extends Phaser.Scene {
   constructor() {
@@ -71,7 +75,7 @@ export class DeckScene extends Phaser.Scene {
     let x = 16;
     for (const [v, label] of chips) {
       const w = 64;
-      const b = new Button(this, x + w / 2, y, w, 30, label, () => {
+      const b = new Button(this, x + w / 2, y, w, CHIP_H, label, () => {
         this.filter.show = v;
         this.scrollY = 0;
         this.refresh();
@@ -84,7 +88,7 @@ export class DeckScene extends Phaser.Scene {
     const gy = y;
     for (const [v, label] of grades) {
       const w = v === 2 ? 70 : 62;
-      const b = new Button(this, gx + w / 2, gy, w, 30, label, () => {
+      const b = new Button(this, gx + w / 2, gy, w, CHIP_H, label, () => {
         this.filter.grade = v;
         this.scrollY = 0;
         this.refresh();
@@ -206,25 +210,31 @@ export class DeckScene extends Phaser.Scene {
       const own = this.owned(c.id);
       const sel = this.selected === c;
       // 등급 테두리 = 그라데이션 (2026-11-25 사용자 결정) — 예전 선(3)처럼 바깥으로 1.5 걸친다
-      const frame = gradeFrame(this, x - 1.5, y - 1.5, w + 3, L.cardH + 3, c.grade, { r: 13.5, fill: inDeck ? '#fff6dc' : '#e7dcbb' });
+      // 2026-11-25 사용자 요청: 테두리 안쪽 오른쪽 60% 를 테두리와 같은 색으로 채우고 이름·등급·시너지를 오른쪽 정렬
+      const frame = gradeFrame(this, x - 1.5, y - 1.5, w + 3, L.cardH + 3, c.grade, { r: 13.5, fill: inDeck ? '#fff6dc' : '#e7dcbb', side: SIDE_FILL });
       const g = this.add.graphics();
       // 고른 카드 (2026-11-22): 등급 테두리는 그대로 두고 바깥에 자홍 테두리 — 금색이면 유니크 등급 테두리와 구분이 안 됐다
       if (sel) g.lineStyle(3, SELECT_COLOR, 1).strokeRoundedRect(x - 2.5, y - 2.5, w + 5, L.cardH + 5, 14);
       if (!inDeck) g.fillStyle(0x0b2f2e, own ? 0.22 : 0.5).fillRoundedRect(x, y, w, L.cardH, 12);
-      const img = charImage(this, x + 28, y + L.cardH / 2 + 2, c, 2.5);
+      const img = charImage(this, x + 26, y + L.cardH / 2 + 2, c, 2.5);
       if (!own) img.setTint(0x30403c);
-      const nm = uiText(this, x + 52, y + 14, c.name, 13, CSS.ink, 'bold');
-      const gr = uiText(this, x + 52 + (inDeck ? 18 : 0), y + 34, GRADES[c.grade].name, 11, GRADES[c.grade].color, 'bold');
+      const tc = c.grade === 2 || c.grade === 3 ? '#ffffff' : '#2b1d2f'; // 등급색 위 글자
+      const R = x + w - 8; // 오른쪽 정렬 끝
+      const zoneW = w * SIDE_FILL - 12;
+      const nm = uiText(this, R, y + 12, c.name, 13, tc, 'bold').setOrigin(1, 0);
+      this.fit(nm, zoneW);
+      const gr = uiText(this, R, y + 34, GRADES[c.grade].name, 11, tc, 'bold').setOrigin(1, 0);
       this.gridC.add([frame, g, img, nm, gr]);
-      // 계열·출신 상징 (2026-11-22 사용자 요청: 상점 카드와 같은 시너지 그림 — 글자 줄 대신). 고용 전이면 옅게
-      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, x + 52 + 9 + j * 22, y + 63, k, 8, own)));
+      // 계열·출신 상징 — 오른쪽 정렬 (고용 전이면 옅게)
+      const bx = (j) => R - 9 - (1 - j) * 22;
+      [c.cls, c.origin].forEach((k, j) => this.gridC.add(traitBadge(this, bx(j), y + 64, k, 8, own)));
       const enh = meta.enhance(c.id);
-      if (enh) this.gridC.add(uiText(this, x + w - 10, y + L.cardH - 10, `+${enh}`, 11, CSS.primary, 'bold').setOrigin(1, 1));
+      if (enh) this.gridC.add(uiText(this, bx(0) - 9 - 4, y + 64, `+${enh}`, 11, tc, 'bold').setOrigin(1, 0.5));
       if (inDeck) {
-        // 덱 표시 = 등급 글자 앞 작은 체크 (2026-11-21: 오른쪽 위에 두면 이름과 붙어 이름 줄 앞으로 옮김) — 2026-11-23 미리 그린 원
-        const cx = x + 59, cy = Math.round(gr.y + gr.height / 2);
+        // 덱 표시 = 등급 글자 앞 작은 체크 — 2026-11-23 미리 그린 원
+        const cx = Math.round(gr.x - gr.width - 4 - 7), cy = Math.round(gr.y + gr.height / 2);
         const chk = this.add.container(cx, cy, [discImage(this, 0, 0, {
-          id: 'deck_check', r: 7, fill: 0x3f9a5a,
+          id: 'deck_check', r: 7, fill: 0x3f9a5a, line: 0xffffff, lw: 1.5,
           draw: (ctx) => { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-1, 3); ctx.lineTo(4, -3); ctx.stroke(); }
         })]);
         chk.auditBox = { x: -7, y: -7, w: 14, h: 14 }; // tools/ui-audit.cjs 여백 검사용
@@ -300,7 +310,7 @@ export class DeckScene extends Phaser.Scene {
       const y = D.y + Math.floor(i / D.per) * D.step + D.step / 2;
       const g = gradeFrame(this, x - 19, y - 19, 38, 38, c.grade, { r: 9, lw: 2, fill: '#f3ead2' });
       const img = charImage(this, x, y, c, 'head').setInteractive({ useHandCursor: true });
-      img.on('pointerup', () => this.select(c));
+      img.on('pointerup', () => this.toggle(c)); // 누르면 덱에서 빼기 (2026-11-25 사용자 요청)
       this.deckBox.add([g, img]);
     });
   }
