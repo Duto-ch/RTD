@@ -1114,6 +1114,33 @@ test('전용 효과음 채우기 (2026-11-24): 판매·잠금·리롤·아이템
   if (r.moved) expect(r.calls.place).toBe(1);
   expect(errors).toEqual([]);
 });
+test('배경음 = 스코틀랜드 민요 풍 파일 3곡 (2026-11-26): 영지 → 게임 진행 → 보스는 합성 곡 → 다시 게임 진행', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await page.waitForTimeout(300);
+  await page.mouse.click(272, 652);
+  await settled(page, 'Lobby');
+  const fileName = () => game(page, () => window.__rtd.audio.fileSrc?.name || null);
+  await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'lobby', null, { timeout: 15000 });
+  const lobby = await game(page, () => {
+    const s = window.__rtd.audio.fileSrc.src;
+    return { loop: s.loop, dur: s.buffer.duration };
+  });
+  expect(lobby.loop).toBe(true);
+  expect(lobby.dur).toBeCloseTo(60, 1); // 60초 반복
+  await page.keyboard.press('Space');
+  await settled(page, 'Game');
+  await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'battle', null, { timeout: 15000 });
+  // 보스 웨이브 → 예전 합성 보스 곡 (파일 곡은 멈춤)
+  await game(page, () => window.__rtd.audio.playMusic('boss'));
+  expect(await fileName()).toBe(null);
+  expect(await game(page, () => window.__rtd.audio.track)).toBe('boss');
+  await game(page, () => window.__rtd.audio.playMusic('battle'));
+  await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'battle', null, { timeout: 15000 });
+  expect(errors).toEqual([]);
+});
 test('웨이브 끝 상점 갱신 소리 + 배경음 50% = 예전 20% 크기 (2026-11-22)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {

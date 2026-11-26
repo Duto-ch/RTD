@@ -120,6 +120,9 @@ function createWindow() {
   return win;
 }
 
+// 배경음이 첫 클릭 전(타이틀)부터 나오게 — 브라우저 자동 재생 제한을 데스크톱 판에서만 끈다 (2026-11-26, 사운드)
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   protocol.handle('app', (req) => {
