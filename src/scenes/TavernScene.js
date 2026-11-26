@@ -17,8 +17,8 @@ import { dissolveTo } from '../ui/dissolve.js';
 const TAVERN_DIM = 0.35; // 배경 그림 위 어둡게 (글자·카드 읽히게)
 // 카드 25% 작게 (2026-11-25 사용자 요청: 320x420 → 240x315), 가운데 정렬
 const CARD_W = 240;
-const DOCK = { y: 652, tab: { x0: 520, x1: 760, depth: 30, slope: 44 } }; // 2026-11-25 시안: 아래 독
-const L = { card: { x: (GAME_W - CARD_W * 3 - 20 * 2) / 2, y: 178, w: CARD_W, h: 315, gap: 20 }, foot: DOCK.y - 30 };
+const DOCK = { y: 652, tab: { x0: GAME_W / 2, x1: GAME_W / 2, depth: 0, slope: 0 } }; // 2026-11-25 시안: 아래 바 일직선 (오른쪽 영지로) · 리롤은 카드 밑
+const L = { card: { x: (GAME_W - CARD_W * 3 - 20 * 2) / 2, y: 164, w: CARD_W, h: 315, gap: 20 }, foot: DOCK.y - 30 };
 const GRADE_COLOR = (g) => Phaser.Display.Color.HexStringToColor(GRADES[g].color).color;
 
 export class TavernScene extends Phaser.Scene {
@@ -34,12 +34,12 @@ export class TavernScene extends Phaser.Scene {
       coverImage(this, 'tavern_bg', GAME_W, GAME_H);
       this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0f08, TAVERN_DIM).setOrigin(0);
     } else this.add.rectangle(0, 0, GAME_W, GAME_H, 0x3a2416).setOrigin(0);
-    // 2026-11-25 시안: 영지처럼 위 바(이름·남은 시간·마정석) + 아래 독(가운데 탭 = 리롤, 오른쪽 영지로)
+    // 2026-11-25 시안: 영지처럼 위 바(이름·남은 시간·마정석) + 아래 바(일직선, 오른쪽 영지로) · 리롤은 카드 밑 가운데
     this.top = screenTop(this, { icon: 'userplus', title: '술집', right: [['마정석', meta.stones, 0x2fbfb2, 'gem']] });
     this.timerText = this.top.sub;
     this.cards = this.add.container(0, 0);
     screenDock(this, DOCK.y, DOCK.tab, null);
-    this.rerollBtn = new Button(this, GAME_W / 2, DOCK.y - 2, 220, 40, '', () => this.reroll(), { variant: 'gold', icon: 'reroll', fontSize: 14 });
+    this.rerollBtn = new Button(this, GAME_W / 2, L.card.y + L.card.h + 16 + 20, 220, 40, '', () => this.reroll(), { variant: 'gold', icon: 'reroll', fontSize: 14 });
     new Button(this, GAME_W - 24 - 80, DOCK.y + 34, 160, 40, '영지로', () => this.leave(), { variant: 'outline', icon: 'house', fontSize: 14 });
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.refresh();
