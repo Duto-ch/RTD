@@ -1122,7 +1122,6 @@ test('배경음 = 스코틀랜드 민요 풍 파일 3곡 (2026-11-26): 영지 �
   await page.waitForTimeout(300);
   await page.mouse.click(272, 652);
   await settled(page, 'Lobby');
-  const fileName = () => game(page, () => window.__rtd.audio.fileSrc?.name || null);
   await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'lobby', null, { timeout: 15000 });
   const lobby = await game(page, () => {
     const s = window.__rtd.audio.fileSrc.src;
@@ -1133,10 +1132,13 @@ test('배경음 = 스코틀랜드 민요 풍 파일 3곡 (2026-11-26): 영지 �
   await page.keyboard.press('Space');
   await settled(page, 'Game');
   await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'battle', null, { timeout: 15000 });
-  // 보스 웨이브 → 예전 합성 보스 곡 (파일 곡은 멈춤)
-  await game(page, () => window.__rtd.audio.playMusic('boss'));
-  expect(await fileName()).toBe(null);
-  expect(await game(page, () => window.__rtd.audio.track)).toBe('boss');
+  // 보스 웨이브 → 예전 합성 보스 곡 (파일 곡은 멈춤) — 같은 순간에 확인 (보스가 없으면 전투 화면이 곧 'battle' 로 되돌리므로)
+  const boss = await game(page, () => {
+    const a = window.__rtd.audio;
+    a.playMusic('boss');
+    return { file: a.fileSrc?.name || null, track: a.track };
+  });
+  expect(boss).toEqual({ file: null, track: 'boss' });
   await game(page, () => window.__rtd.audio.playMusic('battle'));
   await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'battle', null, { timeout: 15000 });
   expect(errors).toEqual([]);
