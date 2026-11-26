@@ -2240,6 +2240,29 @@ test('병영 (2026-11-22): 고른 카드는 등급색과 다른 자홍 테두리
   expect(errors).toEqual([]);
 });
 
+test('영지 초원 행진 (2026-11-26): 덱에서 겹치지 않는 8명이 지평선 띠에서 움직이고 UI 아래 층 · 위일수록 작게', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await game(page, () => window.game.scene.getScene('Title').scene.start('Lobby'));
+  await settled(page, 'Lobby');
+  const a = await game(page, () => {
+    const l = window.game.scene.getScene('Lobby');
+    return l.parade.list.map((p) => ({ id: p.c.id, x: p.img.x, foot: p.footY, depth: p.img.depth, scale: p.img.scaleY, inDeck: window.__rtd.meta.deck.includes(p.c.id) }));
+  });
+  await page.waitForTimeout(1500);
+  const b = await game(page, () => window.game.scene.getScene('Lobby').parade.list.map((p) => p.img.x));
+  expect(a.length).toBe(8);
+  expect(new Set(a.map((p) => p.id)).size).toBe(8);
+  expect(a.every((p) => p.inDeck && p.foot >= 505 && p.foot <= 565 && p.depth < 0)).toBe(true);
+  expect(b.some((x, i) => Math.abs(x - a[i].x) > 1)).toBe(true); // 누군가는 움직였다
+  // 원근: 위(먼 곳)에 선 캐릭터일수록 작다
+  const byFoot = [...a].sort((p, q) => p.foot - q.foot);
+  expect(byFoot.every((p, i) => i === 0 || p.scale >= byFoot[i - 1].scale)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 test('영지 (2026-11-25): 배경 = 로고 뺀 키 아트(화면 가득, 바람 셰이더) · 메뉴 = 가운데 마름모 4개 가로 1열 · 누르면 디졸브로 넘어가고 돌아올 때도 디졸브 (2026-11-23)', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
