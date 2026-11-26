@@ -13,7 +13,7 @@
 - `preview/field-image` — 초원 필드 그림 시험 + `tools/import-art.py`(perfectPixel 자동·manifest `backgrounds`)·`addBackground` (보류. 새 그림을 넣게 되면 스크립트·장치만 main 으로)
 - 미리보기 시험판: https://claude.ai/artifact/HsbNZRZ3U9vBogYMm52FLW
 - **PC 전환 진행 순서 (2026-11-22 사용자 결정)**: ① PC 1080p 전환(구현·main 합침) → ② 저장을 한 곳으로(구현·main 합침 — `src/systems/storage.js`, 규약 `docs/SAVE.md`) → ③ Electron 포장(구현·main 합침 — `desktop/`, Windows 판은 Actions 'Desktop Build', 세부 `docs/DESKTOP.md` · .exe 실행은 사용자 PC 에서 확인) → ④ Steamworks(업적·클라우드·오버레이 — 개발자 계정·앱 등록 100달러·스토어는 사용자). 스킬 암전 시험판 `feature/skill-dim` 은 보류
-- **세션 분담 (2026-11-21 사용자 결정)**: UI 전담 세션(`feature/ui-*` — `src/ui/`·`src/scenes/` 배치·`tools/ui-audit.cjs`, `Hud.js` 는 UI 몫) · 게임 아트 전담 세션(`feature/art-*` — `docs/drafts/` 그림 스크립트·`public/assets/`·`src/art/`·`src/data/fx.js`·`vfx.js`). 작업마다 최신 main 에서 브랜치, 합치기 전에 main 다시 받기, main 은 사용자가 "합쳐" 할 때만 PR. `manifest.json` 충돌은 그림 스크립트를 다시 돌려 해결, `docs/HISTORY.md` 충돌은 두 줄 모두 남기기
+- **세션 분담 (2026-11-21 사용자 결정)**: UI 전담 세션(`feature/ui-*` — `src/ui/`·`src/scenes/` 배치·`tools/ui-audit.cjs`, `Hud.js` 는 UI 몫) · 게임 아트 전담 세션(`feature/art-*` — `docs/drafts/` 그림 스크립트·`public/assets/`·`src/art/`·`src/data/fx.js`·`vfx.js`). 작업마다 최신 main 에서 브랜치, 합치기 전에 main 다시 받기, main 은 사용자가 "합쳐" 할 때만 PR, **PR 합치기 직전에 main 이 바뀌었는지 다시 확인(behind 0) — 바뀌었으면 다시 받아 PR 테스트 통과 후 합침**(2026-11-26 사용자 결정, AGENTS.md 작업 루프 8 · GitHub main 보호 규칙 '테스트 통과 + 최신 상태 필수, 관리자 포함'은 사용자가 설정). `manifest.json` 충돌은 그림 스크립트를 다시 돌려 해결, `docs/HISTORY.md` 충돌은 두 줄 모두 남기기
 
 ## 확인 필요 (사용자 결정 대기)
 - 후반 골드 소비처 (지금 없음 — 골드가 수만 이상 쌓임)
