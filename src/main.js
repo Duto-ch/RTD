@@ -1,3 +1,4 @@
+import { waveInfo, monsterStats } from './data/waves.js';
 import Phaser from 'phaser';
 import { WORLD_W, WORLD_H, FONT, BALANCE, RES, TEXT_RES, crispFontSize, displayScale } from './config.js';
 import { skillOptions } from './data/skills.js';
@@ -82,4 +83,4 @@ window.addEventListener('resize', () => game.scale.setZoom(displayScale() / RES)
 window.game = game;
 vhs.init(game); // VHS 홈비디오 효과 시험판 (2026-11-24, ESC 메뉴·?vhs=1)
 window.BALANCE = BALANCE; // 밸런스 실험용 (tools/balance-sim.cjs)
-window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta, storage, vhs }; // 디버그·테스트용
+window.__rtd = { skillOptions, HEROES, ROSTER, audio, setArt, setFacing, playOnce, animMs, hitDelay, cellCenter, meta, storage, vhs, waves: { waveInfo, monsterStats } }; // 디버그·테스트용 (waves: 밸런스 봇이 웨이브 체력 계산)

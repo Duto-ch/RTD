@@ -147,6 +147,10 @@ export class Mercenary extends Phaser.GameObjects.Container {
   get kind() {
     return STYLE_KIND[this.char.style];
   }
+  /** 피해 종류 (2026-11-24 특수 몬스터 저항): phys 물리 · magic 마법 · blast 폭발 */
+  get dmgType() {
+    return STYLES[this.char.style]?.type || 'phys';
+  }
   get trait() {
     return this.char.trait;
   }

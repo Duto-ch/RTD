@@ -16,7 +16,7 @@ import { countTraits, activeTier, TRAIT_IDS, RAGE_MAX, ORIGIN_IDS, TRAITS } from
 import { ITEM_RULES, ITEM_BY_ID, MAT_IDS, isComponent, combine } from '../data/items.js';
 import { STONES } from '../data/tavern.js';
 import { RELIC_BY_ID, relicBonus, addBonus } from '../data/relics.js';
-import { waveInfo, spawnList, isMilestoneWave } from '../data/waves.js';
+import { waveInfo, spawnList, isMilestoneWave, specialCounts } from '../data/waves.js';
 import { cellAt, cellCenter, PATH_LENGTH } from '../systems/path.js';
 import { dissolveTo, dissolveIn } from '../ui/dissolve.js';
 import { Vfx } from '../systems/vfx.js';
@@ -34,6 +34,9 @@ const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 /** 전열·후열 칸 대비 (2026-11-21 사용자 결정): 전열 밝게(흰빛 겹침), 후열 어둡게(틴트) */
 const FIELD_ROWS = { frontLift: 0.14, backTint: 0x7c7c8c }; // 2026-11-21: 후열 더 어둡게 (이전 0x9c9ca8)
 
+
+/** 기절 몬스터가 거는 디버프 (보스 디버프와 같은 틀 — stun: 공격·스킬 정지) */
+const STUN_GAZE = (dur) => ({ id: 'stun_gaze', name: '기절', dur, effect: { stun: true }, desc: '행동 불가' });
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('Game');
@@ -57,7 +60,8 @@ export class GameScene extends Phaser.Scene {
     this.wallShield = this.bonus.wallShield || 0;
     this.wallFxAt = 0;
     this.wave = 0;
-    this.waveTimer = BALANCE.prepTime;
+    this.phase = 'prep'; // 정비 시간(prep) ↔ 웨이브(wave) (2026-11-24 사용자 결정)
+    this.waveTimer = BALANCE.prepTime; // 정비 시간 남은 초
     this.spawnQueue = [];
     this.spawnTimer = 0;
     this.spawnInterval = 0;
@@ -187,17 +191,17 @@ export class GameScene extends Phaser.Scene {
         elite: Math.max(0.4, 1 - relicSlow - b.monsterSlow - b.eliteSlow),
         boss: Math.max(0.4, 1 - relicSlow - b.bossSlow)
       };
+      this.updateAuras(); // 스킬 정예의 오라 (몬스터가 움직이기 전에)
       for (const m of this.monsters) if (m.alive) m.tick(dt, this.gameTime, mul[m.kind] ?? mul.normal);
       this.checkLaps();
       this.updateBosses(dt);
+      this.updateStunners(dt);
+      this.updateEliteSkills(dt);
       this.updateRoots(dt);
       this.updateMercs(dt);
       this.cleanupMonsters();
-      // 웨이브 클리어 → 상점 새로 고침 (2026-11-22)
-      if (this.wave >= 1 && !this.shopRefreshed && this.canCallNextWave) {
-        this.refillShopNow();
-        this.toast('웨이브 클리어 · 상점 새로 고침');
-      }
+      // 웨이브 클리어 → 상점 새로 고침 + 정비 시간 (2026-11-24: 웨이브는 몬스터를 모두 잡으면 끝난다)
+      if (this.inWave && this.canCallNextWave) this.endWave();
     }
 
     this.drawHpBars();
@@ -261,8 +265,11 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────── 웨이브 ─────────────────────────
   updateWaves(dt) {
-    this.waveTimer -= dt;
-    if (this.waveTimer <= 0) this.startWave(this.wave + 1);
+    // 정비 시간이 끝나면 다음 웨이브 (웨이브 중에는 시간이 흐르지 않는다 — 몬스터를 다 잡아야 끝)
+    if (!this.inWave) {
+      this.waveTimer -= dt;
+      if (this.waveTimer <= 0) this.startWave(this.wave + 1);
+    }
     if (this.spawnQueue.length) {
       this.spawnTimer -= dt;
       // 성능 보호: 필드가 꽉 차면 출현을 잠시 멈춘다 (패배 조건 아님)
@@ -287,11 +294,11 @@ export class GameScene extends Phaser.Scene {
     if (b.wallRegen && w >= 2) this.wallHp = Math.min(this.wallMax, this.wallHp + b.wallRegen);
     this.waveSynergy(w);
     this.waveItems(w);
-    // 상점 (2026-11-22 사용자 결정): 웨이브가 끝날 때(몬스터를 다 잡았을 때) 새로 채운다 — 다 잡기 전에 다음 웨이브가
-    // 시작되면 그때 새로 채운다 (웨이브마다 한 번)
+    // 상점 (2026-11-22 사용자 결정): 웨이브가 끝날 때(몬스터를 다 잡았을 때) 새로 채운다 — 테스트·디버그로 웨이브를 건너뛰면 여기서
     if (w >= 2 && !this.shopRefreshed) this.refillShopNow();
     this.shopRefreshed = false;
     this.wave = w;
+    this.phase = 'wave'; // 웨이브 중: 용병 구매·배치·아이템 장착 금지 (2026-11-24)
     const info = waveInfo(w);
     if (info.type === 'normal' || info.type === 'elite') audio.waveStart(info.type, w); // 보스 웨이브는 보스가 나올 때 전쟁나팔
     const list = spawnList(w);
@@ -300,16 +307,51 @@ export class GameScene extends Phaser.Scene {
     this.waveAttrs = Phaser.Utils.Array.Shuffle([...ATTRS]).slice(0, BALANCE.monster.attrsPerWave);
     this.spawnInterval = BALANCE.spawnWindow / list.length;
     this.spawnTimer = 0;
-    this.waveTimer = BALANCE.waveDuration;
+    this.waveTimer = 0;
     this.changeBiome(biomeForWave(w));
     const sub =
       info.type === 'final' ? `최종 보스 출현 · 1회 부활` :
       info.type === 'milestone' ? `강화 보스 + 정예 ${info.elite}기! 분노 주의` :
       info.type === 'boss' ? `보스 등장! 한 바퀴 돌 때마다 성벽 -${BALANCE.wall.dmg.boss}` :
-      info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 10기` : `몬스터 ${info.normal}기`;
+      info.type === 'elite' ? `몬스터 ${info.normal}기 + 정예 ${info.elite}기` : `몬스터 ${info.normal}기`;
+    // 특수 몬스터 (2026-11-24): 배너 아래 줄에 종류·수 (예: '빠름 7 · 방어력 5')
+    const sp = Object.entries(specialCounts(w)).filter(([, n]) => n > 0).map(([id, n]) => `${BALANCE.special.types[id].name} ${n}`);
+    const subLine = sp.length ? `${sub} · ${sp.join(' · ')}` : sub;
     const color = info.type === 'final' ? '#ff4dd2' : info.type === 'milestone' ? '#d6a8ff' : info.type === 'boss' ? '#ff6a55' : info.type === 'elite' ? '#f2c14e' : '#ffffff';
-    this.showBanner(`WAVE ${w}`, sub, color);
-    if (w === 1) this.tut.show('wave');
+    this.showBanner(`WAVE ${w}`, subLine, color);
+    if (w === 1) {
+      this.tut.show('wave');
+      this.tut.show('prep');
+    }
+    // 끌고 있던 용병은 제자리로 (배치는 정비 시간에만)
+    for (const u of this.allUnits) {
+      if (!u.dragging) continue;
+      u.dragging = false;
+      u.snapToCell();
+    }
+    this.refreshShop();
+  }
+
+  /** 웨이브 중인가 — 용병 구매·배치(필드 안 이동·대기석 바꾸기)·아이템 장착은 정비 시간에만 (2026-11-24 사용자 결정) */
+  get inWave() {
+    return this.phase === 'wave';
+  }
+
+  /** 웨이브 중이면 막고 알린다 (막았으면 true) */
+  lockedInWave(what) {
+    if (!this.inWave) return false;
+    this.toast(`웨이브 중 ${what} 불가 → 정비 시간에`);
+    return true;
+  }
+
+  /** 웨이브 몬스터를 모두 잡았다 → 상점 새로 고침 + 정비 시간 */
+  endWave() {
+    this.phase = 'prep';
+    this.waveTimer = BALANCE.prepTime;
+    if (!this.shopRefreshed) this.refillShopNow();
+    this.toast(`웨이브 클리어 · 정비 시간 ${BALANCE.prepTime}초`);
+    this.refreshShop();
+    this.refreshHud();
   }
 
   /** 상점의 잠그지 않은 칸을 새로 채운다 (웨이브가 끝날 때 한 번) */
@@ -321,14 +363,14 @@ export class GameScene extends Phaser.Scene {
     audio.shopRefresh();
   }
 
-  /** 바로 시작은 필드의 몬스터를 전부 처치했을 때만 (나올 몬스터도 남아 있지 않을 때) */
+  /** 필드의 몬스터를 전부 처치했다 (나올 몬스터도 남아 있지 않다) — 웨이브가 끝나는 조건 */
   get canCallNextWave() {
     return !this.over && this.monsters.length === 0 && this.spawnQueue.length === 0;
   }
 
-  /** 다음 웨이브를 바로 시작 (실수 연타 방지 0.6초) */
+  /** 바로 시작: 정비 시간에 남은 시간을 건너뛰고 다음 웨이브 (실수 연타 방지 0.6초) */
   callNextWave() {
-    if (this.menuOpen || this.tut.open || !this.canCallNextWave) return;
+    if (this.menuOpen || this.tut.open || this.inWave || !this.canCallNextWave) return;
     const now = this.time.now;
     if (now - (this.lastCall || 0) < 600) return;
     this.lastCall = now;
@@ -389,9 +431,15 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(2300, () => !this.over && this.toast(`새로운 지역: ${biome.name}`));
   }
 
-  spawnMonster(kind) {
-    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave));
+  spawnMonster(entry) {
+    const [kind, variant = null] = entry.split(':'); // 특수 몬스터는 'normal:<종류>' (2026-11-24)
+    const m = new Monster(this, kind, Phaser.Utils.Array.GetRandom(this.waveAttrs), this.wave, kind === 'boss' && isMilestoneWave(this.wave), variant);
     this.monsters.push(m);
+    if (variant && kind === 'normal') this.tut.show('special');
+    if (m.eliteSkill) {
+      this.floatText(m.x, m.y - 40, m.eliteSkill.name, '#d6a8ff', 16, true);
+      this.tut.show('eliteSkill');
+    }
     if (m.isBoss) {
       audio.bossAppear(); // 전쟁나팔(audio.warHorn)은 2026-11-24 사용자 결정으로 보류 — 예전 우르릉 소리
       this.tut.show('boss');
@@ -547,6 +595,81 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** 보스 디버프 능력: 쿨타임마다 랜덤 용병/영웅에게 시전 */
+  /** 스킬 정예 오라 (2026-11-24): 매 프레임 범위 안 몬스터(자신 포함)에 수호·가속·재생 — 여러 오라가 겹치면 큰 값 */
+  updateAuras() {
+    const casters = this.monsters.filter((m) => m.alive && m.eliteSkill?.type === 'aura');
+    for (const m of this.monsters) m.auraGuard = m.auraHaste = m.auraRegen = 0;
+    for (const c of casters) {
+      const { range, effect } = c.eliteSkill;
+      const r2 = range * range;
+      for (const m of this.monsters) {
+        if (!m.alive || d2(m, c) > r2) continue;
+        if (effect.guard) m.auraGuard = Math.max(m.auraGuard, effect.guard);
+        if (effect.haste) m.auraHaste = Math.max(m.auraHaste, effect.haste);
+        if (effect.regen) m.auraRegen = Math.max(m.auraRegen, effect.regen);
+      }
+    }
+  }
+
+  /** 스킬 정예 디버프 (2026-11-24): cd 초마다 가까운 용병 targets 명에게 (그 디버프가 아직 없는 용병 먼저) */
+  updateEliteSkills(dt) {
+    const now = this.gameTime;
+    for (const m of this.monsters) {
+      const sk = m.eliteSkill;
+      if (!m.alive || sk?.type !== 'debuff') continue;
+      m.skillCd -= dt;
+      if (m.skillCd > 0) continue;
+      const r2 = sk.range * sk.range;
+      const near = this.mercs
+        .map((u) => ({ u, d: d2(u, m), has: u.debuffs.some((x) => x.def.id === sk.id && x.until > now) }))
+        .filter((o) => o.d <= r2)
+        .sort((a, b) => a.has - b.has || a.d - b.d)
+        .slice(0, sk.targets)
+        .map((o) => o.u);
+      if (!near.length) {
+        m.skillCd = 0.5;
+        continue;
+      }
+      m.skillCd = sk.cd;
+      for (const u of near) {
+        u.addDebuff(sk, now, Math.max(0.2, 1 - this.bonus.debuffDur));
+        this.floatText(u.x, u.y - 36, sk.name, '#d6a8ff', 14);
+      }
+      this.vfx.curse(m, near);
+      audio.debuff();
+    }
+  }
+
+  /** 기절 몬스터 (2026-11-24): cd 초마다 가까운 용병 1명을 잠깐 행동 불가 (이미 기절한 용병은 건너뜀) */
+  updateStunners(dt) {
+    const now = this.gameTime;
+    for (const m of this.monsters) {
+      if (!m.alive || !m.stun) continue;
+      m.stunCd -= dt;
+      if (m.stunCd > 0) continue;
+      const r2 = m.stun.range * m.stun.range;
+      let best = null;
+      let bd = r2;
+      for (const u of this.mercs) {
+        if (u.debuffState?.(now)?.stun) continue;
+        const dd = d2(u, m);
+        if (dd < bd) {
+          bd = dd;
+          best = u;
+        }
+      }
+      if (!best) {
+        m.stunCd = 0.5; // 가까이 올 때까지 자주 본다
+        continue;
+      }
+      m.stunCd = m.stun.cd;
+      best.addDebuff(STUN_GAZE(m.stun.dur), now, Math.max(0.2, 1 - this.bonus.debuffDur));
+      this.vfx.curse(m, [best]);
+      this.floatText(best.x, best.y - 36, '기절', '#d6a8ff', 14);
+      audio.debuff();
+    }
+  }
+
   updateBosses(dt) {
     const now = this.gameTime;
     for (const boss of this.monsters) {
@@ -590,7 +713,7 @@ export class GameScene extends Phaser.Scene {
     const elite = target.kind !== 'normal' ? 1 + (st.eliteDmg || 0) + (target.isBoss ? st.bossDmg || 0 : 0) : 1; // 사수 시너지·아이템: 정예·보스 피해
     const far = st.item?.farDmg ? 1 + st.item.farDmg * Math.min(1, Math.sqrt(d2(target, merc)) / st.range) : 1; // 명사수 조준경
     const dmg = st.damage * mult * giant * slayer * elite * far;
-    const need = carry && target.kind === 'normal' ? target.hp / target.damageTakenMult(this.gameTime) : Infinity;
+    const need = carry && target.kind === 'normal' ? target.rawToKill(this.gameTime, merc) : Infinity;
     this.damageMonster(target, dmg, { source: merc, crit });
     if (dmg > need) this.carryDamage(merc, target, dmg - need);
   }
@@ -613,7 +736,7 @@ export class GameScene extends Phaser.Scene {
         }
       }
       if (!best) break;
-      const need = best.hp / best.damageTakenMult(this.gameTime);
+      const need = best.rawToKill(this.gameTime, merc);
       x = best.x;
       y = best.y;
       this.damageMonster(best, left, { source: merc });
@@ -794,9 +917,9 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
-  damageMonster(m, amount, { source, crit = false, silent = false } = {}) {
+  damageMonster(m, amount, { source, crit = false, silent = false, dot = false } = {}) {
     if (!m.alive) return;
-    amount *= m.damageTakenMult(this.gameTime);
+    amount = m.mitigate(amount, this.gameTime, source, dot); // 약화·저항·방어력 (2026-11-24 특수 몬스터)
     m.hp -= amount;
     if (!silent) m.flashUntil = this.gameTime + 0.06;
     if (crit) this.floatText(m.x, m.y - 20, `${Math.round(amount)}!`, '#ffd84a');
@@ -942,7 +1065,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 상점 칸 사기 */
   buy(i) {
-    if (this.over) return null;
+    if (this.over || this.lockedInWave('용병 구매')) return null;
     const slot = this.shop[i];
     if (!slot || slot.sold) return null;
     const char = ROSTER_BY_ID[slot.id];
@@ -1144,6 +1267,7 @@ export class GameScene extends Phaser.Scene {
   equip(benchIndex, merc, origin = null) {
     const id = this.bench[benchIndex];
     if (!id || !merc || !this.mercs.includes(merc)) return false;
+    if (this.lockedInWave('아이템 장착')) return false;
     let result = null;
     let slot = -1;
     if (isComponent(id)) {
@@ -1380,6 +1504,7 @@ export class GameScene extends Phaser.Scene {
     // 용병 끌기: 월드 좌표로 (포인터의 worldX 는 마지막에 맞은 카메라 좌표라 UI 위에서는 다르다 — 직접 바꾼다)
     this.input.on('dragstart', (p, obj) => {
       if (!(obj instanceof Mercenary) || this.over) return;
+      if (this.lockedInWave('용병 배치')) return; // 배치는 정비 시간에만 (2026-11-24)
       const w = worldPoint(this, p);
       obj.dragging = true;
       audio.pick();
@@ -1440,6 +1565,12 @@ export class GameScene extends Phaser.Scene {
     }
     for (const m of this.monsters) {
       // 물량: 일반 몬스터는 체력 막대 없음 (정예·보스만)
+      // 스킬 정예 (2026-11-24): 오라는 범위 원(종류 색), 디버프 정예는 보라 고리
+      if (m.alive && m.eliteSkill) {
+        const sk = m.eliteSkill;
+        if (sk.type === 'aura') g.fillStyle(sk.color, 0.1).fillCircle(m.x, m.y, sk.range).lineStyle(2, sk.color, 0.55).strokeCircle(m.x, m.y, sk.range);
+        else g.lineStyle(3, 0xb47cff, 0.9).strokeCircle(m.x, m.y, 26);
+      }
       if (!m.alive || m.kind === 'normal' || (m.hp >= m.maxHp && !m.isBoss)) continue;
       const w = m.isBoss ? 72 : m.kind === 'elite' ? 48 : 36;
       const h = m.isBoss ? 8 : 4;

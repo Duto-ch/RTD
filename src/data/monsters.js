@@ -1,4 +1,5 @@
 import { NORMAL_DESIGNS, ELITE_DESIGNS, BOSS_DESIGNS } from '../art/monsters.js';
+import { BALANCE } from '../config.js';
 
 // 웨이브 → 몬스터 디자인
 // 일반: 5웨이브마다 교체 (1~5 슬라임, 6~10 박쥐 …)
@@ -14,3 +15,11 @@ export function monsterDesign(kind, wave) {
 }
 
 export const ALL_MONSTER_DESIGNS = [...NORMAL_DESIGNS, ...ELITE_DESIGNS, ...BOSS_DESIGNS];
+
+/** 특수 몬스터 외형 (2026-11-24): 종류마다 정해진 외형 — 그 웨이브 기본 외형과 같으면 다음 후보 */
+export function variantDesign(variant, wave) {
+  const base = monsterDesign('normal', wave);
+  const ids = BALANCE.special.types[variant]?.design || [];
+  const id = ids.find((x) => x !== base.id);
+  return NORMAL_DESIGNS.find((d) => d.id === id) || base;
+}
