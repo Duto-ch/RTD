@@ -309,7 +309,7 @@ export class DeckScene extends Phaser.Scene {
     sorted.forEach((c, i) => {
       const x = D.x + (i % D.per) * D.step + D.step / 2;
       const y = D.y + Math.floor(i / D.per) * D.step + D.step / 2;
-      const g = gradeFrame(this, x - 19, y - 19, 38, 38, c.grade, { r: 9, lw: 2, fill: '#f3ead2', bottom: 0.3 }); // 아래 30% = 등급색 (2026-11-26 사용자 요청, 카드와 같은 모양)
+      const g = gradeFrame(this, x - 19, y - 19, 38, 38, c.grade, { r: 9, lw: 2, fill: '#f3ead2', bottom: 0.3, seam: 0 }); // 아래 30% = 등급색, 경계는 직선 (2026-11-26 사용자 요청)
       // 전신 (2026-11-26 사용자 요청: 머리만 → 전신) — 칸에 들어가게 아트 1px = 화면 2px(전장 도트와 같은 굵기, UI 1.5배 → 4/3)
       const img = charImage(this, x, y + 1, c).setScale(4 / 3).setInteractive({ useHandCursor: true });
       img.on('pointerup', () => this.toggle(c)); // 누르면 덱에서 빼기 (2026-11-25 사용자 요청)
