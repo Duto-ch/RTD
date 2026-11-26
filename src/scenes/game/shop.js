@@ -17,8 +17,11 @@ export class ShopSystem {
   /** 명성 강화 '징집령': 시작할 때 덱에서 무료 용병 배치 ('노련한 신병'이면 언커먼 이상) */
   conscript() {
     for (let i = 0; i < (this.scene.bonus.conscripts || 0); i++) {
+      // 필드에 없는 캐릭터부터 (필드에는 같은 캐릭터 1명만, 2026-11-26)
+      const fresh = (ids) => ids.filter((id) => !this.scene.formation.onField(id));
       const pool = this.scene.deck.filter((id) => ROSTER_BY_ID[id] && ROSTER_BY_ID[id].grade === (this.scene.bonus.veteran ? 2 : 1));
-      const id = Phaser.Utils.Array.GetRandom(pool.length ? pool : this.scene.deck);
+      const pick = [fresh(pool), fresh(this.scene.deck), pool, this.scene.deck].find((a) => a.length);
+      const id = pick && Phaser.Utils.Array.GetRandom(pick);
       if (id) this.placeChar(ROSTER_BY_ID[id], 0, true);
     }
   }
@@ -58,7 +61,8 @@ export class ShopSystem {
   hire(id) {
     const pool = this.scene.deck.filter((x) => ROSTER_BY_ID[x]);
     const char = ROSTER_BY_ID[typeof id === 'string' ? id : Phaser.Utils.Array.GetRandom(pool)];
-    if (!char || !this.scene.emptyCell(char)) return null;
+    if (!char) return null;
+    if (this.scene.formation.onField(char.id) ? this.scene.freeReserve() < 0 && !this.completesStar(char.id) : !this.scene.emptyCell(char)) return null;
     return this.placeChar(char, priceOf(char));
   }
 
@@ -73,8 +77,8 @@ export class ShopSystem {
       this.scene.toast('골드 부족');
       return null;
     }
-    // 필드 인원이 가득 차면 대기석으로 (2026-11-21) — 대기석도 차면 못 산다 (별 승급이 되는 3장째는 예외)
-    const toBench = this.scene.mercs.length >= this.cap || !this.scene.emptyCell(char);
+    // 필드 인원이 가득 차거나 같은 캐릭터가 이미 필드에 있으면 대기석으로 (2026-11-21 · 2026-11-26) — 대기석도 차면 못 산다 (별 승급이 되는 3장째는 예외)
+    const toBench = this.scene.mercs.length >= this.cap || !this.scene.emptyCell(char) || this.scene.formation.onField(char.id);
     if (toBench && this.scene.freeReserve() < 0 && !this.completesStar(char.id)) {
       this.scene.toast(`필드(${this.cap}명)·대기석 가득`, '#ff9a7a');
       this.scene.tut.show('estate');
@@ -93,6 +97,7 @@ export class ShopSystem {
 
   /** 캐릭터를 빈 칸에 놓고 별 승급을 확인한다. cost: 들어간 골드 */
   placeChar(char, cost, free = false, toBench = false) {
+    if (this.scene.formation.onField(char.id)) toBench = true; // 필드에는 같은 캐릭터 1명만 (2026-11-26)
     let cell = toBench ? null : this.scene.emptyCell(char);
     const slot = toBench ? this.scene.freeReserve() : -1;
     if (!cell && slot < 0) {

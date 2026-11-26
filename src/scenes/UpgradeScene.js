@@ -85,7 +85,7 @@ export class UpgradeScene extends Phaser.Scene {
   create() {
     hiRes(this);
     meta.load();
-    if (!this.fromGame) audio.playMusic('title');
+    if (!this.fromGame) audio.playMusic('lobby'); // 영지에서 연 성탑은 영지 곡 그대로 (2026-11-26)
     this.pos = layoutTree();
     this.selected = 'origin';
     this.zoom = 1;

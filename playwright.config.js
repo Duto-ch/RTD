@@ -5,6 +5,7 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,
   workers: 1,
+  fullyParallel: true, // --shard 가 테스트 단위로 나뉘게 (CI 브라우저 테스트 4대, 2026-11-26) — 한 대 안에서는 workers 1 이라 차례로
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:4173',

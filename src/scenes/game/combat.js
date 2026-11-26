@@ -1,5 +1,5 @@
 import { PX, BALANCE } from '../../config.js';
-import { ATTR_INFO } from '../../data/elements.js';
+import { basicMul } from '../../data/roster.js';
 import { RAGE_MAX } from '../../data/synergy.js';
 import { STONES } from '../../data/tavern.js';
 import { playOnce, setFacing, hitDelay, cancelOnce } from '../../systems/customArt.js';
@@ -69,7 +69,8 @@ export class Combat {
         });
         continue;
       }
-      const picked = st.item.strongest ? [...live].sort((a, b) => b.hp - a.hp).slice(0, st.targets) : live.slice(0, st.targets); // 공성 조준기
+      // 기본 공격 = 단일 대상 (2026-11-26) — 공성 조준기면 체력이 가장 많은 적
+      const picked = st.item.strongest ? [[...live].sort((a, b) => b.hp - a.hp)[0]] : [live[0]];
       // 피해·투사체는 휘두름·발사 프레임에 나간다 (2026-11-20). 노린 대상 중 살아 있는 것만 — 모두 죽으면 위에서 공격 취소
       const timer = this.atHitFrame(merc, st, () => {
         if (merc.pendingHit?.timer === timer) merc.pendingHit = null;
@@ -182,28 +183,20 @@ export class Combat {
     if (t.push) target.push(t.push);
     if (t.stun && Math.random() < t.stun[0]) target.applyStun(t.stun[1], now);
     const pos = { x: target.x, y: target.y };
-    this.hit(merc, st, target, crit ? st.critMult : 1, crit);
+    // 기본 공격 = 관통 없는 단일 대상 (2026-11-26 사용자 결정) — 동시 공격·범위·연쇄는 피해 배율로 (스킬 피해엔 안 붙음)
+    const bm = basicMul(st.targets, st.splash, st.chain);
+    this.hit(merc, st, target, (crit ? st.critMult : 1) * bm, crit, false);
     // 암살자 8: 치명타 때 확률로 한 번 더
-    if (crit && st.critExtra && Math.random() < st.critExtra && target.alive) this.hit(merc, st, target, st.critMult, true);
+    if (crit && st.critExtra && Math.random() < st.critExtra && target.alive) this.hit(merc, st, target, st.critMult * bm, true, false);
+    // 포격수 5·8: 맞은 적에 불길 · 한 번 더(50%)
+    if (st.burn && target.alive) target.applyDot(st.damage * 0.3, st.burn, now, merc);
+    if (st.doubleBlast) this.scene.time.delayedCall(180, () => !this.scene.over && target.alive && this.hit(merc, st, target, 0.5 * bm, false, false));
     // 아이템: 쌍날 단검(2번마다 한 번 더) · 산탄 장치(주변 30px) · 불꽃 화살통(3번마다 폭발)
-    if (ix.extraEvery && (merc.attacks + 1) % ix.extraEvery === 0 && target.alive) this.hit(merc, st, target, 0.5, false);
+    if (ix.extraEvery && (merc.attacks + 1) % ix.extraEvery === 0 && target.alive) this.hit(merc, st, target, 0.5 * bm, false, false);
     if (ix.scatter) for (const o of this.scene.monsters) if (o.alive && o !== target && d2(o, pos) <= ix.scatter ** 2) this.hit(merc, st, o, 0.5, false, false);
     if (ix.burstEvery && (merc.attacks + 1) % ix.burstEvery === 0) {
       for (const o of this.scene.monsters) if (o.alive && d2(o, pos) <= 40 * 40) this.hit(merc, st, o, 0.8, false, false);
       this.scene.circleFx(pos.x, pos.y, 40, 0xd9822b);
-    }
-    if (st.splash) {
-      const blast = () => {
-        for (const o of this.scene.monsters) {
-          if (o.alive && o !== target && d2(o, pos) <= st.splash ** 2) {
-            this.hit(merc, st, o, 1, false, false);
-            if (st.burn) o.applyDot(st.damage * 0.3, st.burn, this.scene.gameTime, merc); // 포격수 5: 불길
-          }
-        }
-        this.scene.circleFx(pos.x, pos.y, st.splash, ATTR_INFO[merc.attr].color);
-      };
-      blast();
-      if (st.doubleBlast) this.scene.time.delayedCall(180, () => !this.scene.over && blast()); // 포격수 8: 두 번 터짐
     }
     // 전사 5·8: N번째 공격마다 주변 베기 (반경 44, 60% 피해)
     if (st.cleaveEvery && (merc.attacks + 1) % st.cleaveEvery === 0) {
@@ -214,11 +207,6 @@ export class Combat {
     if (st.pierce) {
       const near = this.scene.monsters.filter((o) => o.alive && o !== target && d2(o, pos) <= 56 * 56).sort((a, b) => d2(a, pos) - d2(b, pos));
       for (const o of near.slice(0, st.pierce)) this.hit(merc, st, o, 0.6, false, false);
-    }
-    if (st.chain) {
-      const chain = this.chainFrom(target, st.chain + 1);
-      this.scene.vfx.chain(chain, ATTR_INFO[merc.attr].color);
-      for (const o of chain.slice(1)) this.hit(merc, st, o, 0.6, false, false);
     }
   }
 

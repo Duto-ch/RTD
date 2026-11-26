@@ -76,6 +76,12 @@ const TRACKS = {
 
 const SHOOT_GAP = 0.045; // 같은 종류 공격음 최소 간격(초)
 const MUSIC_GAIN = 0.112; // 볼륨 100% 일 때 배경음 음량 (2026-11-22: 0.28 → 0.112 — 50% 가 예전 20% 크기, 사용자 요청)
+// 파일 배경음 (2026-11-26 사용자 결정): 스코틀랜드 민요 풍 32비트 3곡 — 60초 이음매 없는 반복 mp3 (시안·악보 docs/drafts/music/scottish/).
+// 'battle' 은 게임 진행 곡. 보스·최종 보스는 예전 합성 곡(TRACKS) 그대로. 파일을 못 읽으면 합성 곡으로 대신한다
+const FILE_TRACKS = { title: 'assets/audio/title.mp3', lobby: 'assets/audio/lobby.mp3', battle: 'assets/audio/game.mp3' };
+const FILE_FALLBACK = { lobby: 'title' };
+// 파일 곡 크기 — 같은 배경음 버스에서 예전 합성 곡(보스 곡)보다 1~2dB 작게 맞춤(은은하게, 보스 곡으로 넘어갈 때 크기가 튀지 않게). 볼륨·MUSIC_GAIN 은 그대로 받는다
+const FILE_GAIN = { title: 2, lobby: 2.6, battle: 2 };
 const SFX_GAIN = 0.48; // 볼륨 100% 일 때 효과음 음량
 const ULT_DUCK = 0.35; // 궁극기가 울리는 동안 배경음·다른 효과음 배율
 
@@ -101,6 +107,8 @@ class Chiptune {
     this.muted = load('rtd-muted', '0') === '1';
     this.musicVol = Number(load('rtd-music-vol', '0.5')); // 0~1 (기본 50%)
     this.sfxVol = Number(load('rtd-sfx-vol', '0.8'));
+    this.buffers = {}; // 파일 배경음 디코딩 결과 (이름 → AudioBuffer 약속)
+    this.fileSrc = null;
   }
 
   /** 배경음 볼륨 0~1 (저장됨) */
@@ -168,6 +176,8 @@ class Chiptune {
     vg.gain.value = 0.5;
     this.verb.connect(vg).connect(this.ultBus);
 
+    for (const k of Object.keys(FILE_TRACKS)) this.loadTrack(k).catch(() => {}); // 미리 읽어 두기 (장면이 바뀔 때 바로 나오게)
+
     if (this.wanted) this.playMusic(this.wanted, true);
   }
 
@@ -231,11 +241,21 @@ class Chiptune {
   // ── 배경음 시퀀서 ──
   playMusic(name, force = false) {
     this.wanted = name;
+    // 데스크톱(Electron) 판은 자동 재생이 허용돼 첫 클릭 전에도 바로 소리를 켠다 — 타이틀 곡이 들리게 (웹은 첫 클릭 때 main.js 가 켠다)
+    if (!this.ctx && typeof window !== 'undefined' && window.rtdNative) this.init();
     if (!this.ctx || (!force && this.track === name)) return;
     clearInterval(this.timer);
+    this.stopFile();
     this.track = name;
     if (!name) return;
+    if (FILE_TRACKS[name]) return this.playFile(name);
+    this.playSynth(name);
+  }
+
+  /** 예전 합성 곡 (16비트 풍 시퀀서) */
+  playSynth(name) {
     const tr = TRACKS[name];
+    if (!tr) return;
     this.step = 0;
     this.nextTime = this.ctx.currentTime + 0.05;
     const stepDur = 60 / tr.bpm / 2;
@@ -248,6 +268,55 @@ class Chiptune {
       }
     }, 30);
   }
+
+  /** 파일 배경음 읽기 (한 번만 받아 디코딩해 둔다) */
+  loadTrack(name) {
+    if (!this.buffers[name]) {
+      this.buffers[name] = fetch(FILE_TRACKS[name])
+        .then((r) => {
+          if (!r.ok) throw new Error(`배경음 ${name} ${r.status}`);
+          return r.arrayBuffer();
+        })
+        .then((ab) => this.ctx.decodeAudioData(ab));
+      this.buffers[name].catch(() => delete this.buffers[name]); // 실패하면 다음에 다시 시도
+    }
+    return this.buffers[name];
+  }
+
+  /** 파일 배경음 반복 재생 — 0.6초에 걸쳐 들어온다 */
+  playFile(name) {
+    this.loadTrack(name).then(
+      (buf) => {
+        if (this.track !== name || this.fileSrc) return; // 읽는 사이 다른 곡으로 바뀜
+        const t = this.ctx.currentTime;
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(FILE_GAIN[name] ?? 1, t + 0.6);
+        src.connect(g).connect(this.music);
+        src.start(t);
+        this.fileSrc = { src, g, name };
+      },
+      () => {
+        if (this.track === name) this.playSynth(FILE_FALLBACK[name] || name);
+      }
+    );
+  }
+
+  /** 파일 배경음 멈춤 — 0.4초에 걸쳐 잦아든다 */
+  stopFile() {
+    const f = this.fileSrc;
+    if (!f) return;
+    this.fileSrc = null;
+    const t = this.ctx.currentTime;
+    f.g.gain.cancelScheduledValues(t);
+    f.g.gain.setValueAtTime(f.g.gain.value, t);
+    f.g.gain.linearRampToValueAtTime(0, t + 0.4);
+    f.src.stop(t + 0.45);
+  }
+
 
   scheduleStep(tr, i, t, sd) {
     const L = tr.lead.length;

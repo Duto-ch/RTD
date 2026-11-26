@@ -151,8 +151,8 @@ describe('웨이브 규칙', () => {
     expect(variantDesign('swift', 28).id).toBe('hound');
   });
 
-  it('정비 시간 (2026-11-24 사용자 결정): 웨이브마다 시작 전 15초 · 웨이브 간격 타이머(waveDuration)는 없다 — 몬스터를 다 잡아야 끝', () => {
-    expect(BALANCE.prepTime).toBe(15);
+  it('정비 시간 (2026-11-24 사용자 결정 · 2026-11-26 30초): 웨이브마다 시작 전 30초 · 웨이브 간격 타이머(waveDuration)는 없다 — 몬스터를 다 잡아야 끝', () => {
+    expect(BALANCE.prepTime).toBe(30);
     expect(BALANCE.waveDuration).toBeUndefined();
   });
 

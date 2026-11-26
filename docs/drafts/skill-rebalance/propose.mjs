@@ -34,8 +34,8 @@ const rows = ROSTER.map((c) => {
   const dmg = st.dmg * GRADES[g].mult * (t.dmgMul || 1), rate = st.rate * (t.rateMul || 1), range = st.range * (t.rangeMul || 1);
   const bm = basicMul(t, st);
   const basic = dmg * rate * bm; // v2: 단일 대상·관통 없음 + 보상 배율
-  const mana = maxMana(st, t, c.skill), cps = rate / (mana / 10);
-  const s1 = starSkill(c.skill, 1), fx = s1.fx || {}, a = c.skill.area;
+  const mana = maxMana(st, t, c.baseSkill), cps = rate / (mana / 10);
+  const s1 = starSkill(c.baseSkill, 1), fx = s1.fx || {}, a = c.baseSkill.area;
   const wide = a && (a.type === 'range' || a.type === 'circle');
   const perTarget = (f) => (f.dmg || 0) + (f.dot ? f.dot[0] * f.dot[1] : 0);
   const nNow = est(s1.area, range), nNew = est(s1.area, range, wide ? CAP[g] : undefined);
@@ -65,7 +65,7 @@ const rows = ROSTER.map((c) => {
 const G = { 1: '커먼', 2: '언커먼', 3: '레어', 4: '유니크' };
 const AREA = (s) => s.replace(/^range/, '사거리 안 전부').replace(/^circle/, '원 r').replace(/^multi/, '여러 명 ').replace(/^chain/, '연쇄 ').replace(/^single/, '한 명');
 const med = (arr) => { const a = [...arr].sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : 0; };
-let md = `# 스킬 리밸런싱 안 v2 (2026-11-26) — 게임 미적용\n\n> v2: **기본 공격 = 관통 없는 단일 대상** (사용자 결정). 범위·동시 공격·연쇄 특성은 기본 공격 전용 피해 배율로 보상하고, 물량은 광역 스킬이 맡는다. 세기는 새 기본 공격(단일·보상 포함) 대비.\n\n`;
+let md = `# 스킬 리밸런싱 안 v2 (2026-11-26) — 2026-11-26 게임 적용 (src/data/skillTune.js, apply.mjs)\n\n> v2: **기본 공격 = 관통 없는 단일 대상** (사용자 결정). 범위·동시 공격·연쇄 특성은 기본 공격 전용 피해 배율로 보상하고, 물량은 광역 스킬이 맡는다. 세기는 새 기본 공격(단일·보상 포함) 대비.\n\n`;
 md += `**세기** = 1성 기준 '스킬이 더하는 초당 피해 ÷ 기본 공격 초당 피해'. 시전 빈도는 마나(공격마다 +10)로, 범위 스킬의 맞는 수는 길 위 몬스터 밀도 ${DENS}/px 로 추정(중반 물량 기준, ⚠️ 웨이브마다 다름). 3성은 1성의 약 2.6배.\n\n`;
 md += `## 기준\n- 기본 공격: 모두 단일 대상 · 관통(남는 피해가 옆 몬스터로) 없음 · 보상 = 동시 공격 1명당 +35% · 범위 r100당 +100%(최대 +40%) · 연쇄 1회당 +20% (기본 공격에만)\n- 목표 세기(1성, 커먼·언커먼·레어·유니크): 광역 ${Object.values(TARGET.aoe).join('·')} · 여러 명/연쇄 ${Object.values(TARGET.multi).join('·')} · 한 명 ${Object.values(TARGET.single).join('·')} (기절·감속·약화·밀치기가 있으면 ×0.8)\n- '사거리 안 전부'·원 범위 최대 대상: 커먼 ${CAP[1]} · 언커먼 ${CAP[2]} · 레어 ${CAP[3]} · 유니크 ${CAP[4]}\n- 처형 여러 명 최대: ${Object.entries(EXEC_N).map(([k, v]) => G[k] + ' ' + v).join(' · ')}\n- 팀 버프 점수 = (공격력+공속+사거리/2+치명) × 지속/8초 → 커먼 ${BUFF[1]} · 언커먼 ${BUFF[2]} · 레어 ${BUFF[3]} · 유니크 ${BUFF[4]}\n- 그대로: 마나·별 성장(1:1.6:2.6)·스킬 범위 모양·효과 종류·이펙트\n\n`;
 const dm = rows.filter((r) => r.dmgOnly);
@@ -75,7 +75,7 @@ for (const r of rows.filter((x) => x.oldBasic).sort((x, y) => y.bm - x.bm)) md +
 md += `\n## 70명 (지금 세기 순)\n\n| 캐릭터 | 등급 | 스킬 | 범위 | 세기 지금 → 안 | 바꾸는 것 |\n|---|---|---|---|---|---|\n`;
 for (const r of [...rows].sort((x, y) => y.now - x.now)) {
   const what = [...r.notes, r.buffTxt].filter(Boolean).join(' · ') || '그대로';
-  md += `| ${r.c.name} | ${G[r.g]} | ${r.c.skill.name} | ${AREA(r.area)} | ${r.dmgOnly ? `${r.now.toFixed(1)} → **${r.after.toFixed(1)}**` : '-'} | ${what} |\n`;
+  md += `| ${r.c.name} | ${G[r.g]} | ${r.c.baseSkill.name} | ${AREA(r.area)} | ${r.dmgOnly ? `${r.now.toFixed(1)} → **${r.after.toFixed(1)}**` : '-'} | ${what} |\n`;
 }
 md += `\n## 그 밖에 짚을 것\n- 관통이 없어지면 물량 처리는 광역 스킬 몫 — 광역 목표 세기를 한 명 스킬의 2배로 두고 대상 상한도 v1 보다 넓혔다 (8·10·12·15)\n- 지원·버프만 있는 11명은 피해가 기본 공격뿐이라 물량엔 약하다 — 팀 버프로 역할\n- 적용하면 A안 체력 곡선을 봇으로 다시 맞춰야 한다 (관통이 빠져 물량 처리력이 크게 바뀜)\n- 유니크 피해 스킬(라그나르·윌리엄·오베론 등)이 레어(세실리아·엘바)보다 약함 → 유니크를 올리고 레어 광역을 내림\n- 범위 기절(길버트 2초×40명, 아스타·테오도르·브륀힐드)은 보스·정예 웨이브를 통째로 묶음 → 대상 상한으로 줄임\n- 적용하려면: area 에 최대 대상 수(\`max\`) 추가 · fx.dmg/dot 계수 바꾸기 · buff 수치 바꾸기 (\`src/data/roster.js\`), 그 뒤 봇으로 확인\n`;
 writeFileSync(new URL('./PROPOSAL.md', import.meta.url), md);

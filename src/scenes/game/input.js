@@ -56,7 +56,6 @@ export class BattleInput {
     // 용병 끌기: 월드 좌표로 (포인터의 worldX 는 마지막에 맞은 카메라 좌표라 UI 위에서는 다르다 — 직접 바꾼다)
     this.scene.input.on('dragstart', (p, obj) => {
       if (!(obj instanceof Mercenary) || this.scene.over) return;
-      if (this.scene.lockedInWave('용병 배치')) return; // 배치는 정비 시간에만 (2026-11-24)
       const w = worldPoint(this.scene, p);
       obj.dragging = true;
       audio.pick();

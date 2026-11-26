@@ -42,7 +42,7 @@ export class LobbyScene extends Phaser.Scene {
     hiRes(this);
     meta.load();
     this.leaving = false;
-    audio.playMusic('title');
+    audio.playMusic('lobby'); // 영지 곡 (2026-11-26)
     // 2026-11-25 시안: 타이틀 키 아트(로고 지움)를 원본 그대로 화면 가득
     // 구름·꽃·깃발은 바람에 살짝씩 움직인다 (src/ui/lobbyWind.js)
     if (this.textures.exists('lobby_key')) this.wind = addLobbyWind(this, coverImage(this, 'lobby_key', GAME_W, GAME_H));

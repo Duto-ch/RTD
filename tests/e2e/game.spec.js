@@ -78,12 +78,15 @@ test('같은 캐릭터 3장 → 별 승급 (인원이 꽉 차도 3장째는 살 
     g.gold = 1000;
     g.shop = [0, 1, 2, 3, 4, 5].map(() => ({ id: 'helga', locked: false, sold: false }));
     g.refreshShop();
-    g.buy(0); g.buy(1);
-    g.hire('stein'); // 인원 3/3
+    g.buy(0);
+    g.hire('stein');
+    g.hire('gareth'); // 인원 3/3
     const full = g.mercs.length;
+    const second = g.buy(1); // 같은 캐릭터는 필드에 1명만 → 대기석 (2026-11-26)
+    const reserved = !!second?.reserved;
     const third = g.buy(2); // 3장째: 꽉 찼어도 별 승급이면 살 수 있다
     const helga = g.mercs.filter((m) => m.char.id === 'helga');
-    const out = { full, n: g.mercs.length, helga: helga.length, star: helga[0].star, dmg2: helga[0].def.fx?.dot?.[0] };
+    const out = { full, reserved, n: g.mercs.length, helga: helga.length, star: helga[0].star, dmg2: helga[0].def.fx?.dot?.[0], left: g.reserve.filter(Boolean).length };
     // 리롤: 잠근 칸은 남고 리롤 값이 오른다
     const before = g.rerollPrice;
     g.toggleLock(3);
@@ -98,7 +101,9 @@ test('같은 캐릭터 3장 → 별 승급 (인원이 꽉 차도 3장째는 살 
     return { ...out, from: { x: st.x, y: st.y }, cell: { col: st.col, row: st.row } };
   });
   expect(r.full).toBe(3);
-  expect(r.n).toBe(2); // 헬가 2성 1장 + 스테인
+  expect(r.reserved).toBe(true);
+  expect(r.n).toBe(3); // 헬가 2성 1장 + 스테인 + 가레스
+  expect(r.left).toBe(0); // 대기석의 헬가는 승급 재료로 들어감
   expect(r.helga).toBe(1);
   expect(r.star).toBe(2);
   expect(r.dmg2).toBeGreaterThan(0);
@@ -1114,6 +1119,35 @@ test('전용 효과음 채우기 (2026-11-24): 판매·잠금·리롤·아이템
   if (r.moved) expect(r.calls.place).toBe(1);
   expect(errors).toEqual([]);
 });
+test('배경음 = 스코틀랜드 민요 풍 파일 3곡 (2026-11-26): 영지 → 게임 진행 → 보스는 합성 곡 → 다시 게임 진행', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await settled(page, 'Title');
+  await page.waitForTimeout(300);
+  await page.mouse.click(272, 652);
+  await settled(page, 'Lobby');
+  await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'lobby', null, { timeout: 15000 });
+  const lobby = await game(page, () => {
+    const s = window.__rtd.audio.fileSrc.src;
+    return { loop: s.loop, dur: s.buffer.duration };
+  });
+  expect(lobby.loop).toBe(true);
+  expect(lobby.dur).toBeCloseTo(60, 1); // 60초 반복
+  await page.keyboard.press('Space');
+  await settled(page, 'Game');
+  await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'battle', null, { timeout: 15000 });
+  // 보스 웨이브 → 예전 합성 보스 곡 (파일 곡은 멈춤) — 같은 순간에 확인 (보스가 없으면 전투 화면이 곧 'battle' 로 되돌리므로)
+  const boss = await game(page, () => {
+    const a = window.__rtd.audio;
+    a.playMusic('boss');
+    return { file: a.fileSrc?.name || null, track: a.track };
+  });
+  expect(boss).toEqual({ file: null, track: 'boss' });
+  await game(page, () => window.__rtd.audio.playMusic('battle'));
+  await page.waitForFunction(() => window.__rtd.audio.fileSrc?.name === 'battle', null, { timeout: 15000 });
+  expect(errors).toEqual([]);
+});
 test('웨이브 끝 상점 갱신 소리 + 배경음 50% = 예전 20% 크기 (2026-11-22)', async ({ page }) => {
   const errors = await startGame(page);
   const r = await game(page, () => {
@@ -1480,7 +1514,33 @@ test('물량: 1웨이브 60기(2026-11-24 물량 배수 1.8)가 길 폭에 퍼�
   expect(errors).toEqual([]);
 });
 
-test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·아이템 장착 — 웨이브 중엔 막히고, 몬스터를 다 잡으면 다시 15초 정비 · F 로 바로 시작', async ({ page }) => {
+test('필드에는 같은 캐릭터 1명만 (2026-11-26): 두 번째는 대기석으로 · 대기석에서 필드로 끌어 올리기도 막힘 · 3장째는 별 승급', async ({ page }) => {
+  const errors = await startGame(page);
+  const r = await game(page, () => {
+    const g = window.game.scene.getScene('Game');
+    g.gold = 9999;
+    g.estate = 10; // 인원 여유
+    const id = g.deck[0];
+    const a = g.hire(id);
+    const b = g.hire(id);
+    const out = { aField: !a.reserved, bReserved: !!b.reserved, onField: g.mercs.filter((m) => m.char.id === id).length };
+    // 대기석의 b 를 빈 필드 칸으로 끌어 올리려 하면 막힌다
+    const cell = g.emptyCell(b.char);
+    const p = { x: 0, y: 0 };
+    const tx = 1920 / 2 - 2 * 56 + cell.c * 56, ty = 1080 / 2 - 2 * 56 + cell.r * 56;
+    g.handleDrop(b, tx, ty);
+    p.after = { bReserved: !!b.reserved, onField: g.mercs.filter((m) => m.char.id === id).length };
+    // 3장째 → 별 승급 (2성 하나)
+    const c = g.hire(id);
+    p.star = c?.star;
+    p.units = g.allUnits.filter((m) => m.char.id === id).length;
+    return { ...out, ...p };
+  });
+  expect(r).toMatchObject({ aField: true, bReserved: true, onField: 1, after: { bReserved: true, onField: 1 }, star: 2, units: 1 });
+  expect(errors).toEqual([]);
+});
+
+test('정비 시간 (2026-11-24 · 2026-11-26 30초): 구매는 정비 시간에만 — 웨이브 중엔 구매만 막히고 배치·아이템 장착은 됨, 몬스터를 다 잡으면 다시 30초 정비 · F 로 바로 시작', async ({ page }) => {
   const errors = await startGame(page);
   const before = await game(page, () => {
     const g = window.game.scene.getScene('Game');
@@ -1489,9 +1549,9 @@ test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·
     return { phase: g.phase, timer: g.waveTimer, bought: !!g.buy(i), label: g.hud.timerText.text };
   });
   expect(before.phase).toBe('prep');
-  expect(before.timer).toBeGreaterThan(12); // 15초에서 시작
+  expect(before.timer).toBeGreaterThan(27); // 30초에서 시작
   expect(before.bought).toBe(true);
-  expect(before.label).toMatch(/^정비 1[0-5]초$/);
+  expect(before.label).toMatch(/^정비 (2\d|30)초$/);
   // F = 바로 시작 → 웨이브
   await page.keyboard.press('f');
   const during = await game(page, () => {
@@ -1503,15 +1563,17 @@ test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·
     const m = g.mercs[0];
     const pos = { x: m.x, y: m.y };
     const r = { phase: g.phase, wave: g.wave, buy: g.buy(i), equip: g.equip(0, m), items: m.items.length, gold: g.gold === gold, label: g.hud.timerText.text, shopAlpha: g.hud.shopBox.alpha };
-    // 끌어서 옮기기도 막힌다
+    // 끌어서 옮기기는 웨이브 중에도 된다 (2026-11-26)
     g.input.emit('dragstart', g.input.activePointer, m);
     r.dragging = !!m.dragging;
+    m.dragging = false;
+    m.snapToCell();
     r.pos = Math.hypot(m.x - pos.x, m.y - pos.y);
     g.refreshHud();
     r.nextEnabled = g.hud.nextWaveBtn.enabled;
     return r;
   });
-  expect(during).toMatchObject({ phase: 'wave', wave: 1, buy: null, equip: false, items: 0, gold: true, dragging: false, pos: 0, shopAlpha: 0.55, nextEnabled: false });
+  expect(during).toMatchObject({ phase: 'wave', wave: 1, buy: null, equip: true, items: 1, gold: true, dragging: true, pos: 0, shopAlpha: 0.55, nextEnabled: false });
   expect(during.label).toMatch(/^남은 \d+기$/);
   // 30초가 지나도 다음 웨이브가 겹쳐 오지 않는다 (몬스터를 다 잡아야 끝)
   const still = await game(page, () => {
@@ -1520,7 +1582,7 @@ test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·
     return { wave: g.wave, phase: g.phase };
   });
   expect(still).toEqual({ wave: 1, phase: 'wave' });
-  // 다 잡으면 정비 시간 15초 + 상점 새로 고침 → 다시 살 수 있다
+  // 다 잡으면 정비 시간 30초 + 상점 새로 고침 → 다시 살 수 있다
   const after = await game(page, () => {
     const g = window.game.scene.getScene('Game');
     g.spawnQueue = [];
@@ -1528,9 +1590,10 @@ test('정비 시간 (2026-11-24): 웨이브 전 15초 동안만 구매·배치·
     g.cleanupMonsters();
     g.update(0, 16);
     const i = g.shop.findIndex((s) => s && !s.sold);
+    g.giveItem('lens');
     return { phase: g.phase, timer: Math.round(g.waveTimer), refreshed: g.shopRefreshed, bought: !!g.buy(i), equip: g.equip(0, g.mercs[0]) };
   });
-  expect(after).toEqual({ phase: 'prep', timer: 15, refreshed: true, bought: true, equip: true });
+  expect(after).toEqual({ phase: 'prep', timer: 30, refreshed: true, bought: true, equip: true });
   await page.waitForTimeout(300);
   await page.screenshot({ path: SHOT('31c-prep') });
   expect(errors).toEqual([]);
@@ -1693,7 +1756,7 @@ test('PC 1080p 배치 (2026-11-22): 전장은 1배(도트 2px) · UI 는 1.5배 
   // 대기석: 필드가 차면 산 용병은 오른쪽 대기석 칸 위 (월드 좌표 = UI × 1.5)
   const res = await page.evaluate(() => {
     const g = window.game.scene.getScene('Game');
-    while (g.mercs.length < g.cap) g.hire('stein');
+    for (const id of g.deck) if (g.mercs.length < g.cap && id !== 'helga' && !g.mercs.some((m) => m.char.id === id)) g.hire(id); // 필드에는 같은 캐릭터 1명만
     g.phase = 'prep'; // 구매는 정비 시간에만 (2026-11-24) — 위에서 웨이브를 시작해 두었다
     g.shop[0] = { id: 'helga', locked: false, sold: false };
     g.buy(0);
