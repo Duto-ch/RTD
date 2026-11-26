@@ -102,8 +102,7 @@ def checks(files):
     if ui and newest_mtime('ui-audit/*.png') < max(newest_mtime(f) for f in ui):
         out.append('UI(src/ui·src/scenes)가 바뀌었는데 글자 정렬 점검을 안 했다 — `node tools/ui-audit.cjs` (문제 0 + ui-audit/ 화면 눈으로 확인)')
 
-    if code and newest_mtime('test-results/screens/*.png') < newest_mtime('src/**/*') :
-        out.append('마지막 src 수정 뒤 `npm run check` 를 돌리지 않았다(테스트 화면이 더 오래됨)')
+    # 브라우저 테스트(npm run check)는 사용자가 요청할 때만 (2026-11-26 사용자 결정) — 여기서는 알리지 않는다
 
     if git('status', '--porcelain'):
         out.append('커밋 안 된 변경이 있다')
