@@ -6,7 +6,7 @@ import { GAME_W, GAME_H, PX, UI_PX, UI_SCALE, COZY, FIELD_X, FIELD_Y, FIELD_SIZE
 import { charImage } from '../objects/Mercenary.js';
 import { Button } from './Button.js';
 import { meta } from '../systems/meta.js';
-import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, tabBar, discImage, pillImage, C, CSS, ATTR_CSS_DARK } from './theme.js';
+import { panel, panelKey, panelImage, titleTab, closeButton, uiText, drawIcon, onLight, traitBadge, edgeBar, tabBar, discImage, pillImage, gradeFrame, C, CSS, ATTR_CSS_DARK } from './theme.js';
 export { traitBadge };
 import { describeSkill } from '../data/skills.js';
 import { STYLES, TRAIT_TEXT, GRADES, ROSTER_BY_ID } from '../data/roster.js';
@@ -72,6 +72,8 @@ const CARD = { ext: 48, sink: 8, lift: 3, slideMs: 110, springMs: 400 };
 const HP_LINE = 4;
 // 성벽 체력 피해 자국 (2026-11-22 사용자 요청): 줄어든 만큼 붉게 남았다가 delay 뒤 duration 동안 따라 줄어든다
 const HP_TRAIL = { color: 0xff5a4a, delay: 400, duration: 700 };
+// 체력 30% 이하: 노랑 ↔ 빨강 번갈아 깜빡임 (2026-11-25 사용자 결정, 실제 시간 ms)
+const HP_BLINK = { pct: 0.3, ms: 350 };
 
 export class Hud {
   /** @param {Phaser.Scene} scene GameScene */
@@ -269,6 +271,15 @@ export class Hud {
     this.countText.setPosition(left + hw + gap, 0);
   }
 
+  /** 체력 30% 이하 깜빡임 — GameScene.update 가 매 프레임 부른다 (바뀔 때만 다시 칠함) */
+  tickHp() {
+    const low = this.hpShown > 0 && this.hpShown <= HP_BLINK.pct;
+    const on = low && Math.floor(performance.now() / HP_BLINK.ms) % 2 === 0;
+    if (on === !!this.hpBlinkOn) return;
+    this.hpBlinkOn = on;
+    this.paintHpBar();
+  }
+
   /** 막대 칠하기: 붉은 자국(hpTrail) → 지금 체력(hpShown) → 실드 */
   paintHpBar() {
     const B = HUD.hp;
@@ -288,8 +299,8 @@ export class Hud {
       g.fillStyle(0xffffff, 0.22).fillRoundedRect(x + 4, y + 2, Math.max(0, tw - 8), Math.max(2, Math.round(ih * 0.28)), 2);
     }
     if (fill > 0) {
-      // 2026-11-25 시안(사용자 그림): 노랑 채움 + 밝은 노랑 윗줄 — 30% 이하만 빨강(위험)
-      const low = pct <= 0.3;
+      // 2026-11-25 사용자 그림: 노랑 채움 + 밝은 노랑 윗줄 — 30% 이하는 노랑 ↔ 빨강 깜빡임(tickHp)
+      const low = pct <= HP_BLINK.pct && this.hpBlinkOn;
       const w = Math.max(ih, fill); // 둥근 끝이 뭉개지지 않게 최소 높이만큼
       g.fillStyle(low ? 0xd2473a : 0xffdd4a, 1).fillRoundedRect(x, y, w, ih, ih / 2);
       g.fillStyle(low ? 0xe8766a : 0xffe47d, 1).fillRoundedRect(x + 3, y + 2, Math.max(0, w - 6), Math.max(2, Math.round(ih * 0.4)), 3);
@@ -454,14 +465,12 @@ export class Hud {
       }
       const ch = ROSTER_BY_ID[slot.id];
       const price = priceOf(ch);
-      const gc = Phaser.Display.Color.HexStringToColor(GRADES[ch.grade].color).color;
       const owned = s.mercs.filter((m) => m.char.id === ch.id).length;
       const afford = s.gold >= price;
       // 테두리 = 등급색 바깥 모양 + 안쪽 바탕 (선을 겹쳐 그리면 모서리에 틈이 생겼다, 2026-11-21)
       // 2026-11-25 시안: 아래 모서리 직각 (위만 둥글게)
-      g.fillStyle(gc, 1).fillRoundedRect(0, 0, w, h + CARD.ext, { tl: 10, tr: 10, bl: 0, br: 0 });
-      g.fillStyle(slot.locked ? 0xfff1c8 : 0xfffaf0, 1).fillRoundedRect(3, 3, w - 6, h - 6, { tl: 7, tr: 7, bl: 0, br: 0 });
-      g.fillStyle(gc, 1).fillRect(0, h - 20, w, 20 + CARD.ext); // 이름 띠가 화면 밖까지 이어진다
+      // 2026-11-25: 테두리·이름 띠 = 등급 그라데이션(위 밝게 → 아래 진하게, 보이는 높이 h 기준) · 이름 띠가 화면 밖까지 이어진다
+      c.add(gradeFrame(s, 0, 0, w, h + CARD.ext, ch.grade, { radii: { tl: 10, tr: 10, bl: 0, br: 0 }, fill: slot.locked ? '#fff1c8' : '#fffaf0', band: h - 20, gradH: h }));
       const img = charImage(s, w / 2, 32, ch);
       // 이름(왼쪽) + 가격(오른쪽)을 띠 한 줄에 나눠 — 이름이 길면 이름만 줄여 가격은 늘 보인다 (2026-11-21)
       const tc = ch.grade === 2 ? CSS.white : '#2b1d2f';

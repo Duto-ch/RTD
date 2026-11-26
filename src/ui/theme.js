@@ -158,7 +158,8 @@ const COZY_STYLES = {
   menu: { fill: '#fbf7ec', line: '#6b4e2a', lip: '#6b4e2a', r: 16, lw: 3, lipH: 3 }
 };
 // 대기석 칸 등급 테두리 (2026-11-24 사용자 요청: 상점 카드 테두리처럼) — 'soft' 칸과 같은 모양, 테두리 3 = 등급색, 안쪽 = 상점 카드 바탕 (Hud.paintReserve)
-for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, lip: null, r: 9, lw: 3 };
+// 2026-11-25: 테두리는 등급 그라데이션(위 밝게 → 아래 진하게, gradeGradient)
+for (const g of [1, 2, 3, 4]) COZY_STYLES[`grade${g}`] = { fill: '#fffaf0', line: GRADES[g].color, grade: g, lip: null, r: 9, lw: 3 };
 // 대기석 빈 칸 (2026-11-24 아래 독 탭 한 줄): 작은 칸이라 둥근 네모(반지름 9)
 COZY_STYLES.slotSq = { fill: '#f3ead2', line: '#e3d6b6', lip: null, r: 9 };
 
@@ -189,7 +190,7 @@ function cozyKey(scene, style, w, h) {
   // 예전처럼 바탕 위에 같은 반지름의 선(stroke)을 그리면 모서리에서 선이 바깥선과 어긋나고 가장자리에 바탕색이 비쳐,
   // 아래 입술과 사이에 밝은 실선·모서리 틈이 생겨 '찐빠'처럼 보였다 (2026-11-21)
   const lw = S.lw || 2;
-  ctx.fillStyle = S.line;
+  ctx.fillStyle = S.grade ? gradeGradient(ctx, S.grade, pad, pad + h) : S.line;
   shape(pad, pad, w, h);
   ctx.fill();
   ctx.fillStyle = S.fill;
@@ -250,13 +251,14 @@ export function backdropKey(scene, w, h) {
 }
 
 /** UI 글자 (픽셀 글꼴). weight: '700' / 'bold' 는 굵게 */
-// 글자 크기 한 단계 (2026-11-25 시안, 사용자 검수 대기): 본문 크기(16.5 이하)를 아래 단계로 — ?fontstep=1 로 켬
+// 글자 크기 한 단계 작게 (2026-11-25 사용자 결정: 글자 최소 10) — 본문 크기(16.5 이하)를 한 단계 아래로. ?fontstep=0 이면 예전 크기
 const FONT_STEPS = [10, 11, 12, 13, 14, 15, 16.5];
 export const FONT_STEP = (() => {
   try {
-    return Number(new URLSearchParams(globalThis.location?.search || '').get('fontstep') || 0);
+    const q = new URLSearchParams(globalThis.location?.search || '').get('fontstep');
+    return q == null ? 1 : Number(q);
   } catch {
-    return 0;
+    return 1;
   }
 })();
 function stepSize(size) {
@@ -560,6 +562,51 @@ export function shapeImage(scene, x, y, id, w, h, draw, opts = {}) {
   const R = opts.world ? RES : PANEL_RES;
   const img = scene.add.image(x, y, shapeKey(scene, id, w, h, draw, opts)).setScale(1 / R);
   img.shapeR = R;
+  return img;
+}
+
+
+// ── 등급 테두리 그라데이션 (2026-11-25 사용자 결정: 영지 마름모 버튼처럼 — 전투 상점 카드·대기석, 영지 덱 줄, 병영 카드) ──
+// 등급색(GRADES[g].color)을 위는 흰색 쪽으로, 아래는 검정 쪽으로 — 가운데가 원래 등급색
+export const GRADE_GRAD = { top: 0.3, bottom: -0.2 };
+const shadeCss = (c, t) => {
+  const f = (v) => Math.round(t > 0 ? v + (255 - v) * t : v * (1 + t));
+  return `rgb(${f((c >> 16) & 255)},${f((c >> 8) & 255)},${f(c & 255)})`;
+};
+/** 캔버스 세로 그라데이션 (y0 = 위 밝음 → y1 = 아래 진함) */
+export function gradeGradient(ctx, grade, y0, y1) {
+  const c = parseInt(GRADES[grade].color.slice(1), 16);
+  const gr = ctx.createLinearGradient(0, y0, 0, y1);
+  gr.addColorStop(0, shadeCss(c, GRADE_GRAD.top));
+  gr.addColorStop(0.5, shadeCss(c, 0));
+  gr.addColorStop(1, shadeCss(c, GRADE_GRAD.bottom));
+  return gr;
+}
+
+/**
+ * 등급 테두리 카드 그림 (바깥 모양 x, y, w, h — 왼쪽 위 기준). 테두리 lw = 등급 그라데이션, 안쪽 = fill.
+ * radii {tl,tr,bl,br} 로 모서리마다, band = 아래 등급색 띠가 시작하는 y(카드 안 좌표, 바닥까지), gradH = 그라데이션 높이(기본 h)
+ */
+export function gradeFrame(scene, x, y, w, h, grade, { r = 10, lw = 3, fill = '#fffaf0', radii = null, band = null, gradH = h } = {}) {
+  const R = radii || { tl: r, tr: r, bl: r, br: r };
+  const id = `gframe_${grade}_${w}x${h}_${lw}_${fill}_${R.tl}_${R.tr}_${R.bl}_${R.br}_${band}_${gradH}`;
+  const img = shapeImage(scene, x + w / 2, y + h / 2, id, w, h, (ctx) => {
+    ctx.translate(-w / 2, -h / 2);
+    const grad = gradeGradient(ctx, grade, 0, gradH);
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h, [R.tl, R.tr, R.br, R.bl]);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    const ir = (v) => Math.max(0, v - lw);
+    ctx.beginPath();
+    ctx.roundRect(lw, lw, w - lw * 2, h - lw * 2, [ir(R.tl), ir(R.tr), ir(R.br), ir(R.bl)]);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (band != null) {
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, band, w, h - band);
+    }
+  });
   return img;
 }
 
