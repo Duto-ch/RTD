@@ -505,12 +505,13 @@ export function screenDock(scene, y, tab, label = '', depth = 0) {
  * @param {number} y  top: 바 아래 끝 y(탭 제외) / bottom: 바 위 끝 y(탭 제외)
  * @param {{x0:number, x1:number, depth:number, slope?:number}} tab 탭 바닥(가장 튀어나온 곳)의 좌우 x · 튀어나온 깊이 · 양옆 곡선 폭
  */
+export const BAR_CORNER = 16; // 위·아래 바 화면 좌우 끝 모서리 반지름
 export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill = '#fbf7ec' } = {}) {
   const top = edge === 'top';
   const slope = tab.slope ?? 48;
   const H = top ? y + tab.depth : GAME_H - y + tab.depth; // 그림 높이 (탭 포함)
   const pad = 8; // 그림자 자리
-  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}`;
+  const id = `tabbar_${edge}_${y}_${tab.x0}_${tab.x1}_${tab.depth}_${slope}_${w}_r${BAR_CORNER}`;
   const draw = (ctx) => {
     ctx.translate(-w / 2, -(H + pad * 2) / 2 + pad);
     // 위 바 기준으로 그리고, 아래 바는 뒤집는다
@@ -521,19 +522,24 @@ export function tabBar(scene, edge, y, tab, { w = GAME_W, line = '#b8913f', fill
     const b = top ? y : GAME_H - y; // 바 두께
     const d = b + tab.depth;
     // 안쪽 가장자리: 바 끝 → 탭 왼쪽 S 곡선 → 탭 바닥 → 오른쪽 S 곡선 → 바 끝
+    // 화면 좌우 끝 모서리는 둥글게 (2026-11-25 사용자 요청: 위·아래 바 바깥쪽 모서리 라운딩)
+    const rc = Math.min(BAR_CORNER, b - 2);
     const edge = (start) => {
-      ctx[start ? 'moveTo' : 'lineTo'](-4, b);
+      ctx[start ? 'moveTo' : 'lineTo'](0, b - rc);
+      ctx.arcTo(0, b, rc, b, rc);
       ctx.lineTo(tab.x0 - slope, b);
       ctx.bezierCurveTo(tab.x0 - slope / 2, b, tab.x0 - slope / 2, d, tab.x0, d);
       ctx.lineTo(tab.x1, d);
       ctx.bezierCurveTo(tab.x1 + slope / 2, d, tab.x1 + slope / 2, b, tab.x1 + slope, b);
-      ctx.lineTo(w + 4, b);
+      ctx.lineTo(w - rc, b);
+      ctx.arcTo(w, b, w, b - rc, rc);
     };
     const outline = () => {
       ctx.beginPath();
-      ctx.moveTo(-4, -4);
+      ctx.moveTo(0, -4);
       edge(false);
-      ctx.lineTo(w + 4, -4);
+      ctx.lineTo(w, b - rc);
+      ctx.lineTo(w, -4);
       ctx.closePath();
     };
     ctx.fillStyle = fill;
