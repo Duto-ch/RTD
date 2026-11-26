@@ -2035,18 +2035,20 @@ test('2026-11-22: 시너지 아이콘에 마우스 → 이름 툴팁 · 병영 �
   await page.waitForTimeout(400);
   // 병영 시너지 필터: 전사를 누르면 전사 계열만, 다시 누르면 해제
   const all = await game(page, () => window.game.scene.getScene('Deck').visible.length);
-  await uiClick(page, 16 + 13, 136); // 시너지 필터 첫 상징 (UI 좌표)
+  // 시너지 필터 상징 자리 (UI 좌표 — 2026-11-25 병영 개편으로 줄이 올라가 실제 위치에서 읽는다)
+  const tb = await game(page, () => window.game.scene.getScene('Deck').traitBtns.slice(0, 2).map((h) => ({ x: h.x, y: h.y })));
+  await uiClick(page, tb[0].x, tb[0].y); // 첫 상징
   const r = await game(page, () => { const d = window.game.scene.getScene('Deck'); return { n: d.visible.length, ok: d.visible.every((c) => c.cls === 'warrior' || c.origin === 'warrior'), f: d.filter.trait }; });
   expect(r.f).toBe('warrior');
   expect(r.ok).toBe(true);
   expect(r.n).toBeLessThan(all);
   // 마우스를 올리면 이름 툴팁
-  await page.mouse.move((16 + 13 + 42) * UI, 136 * UI);
+  await page.mouse.move(tb[1].x * UI, tb[1].y * UI);
   const tip = await game(page, () => { const st = window.game.scene.getScene('Deck').__traitTips; return st?.tip ? st.tip.list.find((o) => o.type === 'Text').text : null; });
   expect(tip).toBe('사수 · 계열');
   await page.mouse.move(400 * UI, 700 * UI);
   expect(await game(page, () => !!window.game.scene.getScene('Deck').__traitTips?.tip)).toBe(false);
-  await uiClick(page, 16 + 13, 136);
+  await uiClick(page, tb[0].x, tb[0].y);
   expect(await game(page, () => window.game.scene.getScene('Deck').filter.trait)).toBe(null);
   // 영지 ESC 메뉴
   await game(page, () => { window.game.scene.getScene('Deck').scene.start('Lobby'); });
